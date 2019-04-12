@@ -1,0 +1,23 @@
+name: tcdock
+channels:
+ - conda-forge
+ - https://conda.anaconda.org/t/IuO94WfD-JCG/rosettacommons
+dependencies:
+ - python>=3.7
+ - pyrosetta=2018.52
+ - numpy
+ - numba
+ - pytest
+ - pytest-faulthandler
+ - sphinx_rtd_theme
+ - ipython
+ - cffi
+ - black
+ - tqdm
+ - pytest-sugar
+ - pytest-xdist
+ - pip
+ - pip:
+   - homog >= 0.1.10
+   - xbin >= 0.1.5
+   - cppimport
