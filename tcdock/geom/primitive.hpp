@@ -1,23 +1,13 @@
 #pragma once
 
-#include <Eigen/Geometry>
 #include <iostream>
 #include <vector>
+#include "tcdock/util/types.hpp"
 
 namespace tcdock {
 namespace geom {
 
-template <class F>
-using V3 = Eigen::Matrix<F, 3, 1>;  // todo: should use aligned vector3?
-template <class F>
-using M3 = Eigen::Matrix<F, 3, 3, Eigen::RowMajor>;  // to match numpy (??)
-template <class F>
-using X3 = Eigen::Transform<F, 3, Eigen::Affine, Eigen::RowMajor>;
-
-template <class F>
-F epsilon2() {
-  return std::sqrt(std::numeric_limits<F>::epsilon());
-}
+using namespace util;
 
 template <class Ary>
 auto welzl_bounding_sphere(Ary const& points) noexcept;

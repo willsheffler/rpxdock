@@ -3,7 +3,7 @@
 cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17']
 cfg['dependencies'] = ['primitive.hpp','../util/assertions.hpp',
-'../util/global_rng.hpp']
+'../util/global_rng.hpp','../util/types.hpp']
 
 setup_pybind11(cfg)
 %>
@@ -19,6 +19,7 @@ namespace py = pybind11;
 namespace rif_geom_prim_test {
 using namespace tcdock;
 using namespace tcdock::geom;
+using namespace tcdock::util;
 using tcdock::util::global_rng;
 
 template <class F>
@@ -41,7 +42,7 @@ bool geom_primitive_sphere_test(int niter) {
     Vec p2 = Vec::Random();
     Vec p3 = Vec::Random();
     Vec p4 = Vec::Random();
-    F const eps = tcdock::geom::epsilon2<F>();
+    F const eps = epsilon2<F>();
     Sph s1(p1);
     Sph s2(p1, p2);
     Sph s3(p1, p2, p3);

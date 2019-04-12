@@ -8,12 +8,14 @@
 #include <algorithm>
 #include <queue>
 
-#include "bvh_algo.hpp"
+#include "tcdock/bvh/bvh_algo.hpp"
+#include "tcdock/geom/primitive.hpp"
+#include "tcdock/util/types.hpp"
 
-#include "rif/geom/primitive.hpp"
+namespace tcdock {
+namespace bvh {
 
-namespace rif {
-namespace geom {
+using namespace geom;
 
 // internal pair class for the BVH--used instead of std::pair because of
 // alignment
@@ -97,7 +99,7 @@ class WelzlBVH {
 
   /** Given an iterator range over \a Object references, constructs the BVH,
    * overwriting whatever is in there currently.
-    * Requires that bounding_vol(Object) return a Volume. */
+   * Requires that bounding_vol(Object) return a Volume. */
   template <typename Iter>
   void init(Iter begin, Iter end) {
     init(begin, end, 0, 0);
@@ -105,7 +107,7 @@ class WelzlBVH {
 
   /** Given an iterator range over \a Object references and an iterator range
    * over their bounding vols,
-    * constructs the BVH, overwriting whatever is in there currently. */
+   * constructs the BVH, overwriting whatever is in there currently. */
   template <typename OIter, typename BIter>
   void init(OIter begin, OIter end, BIter sphbeg, BIter sphend) {
     objs.clear();
@@ -143,7 +145,7 @@ class WelzlBVH {
 
   /** Given an \a index of a node, on exit, \a vbeg and \a vend range
    * over the indices of the volume children of the node
-    * and \a obeg and \a oend range over the object children of the node
+   * and \a obeg and \a oend range over the object children of the node
    */
   EIGEN_STRONG_INLINE
   void getChildren(Index index, VolumeIterator &vbeg, VolumeIterator &vend,
@@ -271,5 +273,5 @@ class WelzlBVH {
     }
   }
 };
-}
-}
+}  // namespace bvh
+}  // namespace tcdock

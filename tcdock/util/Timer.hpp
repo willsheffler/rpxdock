@@ -3,7 +3,7 @@
 #include <chrono>
 #include <iostream>
 
-namespace rif {
+namespace tcdock {
 namespace util {
 
 /**
@@ -60,6 +60,5 @@ std::ostream& operator<<(std::ostream& out, TimerImpl<Clk> const& t) {
   return out;
 }
 typedef TimerImpl<> Timer;
-}
-}
-
+}  // namespace util
+}  // namespace tcdock

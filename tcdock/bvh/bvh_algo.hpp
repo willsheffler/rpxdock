@@ -2,8 +2,8 @@
 
 #pragma once
 
-namespace rif {
-namespace geom {
+namespace tcdock {
+namespace bvh {
 
 namespace internal {
 
@@ -72,7 +72,7 @@ struct intersector_helper2 {
   intersector_helper2 &operator=(const intersector_helper2 &);
 };
 
-}  // internal
+}  // namespace internal
 
 /**  Given a BVH, runs the query encapsulated by \a intersector.
   *  The Intersector type must provide the following members: \code
@@ -356,5 +356,5 @@ typename Minimizer::Scalar BVMinimize(const BVH1 &tree1, const BVH2 &tree2,
   return minimum;
 }
 
-}  // geom
-}  // rif
+}  // namespace bvh
+}  // namespace tcdock

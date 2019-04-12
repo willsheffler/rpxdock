@@ -1,26 +1,59 @@
-#include <gtest/gtest.h>
+/*cppimport
+<%
+cfg['include_dirs'] = ['../..','../extern']
+cfg['compiler_args'] = ['-std=c++17']
+cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
+'../util/global_rng.hpp']
+
+setup_pybind11(cfg)
+%>
+*/
+
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
+
 #include <iostream>
 #include <random>
 
 #include "tcdock/bvh/bvh.hpp"
-#include "tcdock/bvh/primitive.hpp"
-#include "tcdock/bvh/rand_geom.hpp"
-#include "tcdock/util/numeric/global_rng.hpp"
 #include "tcdock/util/Timer.hpp"
+#include "tcdock/util/assertions.hpp"
+#include "tcdock/util/global_rng.hpp"
 
 using namespace Eigen;
-using namespace rif;
-using namespace rif::geom;
-using rif::numeric::global_rng;
+using namespace tcdock;
+using namespace util;
+using namespace geom;
+using namespace bvh;
 
 using F = double;
-using Timer = util::Timer;
 
 namespace Eigen {
-auto bounding_vol(V3d v) { return Sphered(v); }
-}
+auto bounding_vol(V3<float> v) { return Sphere<float>(v); }
+auto bounding_vol(V3<double> v) { return Sphere<double>(v); }
+}  // namespace Eigen
 
 namespace rif_geom_bvh_test {
+
+template <class F, int M, int O>
+void rand_xform(std::mt19937& rng, Eigen::Transform<F, 3, M, O>& x,
+                float cart_bound = 512.0f) {
+  std::uniform_real_distribution<F> runif;
+  std::normal_distribution<F> rnorm;
+  Eigen::Quaternion<F> qrand(rnorm(rng), rnorm(rng), rnorm(rng), rnorm(rng));
+  qrand.normalize();
+  x.linear() = qrand.matrix();
+  x.translation() = V3<F>(runif(rng) * cart_bound - cart_bound / 2.0,
+                          runif(rng) * cart_bound - cart_bound / 2.0,
+                          runif(rng) * cart_bound - cart_bound / 2.0);
+}
+
+template <class F>
+X3<F> rand_xform(F cart_bound = 512.0) {
+  X3<F> x;
+  rand_xform(global_rng(), x, cart_bound);
+  return x;
+}
 
 struct PPMin {
   typedef F Scalar;
@@ -30,15 +63,15 @@ struct PPMin {
     ++calls;
     return r1.signdis(bXa * r2);
   }
-  Scalar minimumOnVolumeObject(Sphere<Scalar> r, V3d v) {
+  Scalar minimumOnVolumeObject(Sphere<Scalar> r, V3<F> v) {
     ++calls;
     return r.signdis(bXa * v);
   }
-  Scalar minimumOnObjectVolume(V3d v, Sphere<Scalar> r) {
+  Scalar minimumOnObjectVolume(V3<F> v, Sphere<Scalar> r) {
     ++calls;
     return (bXa * r).signdis(v);
   }
-  Scalar minimumOnObjectObject(V3d v1, V3d v2) {
+  Scalar minimumOnObjectObject(V3<F> v1, V3<F> v2) {
     ++calls;
     return (v1 - bXa * v2).norm();
   }
@@ -47,16 +80,16 @@ struct PPMin {
   void reset() { calls = 0; }
 };
 
-TEST(bvh, test_min) {
-  typedef std::vector<V3d, aligned_allocator<V3d> > StdVectorOfVector3d;
+bool test_bvh_test_min() {
+  typedef std::vector<V3<F>, aligned_allocator<V3<F>>> StdVectorOfVector3d;
   StdVectorOfVector3d ptsA, ptsB;
   std::uniform_real_distribution<> r(0, 1);
   std::mt19937& g(global_rng());
-  for (double dx = 0.91; dx < 1.1; dx += 0.02) {
+  for (F dx = 0.91; dx < 1.1; dx += 0.02) {
     StdVectorOfVector3d ptsA, ptsB;
     for (int i = 0; i < 100; ++i) {
-      ptsA.push_back(V3d(r(g), r(g), r(g)));
-      ptsB.push_back(V3d(r(g), r(g), r(g)) + V3d(dx, 0, 0));
+      ptsA.push_back(V3<F>(r(g), r(g), r(g)));
+      ptsB.push_back(V3<F>(r(g), r(g), r(g)) + V3<F>(dx, 0, 0));
     }
 
     // brute force
@@ -79,21 +112,23 @@ TEST(bvh, test_min) {
 
     minimizer.reset();
     auto tcreate = Timer("tc");
-    WelzlBVH<double, V3d> bvhA(ptsA.begin(), ptsA.end()),
+    WelzlBVH<F, V3<F>> bvhA(ptsA.begin(), ptsA.end()),
         bvhB(ptsB.begin(), ptsB.end());  // construct the trees
     tcreate.stop();
-    auto tvbh = Timer("tbvh");
+    auto tbvh = Timer("tbvh");
     F bvhmin = BVMinimize(bvhA, bvhB, minimizer);
-    tvbh.stop();
+    tbvh.stop();
     int bvhcalls = minimizer.calls;
 
     ASSERT_FLOAT_EQ(brutemin, bvhmin);
 
     float ratio = 1. * brutecalls / bvhcalls;
-    std::cout << "    Brute/BVH " << dx << " " << ratio << " " << brutemin
+    std::cout << "    min Brute/BVH " << dx << " " << ratio << " " << brutemin
               << " " << bvhmin << " " << brutecalls << " " << bvhcalls << " "
-              << tbrute << " " << tcreate << std::endl;
+              << tbrute << " " << tcreate << " " << tbvh << " "
+              << tbrute.elapsed() / tbvh.elapsed() << std::endl;
   }
+  return true;
 }
 
 struct PPIsect {
@@ -104,15 +139,15 @@ struct PPIsect {
     ++calls;
     return r1.signdis(bXa * r2) < radius;
   }
-  bool intersectVolumeObject(Sphere<Scalar> r, V3d v) {
+  bool intersectVolumeObject(Sphere<Scalar> r, V3<F> v) {
     ++calls;
     return r.signdis(bXa * v) < radius;
   }
-  bool intersectObjectVolume(V3d v, Sphere<Scalar> r) {
+  bool intersectObjectVolume(V3<F> v, Sphere<Scalar> r) {
     ++calls;
     return (bXa * r).signdis(v) < radius;
   }
-  bool intersectObjectObject(V3d v1, V3d v2) {
+  bool intersectObjectObject(V3<F> v1, V3<F> v2) {
     ++calls;
     bool isect = (v1 - bXa * v2).norm() < radius;
     result |= isect;
@@ -128,19 +163,19 @@ struct PPIsect {
   Xform bXa = Xform::Identity();
 };
 
-TEST(bvh, test_isect) {
-  typedef std::vector<V3d, aligned_allocator<V3d> > StdVectorOfVector3d;
+bool test_bvh_test_isect() {
+  typedef std::vector<V3<F>, aligned_allocator<V3<F>>> StdVectorOfVector3d;
   std::uniform_real_distribution<> r(0, 1);
   std::mt19937& g(global_rng());
-  double avg_ratio = 0.0;
+  F avg_ratio = 0.0;
   int niter = 0;
-  for (double dx = 0.001 + 0.95; dx < 1.05; dx += 0.005) {
+  for (F dx = 0.001 + 0.95; dx < 1.05; dx += 0.005) {
     ++niter;
 
     StdVectorOfVector3d ptsA, ptsB;
     for (int i = 0; i < 100; ++i) {
-      ptsA.push_back(V3d(r(g), r(g), r(g)));
-      ptsB.push_back(V3d(r(g), r(g), r(g)) + V3d(dx, 0, 0));
+      ptsA.push_back(V3<F>(r(g), r(g), r(g)));
+      ptsB.push_back(V3<F>(r(g), r(g), r(g)) + V3<F>(dx, 0, 0));
     }
     PPIsect query(0.1);
 
@@ -164,14 +199,13 @@ TEST(bvh, test_isect) {
 
     query.reset();
 
-    // WTF??? this does not cause the test to fail...
     auto X = rand_xform(F(999));
     for (auto& p : ptsA) p = X * p;
     query.bXa = X;  // commenting this out should fail
 
     auto tcreate = Timer("tc");
-    WelzlBVH<double, V3d> bvhA(ptsA.begin(), ptsA.end()),
-        bvhB(ptsB.begin(), ptsB.end());
+    WelzlBVH<F, V3<F>> bvhA(ptsA.begin(), ptsA.end());
+    WelzlBVH<F, V3<F>> bvhB(ptsB.begin(), ptsB.end());
     tcreate.stop();
     // std::cout << bvhA.vols[0] << std::endl;
     // std::cout << bvhB.vols[0] << std::endl;
@@ -186,11 +220,19 @@ TEST(bvh, test_isect) {
 
     float ratio = 1. * brutecalls / bvhcalls;
     avg_ratio += ratio;
-    std::cout << "    Brute/BVH " << dx << " " << ratio << " " << bruteisect
-              << " " << bvhisect << " " << brutecalls << " " << bvhcalls << " "
-              << tbrute << " " << tcreate << std::endl;
+    std::cout << "    isect Brute/BVH " << dx << " " << ratio << " "
+              << bruteisect << " " << bvhisect << " " << brutecalls << " "
+              << bvhcalls << " " << tbrute << " " << tcreate << " " << tbvh
+              << " " << tbrute.elapsed() / tbvh.elapsed() << std::endl;
   }
   avg_ratio /= niter;
   std::cout << "avg Brute/BVH " << avg_ratio << std::endl;
+  return true;
 }
+
+PYBIND11_MODULE(bvh_test, m) {
+  m.def("test_bvh_test_min", &test_bvh_test_min);
+  m.def("test_bvh_test_isect", &test_bvh_test_isect);
 }
+
+}  // namespace rif_geom_bvh_test
