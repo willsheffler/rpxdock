@@ -29,11 +29,21 @@ using namespace bvh;
 using F = double;
 
 namespace Eigen {
+template <class F>
+struct PtIdx {
+  PtIdx() : pos(0), idx(0) {}
+  PtIdx(V3<F> v, int i = 0) : pos(v), idx(i) {}
+  V3<F> pos;
+  int idx;
+};
 auto bounding_vol(V3<float> v) { return Sphere<float>(v); }
 auto bounding_vol(V3<double> v) { return Sphere<double>(v); }
+auto bounding_vol(PtIdx<float> v) { return Sphere<float>(v.pos); }
+auto bounding_vol(PtIdx<double> v) { return Sphere<double>(v.pos); }
 }  // namespace Eigen
 
-namespace rif_geom_bvh_test {
+namespace tcdock_geom_bvh_test {
+using PtIdxF = PtIdx<F>;
 
 template <class F, int M, int O>
 void rand_xform(std::mt19937& rng, Eigen::Transform<F, 3, M, O>& x,
@@ -63,17 +73,17 @@ struct PPMin {
     ++calls;
     return r1.signdis(bXa * r2);
   }
-  Scalar minimumOnVolumeObject(Sphere<Scalar> r, V3<F> v) {
+  Scalar minimumOnVolumeObject(Sphere<Scalar> r, PtIdxF v) {
     ++calls;
-    return r.signdis(bXa * v);
+    return r.signdis(bXa * v.pos);
   }
-  Scalar minimumOnObjectVolume(V3<F> v, Sphere<Scalar> r) {
+  Scalar minimumOnObjectVolume(PtIdxF v, Sphere<Scalar> r) {
     ++calls;
-    return (bXa * r).signdis(v);
+    return (bXa * r).signdis(v.pos);
   }
-  Scalar minimumOnObjectObject(V3<F> v1, V3<F> v2) {
+  Scalar minimumOnObjectObject(PtIdxF a, PtIdxF b) {
     ++calls;
-    return (v1 - bXa * v2).norm();
+    return (a.pos - bXa * b.pos).norm();
   }
   int calls = 0;
   Xform bXa = Xform::Identity();
@@ -81,15 +91,15 @@ struct PPMin {
 };
 
 bool test_bvh_test_min() {
-  typedef std::vector<V3<F>, aligned_allocator<V3<F>>> StdVectorOfVector3d;
+  typedef std::vector<PtIdxF, aligned_allocator<PtIdxF>> StdVectorOfVector3d;
   StdVectorOfVector3d ptsA, ptsB;
   std::uniform_real_distribution<> r(0, 1);
   std::mt19937& g(global_rng());
   for (F dx = 0.91; dx < 1.1; dx += 0.02) {
     StdVectorOfVector3d ptsA, ptsB;
     for (int i = 0; i < 100; ++i) {
-      ptsA.push_back(V3<F>(r(g), r(g), r(g)));
-      ptsB.push_back(V3<F>(r(g), r(g), r(g)) + V3<F>(dx, 0, 0));
+      ptsA.push_back(PtIdxF(V3<F>(r(g), r(g), r(g)), i));
+      ptsB.push_back(PtIdxF(V3<F>(r(g), r(g), r(g)) + V3<F>(dx, 0, 0), i));
     }
 
     // brute force
@@ -107,13 +117,13 @@ bool test_bvh_test_min() {
     // bvh
     // move Pa by random X, set bXa in minimizer
     auto X = rand_xform(F(999));
-    for (auto& p : ptsA) p = X * p;
+    for (auto& p : ptsA) p.pos = X * p.pos;
     minimizer.bXa = X;
 
     minimizer.reset();
     auto tcreate = Timer("tc");
-    WelzlBVH<F, V3<F>> bvhA(ptsA.begin(), ptsA.end()),
-        bvhB(ptsB.begin(), ptsB.end());  // construct the trees
+    WelzlBVH<F, PtIdxF> bvhA(ptsA.begin(), ptsA.end());
+    WelzlBVH<F, PtIdxF> bvhB(ptsB.begin(), ptsB.end());
     tcreate.stop();
     auto tbvh = Timer("tbvh");
     F bvhmin = BVMinimize(bvhA, bvhB, minimizer);
@@ -139,17 +149,17 @@ struct PPIsect {
     ++calls;
     return r1.signdis(bXa * r2) < radius;
   }
-  bool intersectVolumeObject(Sphere<Scalar> r, V3<F> v) {
+  bool intersectVolumeObject(Sphere<Scalar> r, PtIdxF v) {
     ++calls;
-    return r.signdis(bXa * v) < radius;
+    return r.signdis(bXa * v.pos) < radius;
   }
-  bool intersectObjectVolume(V3<F> v, Sphere<Scalar> r) {
+  bool intersectObjectVolume(PtIdxF v, Sphere<Scalar> r) {
     ++calls;
-    return (bXa * r).signdis(v) < radius;
+    return (bXa * r).signdis(v.pos) < radius;
   }
-  bool intersectObjectObject(V3<F> v1, V3<F> v2) {
+  bool intersectObjectObject(PtIdxF v1, PtIdxF v2) {
     ++calls;
-    bool isect = (v1 - bXa * v2).norm() < radius;
+    bool isect = (v1.pos - bXa * v2.pos).norm() < radius;
     result |= isect;
     return isect;
   }
@@ -164,7 +174,7 @@ struct PPIsect {
 };
 
 bool test_bvh_test_isect() {
-  typedef std::vector<V3<F>, aligned_allocator<V3<F>>> StdVectorOfVector3d;
+  typedef std::vector<PtIdxF, aligned_allocator<PtIdxF>> StdVectorOfVector3d;
   std::uniform_real_distribution<> r(0, 1);
   std::mt19937& g(global_rng());
   F avg_ratio = 0.0;
@@ -174,8 +184,8 @@ bool test_bvh_test_isect() {
 
     StdVectorOfVector3d ptsA, ptsB;
     for (int i = 0; i < 100; ++i) {
-      ptsA.push_back(V3<F>(r(g), r(g), r(g)));
-      ptsB.push_back(V3<F>(r(g), r(g), r(g)) + V3<F>(dx, 0, 0));
+      ptsA.push_back(PtIdxF(V3<F>(r(g), r(g), r(g)), i));
+      ptsB.push_back(PtIdxF(V3<F>(r(g), r(g), r(g)) + V3<F>(dx, 0, 0), i));
     }
     PPIsect query(0.1);
 
@@ -200,12 +210,12 @@ bool test_bvh_test_isect() {
     query.reset();
 
     auto X = rand_xform(F(999));
-    for (auto& p : ptsA) p = X * p;
+    for (auto& p : ptsA) p.pos = X * p.pos;
     query.bXa = X;  // commenting this out should fail
 
     auto tcreate = Timer("tc");
-    WelzlBVH<F, V3<F>> bvhA(ptsA.begin(), ptsA.end());
-    WelzlBVH<F, V3<F>> bvhB(ptsB.begin(), ptsB.end());
+    WelzlBVH<F, PtIdxF> bvhA(ptsA.begin(), ptsA.end());
+    WelzlBVH<F, PtIdxF> bvhB(ptsB.begin(), ptsB.end());
     tcreate.stop();
     // std::cout << bvhA.vols[0] << std::endl;
     // std::cout << bvhB.vols[0] << std::endl;
@@ -235,4 +245,4 @@ PYBIND11_MODULE(bvh_test, m) {
   m.def("test_bvh_test_isect", &test_bvh_test_isect);
 }
 
-}  // namespace rif_geom_bvh_test
+}  // namespace tcdock_geom_bvh_test
