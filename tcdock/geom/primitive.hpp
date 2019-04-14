@@ -138,7 +138,11 @@ auto welzl_bounding_sphere_impl(Ary const& points, size_t index,
   // If the selected point lies inside this sphere, it is indeed the smallest
   if (smallestSphere.contains(points[index])) return smallestSphere;
   // Otherwise, update set of support to additionally contain the new point
-  assert(numsos < 4);
+  // assert(numsos < 4);
+  if (numsos == 4) {
+    // oops, numerical errors.... go ahead with what we have
+    return smallestSphere;
+  }
   sos[numsos] = points[index];
   // Recursively compute the smallest sphere of remaining points with new s.o.s.
   return welzl_bounding_sphere_impl(points, index, sos, numsos + 1);

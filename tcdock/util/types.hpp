@@ -14,6 +14,11 @@ using X3 = Eigen::Transform<F, 3, Eigen::Affine, Eigen::RowMajor>;
 
 using V3f = V3<float>;
 using V3d = V3<double>;
+using X3f = X3<float>;
+using X3d = X3<double>;
+
+using M44f = Eigen::Matrix<float, 4, 4>;
+using M44d = Eigen::Matrix<double, 4, 4>;
 
 template <class F>
 F epsilon2() {

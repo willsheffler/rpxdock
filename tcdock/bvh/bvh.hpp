@@ -235,7 +235,8 @@ class WelzlBVH {
   // including objs[to]). This routine partitions the ocen in [from, to) along
   // the dimension dim, recursively constructs the two halves, and adds their
   // parent node.  TODO: a cache-friendlier layout
-  void build(VIPairs &ocen, int from, int to, Vols const &ovol, int dim) {
+  void build(VIPairs &ocen, int from, int to, Vols const &ovol,
+             int dim) noexcept {
     eigen_assert(to - from > 1);
     if (to - from == 2) {
       auto merge = ovol[ocen[from].second].merged(ovol[ocen[from + 1].second]);

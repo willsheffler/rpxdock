@@ -4,7 +4,7 @@ channels:
  - https://conda.anaconda.org/t/IuO94WfD-JCG/rosettacommons
 dependencies:
  - python>=3.7
- - pyrosetta=2018.52
+ # - pyrosetta=2018.52
  - numpy
  - numba
  - pytest
