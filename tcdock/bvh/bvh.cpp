@@ -1,7 +1,7 @@
 /*cppimport
 <%
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w']
+cfg['compiler_args'] = ['-std=c++17', '-w', '-O1']
 cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
 '../util/global_rng.hpp', 'bvh.hpp', 'bvh_algo.hpp']
 
@@ -49,7 +49,7 @@ using PyBVH = tcdock::bvh::WelzlBVH<float, PtIdx<float>>;
 
 namespace tcdock {
 
-PyBVH make_bvh(py::array_t<float> xyz) {
+PyBVH bvh_create(py::array_t<float> xyz) {
   py::buffer_info buf = xyz.request();
   if (buf.ndim != 2 or buf.shape[1] != 3)
     throw std::runtime_error("Shape must be (N, 3)");
@@ -97,19 +97,19 @@ struct PPMin {
   }
 };
 
-auto min_dist_bvh(PyBVH &bvh1, PyBVH &bvh2) {
+auto bvh_min_dist_fixed(PyBVH &bvh1, PyBVH &bvh2) {
   PPMin<float> minimizer;
   auto result = tcdock::bvh::BVMinimize(bvh1, bvh2, minimizer);
   return py::make_tuple(result, minimizer.idx1, minimizer.idx2);
 }
-auto min_dist_bvh_pos(PyBVH &bvh1, PyBVH &bvh2, M44f pos1, M44f pos2) {
+auto bvh_min_dist(PyBVH &bvh1, PyBVH &bvh2, M44f pos1, M44f pos2) {
   X3f x1(pos1), x2(pos2);
   PPMin<float> minimizer(x1.inverse() * x2);
   auto result = tcdock::bvh::BVMinimize(bvh1, bvh2, minimizer);
   return py::make_tuple(result, minimizer.idx1, minimizer.idx2);
 }
 
-auto min_dist_naive(PyBVH &bvh1, PyBVH &bvh2) {
+auto naive_min_dist_fixed(PyBVH &bvh1, PyBVH &bvh2) {
   double mind2 = 9e9;
   for (auto o1 : bvh1.objs) {
     for (auto o2 : bvh2.objs) {
@@ -118,7 +118,7 @@ auto min_dist_naive(PyBVH &bvh1, PyBVH &bvh2) {
   }
   return std::sqrt(mind2);
 }
-auto min_dist_naive_pos(PyBVH &bvh1, PyBVH &bvh2, M44f pos1, M44f pos2) {
+auto naive_min_dist(PyBVH &bvh1, PyBVH &bvh2, M44f pos1, M44f pos2) {
   X3f x1(pos1), x2(pos2);
   X3f pos = x1.inverse() * x2;
   double mind2 = 9e9;
@@ -156,40 +156,90 @@ struct PPIsect {
   Xform bXa = Xform::Identity();
 };
 
-auto isect_bvh(PyBVH &bvh1, PyBVH &bvh2, double thresh) {
+auto bvh_isect_fixed(PyBVH &bvh1, PyBVH &bvh2, double thresh) {
   PPIsect<float> query(thresh);
   tcdock::bvh::BVIntersect(bvh1, bvh2, query);
   return query.result;
 }
-auto isect_naive(PyBVH &bvh1, PyBVH &bvh2, double thresh) {
+auto naive_isect_fixed(PyBVH &bvh1, PyBVH &bvh2, double thresh) {
   double dist2 = thresh * thresh;
   for (auto o1 : bvh1.objs) {
     for (auto o2 : bvh2.objs) {
       auto d2 = (o1.pos - o2.pos).squaredNorm();
-      if (d2 <= dist2) return true;
+      if (d2 < dist2) return true;
     }
   }
   return false;
 }
-auto isect_bvh_pos(PyBVH &bvh1, PyBVH &bvh2, double thresh, M44f pos1,
-                   M44f pos2) {
+auto bvh_isect(PyBVH &bvh1, PyBVH &bvh2, M44f pos1, M44f pos2, double mindist) {
   X3f x1(pos1), x2(pos2);
-  PPIsect<float> query(thresh, x1.inverse() * x2);
+  PPIsect<float> query(mindist, x1.inverse() * x2);
   tcdock::bvh::BVIntersect(bvh1, bvh2, query);
   return query.result;
 }
-auto isect_naive_pos(PyBVH &bvh1, PyBVH &bvh2, double thresh, M44f pos1,
-                     M44f pos2) {
+auto naive_isect(PyBVH &bvh1, PyBVH &bvh2, M44f pos1, M44f pos2,
+                 double mindist) {
   X3f x1(pos1), x2(pos2);
   X3f pos = x1.inverse() * x2;
-  double dist2 = thresh * thresh;
+  double dist2 = mindist * mindist;
   for (auto o1 : bvh1.objs) {
     for (auto o2 : bvh2.objs) {
       auto d2 = (o1.pos - pos * o2.pos).squaredNorm();
-      if (d2 <= dist2) return true;
+      if (d2 < dist2) return true;
     }
   }
   return false;
+}
+
+template <typename F>
+struct BVMinAxis {
+  using Scalar = F;
+  using Xform = X3<F>;
+  Xform bXa = Xform::Identity();
+  F minval = 9e9;
+  F radius;
+  V3f direction;
+  BVMinAxis(V3f d, Xform x, F r) : direction(d), bXa(x), radius(r) {
+    assert(r > 0);
+    direction.normalize();
+  }
+  F minimumOnVolumeVolume(Sphere<F> r1, Sphere<F> r2) {
+    return get_slide(r1.center, bXa * r2.center, r1.radius + radius,
+                     r2.radius + radius);
+  }
+  F minimumOnVolumeObject(Sphere<F> r, PtIdx<F> v) {
+    return get_slide(r.center, bXa * v.pos, r.radius + radius, radius);
+  }
+  F minimumOnObjectVolume(PtIdx<F> v, Sphere<F> r) {
+    return get_slide(v.pos, bXa * r.center, radius, r.radius + radius);
+  }
+  F minimumOnObjectObject(PtIdx<F> a, PtIdx<F> b) {
+    // std::cout << "Obj Obj" << std::endl;
+    return get_slide(a.pos, bXa * b.pos, radius, radius);
+  }
+  F get_slide(V3f c1, V3f c2, F r1, F r2) {
+    V3f delta = c2 - c1;
+    F d0 = delta.dot(direction);
+    F dperp2 = delta.squaredNorm() - d0 * d0;
+    F target_d2 = (r1 + r2) * (r1 + r2);
+    if (target_d2 < dperp2) return 9e9;
+    F dpar = std::sqrt(target_d2 - dperp2);
+    F moveby = d0 - dpar;
+    V3f cnew = c1 + moveby * direction;
+    F dnew = (cnew - c2).norm();
+    return moveby;
+  }
+};
+
+auto bvh_slide(PyBVH &bvh1, PyBVH &bvh2, M44f pos1, M44f pos2, double radius,
+               V3f direction) {
+  X3f x1(pos1), x2(pos2);
+  X3f x1inv = x1.inverse();
+  X3f pos = x1inv * x2;
+  V3f local_dir = x1inv.rotation() * direction;
+  BVMinAxis<float> query(local_dir, pos, radius);
+  double result = tcdock::bvh::BVMinimize(bvh1, bvh2, query);
+  return result;
 }
 
 template <typename F>
@@ -217,15 +267,22 @@ struct PPCollect {
 
 PYBIND11_MODULE(bvh, m) {
   py::class_<PyBVH>(m, "WelzlBVH", py::module_local());
-  m.def("make_bvh", &make_bvh);
-  m.def("min_dist_bvh", &min_dist_bvh);
-  m.def("min_dist_bvh_pos", &min_dist_bvh_pos);
-  m.def("min_dist_naive", &min_dist_naive);
-  m.def("min_dist_naive_pos", &min_dist_naive_pos);
-  m.def("isect_bvh", &isect_bvh);
-  m.def("isect_naive", &isect_naive);
-  m.def("isect_bvh_pos", &isect_bvh_pos);
-  m.def("isect_naive_pos", &isect_naive_pos);
+  m.def("bvh_create", &bvh_create);
+
+  m.def("bvh_min_dist", &bvh_min_dist);
+  m.def("bvh_min_dist_fixed", &bvh_min_dist_fixed);
+  m.def("naive_min_dist", &naive_min_dist);
+  m.def("naive_min_dist_fixed", &naive_min_dist_fixed);
+
+  m.def("bvh_isect", &bvh_isect, "intersction test", "bvh1"_a, "bvh2"_a,
+        "pos1"_a, "pos2"_a, "mindist"_a);
+  m.def("bvh_isect_fixed", &bvh_isect_fixed);
+
+  m.def("naive_isect", &naive_isect);
+  m.def("naive_isect_fixed", &naive_isect_fixed);
+
+  m.def("bvh_slide", &bvh_slide, "slide into contact", "bvh1"_a, "bvh2"_a,
+        "pos1"_a, "pos2"_a, "radius"_a, "direction"_a);
 }
 
 }  // namespace tcdock

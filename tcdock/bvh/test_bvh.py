@@ -2,16 +2,22 @@ from time import perf_counter
 import numpy as np
 from cppimport import import_hook
 
+# import cppimport
+
+# cppimport.set_quiet(False)
+
 from tcdock.bvh import bvh_test
 from tcdock.bvh import bvh
 import homog as hm
 
 
-def test_bvh_isect():
-    # assert bvh_test.test_bvh_test_isect()
+def test_bvh_isect_cpp():
+    assert bvh_test.test_bvh_test_isect()
 
+
+def test_bvh_isect_fixed():
     print()
-    thresh = 0.01
+    mindist = 0.01
 
     totbvh, totnaive = 0, 0
 
@@ -19,19 +25,19 @@ def test_bvh_isect():
         xyz1 = np.random.rand(1000, 3).astype("f4") + [0.9, 0.9, 0]
         xyz2 = np.random.rand(1000, 3).astype("f4")
         tcre = perf_counter()
-        bvh1 = bvh.make_bvh(xyz1)
-        bvh2 = bvh.make_bvh(xyz2)
+        bvh1 = bvh.bvh_create(xyz1)
+        bvh2 = bvh.bvh_create(xyz2)
         tcre = perf_counter() - tcre
 
         pos1 = hm.htrans([0.9, 0.9, 0.9])
         pos2 = np.eye(4)
 
         tbvh = perf_counter()
-        clash1 = bvh.isect_bvh(bvh1, bvh2, thresh)
+        clash1 = bvh.bvh_isect_fixed(bvh1, bvh2, mindist)
         tbvh = perf_counter() - tbvh
 
         tn = perf_counter()
-        clash2 = bvh.isect_naive(bvh1, bvh2, thresh)
+        clash2 = bvh.naive_isect_fixed(bvh1, bvh2, mindist)
         tn = perf_counter() - tn
 
         assert clash1 == clash2
@@ -44,32 +50,33 @@ def test_bvh_isect():
     print("total times", totbvh, totnaive / totbvh, totnaive)
 
 
-def test_bvh_isect_xform():
-    # assert bvh_test.test_bvh_test_isect()
-
+def test_bvh_isect():
     print()
-    thresh = 0.02
+    mindist = 0.02
 
     totbvh, totnaive = 0, 0
 
     xyz1 = np.random.rand(1000, 3).astype("f4") - [0.5, 0.5, 0.5]
     xyz2 = np.random.rand(1000, 3).astype("f4") - [0.5, 0.5, 0.5]
     tcre = perf_counter()
-    bvh1 = bvh.make_bvh(xyz1)
-    bvh2 = bvh.make_bvh(xyz2)
+    bvh1 = bvh.bvh_create(xyz1)
+    bvh2 = bvh.bvh_create(xyz2)
     tcre = perf_counter() - tcre
 
-    for i in range(10):
+    N = 10
+    for i in range(N):
 
         pos1 = hm.rand_xform(cart_sd=0.7)
         pos2 = np.eye(4)
 
         tbvh = perf_counter()
-        clash1 = bvh.isect_bvh_pos(bvh1, bvh2, thresh, pos1, pos2)
+        clash1 = bvh.bvh_isect(
+            bvh1=bvh1, bvh2=bvh2, pos1=pos1, pos2=pos2, mindist=mindist
+        )
         tbvh = perf_counter() - tbvh
 
         tn = perf_counter()
-        clash2 = bvh.isect_naive_pos(bvh1, bvh2, thresh, pos1, pos2)
+        clash2 = bvh.naive_isect(bvh1, bvh2, pos1, pos2, mindist)
         tn = perf_counter() - tn
 
         assert clash1 == clash2
@@ -79,21 +86,30 @@ def test_bvh_isect_xform():
         totbvh += tbvh
         totnaive += tn
 
-    print("total times", totbvh, totnaive / totbvh, totnaive)
+    print(
+        "total times",
+        totbvh / N * 1000,
+        "ms",
+        totnaive / totbvh,
+        totnaive / N * 1000,
+        "ms",
+    )
 
 
-def test_bvh_min():
+def test_bvh_min_cpp():
     assert bvh_test.test_bvh_test_min()
 
+
+def test_bvh_min_dist_fixed():
     xyz1 = np.random.rand(5000, 3).astype("f4") + [0.9, 0.9, 0.0]
     xyz2 = np.random.rand(5000, 3).astype("f4")
     tcre = perf_counter()
-    bvh1 = bvh.make_bvh(xyz1)
-    bvh2 = bvh.make_bvh(xyz2)
+    bvh1 = bvh.bvh_create(xyz1)
+    bvh2 = bvh.bvh_create(xyz2)
     tcre = perf_counter() - tcre
 
     tbvh = perf_counter()
-    d, i1, i2 = bvh.min_dist_bvh(bvh1, bvh2)
+    d, i1, i2 = bvh.bvh_min_dist_fixed(bvh1, bvh2)
     tbvh = perf_counter() - tbvh
     dtest = np.linalg.norm(xyz1[i1] - xyz2[i2])
     assert np.allclose(d, dtest, atol=1e-6)
@@ -103,7 +119,7 @@ def test_bvh_min():
     # tnp = perf_counter() - tnp
 
     tn = perf_counter()
-    dn = bvh.min_dist_naive(bvh1, bvh2)
+    dn = bvh.naive_min_dist_fixed(bvh1, bvh2)
     tn = perf_counter() - tn
 
     print()
@@ -116,28 +132,29 @@ def test_bvh_min():
     assert tn / tbvh > 100
 
 
-def test_bvh_min_xform():
+def test_bvh_min_dist():
 
     xyz1 = np.random.rand(1000, 3).astype("f4") - [0.5, 0.5, 0.5]
     xyz2 = np.random.rand(1000, 3).astype("f4") - [0.5, 0.5, 0.5]
     tcre = perf_counter()
-    bvh1 = bvh.make_bvh(xyz1)
-    bvh2 = bvh.make_bvh(xyz2)
+    bvh1 = bvh.bvh_create(xyz1)
+    bvh2 = bvh.bvh_create(xyz2)
     tcre = perf_counter() - tcre
     print()
     totbvh, totnaive = 0, 0
-    for i in range(10):
-        pos1 = hm.rand_xform(cart_sd=0.7)
-        pos2 = np.eye(4)
+    N = 10
+    for i in range(N):
+        pos1 = hm.rand_xform(cart_sd=1)
+        pos2 = hm.rand_xform(cart_sd=1)
 
         tbvh = perf_counter()
-        d, i1, i2 = bvh.min_dist_bvh_pos(bvh1, bvh2, pos1, pos2)
+        d, i1, i2 = bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
         tbvh = perf_counter() - tbvh
         dtest = np.linalg.norm(pos1 @ hm.hpoint(xyz1[i1]) - pos2 @ hm.hpoint(xyz2[i2]))
         assert np.allclose(d, dtest, atol=1e-6)
 
         tn = perf_counter()
-        dn = bvh.min_dist_naive_pos(bvh1, bvh2, pos1, pos2)
+        dn = bvh.naive_min_dist(bvh1, bvh2, pos1, pos2)
         tn = perf_counter() - tn
         assert np.allclose(dn, d, atol=1e-6)
 
@@ -149,8 +166,166 @@ def test_bvh_min_xform():
         totnaive += tn
         totbvh += tbvh
 
-    print("total times", totbvh, totnaive / totbvh, totnaive, f"tcre {tcre:2.4f}")
+    print(
+        "total times",
+        totbvh / N * 1000,
+        "ms",
+        totnaive / totbvh,
+        totnaive,
+        f"tcre {tcre:2.4f}",
+    )
+
+
+def test_bvh_slide_single_inline():
+
+    bvh1 = bvh.bvh_create([[-10, 0, 0]])
+    bvh2 = bvh.bvh_create([[0, 0, 0]])
+    d = bvh.bvh_slide(bvh1, bvh2, np.eye(4), np.eye(4), radius=1.0, direction=[1, 0, 0])
+    assert d == 8
+    # moves xyz1 to -2,0,0
+
+    # should always come in from "infinity" from -direction
+    bvh1 = bvh.bvh_create([[10, 0, 0]])
+    bvh2 = bvh.bvh_create([[0, 0, 0]])
+    d = bvh.bvh_slide(bvh1, bvh2, np.eye(4), np.eye(4), radius=1.0, direction=[1, 0, 0])
+    assert d == -12
+    # also moves xyz1 to -2,0,0
+
+    for i in range(100):
+        np.random.seed(i)
+        dirn = np.array([np.random.randn(), 0, 0])
+        dirn /= np.linalg.norm(dirn)
+        rad = np.abs(np.random.randn() / 10)
+        xyz1 = np.array([[np.random.randn(), 0, 0]])
+        xyz2 = np.array([[np.random.randn(), 0, 0]])
+        bvh1 = bvh.bvh_create(xyz1)
+        bvh2 = bvh.bvh_create(xyz2)
+        d = bvh.bvh_slide(bvh1, bvh2, np.eye(4), np.eye(4), radius=rad, direction=dirn)
+        xyz1 += d * dirn
+        assert np.allclose(np.linalg.norm(xyz1 - xyz2), 2 * rad, atol=1e-4)
+
+
+def test_bvh_slide_single():
+
+    nmiss = 0
+    for i in range(100):
+        # np.random.seed(i)
+        dirn = np.random.randn(3)
+        dirn /= np.linalg.norm(dirn)
+        rad = np.abs(np.random.randn())
+        xyz1 = np.random.randn(1, 3)
+        xyz2 = np.random.randn(1, 3)
+        bvh1 = bvh.bvh_create(xyz1)
+        bvh2 = bvh.bvh_create(xyz2)
+        d = bvh.bvh_slide(bvh1, bvh2, np.eye(4), np.eye(4), radius=rad, direction=dirn)
+        if d < 9e8:
+            xyz1 += d * dirn
+            assert np.allclose(np.linalg.norm(xyz1 - xyz2), 2 * rad, atol=1e-4)
+        else:
+            nmiss += 1
+            delta = xyz2 - xyz1
+            d0 = delta.dot(dirn)
+            dperp2 = np.sum(delta * delta) - d0 * d0
+            target_d2 = 4 * rad ** 2
+            assert target_d2 < dperp2
+    print("nmiss", nmiss, nmiss / 1000)
+
+
+def test_bvh_slide_single_xform():
+
+    nmiss = 0
+    for i in range(1000):
+        dirn = np.random.randn(3)
+        dirn /= np.linalg.norm(dirn)
+        rad = np.abs(np.random.randn() * 2.0)
+        xyz1 = np.random.randn(1, 3)
+        xyz2 = np.random.randn(1, 3)
+        bvh1 = bvh.bvh_create(xyz1)
+        bvh2 = bvh.bvh_create(xyz2)
+        pos1 = hm.rand_xform()
+        pos2 = hm.rand_xform()
+        d = bvh.bvh_slide(bvh1, bvh2, pos1, pos2, radius=rad, direction=dirn)
+        if d < 9e8:
+            p1 = (pos1 @ hm.hpoint(xyz1[0]))[:3] + d * dirn
+            p2 = (pos2 @ hm.hpoint(xyz2[0]))[:3]
+            assert np.allclose(np.linalg.norm(p1 - p2), 2 * rad, atol=1e-4)
+        else:
+            nmiss += 1
+            p2 = pos2 @ hm.hpoint(xyz2[0])
+            p1 = pos1 @ hm.hpoint(xyz1[0])
+            delta = p2 - p1
+            d0 = delta[:3].dot(dirn)
+            dperp2 = np.sum(delta * delta) - d0 * d0
+            target_d2 = 4 * rad ** 2
+            assert target_d2 < dperp2
+    print("nmiss", nmiss, nmiss / 1000)
+
+
+def test_bvh_slide_whole():
+
+    np.random.seed(0)
+
+    dirn = np.array([1.0, 0, 0])
+    dirn = np.random.randn(3)
+    dirn /= np.linalg.norm(dirn)
+    radius = 0.1
+    xyz1 = np.random.rand(5000, 3).astype("f4") - [0.5, 0.5, 0.5]
+    xyz2 = np.random.rand(5000, 3).astype("f4") - [0.5, 0.5, 0.5]
+    tcre = perf_counter()
+    bvh1 = bvh.bvh_create(xyz1)
+    bvh2 = bvh.bvh_create(xyz2)
+    tcre = perf_counter() - tcre
+    print()
+    totbvh, totmin = 0, 0
+    N = 100
+    nmiss = 0
+    for i in range(N):
+
+        pos1 = hm.rand_xform(cart_sd=1)
+        pos2 = hm.rand_xform(cart_sd=1)
+
+        tbvh = perf_counter()
+        dslide = bvh.bvh_slide(bvh1, bvh2, pos1, pos2, radius, dirn)
+
+        # print("slide test", dslide)
+        p1 = hm.htrans(dirn * dslide) @ pos1 @ hm.hpoint(xyz1[0])
+        p2 = pos2 @ hm.hpoint(xyz2[0])
+        # print("should be 1", np.linalg.norm(p1 - p2))
+
+        tbvh = perf_counter() - tbvh
+
+        tn = perf_counter()
+        if dslide > 9e8:
+            dn, i, j = bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
+            assert dn > 2 * radius
+            nmiss += 1
+        else:
+            pos1 = hm.htrans(dirn * dslide) @ pos1
+            dn, i, j = bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
+            print(dn, 2 * radius)
+            assert np.allclose(dn, 2 * radius, atol=1e-4)
+        tn = perf_counter() - tn
+
+        print(
+            f"tnaivecpp {tn:1.6f} tbvh {tbvh:1.6f} tcpp/tbvh {tn/tbvh:8.1f}",
+            np.linalg.norm(pos1[:3, 3]),
+            dslide,
+        )
+        totmin += tn
+        totbvh += tbvh
+
+    print(
+        "total times",
+        totbvh / N * 1000,
+        "ms tslide/tmindist",
+        totmin / totbvh,
+        totmin / N * 1000,
+        "ms",
+        nmiss / N,
+    )
 
 
 if __name__ == "__main__":
-    test_bvh_isect_xform()
+    # test_bvh_min_dist()
+    # test_bvh_isect()
+    test_bvh_slide_whole()
