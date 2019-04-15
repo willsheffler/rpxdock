@@ -1,7 +1,7 @@
 /*cppimport
 <%
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17']
+cfg['compiler_args'] = ['-std=c++17', '-Ofast']
 cfg['dependencies'] = ['primitive.hpp','../util/assertions.hpp',
 '../util/global_rng.hpp','../util/types.hpp']
 
@@ -47,10 +47,10 @@ bool geom_primitive_sphere_test(int niter) {
     Sph s2(p1, p2);
     Sph s3(p1, p2, p3);
     Sph s4(p1, p2, p3, p4);
-    s1.radius -= eps;
-    s2.radius -= eps;
-    s3.radius -= eps;
-    s4.radius -= eps;
+    s1.rad -= eps;
+    s2.rad -= eps;
+    s3.rad -= eps;
+    s4.rad -= eps;
 
     // check on boundary
     ASSERT_LE(fabs(s1.signdis(p1)), eps);
@@ -72,9 +72,9 @@ bool geom_primitive_sphere_test(int niter) {
       ASSERT_EQ(s3.merged(s4), s4.merged(s3));
       ASSERT_TRUE(sm.contains(s3));
       ASSERT_TRUE(sm.contains(s4));
-      V dir = (s4.center - s3.center).normalized();
-      ASSERT_FALSE(sm.contains(s4.center + dir * (s4.radius + 0.01)));
-      ASSERT_FALSE(sm.contains(s3.center - dir * (s4.radius + 0.01)));
+      V dir = (s4.cen - s3.cen).normalized();
+      ASSERT_FALSE(sm.contains(s4.cen + dir * (s4.rad + 0.01)));
+      ASSERT_FALSE(sm.contains(s3.cen - dir * (s4.rad + 0.01)));
     }
   }
   return true;
@@ -99,8 +99,8 @@ bool geom_primitive_welzl_test(size_t Ntest, size_t Npoints) {
     for (size_t k = 0; k < Npoints; ++k) points.push_back(10 * Vec::Random());
     Sph aprox_bv = central_bounding_sphere(points);
     Sph welzl_bv = welzl_bounding_sphere(points);
-    ASSERT_GE(aprox_bv.radius, welzl_bv.radius);
-    F ratio = aprox_bv.radius / welzl_bv.radius;
+    ASSERT_GE(aprox_bv.rad, welzl_bv.rad);
+    F ratio = aprox_bv.rad / welzl_bv.rad;
     avgvolratio += ratio * ratio * ratio;
     for (size_t k = 0; k < points.size(); ++k) {
       ASSERT_LE(welzl_bv.signdis2(points[k]), eps);

@@ -176,14 +176,14 @@ def test_bvh_slide_single_inline():
 
     bvh1 = bvh.bvh_create([[-10, 0, 0]])
     bvh2 = bvh.bvh_create([[0, 0, 0]])
-    d = bvh.bvh_slide(bvh1, bvh2, np.eye(4), np.eye(4), radius=1.0, direction=[1, 0, 0])
+    d = bvh.bvh_slide(bvh1, bvh2, np.eye(4), np.eye(4), rad=1.0, dirn=[1, 0, 0])
     assert d == 8
     # moves xyz1 to -2,0,0
 
     # should always come in from "infinity" from -direction
     bvh1 = bvh.bvh_create([[10, 0, 0]])
     bvh2 = bvh.bvh_create([[0, 0, 0]])
-    d = bvh.bvh_slide(bvh1, bvh2, np.eye(4), np.eye(4), radius=1.0, direction=[1, 0, 0])
+    d = bvh.bvh_slide(bvh1, bvh2, np.eye(4), np.eye(4), rad=1.0, dirn=[1, 0, 0])
     assert d == -12
     # also moves xyz1 to -2,0,0
 
@@ -196,7 +196,7 @@ def test_bvh_slide_single_inline():
         xyz2 = np.array([[np.random.randn(), 0, 0]])
         bvh1 = bvh.bvh_create(xyz1)
         bvh2 = bvh.bvh_create(xyz2)
-        d = bvh.bvh_slide(bvh1, bvh2, np.eye(4), np.eye(4), radius=rad, direction=dirn)
+        d = bvh.bvh_slide(bvh1, bvh2, np.eye(4), np.eye(4), rad=rad, dirn=dirn)
         xyz1 += d * dirn
         assert np.allclose(np.linalg.norm(xyz1 - xyz2), 2 * rad, atol=1e-4)
 
@@ -213,7 +213,7 @@ def test_bvh_slide_single():
         xyz2 = np.random.randn(1, 3)
         bvh1 = bvh.bvh_create(xyz1)
         bvh2 = bvh.bvh_create(xyz2)
-        d = bvh.bvh_slide(bvh1, bvh2, np.eye(4), np.eye(4), radius=rad, direction=dirn)
+        d = bvh.bvh_slide(bvh1, bvh2, np.eye(4), np.eye(4), rad=rad, dirn=dirn)
         if d < 9e8:
             xyz1 += d * dirn
             assert np.allclose(np.linalg.norm(xyz1 - xyz2), 2 * rad, atol=1e-4)
@@ -240,7 +240,7 @@ def test_bvh_slide_single_xform():
         bvh2 = bvh.bvh_create(xyz2)
         pos1 = hm.rand_xform()
         pos2 = hm.rand_xform()
-        d = bvh.bvh_slide(bvh1, bvh2, pos1, pos2, radius=rad, direction=dirn)
+        d = bvh.bvh_slide(bvh1, bvh2, pos1, pos2, rad=rad, dirn=dirn)
         if d < 9e8:
             p1 = (pos1 @ hm.hpoint(xyz1[0]))[:3] + d * dirn
             p2 = (pos2 @ hm.hpoint(xyz2[0]))[:3]
@@ -263,7 +263,7 @@ def test_bvh_slide_whole():
     # slide test 10,000 iter bvhslide float: 16,934/s double: 16,491/s bvhmin 17,968/s fracmiss: 0.0834
 
     # np.random.seed(0)
-    N1, N2 = 10, 100
+    N1, N2 = 1, 100
     totbvh, totbvhf, totmin = 0, 0, 0
     nmiss = 0
     for j in range(N1):
