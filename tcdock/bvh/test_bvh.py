@@ -22,8 +22,8 @@ def test_bvh_isect_fixed():
     totbvh, totnaive = 0, 0
 
     for i in range(10):
-        xyz1 = np.random.rand(1000, 3).astype("f4") + [0.9, 0.9, 0]
-        xyz2 = np.random.rand(1000, 3).astype("f4")
+        xyz1 = np.random.rand(1000, 3) + [0.9, 0.9, 0]
+        xyz2 = np.random.rand(1000, 3)
         tcre = perf_counter()
         bvh1 = bvh.bvh_create(xyz1)
         bvh2 = bvh.bvh_create(xyz2)
@@ -56,8 +56,8 @@ def test_bvh_isect():
 
     totbvh, totnaive = 0, 0
 
-    xyz1 = np.random.rand(1000, 3).astype("f4") - [0.5, 0.5, 0.5]
-    xyz2 = np.random.rand(1000, 3).astype("f4") - [0.5, 0.5, 0.5]
+    xyz1 = np.random.rand(1000, 3) - [0.5, 0.5, 0.5]
+    xyz2 = np.random.rand(1000, 3) - [0.5, 0.5, 0.5]
     tcre = perf_counter()
     bvh1 = bvh.bvh_create(xyz1)
     bvh2 = bvh.bvh_create(xyz2)
@@ -67,7 +67,7 @@ def test_bvh_isect():
     for i in range(N):
 
         pos1 = hm.rand_xform(cart_sd=0.7)
-        pos2 = np.eye(4)
+        pos2 = hm.rand_xform(cart_sd=0.7)
 
         tbvh = perf_counter()
         clash1 = bvh.bvh_isect(
@@ -87,22 +87,18 @@ def test_bvh_isect():
         totnaive += tn
 
     print(
-        "total times",
-        totbvh / N * 1000,
-        "ms",
-        totnaive / totbvh,
-        totnaive / N * 1000,
-        "ms",
+        f"iscet {N:,} iter bvh: {int(N/totbvh):,}/s fastnaive {int(N/totnaive):,}/s",
+        f"ratio {int(totnaive/totbvh):,}x",
     )
 
 
-def test_bvh_min_cpp():
+def test_bvhf_min_cpp():
     assert bvh_test.test_bvh_test_min()
 
 
 def test_bvh_min_dist_fixed():
-    xyz1 = np.random.rand(5000, 3).astype("f4") + [0.9, 0.9, 0.0]
-    xyz2 = np.random.rand(5000, 3).astype("f4")
+    xyz1 = np.random.rand(5000, 3) + [0.9, 0.9, 0.0]
+    xyz2 = np.random.rand(5000, 3)
     tcre = perf_counter()
     bvh1 = bvh.bvh_create(xyz1)
     bvh2 = bvh.bvh_create(xyz2)
@@ -134,8 +130,8 @@ def test_bvh_min_dist_fixed():
 
 def test_bvh_min_dist():
 
-    xyz1 = np.random.rand(1000, 3).astype("f4") - [0.5, 0.5, 0.5]
-    xyz2 = np.random.rand(1000, 3).astype("f4") - [0.5, 0.5, 0.5]
+    xyz1 = np.random.rand(1000, 3) - [0.5, 0.5, 0.5]
+    xyz2 = np.random.rand(1000, 3) - [0.5, 0.5, 0.5]
     tcre = perf_counter()
     bvh1 = bvh.bvh_create(xyz1)
     bvh2 = bvh.bvh_create(xyz2)
@@ -263,65 +259,65 @@ def test_bvh_slide_single_xform():
 
 def test_bvh_slide_whole():
 
-    np.random.seed(0)
+    # timings wtih -Ofast
+    # slide test 10,000 iter bvhslide float: 16,934/s double: 16,491/s bvhmin 17,968/s fracmiss: 0.0834
 
-    dirn = np.array([1.0, 0, 0])
-    dirn = np.random.randn(3)
-    dirn /= np.linalg.norm(dirn)
-    radius = 0.1
-    xyz1 = np.random.rand(5000, 3).astype("f4") - [0.5, 0.5, 0.5]
-    xyz2 = np.random.rand(5000, 3).astype("f4") - [0.5, 0.5, 0.5]
-    tcre = perf_counter()
-    bvh1 = bvh.bvh_create(xyz1)
-    bvh2 = bvh.bvh_create(xyz2)
-    tcre = perf_counter() - tcre
-    print()
-    totbvh, totmin = 0, 0
-    N = 100
+    # np.random.seed(0)
+    N1, N2 = 10, 100
+    totbvh, totbvhf, totmin = 0, 0, 0
     nmiss = 0
-    for i in range(N):
+    for j in range(N1):
+        xyz1 = np.random.rand(5000, 3) - [0.5, 0.5, 0.5]
+        xyz2 = np.random.rand(5000, 3) - [0.5, 0.5, 0.5]
+        # tcre = perf_counter()
+        bvh1 = bvh.bvh_create(xyz1)
+        bvh2 = bvh.bvh_create(xyz2)
+        bvh1f = bvh.bvh_create_32bit(xyz1)
+        bvh2f = bvh.bvh_create_32bit(xyz2)
+        # tcre = perf_counter() - tcre
+        for i in range(N2):
+            dirn = np.random.randn(3)
+            dirn /= np.linalg.norm(dirn)
+            radius = 0.001 + np.random.rand() / 10
+            pos1 = hm.rand_xform(cart_sd=0.5)
+            pos2 = hm.rand_xform(cart_sd=0.5)
 
-        pos1 = hm.rand_xform(cart_sd=1)
-        pos2 = hm.rand_xform(cart_sd=1)
+            tbvh = perf_counter()
+            dslide = bvh.bvh_slide(bvh1, bvh2, pos1, pos2, radius, dirn)
+            tbvh = perf_counter() - tbvh
+            tbvhf = perf_counter()
+            # dslide = bvh.bvh_slide_32bit(bvh1f, bvh2f, pos1, pos2, radius, dirn)
+            tbvhf = perf_counter() - tbvhf
 
-        tbvh = perf_counter()
-        dslide = bvh.bvh_slide(bvh1, bvh2, pos1, pos2, radius, dirn)
+            if dslide > 9e8:
+                tn = perf_counter()
+                dn, i, j = bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
+                tn = perf_counter() - tn
+                assert dn > 2 * radius
+                nmiss += 1
+            else:
+                pos1 = hm.htrans(dirn * dslide) @ pos1
+                tn = perf_counter()
+                dn, i, j = bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
+                tn = perf_counter() - tn
+                if not np.allclose(dn, 2 * radius, atol=1e-6):
+                    print(dn, 2 * radius)
+                assert np.allclose(dn, 2 * radius, atol=1e-6)
 
-        # print("slide test", dslide)
-        p1 = hm.htrans(dirn * dslide) @ pos1 @ hm.hpoint(xyz1[0])
-        p2 = pos2 @ hm.hpoint(xyz2[0])
-        # print("should be 1", np.linalg.norm(p1 - p2))
-
-        tbvh = perf_counter() - tbvh
-
-        tn = perf_counter()
-        if dslide > 9e8:
-            dn, i, j = bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
-            assert dn > 2 * radius
-            nmiss += 1
-        else:
-            pos1 = hm.htrans(dirn * dslide) @ pos1
-            dn, i, j = bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
-            print(dn, 2 * radius)
-            assert np.allclose(dn, 2 * radius, atol=1e-4)
-        tn = perf_counter() - tn
-
-        print(
-            f"tnaivecpp {tn:1.6f} tbvh {tbvh:1.6f} tcpp/tbvh {tn/tbvh:8.1f}",
-            np.linalg.norm(pos1[:3, 3]),
-            dslide,
-        )
-        totmin += tn
-        totbvh += tbvh
-
+            # print(
+            # i,
+            # f"tnaivecpp {tn:1.6f} tbvh {tbvh:1.6f} tcpp/tbvh {tn/tbvh:8.1f}",
+            # np.linalg.norm(pos1[:3, 3]),
+            # dslide,
+            # )
+            totmin += tn
+            totbvh += tbvh
+            totbvhf += tbvhf
+    N = N1 * N2
     print(
-        "total times",
-        totbvh / N * 1000,
-        "ms tslide/tmindist",
-        totmin / totbvh,
-        totmin / N * 1000,
-        "ms",
-        nmiss / N,
+        f"slide test {N:,} iter bvhslide double: {int(N/totbvh):,}/s bvhmin {int(N/totmin):,}/s",
+        # f"slide test {N:,} iter bvhslide float: {int(N/totbvhf):,}/s double: {int(N/totbvh):,}/s bvhmin {int(N/totmin):,}/s",
+        f"fracmiss: {nmiss/N}",
     )
 
 

@@ -130,7 +130,7 @@ class WelzlBVH {
     vols.reserve(n - 1);
     child.reserve(2 * n - 2);
 
-    for (int i = 0; i < n; ++i) ocen.push_back(VIPair(ovol[i].center, i));
+    for (int i = 0; i < n; ++i) ocen.push_back(VIPair(ovol[i].cen, i));
 
     // the recursive part of the algorithm
     build(ocen, 0, n, ovol, 0);
@@ -209,7 +209,7 @@ class WelzlBVH {
   //     if (subleaf.size() > 2) {
   //       auto welzl = welzl_bounding_sphere(subleaf);
   //       // few pathological cases w/n=3
-  //       if (welzl.radius < vols[i].radius) vols[i] = welzl;
+  //       if (welzl.rad < vols[i].rad) vols[i] = welzl;
   //     }
   //   }
   // }
@@ -253,7 +253,7 @@ class WelzlBVH {
       int idx1 = (int)vols.size() - 1;
       auto merge = vols[idx1].merged(ovol[ocen[mid].second]);
       auto welzl = welzl_bounding_sphere(subtree_objs);
-      vols.push_back(welzl.radius < merge.radius ? welzl : merge);
+      vols.push_back(welzl.rad < merge.rad ? welzl : merge);
       child.push_back(idx1);
       child.push_back(mid + (int)objs.size() - 1);
     } else {
@@ -268,7 +268,7 @@ class WelzlBVH {
       int idx2 = (int)vols.size() - 1;
       auto merge = vols[idx1].merged(vols[idx2]);
       auto welzl = welzl_bounding_sphere(subtree_objs);
-      vols.push_back(welzl.radius < merge.radius ? welzl : merge);
+      vols.push_back(welzl.rad < merge.rad ? welzl : merge);
       child.push_back(idx1);
       child.push_back(idx2);
     }

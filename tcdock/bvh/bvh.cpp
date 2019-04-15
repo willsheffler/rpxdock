@@ -1,9 +1,9 @@
 /*cppimport
 <%
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w', '-O1']
+cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
-'../util/global_rng.hpp', 'bvh.hpp', 'bvh_algo.hpp']
+'../util/global_rng.hpp', 'bvh.hpp', 'bvh_algo.hpp', '../util/numeric.hpp']
 
 setup_pybind11(cfg)
 %>
@@ -18,6 +18,7 @@ setup_pybind11(cfg)
 #include "tcdock/util/Timer.hpp"
 #include "tcdock/util/assertions.hpp"
 #include "tcdock/util/global_rng.hpp"
+#include "tcdock/util/numeric.hpp"
 #include "tcdock/util/types.hpp"
 
 using namespace pybind11::literals;
@@ -45,36 +46,39 @@ auto bounding_vol(PtIdx<float> v) { return Sphere<float>(v.pos); }
 auto bounding_vol(PtIdx<double> v) { return Sphere<double>(v.pos); }
 }  // namespace Eigen
 
-using PyBVH = tcdock::bvh::WelzlBVH<float, PtIdx<float>>;
+template <typename F>
+using BVH = tcdock::bvh::WelzlBVH<F, PtIdx<F>>;
+using BVHf = BVH<float>;
+using BVHd = BVH<double>;
 
 namespace tcdock {
-
-PyBVH bvh_create(py::array_t<float> xyz) {
+template <typename F>
+BVH<F> bvh_create(py::array_t<F> xyz) {
   py::buffer_info buf = xyz.request();
   if (buf.ndim != 2 or buf.shape[1] != 3)
     throw std::runtime_error("Shape must be (N, 3)");
-  float *ptr = (float *)buf.ptr;
+  F *ptr = (F *)buf.ptr;
 
-  typedef std::vector<PtIdx<float>, aligned_allocator<PtIdx<float>>> Holder;
+  typedef std::vector<PtIdx<F>, aligned_allocator<PtIdx<F>>> Holder;
   Holder holder;
   for (int i = 0; i < buf.shape[0]; ++i) {
-    float x = ptr[3 * i + 0];
-    float y = ptr[3 * i + 1];
-    float z = ptr[3 * i + 2];
+    F x = ptr[3 * i + 0];
+    F y = ptr[3 * i + 1];
+    F z = ptr[3 * i + 2];
     // std::cout << "add point " << x << " " << y << " " << z << std::endl;
-    holder.push_back(PtIdx<float>(V3<float>(x, y, z), i));
+    holder.push_back(PtIdx<F>(V3<F>(x, y, z), i));
   }
-  return PyBVH(holder.begin(), holder.end());
+  return BVH<F>(holder.begin(), holder.end());
 }
 
 template <typename F>
-struct PPMin {
+struct BVHMinDistQuery {
   using Scalar = F;
   using Xform = X3<F>;
   int idx1 = -1, idx2 = -1;
   Xform bXa = Xform::Identity();
-  float minval = 9e9;
-  PPMin(Xform x = Xform::Identity()) : bXa(x) {}
+  F minval = 9e9;
+  BVHMinDistQuery(Xform x = Xform::Identity()) : bXa(x) {}
   F minimumOnVolumeVolume(Sphere<F> r1, Sphere<F> r2) {
     return r1.signdis(bXa * r2);
   }
@@ -97,72 +101,76 @@ struct PPMin {
   }
 };
 
-auto bvh_min_dist_fixed(PyBVH &bvh1, PyBVH &bvh2) {
-  PPMin<float> minimizer;
+template <typename F>
+py::tuple bvh_min_dist_fixed(BVH<F> &bvh1, BVH<F> &bvh2) {
+  BVHMinDistQuery<F> minimizer;
   auto result = tcdock::bvh::BVMinimize(bvh1, bvh2, minimizer);
   return py::make_tuple(result, minimizer.idx1, minimizer.idx2);
 }
-auto bvh_min_dist(PyBVH &bvh1, PyBVH &bvh2, M44f pos1, M44f pos2) {
-  X3f x1(pos1), x2(pos2);
-  PPMin<float> minimizer(x1.inverse() * x2);
+template <typename F>
+py::tuple bvh_min_dist(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2) {
+  X3<F> x1(pos1), x2(pos2);
+  BVHMinDistQuery<F> minimizer(x1.inverse() * x2);
   auto result = tcdock::bvh::BVMinimize(bvh1, bvh2, minimizer);
   return py::make_tuple(result, minimizer.idx1, minimizer.idx2);
 }
-
-auto naive_min_dist_fixed(PyBVH &bvh1, PyBVH &bvh2) {
-  double mind2 = 9e9;
+template <typename F>
+F naive_min_dist_fixed(BVH<F> &bvh1, BVH<F> &bvh2) {
+  F mind2 = 9e9;
   for (auto o1 : bvh1.objs) {
     for (auto o2 : bvh2.objs) {
-      mind2 = std::min<double>(mind2, (o1.pos - o2.pos).squaredNorm());
+      mind2 = std::min<F>(mind2, (o1.pos - o2.pos).squaredNorm());
     }
   }
   return std::sqrt(mind2);
 }
-auto naive_min_dist(PyBVH &bvh1, PyBVH &bvh2, M44f pos1, M44f pos2) {
-  X3f x1(pos1), x2(pos2);
-  X3f pos = x1.inverse() * x2;
-  double mind2 = 9e9;
+template <typename F>
+F naive_min_dist(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2) {
+  X3<F> x1(pos1), x2(pos2);
+  X3<F> pos = x1.inverse() * x2;
+  F mind2 = 9e9;
   for (auto o1 : bvh1.objs) {
     for (auto o2 : bvh2.objs) {
-      mind2 = std::min<double>(mind2, (o1.pos - pos * o2.pos).squaredNorm());
+      mind2 = std::min<F>(mind2, (o1.pos - pos * o2.pos).squaredNorm());
     }
   }
   return std::sqrt(mind2);
 }
 
 template <typename F>
-struct PPIsect {
+struct BVHIsectQuery {
   using Scalar = F;
   using Xform = X3<F>;
-  PPIsect(F r, Xform x = Xform::Identity())
-      : radius(r), radius2(r * r), bXa(x) {}
+  BVHIsectQuery(F r, Xform x = Xform::Identity())
+      : rad(r), rad2(r * r), bXa(x) {}
   bool intersectVolumeVolume(Sphere<F> r1, Sphere<F> r2) {
-    return r1.signdis(bXa * r2) < radius;
+    return r1.signdis(bXa * r2) < rad;
   }
   bool intersectVolumeObject(Sphere<F> r, PtIdx<F> v) {
-    return r.signdis(bXa * v.pos) < radius;
+    return r.signdis(bXa * v.pos) < rad;
   }
   bool intersectObjectVolume(PtIdx<F> v, Sphere<F> r) {
-    return (bXa * r).signdis(v.pos) < radius;
+    return (bXa * r).signdis(v.pos) < rad;
   }
   bool intersectObjectObject(PtIdx<F> v1, PtIdx<F> v2) {
-    bool isect = (v1.pos - bXa * v2.pos).squaredNorm() < radius2;
-    // bool isect = (v1.pos - bXa * v2.pos).norm() < radius;
+    bool isect = (v1.pos - bXa * v2.pos).squaredNorm() < rad2;
+    // bool isect = (v1.pos - bXa * v2.pos).norm() < rad;
     result |= isect;
     return isect;
   }
-  F radius = 0, radius2 = 0;
+  F rad = 0, rad2 = 0;
   bool result = false;
   Xform bXa = Xform::Identity();
 };
-
-auto bvh_isect_fixed(PyBVH &bvh1, PyBVH &bvh2, double thresh) {
-  PPIsect<float> query(thresh);
+template <typename F>
+bool bvh_isect_fixed(BVH<F> &bvh1, BVH<F> &bvh2, F thresh) {
+  BVHIsectQuery<F> query(thresh);
   tcdock::bvh::BVIntersect(bvh1, bvh2, query);
   return query.result;
 }
-auto naive_isect_fixed(PyBVH &bvh1, PyBVH &bvh2, double thresh) {
-  double dist2 = thresh * thresh;
+template <typename F>
+bool naive_isect_fixed(BVH<F> &bvh1, BVH<F> &bvh2, F thresh) {
+  F dist2 = thresh * thresh;
   for (auto o1 : bvh1.objs) {
     for (auto o2 : bvh2.objs) {
       auto d2 = (o1.pos - o2.pos).squaredNorm();
@@ -171,17 +179,28 @@ auto naive_isect_fixed(PyBVH &bvh1, PyBVH &bvh2, double thresh) {
   }
   return false;
 }
-auto bvh_isect(PyBVH &bvh1, PyBVH &bvh2, M44f pos1, M44f pos2, double mindist) {
-  X3f x1(pos1), x2(pos2);
-  PPIsect<float> query(mindist, x1.inverse() * x2);
+template <typename F>
+bool bvh_isect(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2, F mindist) {
+  X3<F> x1(pos1), x2(pos2);
+  BVHIsectQuery<F> query(mindist, x1.inverse() * x2);
   tcdock::bvh::BVIntersect(bvh1, bvh2, query);
   return query.result;
 }
-auto naive_isect(PyBVH &bvh1, PyBVH &bvh2, M44f pos1, M44f pos2,
-                 double mindist) {
-  X3f x1(pos1), x2(pos2);
-  X3f pos = x1.inverse() * x2;
-  double dist2 = mindist * mindist;
+template <typename F>
+bool naive_isect(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
+                 F mindist) {
+  X3<F> x1(pos1), x2(pos2);
+  X3<F> pos = x1.inverse() * x2;
+  F dist2 = mindist * mindist;
+
+  // bounding sphere check
+  auto vol1 = bvh1.getVolume(bvh1.getRootIndex());
+  auto vol2 = bvh1.getVolume(bvh2.getRootIndex());
+  vol1.cen = x1 * vol1.cen;
+  vol2.cen = x2 * vol2.cen;
+  if (!vol1.contact(vol2, mindist)) return false;
+
+  // all pairs
   for (auto o1 : bvh1.objs) {
     for (auto o2 : bvh2.objs) {
       auto d2 = (o1.pos - pos * o2.pos).squaredNorm();
@@ -197,48 +216,48 @@ struct BVMinAxis {
   using Xform = X3<F>;
   Xform bXa = Xform::Identity();
   F minval = 9e9;
-  F radius;
-  V3f direction;
-  BVMinAxis(V3f d, Xform x, F r) : direction(d), bXa(x), radius(r) {
+  F rad;
+  V3<F> dirn;
+  BVMinAxis(V3<F> d, Xform x, F r) : dirn(d), bXa(x), rad(r) {
     assert(r > 0);
-    direction.normalize();
+    dirn.normalize();
   }
   F minimumOnVolumeVolume(Sphere<F> r1, Sphere<F> r2) {
-    return get_slide(r1.center, bXa * r2.center, r1.radius + radius,
-                     r2.radius + radius);
+    return get_slide(r1.cen, bXa * r2.cen, r1.rad + rad, r2.rad + rad);
   }
   F minimumOnVolumeObject(Sphere<F> r, PtIdx<F> v) {
-    return get_slide(r.center, bXa * v.pos, r.radius + radius, radius);
+    return get_slide(r.cen, bXa * v.pos, r.rad + rad, rad);
   }
   F minimumOnObjectVolume(PtIdx<F> v, Sphere<F> r) {
-    return get_slide(v.pos, bXa * r.center, radius, r.radius + radius);
+    return get_slide(v.pos, bXa * r.cen, rad, r.rad + rad);
   }
   F minimumOnObjectObject(PtIdx<F> a, PtIdx<F> b) {
     // std::cout << "Obj Obj" << std::endl;
-    return get_slide(a.pos, bXa * b.pos, radius, radius);
+    return get_slide(a.pos, bXa * b.pos, rad, rad);
   }
-  F get_slide(V3f c1, V3f c2, F r1, F r2) {
-    V3f delta = c2 - c1;
-    F d0 = delta.dot(direction);
-    F dperp2 = delta.squaredNorm() - d0 * d0;
-    F target_d2 = (r1 + r2) * (r1 + r2);
-    if (target_d2 < dperp2) return 9e9;
-    F dpar = std::sqrt(target_d2 - dperp2);
-    F moveby = d0 - dpar;
-    V3f cnew = c1 + moveby * direction;
-    F dnew = (cnew - c2).norm();
+  F get_slide(V3<F> cen1, V3<F> cen2, F rad1, F rad2) {
+    V3<F> hypot_start = cen2 - cen1;
+    F d_parallel_start = hypot_start.dot(dirn);
+    F d_perpendicular_sq = hypot_start.squaredNorm() - square(d_parallel_start);
+    F d_hypot_stop_sq = square(rad1 + rad2);
+    if (d_hypot_stop_sq < d_perpendicular_sq) return 9e9;  // miss
+    F d_parallel_stop = std::sqrt(d_hypot_stop_sq - d_perpendicular_sq);
+    F moveby = d_parallel_start - d_parallel_stop;
+    // V3<F> cnew = cen1 + moveby * dirn;
+    // F dnew = (cnew - cen2).norm();
     return moveby;
   }
 };
 
-auto bvh_slide(PyBVH &bvh1, PyBVH &bvh2, M44f pos1, M44f pos2, double radius,
-               V3f direction) {
-  X3f x1(pos1), x2(pos2);
-  X3f x1inv = x1.inverse();
-  X3f pos = x1inv * x2;
-  V3f local_dir = x1inv.rotation() * direction;
-  BVMinAxis<float> query(local_dir, pos, radius);
-  double result = tcdock::bvh::BVMinimize(bvh1, bvh2, query);
+template <typename F>
+F bvh_slide(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2, F rad,
+            V3<F> dirn) {
+  X3<F> x1(pos1), x2(pos2);
+  X3<F> x1inv = x1.inverse();
+  X3<F> pos = x1inv * x2;
+  V3<F> local_dir = x1inv.rotation() * dirn;
+  BVMinAxis<F> query(local_dir, pos, rad);
+  F result = tcdock::bvh::BVMinimize(bvh1, bvh2, query);
   return result;
 }
 
@@ -246,43 +265,53 @@ template <typename F>
 struct PPCollect {
   using Scalar = F;
   using Xform = X3<F>;
-  PPCollect(F r, Xform x = Xform::Identity()) : radius(r), bXa(x) {}
+  PPCollect(F r, Xform x = Xform::Identity()) : rad(r), bXa(x) {}
   bool intersectVolumeVolume(Sphere<F> r1, Sphere<F> r2) {
-    return r1.signdis(bXa * r2) < radius;
+    return r1.signdis(bXa * r2) < rad;
   }
   bool intersectVolumeObject(Sphere<F> r, PtIdx<F> v) {
-    return r.signdis(bXa * v.pos) < radius;
+    return r.signdis(bXa * v.pos) < rad;
   }
   bool intersectObjectVolume(PtIdx<F> v, Sphere<F> r) {
-    return (bXa * r).signdis(v.pos) < radius;
+    return (bXa * r).signdis(v.pos) < rad;
   }
   bool intersectObjectObject(PtIdx<F> v1, PtIdx<F> v2) {
-    bool isect = (v1.pos - bXa * v2.pos).norm() < radius;
+    bool isect = (v1.pos - bXa * v2.pos).norm() < rad;
     return false;
   }
-  F radius = 0.0;
+  F rad = 0.0;
   bool result = false;
   Xform bXa = Xform::Identity();
 };
 
 PYBIND11_MODULE(bvh, m) {
-  py::class_<PyBVH>(m, "WelzlBVH", py::module_local());
-  m.def("bvh_create", &bvh_create);
+  py::class_<BVHf>(m, "WelzlBVH_float");
+  py::class_<BVHd>(m, "WelzlBVH_double");
 
-  m.def("bvh_min_dist", &bvh_min_dist);
-  m.def("bvh_min_dist_fixed", &bvh_min_dist_fixed);
-  m.def("naive_min_dist", &naive_min_dist);
-  m.def("naive_min_dist_fixed", &naive_min_dist_fixed);
+  m.def("bvh_create", &bvh_create<double>);
+  m.def("bvh_create_32bit", &bvh_create<float>);
 
-  m.def("bvh_isect", &bvh_isect, "intersction test", "bvh1"_a, "bvh2"_a,
+  m.def("bvh_min_dist", &bvh_min_dist<double>, "min pair distance", "bvh1"_a,
+        "bvh2"_a, "pos1"_a, "pos2"_a);
+  m.def("bvh_min_dist_32bit", &bvh_min_dist<float>, "intersction test",
+        "bvh1"_a, "bvh2"_a, "pos1"_a, "pos2"_a);
+  m.def("bvh_min_dist_fixed", &bvh_min_dist_fixed<double>);
+  m.def("naive_min_dist", &naive_min_dist<double>);
+  m.def("naive_min_dist_fixed", &naive_min_dist_fixed<double>);
+
+  m.def("bvh_isect", &bvh_isect<double>, "intersction test", "bvh1"_a, "bvh2"_a,
         "pos1"_a, "pos2"_a, "mindist"_a);
-  m.def("bvh_isect_fixed", &bvh_isect_fixed);
+  m.def("bvh_isect_32bit", &bvh_isect<float>, "intersction test", "bvh1"_a,
+        "bvh2"_a, "pos1"_a, "pos2"_a, "mindist"_a);
+  m.def("bvh_isect_fixed", &bvh_isect_fixed<double>);
+  m.def("naive_isect", &naive_isect<double>);
+  m.def("naive_isect_fixed", &naive_isect_fixed<double>);
 
-  m.def("naive_isect", &naive_isect);
-  m.def("naive_isect_fixed", &naive_isect_fixed);
+  m.def("bvh_slide", &bvh_slide<double>, "slide into contact", "bvh1"_a,
+        "bvh2"_a, "pos1"_a, "pos2"_a, "rad"_a, "dirn"_a);
 
-  m.def("bvh_slide", &bvh_slide, "slide into contact", "bvh1"_a, "bvh2"_a,
-        "pos1"_a, "pos2"_a, "radius"_a, "direction"_a);
+  m.def("bvh_slide_32bit", &bvh_slide<float>, "slide into contact", "bvh1"_a,
+        "bvh2"_a, "pos1"_a, "pos2"_a, "rad"_a, "dirn"_a);
 }
 
 }  // namespace tcdock

@@ -19,17 +19,17 @@ class Sphere {
   using Mat3 = M3<F>;
 
  public:
-  Vec3 center;
-  F radius;
+  Vec3 cen;
+  F rad;
 
-  Sphere() : center(0, 0, 0), radius(1) {}
-  Sphere(Vec3 c, F r) : center(c), radius(r) {}
-  Sphere(Vec3 O) : center(O), radius(epsilon2<F>()) {}
+  Sphere() : cen(0, 0, 0), rad(1) {}
+  Sphere(Vec3 c, F r) : cen(c), rad(r) {}
+  Sphere(Vec3 O) : cen(O), rad(epsilon2<F>()) {}
   Sphere(Vec3 O, Vec3 A) {
     Vec3 a = A - O;
     Vec3 o = 0.5 * a;
-    radius = o.norm() + epsilon2<F>();
-    center = O + o;
+    rad = o.norm() + epsilon2<F>();
+    cen = O + o;
   }
   Sphere(Vec3 O, Vec3 A, Vec3 B) {
     Vec3 a = A - O, b = B - O;
@@ -37,8 +37,8 @@ class Sphere {
     Vec3 o = (b.dot(b) * ((a.cross(b)).cross(a)) +
               a.dot(a) * (b.cross(a.cross(b)))) /
              det_2;
-    radius = o.norm() + epsilon2<F>();
-    center = O + o;
+    rad = o.norm() + epsilon2<F>();
+    cen = O + o;
   }
   Sphere(Vec3 O, Vec3 A, Vec3 B, Vec3 C) {
     Vec3 a = A - O, b = B - O, c = C - O;
@@ -50,46 +50,41 @@ class Sphere {
     Vec3 o = (c.dot(c) * a.cross(b) + b.dot(b) * c.cross(a) +
               a.dot(a) * b.cross(c)) /
              det_2;
-    radius = o.norm() + epsilon2<F>();
-    center = O + o;
+    rad = o.norm() + epsilon2<F>();
+    cen = O + o;
   }
 
   Sphere<F> merged(Sphere<F> that) const {
     if (this->contains(that)) return *this;
     if (that.contains(*this)) return that;
-    F d = radius + that.radius + (center - that.center).norm();
+    F d = rad + that.rad + (cen - that.cen).norm();
     // std::cout << d << std::endl;
-    auto dir = (that.center - center).normalized();
-    auto c = center + dir * (d / 2 - this->radius);
+    auto dir = (that.cen - cen).normalized();
+    auto c = cen + dir * (d / 2 - this->rad);
     return Sphere<F>(c, d / 2 + epsilon2<F>() / 2.0);
   }
 
   // Distance from p to boundary of the Sphere
-  F signdis(Vec3 P) const { return (center - P).norm() - radius; }
+  F signdis(Vec3 P) const { return (cen - P).norm() - rad; }
   F signdis2(Vec3 P) const {  // NOT square of signdis!
-    return (center - P).squaredNorm() - radius * radius;
+    return (cen - P).squaredNorm() - rad * rad;
   }
-  F signdis(Sphere<F> s) const {
-    return (center - s.center).norm() - radius - s.radius;
-  }
+  F signdis(Sphere<F> s) const { return (cen - s.cen).norm() - rad - s.rad; }
   bool intersect(Sphere that) const {
-    F rtot = radius + that.radius;
-    return (center - that.center).squaredNorm() <= rtot;
+    F rtot = rad + that.rad;
+    return (cen - that.cen).squaredNorm() <= rtot;
   }
   bool contact(Sphere that, F contact_dis) const {
-    F rtot = radius + that.radius + contact_dis;
-    return (center - that.center).squaredNorm() <= rtot * rtot;
+    F rtot = rad + that.rad + contact_dis;
+    return (cen - that.cen).squaredNorm() <= rtot * rtot;
   }
-  bool contains(Vec3 pt) const {
-    return (center - pt).squaredNorm() < radius * radius;
-  }
+  bool contains(Vec3 pt) const { return (cen - pt).squaredNorm() < rad * rad; }
   bool contains(Sphere<F> that) const {
-    auto d = (center - that.center).norm();
-    return d + that.radius <= radius;
+    auto d = (cen - that.cen).norm();
+    return d + that.rad <= rad;
   }
   bool operator==(Sphere<F> that) const {
-    return center.isApprox(that.center) &&
-           fabs(radius - that.radius) < epsilon2<F>();
+    return cen.isApprox(that.cen) && fabs(rad - that.rad) < epsilon2<F>();
   }
 };
 
@@ -98,12 +93,12 @@ typedef Sphere<double> Sphered;
 
 template <class F>
 Sphere<F> operator*(X3<F> x, Sphere<F> s) {
-  return Sphere<F>(x * s.center, s.radius);
+  return Sphere<F>(x * s.cen, s.rad);
 }
 
 template <class Scalar>
 std::ostream& operator<<(std::ostream& out, Sphere<Scalar> const& s) {
-  out << "Sphere( " << s.center.transpose() << ", " << s.radius << ")";
+  out << "Sphere( " << s.cen.transpose() << ", " << s.rad << ")";
   return out;
 }
 
@@ -163,20 +158,20 @@ auto central_bounding_sphere(Ary const& points) noexcept {
   using Scalar = typename Pt::Scalar;
   using Sph = Sphere<Scalar>;
   Scalar const eps = epsilon2<Scalar>();
-  Pt center;
-  Scalar radius = -1;
+  Pt cen;
+  Scalar rad = -1;
   if (points.size() > 0) {
-    center = Pt(0, 0, 0);
-    for (size_t i = 0; i < points.size(); i++) center += points[i];
-    center /= (Scalar)points.size();
+    cen = Pt(0, 0, 0);
+    for (size_t i = 0; i < points.size(); i++) cen += points[i];
+    cen /= (Scalar)points.size();
 
     for (size_t i = 0; i < points.size(); i++) {
-      Scalar d2 = (points[i] - center).squaredNorm();
-      if (d2 > radius) radius = d2;
+      Scalar d2 = (points[i] - cen).squaredNorm();
+      if (d2 > rad) rad = d2;
     }
-    radius = sqrt(radius) + eps;
+    rad = sqrt(rad) + eps;
   }
-  return Sph(center, radius);
+  return Sph(cen, rad);
 }
 
 /**
