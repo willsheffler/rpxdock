@@ -321,7 +321,166 @@ def test_bvh_slide_whole():
     )
 
 
+def test_collect_pairs_simple():
+    print("test_collect_pairs")
+    bufbvh = -np.ones((100, 2), dtype="i4")
+    bufnai = -np.ones((100, 2), dtype="i4")
+    bvh1 = bvh.bvh_create([[0, 0, 0], [0, 2, 0]])
+    bvh2 = bvh.bvh_create([[0.9, 0, 0], [0.9, 2, 0]])
+    mindist = 1.0
+
+    pos1 = np.eye(4)
+    pos2 = np.eye(4)
+    nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    nnai = bvh.naive_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufnai)
+    assert nbvh == 2 and nnai == 2
+    assert np.all(bufbvh[:nbvh] == [[0, 0], [1, 1]])
+    assert np.all(bufnai[:nnai] == [[0, 0], [1, 1]])
+
+    pos1 = hm.htrans([0, 2, 0])
+    nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    nnai = bvh.naive_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufnai)
+    assert nbvh == 1 and nnai == 1
+    assert np.all(bufbvh[:nbvh] == [[0, 1]])
+    assert np.all(bufnai[:nnai] == [[0, 1]])
+
+    pos1 = hm.htrans([0, -2, 0])
+    nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    nnai = bvh.naive_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufnai)
+    assert nbvh == 1 and nnai == 1
+    assert np.all(bufbvh[:nbvh] == [[1, 0]])
+    assert np.all(bufnai[:nnai] == [[1, 0]])
+
+
+def test_collect_pairs():
+    N1, N2 = 2, 10
+    N = N1 * N2
+    Npts = 1000
+    totbvh, totbvhf, totmin = 0, 0, 0
+    totbvh, totnai = 0, 0
+    bufbvh = -np.ones((Npts * Npts, 2), dtype="i4")
+    bufnai = -np.ones((Npts * Npts, 2), dtype="i4")
+    for j in range(N1):
+        xyz1 = np.random.rand(Npts, 3) - [0.5, 0.5, 0.5]
+        xyz2 = np.random.rand(Npts, 3) - [0.5, 0.5, 0.5]
+        bvh1 = bvh.bvh_create(xyz1)
+        bvh2 = bvh.bvh_create(xyz2)
+        for i in range(N2):
+            mindist = 0.002 + np.random.rand() / 10
+            while 1:
+                pos1 = hm.rand_xform(cart_sd=0.5)
+                pos2 = hm.rand_xform(cart_sd=0.5)
+                d = np.linalg.norm(pos1[:, 3] - pos2[:, 3])
+                if 0.8 < d < 1.3:
+                    break
+
+            tbvh = perf_counter()
+            nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+            tbvh = perf_counter() - tbvh
+
+            tnai = perf_counter()
+            nnai = bvh.naive_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufnai)
+            tnai = perf_counter() - tnai
+
+            totbvh += tbvh
+            totnai += tnai
+
+            assert nbvh == nnai
+            if nbvh == 0:
+                continue
+
+            o = np.lexsort((bufbvh[:nbvh, 1], bufbvh[:nbvh, 0]))
+            bufbvh[:nbvh] = bufbvh[:nbvh][o]
+            o = np.lexsort((bufnai[:nnai, 1], bufnai[:nnai, 0]))
+            bufnai[:nnai] = bufnai[:nnai][o]
+            assert np.all(bufbvh[:nbvh] == bufnai[:nnai])
+
+            pair1 = pos1 @ hm.hpoint(xyz1[bufbvh[:nbvh, 0]])[..., None]
+            pair2 = pos2 @ hm.hpoint(xyz2[bufbvh[:nbvh, 1]])[..., None]
+            dpair = np.linalg.norm(pair2 - pair1, axis=1)
+            assert np.max(dpair) <= mindist
+
+    print(
+        f"collect test {N:,} iter bvh {int(N/totbvh):,}/s naive {int(N/totnai):,}/s ratio {totnai/totbvh:7.2f}"
+    )
+
+
+def test_slide_collect_pairs():
+
+    # timings wtih -Ofast
+    # slide test 10,000 iter bvhslide float: 16,934/s double: 16,491/s bvhmin 17,968/s fracmiss: 0.0834
+
+    # np.random.seed(0)
+    N1, N2 = 2, 50
+    Npts = 5000
+    totbvh, totbvhf, totcol, totmin = 0, 0, 0, 0
+    nhit = 0
+    buf = -np.ones((Npts * Npts, 2), dtype="i4")
+    for j in range(N1):
+        xyz1 = np.random.rand(Npts, 3) - [0.5, 0.5, 0.5]
+        xyz2 = np.random.rand(Npts, 3) - [0.5, 0.5, 0.5]
+        xyzcol1 = xyz1[: int(Npts / 5)]
+        xyzcol2 = xyz2[: int(Npts / 5)]
+        # tcre = perf_counter()
+        bvh1 = bvh.bvh_create(xyz1)
+        bvh2 = bvh.bvh_create(xyz2)
+        bvhcol1 = bvh.bvh_create(xyzcol1)
+        bvhcol2 = bvh.bvh_create(xyzcol2)
+        # tcre = perf_counter() - tcre
+        for i in range(N2):
+            dirn = np.random.randn(3)
+            dirn /= np.linalg.norm(dirn)
+            radius = 0.001 + np.random.rand() / 10
+            pairdis = 3 * radius
+            pos1 = hm.rand_xform(cart_sd=0.5)
+            pos2 = hm.rand_xform(cart_sd=0.5)
+
+            tbvh = perf_counter()
+            dslide = bvh.bvh_slide(bvh1, bvh2, pos1, pos2, radius, dirn)
+            tbvh = perf_counter() - tbvh
+
+            if dslide > 9e8:
+                tn = perf_counter()
+                dn, i, j = bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
+                tn = perf_counter() - tn
+                assert dn > 2 * radius
+            else:
+                nhit += 1
+                pos1 = hm.htrans(dirn * dslide) @ pos1
+                tn = perf_counter()
+                dn, i, j = bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
+                tn = perf_counter() - tn
+                if not np.allclose(dn, 2 * radius, atol=1e-6):
+                    print(dn, 2 * radius)
+                assert np.allclose(dn, 2 * radius, atol=1e-6)
+
+                tcol = perf_counter()
+                npair = bvh.bvh_collect_pairs(
+                    bvhcol1, bvhcol2, pos1, pos2, pairdis, buf
+                )
+                if npair > 0:
+                    tcol = perf_counter() - tcol
+                    totcol += tcol
+                    pair1 = pos1 @ hm.hpoint(xyzcol1[buf[:npair, 0]])[..., None]
+                    pair2 = pos2 @ hm.hpoint(xyzcol2[buf[:npair, 1]])[..., None]
+                    dpair = np.linalg.norm(pair2 - pair1, axis=1)
+                    assert np.max(dpair) <= pairdis
+
+            totmin += tn
+            totbvh += tbvh
+
+    N = N1 * N2
+    print(
+        f"slide test {N:,} iter bvhslide double: {int(N/totbvh):,}/s bvhmin {int(N/totmin):,}/s",
+        # f"slide test {N:,} iter bvhslide float: {int(N/totbvhf):,}/s double: {int(N/totbvh):,}/s bvhmin {int(N/totmin):,}/s",
+        f"fracmiss: {nhit/N} collect {int(nhit/totcol):,}/s",
+    )
+
+
 if __name__ == "__main__":
     # test_bvh_min_dist()
     # test_bvh_isect()
-    test_bvh_slide_whole()
+    # test_bvh_slide_whole()
+    # test_collect_pairs_simple()
+    # test_collect_pairs()
+    test_slide_collect_pairs()

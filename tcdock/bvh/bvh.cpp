@@ -262,27 +262,100 @@ F bvh_slide(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2, F rad,
 }
 
 template <typename F>
-struct PPCollect {
+struct BVHCollectPairs {
   using Scalar = F;
   using Xform = X3<F>;
-  PPCollect(F r, Xform x = Xform::Identity()) : rad(r), bXa(x) {}
-  bool intersectVolumeVolume(Sphere<F> r1, Sphere<F> r2) {
-    return r1.signdis(bXa * r2) < rad;
+  F mindis = 0.0, mindis2 = 0.0;
+  Xform bXa = Xform::Identity();
+  int32_t *out;
+  int nout = 0, maxout = -1;
+  BVHCollectPairs(F r, Xform x, int32_t *ptr, int mx)
+      : mindis(r), bXa(x), out(ptr), maxout(mx), mindis2(r * r) {}
+  bool intersectVolumeVolume(Sphere<F> v1, Sphere<F> v2) {
+    return v1.signdis(bXa * v2) < mindis;
   }
-  bool intersectVolumeObject(Sphere<F> r, PtIdx<F> v) {
-    return r.signdis(bXa * v.pos) < rad;
+  bool intersectVolumeObject(Sphere<F> v, PtIdx<F> o) {
+    return v.signdis(bXa * o.pos) < mindis;
   }
-  bool intersectObjectVolume(PtIdx<F> v, Sphere<F> r) {
-    return (bXa * r).signdis(v.pos) < rad;
+  bool intersectObjectVolume(PtIdx<F> o, Sphere<F> v) {
+    return (bXa * v).signdis(o.pos) < mindis;
   }
-  bool intersectObjectObject(PtIdx<F> v1, PtIdx<F> v2) {
-    bool isect = (v1.pos - bXa * v2.pos).norm() < rad;
+  bool intersectObjectObject(PtIdx<F> o1, PtIdx<F> o2) {
+    bool isect = (o1.pos - bXa * o2.pos).squaredNorm() < mindis2;
+    if (isect) {
+      assert(nout < maxout);
+      // std::cout << "BVH " << nout << " " << o1.idx << " " << o2.idx
+      // << std::endl;
+      out[2 * nout + 0] = o1.idx;
+      out[2 * nout + 1] = o2.idx;
+      ++nout;
+    }
     return false;
   }
-  F rad = 0.0;
-  bool result = false;
-  Xform bXa = Xform::Identity();
 };
+
+template <typename F>
+int bvh_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
+                      F mindist, py::array_t<int32_t> out) {
+  X3<F> x1(pos1), x2(pos2);
+  X3<F> pos = x1.inverse() * x2;
+
+  py::buffer_info buf = out.request();
+  int nbuf = buf.shape[0], nout = 0;
+  if (buf.ndim != 2 or buf.shape[1] != 2)
+    throw std::runtime_error("Shape must be (N, 2)");
+  int32_t *ptr = (int32_t *)buf.ptr;
+
+  BVHCollectPairs<F> query(mindist, pos, ptr, buf.shape[0]);
+  tcdock::bvh::BVIntersect(bvh1, bvh2, query);
+  return query.nout;
+}
+
+template <typename F>
+int naive_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
+                        F mindist, py::array_t<int32_t> out) {
+  X3<F> x1(pos1), x2(pos2);
+  X3<F> pos = x1.inverse() * x2;
+  F dist2 = mindist * mindist;
+
+  py::buffer_info buf = out.request();
+  int nbuf = buf.shape[0], nout = 0;
+  if (buf.ndim != 2 or buf.shape[1] != 2)
+    throw std::runtime_error("Shape must be (N, 2)");
+  int32_t *ptr = (int32_t *)buf.ptr;
+
+  // std::cout << "foo" << bvh1.getRootIndex() << " " << bvh1.objs.size()
+  // << std::endl;
+  // std::cout << "foo" << bvh2.getRootIndex() << " " << bvh2.objs.size()
+  // << std::endl;
+
+  // bounding sphere check
+  int ridx1 = bvh1.getRootIndex(), ridx2 = bvh2.getRootIndex();
+  if (ridx1 >= 0 && ridx2 >= 0) {
+    auto vol1 = bvh1.getVolume(ridx1);
+    auto vol2 = bvh1.getVolume(ridx2);
+    vol1.cen = x1 * vol1.cen;
+    vol2.cen = x2 * vol2.cen;
+    if (!vol1.contact(vol2, mindist)) return 0;
+  }
+
+  for (auto o1 : bvh1.objs) {
+    for (auto o2 : bvh2.objs) {
+      auto d2 = (o1.pos - pos * o2.pos).squaredNorm();
+      if (d2 < dist2) {
+        assert(nout < nbuf);
+        // std::cout << "NAI " << nout << " " << o1.idx << " " << o2.idx
+        // << std::endl;
+
+        ptr[2 * nout + 0] = o1.idx;
+        ptr[2 * nout + 1] = o2.idx;
+        ++nout;
+      }
+    }
+  }
+
+  return nout;
+}
 
 PYBIND11_MODULE(bvh, m) {
   py::class_<BVHf>(m, "WelzlBVH_float");
@@ -312,6 +385,9 @@ PYBIND11_MODULE(bvh, m) {
 
   m.def("bvh_slide_32bit", &bvh_slide<float>, "slide into contact", "bvh1"_a,
         "bvh2"_a, "pos1"_a, "pos2"_a, "rad"_a, "dirn"_a);
+
+  m.def("bvh_collect_pairs", &bvh_collect_pairs<double>);
+  m.def("naive_collect_pairs", &naive_collect_pairs<double>);
 }
 
 }  // namespace tcdock
