@@ -4,7 +4,7 @@ channels:
  - https://conda.anaconda.org/t/IuO94WfD-JCG/rosettacommons
 dependencies:
  - python>=3.7
- # - pyrosetta=2018.52
+ - pyrosetta=2018.52
  - numpy
  - numba
  - pytest
@@ -21,3 +21,5 @@ dependencies:
    - homog >= 0.1.10
    - xbin >= 0.1.5
    - cppimport
+   - git+https://github.com/atom-moyer/getpy.git
+

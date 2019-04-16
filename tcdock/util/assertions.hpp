@@ -1,3 +1,5 @@
+#pragma once
+
 #define _TEST(cond)                          \
   if (!(cond)) {                             \
     std::cerr << "some error!" << std::endl; \

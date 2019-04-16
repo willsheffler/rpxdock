@@ -1,7 +1,7 @@
 /*cppimport
 <%
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17', '-Ofast']
+cfg['compiler_args'] = ['-std=c++17', '-w']
 cfg['dependencies'] = ['primitive.hpp','../util/assertions.hpp',
 '../util/global_rng.hpp','../util/types.hpp']
 

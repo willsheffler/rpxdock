@@ -26,7 +26,6 @@ using namespace Eigen;
 using namespace tcdock;
 using namespace util;
 using namespace geom;
-using namespace bvh;
 
 namespace py = pybind11;
 
@@ -52,6 +51,8 @@ using BVHf = BVH<float>;
 using BVHd = BVH<double>;
 
 namespace tcdock {
+namespace bvh {
+
 template <typename F>
 BVH<F> bvh_create(py::array_t<F> xyz) {
   py::buffer_info buf = xyz.request();
@@ -390,4 +391,5 @@ PYBIND11_MODULE(bvh, m) {
   m.def("naive_collect_pairs", &naive_collect_pairs<double>);
 }
 
+}  // namespace bvh
 }  // namespace tcdock
