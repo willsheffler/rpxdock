@@ -28,6 +28,7 @@ def test_bvh_isect_fixed():
         bvh1 = bvh.bvh_create(xyz1)
         bvh2 = bvh.bvh_create(xyz2)
         tcre = perf_counter() - tcre
+        assert len(bvh1) == 1000
 
         pos1 = hm.htrans([0.9, 0.9, 0.9])
         pos2 = np.eye(4)
@@ -272,8 +273,8 @@ def test_bvh_slide_whole():
         # tcre = perf_counter()
         bvh1 = bvh.bvh_create(xyz1)
         bvh2 = bvh.bvh_create(xyz2)
-        bvh1f = bvh.bvh_create_32bit(xyz1)
-        bvh2f = bvh.bvh_create_32bit(xyz2)
+        # bvh1f = bvh.bvh_create_32bit(xyz1)
+        # bvh2f = bvh.bvh_create_32bit(xyz2)
         # tcre = perf_counter() - tcre
         for i in range(N2):
             dirn = np.random.randn(3)
@@ -322,11 +323,12 @@ def test_bvh_slide_whole():
 
 
 def test_collect_pairs_simple():
-    print("test_collect_pairs")
+    print("test_collect_pairs_simple")
     bufbvh = -np.ones((100, 2), dtype="i4")
     bufnai = -np.ones((100, 2), dtype="i4")
     bvh1 = bvh.bvh_create([[0, 0, 0], [0, 2, 0]])
     bvh2 = bvh.bvh_create([[0.9, 0, 0], [0.9, 2, 0]])
+    assert len(bvh1) == 2
     mindist = 1.0
 
     pos1 = np.eye(4)
@@ -350,6 +352,44 @@ def test_collect_pairs_simple():
     assert nbvh == 1 and nnai == 1
     assert np.all(bufbvh[:nbvh] == [[1, 0]])
     assert np.all(bufnai[:nnai] == [[1, 0]])
+
+
+def test_collect_pairs_simple_selection():
+    print("test_collect_pairs_simple_selection")
+    bufbvh = -np.ones((100, 2), dtype="i4")
+    bufnai = -np.ones((100, 2), dtype="i4")
+    crd1 = [[0, 0, 0], [0, 0, 0], [0, 2, 0], [0, 0, 0]]
+    crd2 = [[0, 0, 0], [0.9, 0, 0], [0, 0, 0], [0.9, 2, 0]]
+    mask1 = [1, 0, 1, 0]
+    mask2 = [0, 1, 0, 1]
+    bvh1 = bvh.bvh_create(crd1, mask1)
+    bvh2 = bvh.bvh_create(crd2, mask2)
+    assert len(bvh1) == 2
+    assert np.allclose(bvh1.radius(), 1.0, atol=1e-6)
+    assert np.allclose(bvh1.center(), [0, 1, 0], atol=1e-6)
+    mindist = 1.0
+
+    pos1 = np.eye(4)
+    pos2 = np.eye(4)
+    nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    nnai = bvh.naive_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufnai)
+    assert nbvh == 2 and nnai == 2
+    assert np.all(bufbvh[:nbvh] == [[0, 1], [2, 3]])
+    assert np.all(bufnai[:nnai] == [[0, 1], [2, 3]])
+
+    pos1 = hm.htrans([0, 2, 0])
+    nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    nnai = bvh.naive_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufnai)
+    assert nbvh == 1 and nnai == 1
+    assert np.all(bufbvh[:nbvh] == [[0, 3]])
+    assert np.all(bufnai[:nnai] == [[0, 3]])
+
+    pos1 = hm.htrans([0, -2, 0])
+    nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    nnai = bvh.naive_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufnai)
+    assert nbvh == 1 and nnai == 1
+    assert np.all(bufbvh[:nbvh] == [[2, 1]])
+    assert np.all(bufnai[:nnai] == [[2, 1]])
 
 
 def test_collect_pairs():
@@ -481,6 +521,8 @@ if __name__ == "__main__":
     # test_bvh_min_dist()
     # test_bvh_isect()
     # test_bvh_slide_whole()
-    # test_collect_pairs_simple()
+    test_collect_pairs_simple()
+    test_collect_pairs_simple_selection()
     # test_collect_pairs()
-    test_slide_collect_pairs()
+    # test_slide_collect_pairs()
+    pass

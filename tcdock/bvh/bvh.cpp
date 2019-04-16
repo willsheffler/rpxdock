@@ -54,19 +54,33 @@ namespace tcdock {
 namespace bvh {
 
 template <typename F>
-BVH<F> bvh_create(py::array_t<F> xyz) {
-  py::buffer_info buf = xyz.request();
-  if (buf.ndim != 2 or buf.shape[1] != 3)
-    throw std::runtime_error("Shape must be (N, 3)");
+BVH<F> bvh_create(py::array_t<F> coords, py::array_t<bool> which) {
+  py::buffer_info buf = coords.request();
+  if (buf.ndim != 2 || buf.shape[1] != 3)
+    throw std::runtime_error("'coords' shape must be (N, 3)");
+  // std::cout << "strides " << sizeof(F) << " " << buf.strides[0] << " "
+  // << buf.strides[1] << std::endl;
   F *ptr = (F *)buf.ptr;
+
+  py::buffer_info bufw = which.request();
+  if (bufw.ndim != 1 || (bufw.size > 0 && bufw.size != buf.shape[0]))
+    throw std::runtime_error("'which' shape must be (N,) matching coord shape");
+  bool *ptrw = (bool *)bufw.ptr;
 
   typedef std::vector<PtIdx<F>, aligned_allocator<PtIdx<F>>> Holder;
   Holder holder;
+
+  int stride0 = buf.strides[0] / sizeof(F);
+  int stride1 = buf.strides[1] / sizeof(F);
+
   for (int i = 0; i < buf.shape[0]; ++i) {
-    F x = ptr[3 * i + 0];
-    F y = ptr[3 * i + 1];
-    F z = ptr[3 * i + 2];
-    // std::cout << "add point " << x << " " << y << " " << z << std::endl;
+    // std::cout << "mask " << i << " " << ptrw[i] << std::endl;
+    if (bufw.size > 0 && !ptrw[i]) continue;
+    F x = ptr[stride0 * i + 0 * stride1];
+    F y = ptr[stride0 * i + 1 * stride1];
+    F z = ptr[stride0 * i + 2 * stride1];
+    // std::cout << "add point " << i << " " << x << " " << y << " " << z
+    // << std::endl;
     holder.push_back(PtIdx<F>(V3<F>(x, y, z), i));
   }
   return BVH<F>(holder.begin(), holder.end());
@@ -303,8 +317,10 @@ int bvh_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
 
   py::buffer_info buf = out.request();
   int nbuf = buf.shape[0], nout = 0;
-  if (buf.ndim != 2 or buf.shape[1] != 2)
+  if (buf.ndim != 2 || buf.shape[1] != 2)
     throw std::runtime_error("Shape must be (N, 2)");
+  if (buf.strides[0] != 2 * sizeof(int32_t))
+    throw std::runtime_error("out stride is not 2F");
   int32_t *ptr = (int32_t *)buf.ptr;
 
   BVHCollectPairs<F> query(mindist, pos, ptr, buf.shape[0]);
@@ -321,7 +337,7 @@ int naive_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
 
   py::buffer_info buf = out.request();
   int nbuf = buf.shape[0], nout = 0;
-  if (buf.ndim != 2 or buf.shape[1] != 2)
+  if (buf.ndim != 2 || buf.shape[1] != 2)
     throw std::runtime_error("Shape must be (N, 2)");
   int32_t *ptr = (int32_t *)buf.ptr;
 
@@ -357,26 +373,43 @@ int naive_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
 
   return nout;
 }
+template <typename F>
+int bvh_print(BVH<F> &bvh) {
+  for (auto o : bvh.objs) {
+    std::cout << "BVH PT " << o.idx << " " << o.pos.transpose() << std::endl;
+  }
+}
+
+template <typename F>
+void bind_bvh(auto m, std::string name) {
+  py::class_<BVH<F>>(m, name.c_str())
+      .def("__len__", [](BVH<F> &b) { return b.objs.size(); })
+      .def("radius", [](BVH<F> &b) { return b.vols[b.getRootIndex()].rad; })
+      .def("center", [](BVH<F> &b) { return b.vols[b.getRootIndex()].cen; })
+      /**/;
+}
 
 PYBIND11_MODULE(bvh, m) {
-  py::class_<BVHf>(m, "WelzlBVH_float");
-  py::class_<BVHd>(m, "WelzlBVH_double");
+  // bind_bvh<float>(m, "WelzlBVH_float");
+  bind_bvh<double>(m, "WelzlBVH_double");
 
-  m.def("bvh_create", &bvh_create<double>);
-  m.def("bvh_create_32bit", &bvh_create<float>);
+  m.def("bvh_create", &bvh_create<double>, "make_bvh", "coords"_a,
+        "which"_a = py::array_t<bool>());
+  // m.def("bvh_create_32bit", &bvh_create<float>, "make_bvh", "coords"_a,
+  // "which"_a = py::array_t<bool>());
 
   m.def("bvh_min_dist", &bvh_min_dist<double>, "min pair distance", "bvh1"_a,
         "bvh2"_a, "pos1"_a, "pos2"_a);
-  m.def("bvh_min_dist_32bit", &bvh_min_dist<float>, "intersction test",
-        "bvh1"_a, "bvh2"_a, "pos1"_a, "pos2"_a);
+  // m.def("bvh_min_dist_32bit", &bvh_min_dist<float>, "intersction test",
+  // "bvh1"_a, "bvh2"_a, "pos1"_a, "pos2"_a);
   m.def("bvh_min_dist_fixed", &bvh_min_dist_fixed<double>);
   m.def("naive_min_dist", &naive_min_dist<double>);
   m.def("naive_min_dist_fixed", &naive_min_dist_fixed<double>);
 
   m.def("bvh_isect", &bvh_isect<double>, "intersction test", "bvh1"_a, "bvh2"_a,
         "pos1"_a, "pos2"_a, "mindist"_a);
-  m.def("bvh_isect_32bit", &bvh_isect<float>, "intersction test", "bvh1"_a,
-        "bvh2"_a, "pos1"_a, "pos2"_a, "mindist"_a);
+  // m.def("bvh_isect_32bit", &bvh_isect<float>, "intersction test", "bvh1"_a,
+  // "bvh2"_a, "pos1"_a, "pos2"_a, "mindist"_a);
   m.def("bvh_isect_fixed", &bvh_isect_fixed<double>);
   m.def("naive_isect", &naive_isect<double>);
   m.def("naive_isect_fixed", &naive_isect_fixed<double>);
@@ -384,11 +417,13 @@ PYBIND11_MODULE(bvh, m) {
   m.def("bvh_slide", &bvh_slide<double>, "slide into contact", "bvh1"_a,
         "bvh2"_a, "pos1"_a, "pos2"_a, "rad"_a, "dirn"_a);
 
-  m.def("bvh_slide_32bit", &bvh_slide<float>, "slide into contact", "bvh1"_a,
-        "bvh2"_a, "pos1"_a, "pos2"_a, "rad"_a, "dirn"_a);
+  // m.def("bvh_slide_32bit", &bvh_slide<float>, "slide into contact", "bvh1"_a,
+  // "bvh2"_a, "pos1"_a, "pos2"_a, "rad"_a, "dirn"_a);
 
   m.def("bvh_collect_pairs", &bvh_collect_pairs<double>);
   m.def("naive_collect_pairs", &naive_collect_pairs<double>);
+
+  m.def("bvh_print", &bvh_print<double>);
 }
 
 }  // namespace bvh

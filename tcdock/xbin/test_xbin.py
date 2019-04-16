@@ -10,7 +10,7 @@ def test_create_binner():
     print(binner)
 
 def test_get_keys():
-    N = 1_000_000
+    N = 1_000
 
     binner = xbin._XBin_double(0.3, 5.0, 256.0)
     tgen = perf_counter()
@@ -33,7 +33,7 @@ def test_get_keys():
 
 def test_xbin_covrad():
     niter = 30
-    nsamp = 10000
+    nsamp = 1000
     for i in range(niter):
         cart_resl = np.random.rand() * 10 + 0.1
         ori_resl = np.random.rand() * 50 + 2.5

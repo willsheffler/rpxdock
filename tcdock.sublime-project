@@ -1,7 +1,30 @@
 {
+	"build_systems":
+	[
+		{
+			"name": "util_runtests.py",
+			"shell_cmd": "cd $folder; PYTHONPATH=. python ide/runtests.py $file &> sublime_build.log"
+		}
+	],
 	"folders":
 	[
 		{
+			"folder_exclude_patterns":
+			[
+				".cache",
+				".tox",
+				"build",
+				"dist",
+				"*.egg-info",
+				"__pycache__",
+				"_build",
+				".*",
+			],
+			"file_exclude_patterns":
+			[
+				"*~",
+				".*",
+			],
 			"path": "."
 		}
 	]
