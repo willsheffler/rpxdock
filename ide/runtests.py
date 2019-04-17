@@ -17,22 +17,34 @@ def hasmain(file):
     return False
 
 
+def testfile_of(path, bname):
+    print("testfile_of", path, bname)
+    return re.sub("^sicdock", "sicdock/tests", path) + "/test_" + bname
+
+
 def dispatch(file, pytest_args="--duration=5"):
-    dispatch = {"rosetta.py": ["body.py"]}
+    dispatch = {
+        "rosetta.py": ["sicdock/tests/test_body.py"],
+        "bvh_algo.hpp": ["sicdock/tests/bvh/test_bvh.py"],
+        "bvh.cpp": ["sicdock/tests/bvh/test_bvh.py"],
+    }
     file = os.path.relpath(file)
     path, bname = os.path.split(file)
+    print("runtests.py dispatch", path, bname)
     if hasmain(file):
         return "PYTHONPATH=. python " + file
-    if not file.endswith(".py") or not file.startswith("tcdock/"):
+    if bname not in dispatch and (
+        not file.endswith(".py") or not file.startswith("sicdock/")
+    ):
         return "PYTHONPATH=. python " + file
     if bname in dispatch:
-        if hasmain(path + "/" + dispatch[bname][0]):
-            return "PYTHONPATH=. python " + path + "/" + dispatch[bname][0]
+        if hasmain(dispatch[bname][0]):
+            return "PYTHONPATH=. python " + dispatch[bname][0]
         else:
-            tmp = " ".join((os.path.join(path, n) for n in dispatch[bname]))
+            tmp = " ".join(dispatch[bname])
             return "pytest {pytest_args} ".format(**vars()) + tmp
     if not os.path.basename(file).startswith("test_"):
-        testfile = path + "/test_" + bname
+        testfile = testfile_of(path, bname)
         if os.path.exists(testfile):
             if hasmain(testfile):
                 return "PYTHONPATH=. python " + testfile
@@ -40,9 +52,9 @@ def dispatch(file, pytest_args="--duration=5"):
         else:
             return "PYTHONPATH=. python " + testfile
     else:
-        if hasmain(testfile):
-            return "PYTHONPATH=. python " + testfile
-        return "pytest {pytest_args} {testfile}".format(**vars())
+        if hasmain(file):
+            return "PYTHONPATH=. python " + file
+        return "pytest {pytest_args} {file}".format(**vars())
     return "pytest {pytest_args} {file}".format(**vars())
 
 
