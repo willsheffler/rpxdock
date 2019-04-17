@@ -25,22 +25,24 @@ def dispatch(file, pytest_args="--duration=5"):
         return "PYTHONPATH=. python " + file
     if not file.endswith(".py") or not file.startswith("tcdock/"):
         return "PYTHONPATH=. python " + file
-    if not os.path.basename(file).startswith("test_"):
-        if bname in dispatch:
-            if hasmain(path + "/" + dispatch[bname][0]):
-                return "PYTHONPATH=. python " + path + "/" + dispatch[bname][0]
-            else:
-                return "pytest {pytest_args} ".format(**vars()) + " ".join(
-                    (os.path.join(path, n) for n in dispatch[bname])
-                )
+    if bname in dispatch:
+        if hasmain(path + "/" + dispatch[bname][0]):
+            return "PYTHONPATH=. python " + path + "/" + dispatch[bname][0]
         else:
-            testfile = path + "/test_" + bname
-            if os.path.exists(testfile):
-                if hasmain(testfile):
-                    return "PYTHONPATH=. python " + testfile
-                return "pytest {pytest_args} {testfile}".format(**vars())
-            else:
+            tmp = " ".join((os.path.join(path, n) for n in dispatch[bname]))
+            return "pytest {pytest_args} ".format(**vars()) + tmp
+    if not os.path.basename(file).startswith("test_"):
+        testfile = path + "/test_" + bname
+        if os.path.exists(testfile):
+            if hasmain(testfile):
                 return "PYTHONPATH=. python " + testfile
+            return "pytest {pytest_args} {testfile}".format(**vars())
+        else:
+            return "PYTHONPATH=. python " + testfile
+    else:
+        if hasmain(testfile):
+            return "PYTHONPATH=. python " + testfile
+        return "pytest {pytest_args} {testfile}".format(**vars())
     return "pytest {pytest_args} {file}".format(**vars())
 
 
