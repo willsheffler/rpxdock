@@ -1,5 +1,5 @@
 _pdb_atom_record_format = (
-    "ATOM  {atomi:5d} {atomn:^4}{idx:^1}{resn:3s} {chain:1}{resi:4d}{insert:1s}   "
+    "ATOM  {ia:5d} {an:^4}{idx:^1}{rn:3s} {c:1}{ir:4d}{insert:1s}   "
     "{x:8.3f}{y:8.3f}{z:8.3f}{occ:6.2f}{b:6.2f}\n"
 )
 
@@ -49,14 +49,17 @@ aa321 = dict(
     TYR="Y",
 )
 
+_chains = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+_chains += _chains.lower() + "0123456789"
+
 
 def pdb_format_atom(
-    atomi=0,
-    atomn="ATOM",
+    ia=0,
+    an="ATOM",
     idx=" ",
-    resn="RES",
-    chain="A",
-    resi=0,
+    rn="RES",
+    c="A",
+    ir=0,
     insert=" ",
     x=0,
     y=0,
@@ -67,6 +70,8 @@ def pdb_format_atom(
 ):
     if xyz is not None:
         x, y, z, *_ = xyz.squeeze()
-    if resn in aa1:
-        resn = aa123[resn]
+    if rn in aa1:
+        rn = aa123[rn]
+    if not isinstance(c, str):
+        c = _chains[c]
     return _pdb_atom_record_format.format(**locals())

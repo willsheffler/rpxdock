@@ -284,6 +284,7 @@ struct BVHCollectPairs {
   Xform bXa = Xform::Identity();
   int32_t *out;
   int nout = 0, maxout = -1;
+  bool overflow = false;
   BVHCollectPairs(F r, Xform x, int32_t *ptr, int mx)
       : mindis(r), bXa(x), out(ptr), maxout(mx), mindis2(r * r) {}
   bool intersectVolumeVolume(Sphere<F> v1, Sphere<F> v2) {
@@ -298,12 +299,15 @@ struct BVHCollectPairs {
   bool intersectObjectObject(PtIdx<F> o1, PtIdx<F> o2) {
     bool isect = (o1.pos - bXa * o2.pos).squaredNorm() < mindis2;
     if (isect) {
-      assert(nout < maxout);
-      // std::cout << "BVH " << nout << " " << o1.idx << " " << o2.idx
-      // << std::endl;
-      out[2 * nout + 0] = o1.idx;
-      out[2 * nout + 1] = o2.idx;
-      ++nout;
+      if (nout < maxout) {
+        // std::cout << "BVH " << nout << " " << o1.idx << " " << o2.idx
+        // << std::endl;
+        out[2 * nout + 0] = o1.idx;
+        out[2 * nout + 1] = o2.idx;
+        ++nout;
+      } else {
+        overflow = true;
+      }
     }
     return false;
   }
@@ -311,7 +315,7 @@ struct BVHCollectPairs {
 
 template <typename F>
 int bvh_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
-                      F mindist, py::array_t<int32_t> out) {
+                      F maxdist, py::array_t<int32_t> out) {
   X3<F> x1(pos1), x2(pos2);
   X3<F> pos = x1.inverse() * x2;
 
@@ -323,17 +327,18 @@ int bvh_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
     throw std::runtime_error("out stride is not 2F");
   int32_t *ptr = (int32_t *)buf.ptr;
 
-  BVHCollectPairs<F> query(mindist, pos, ptr, buf.shape[0]);
+  BVHCollectPairs<F> query(maxdist, pos, ptr, buf.shape[0]);
   tcdock::bvh::BVIntersect(bvh1, bvh2, query);
+  if (query.overflow) return -1;
   return query.nout;
 }
 
 template <typename F>
 int naive_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
-                        F mindist, py::array_t<int32_t> out) {
+                        F maxdist, py::array_t<int32_t> out) {
   X3<F> x1(pos1), x2(pos2);
   X3<F> pos = x1.inverse() * x2;
-  F dist2 = mindist * mindist;
+  F dist2 = maxdist * maxdist;
 
   py::buffer_info buf = out.request();
   int nbuf = buf.shape[0], nout = 0;
@@ -353,7 +358,7 @@ int naive_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
     auto vol2 = bvh1.getVolume(ridx2);
     vol1.cen = x1 * vol1.cen;
     vol2.cen = x2 * vol2.cen;
-    if (!vol1.contact(vol2, mindist)) return 0;
+    if (!vol1.contact(vol2, maxdist)) return 0;
   }
 
   for (auto o1 : bvh1.objs) {
