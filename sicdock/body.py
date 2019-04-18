@@ -10,8 +10,10 @@ from sicdock.bvh import (
     naive_min_dist,
     bvh_min_dist,
     bvh_print,
+    bvh_count_pairs,
 )
-from sicdock.io import pdb_format_atom
+
+
 
 
 _CLASH_RADIUS = 1.75
@@ -105,11 +107,13 @@ class Body:
     def distance_to(self, other):
         return bvh_min_dist(self.bvh_bb, other.bvh_bb, self.pos, other.pos)
 
-    def positioned_coord(self):
-        return (self.pos @ self.coord[..., None]).squeeze()
+    def positioned_coord(self, asym=False):
+        n = len(self.coord) // self.nfold if asym else len(self.coord)
+        return (self.pos @ self.coord[:n, :, :, None]).squeeze()
 
-    def positioned_cen(self):
-        cen = self.stub[..., 3]
+    def positioned_cen(self, asym=False):
+        n = len(self.stub) // self.nfold if asym else len(self.stub)
+        cen = self.stub[:n, :, 3]
         return (self.pos @ cen[..., None]).squeeze()
 
     def cen_pairs(self, other, maxdis, buf=None):
@@ -124,12 +128,12 @@ class Body:
         return bvh_count_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis)
 
     def dump_pdb(self, fname, asym=False):
+        from sicdock.io import pdb_format_atom
         s = ""
         ia = 0
-        n = len(self.coord) // self.nfold if asym else len(self.coord)
-        for i in range(n):
-            crd = self.positioned_coord()
-            cen = self.positioned_cen()
+        crd = self.positioned_coord(asym=asym)
+        cen = self.positioned_cen(asym=asym)
+        for i in range(len(crd)):
             c = self.chain[i]
             j = self.resno[i]
             aa = self.seq[i]
@@ -143,3 +147,5 @@ class Body:
 
         with open(fname, "w") as out:
             out.write(s)
+
+

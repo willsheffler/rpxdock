@@ -2,7 +2,8 @@ import numpy as np
 import homog as hm
 
 from sicdock.body import Body
-from sicdock.search import tcdock, Arch
+from sicdock.search import Architecture, get_connected_architectures
+from sicdock.io import dump_pdb
 
 
 def test_tcdock(C3_1nza, C2_3hm4, sym1=3, sym2=2):
@@ -10,31 +11,28 @@ def test_tcdock(C3_1nza, C2_3hm4, sym1=3, sym2=2):
     body1 = Body(C3_1nza, sym1)
     body2 = Body(C2_3hm4, sym2)
 
-    arch = Arch("T32")
-    resl = 10
-    best, bestpos = tcdock(body1, body2, arch, resl=5)
-    print("tcdock best", best)
-    print(bestpos)
+    arch = Architecture("T32")
+    npair, pos1, pos2 = get_connected_architectures(body1, body2, arch, resl=10)
 
-    oldpos1, oldpos2 = bestpos
-    bestpos = arch.place_bodies(*bestpos)
-    body1.move_to(bestpos[0])
-    body2.move_to(bestpos[1])
-    body1.dump_pdb("body1_asym.pdb", asym=True)
-    body2.dump_pdb("body2_asym.pdb", asym=True)
+    amin = np.argmax(npair)
+    best = npair[amin]
+    bestpos1 = pos1[amin]
+    bestpos2 = pos2[amin]
+    print("tcdock best", best, "nresult", len(npair))
+    print(bestpos1)
+    print(bestpos2)
 
-    xalign = bestpos[0] @ np.linalg.inv(oldpos1)
-    assert np.allclose(bestpos[1], xalign @ oldpos2)
+    body1.move_to(bestpos1)
+    body2.move_to(bestpos2)
 
-    # body1.move_to(xalign @ oldpos1)
-    # body2.move_to(xalign @ oldpos2)
-    # body1.dump_pdb("body1_sym.pdb")
-    # body2.dump_pdb("body2_sym.pdb")
+    # dump_pdb(
+    # "assembly.pdb", [body1, body2], arch.symframes(), keep=lambda x: np.sum(x) > 0
+    # )
 
 
 if __name__ == "__main__":
 
-    # arch = Arch("T32")
+    # arch = Architecture("T32")
     # ofst = hm.htrans(arch.slide_dir(0) * 100)
     # arch.place_bodies(arch.orig1 + ofst, arch.orig2)
     # assert 0

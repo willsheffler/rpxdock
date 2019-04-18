@@ -8,9 +8,6 @@ import pyrosetta.rosetta as ros
 
 init("-beta -mute all")
 
-from sicdock.io import pdb_format_atom
-
-
 def get_pose_cached(fname, pdbdir="."):
     path = os.path.join(pdbdir, fname)
     ppath = path + ".pickle"
@@ -76,30 +73,6 @@ def get_bb_stubs(bbcords, which_resi=None):
     assert np.allclose(np.linalg.det(stub), 1)
     return stub
 
-    # nonsense for getting the centroid pos
-    # inv = np.linalg.inv(stub)
-    # invbb = (inv @ bbcords.swapaxes(0, 1)[..., None]).swapaxes(0, 1).squeeze()
-    # n = invbb[:, 0].squeeze()
-    # ca = invbb[:, 1].squeeze()
-    # c = invbb[:, 2].squeeze()
-    # o = invbb[:, 3].squeeze()
-    # cb = invbb[:, 4].squeeze()
-    # cen = (inv @ cen[..., None]).squeeze()
-    # print(invbb.shape)
-    # print(n.shape)
-    # print(cen.shape)
-    # print(np.mean(cen, axis=0))
-    #
-    # pdb = ""
-    # for i in range(len(cen)):
-    # pdb += pdb_format_atom(resi=i + 1, xyz=n[i], atomn="N")
-    # pdb += pdb_format_atom(resi=i + 1, xyz=ca[i], atomn="CA")
-    # pdb += pdb_format_atom(resi=i + 1, xyz=c[i], atomn="C")
-    # pdb += pdb_format_atom(resi=i + 1, xyz=o[i], atomn="O")
-    # pdb += pdb_format_atom(resi=i + 1, xyz=cb[i], atomn="CB")
-    # pdb += pdb_format_atom(resi=i + 1, xyz=cen[i], atomn="CEN")
-    # with open("test.pdb", "w") as out:
-    # out.write(pdb)
 
 
 def get_centroids(pose0, which_resi=None):

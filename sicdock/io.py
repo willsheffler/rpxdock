@@ -1,3 +1,66 @@
+import numpy as np
+
+from sicdock.body import Body
+
+
+def pdb_format_atom(
+    ia=0,
+    an="ATOM",
+    idx=" ",
+    rn="RES",
+    c="A",
+    ir=0,
+    insert=" ",
+    x=0,
+    y=0,
+    z=0,
+    occ=0,
+    b=0,
+    xyz=None,
+):
+    if xyz is not None:
+        x, y, z, *_ = xyz.squeeze()
+    if rn in aa1:
+        rn = aa123[rn]
+    if not isinstance(c, str):
+        c = _chains[c]
+    return _pdb_atom_record_format.format(**locals())
+
+
+def make_pdb(bodies, symframes=[np.eye], start=[0, 0], use_body_sym=False, keep=lambda x: False):
+    bodies = [bodies] if isinstance(bodies, Body) else bodies
+    s = ""
+    ia = start[0]
+    for xsym in symframes:
+        for body in bodies:
+            com = xsym @ body.pos[:,3]
+            if not keep(com):
+                continue
+            crd = xsym @ body.positioned_coord(asym=not use_body_sym)[...,None]
+            cen = xsym @ body.positioned_cen(asym=not use_body_sym)[...,None]
+            nchain = len(np.unique(body.chain[:len(crd)]))
+            for i in range(len(crd)):
+                c = body.chain[i] + start[1]
+                j = body.resno[i]
+                aa = body.seq[i]
+                s += pdb_format_atom(ia=ia + 0, ir=j, rn=aa, xyz=crd[i, 0], c=c, an="N")
+                s += pdb_format_atom(ia=ia + 1, ir=j, rn=aa, xyz=crd[i, 1], c=c, an="CA")
+                s += pdb_format_atom(ia=ia + 2, ir=j, rn=aa, xyz=crd[i, 2], c=c, an="C")
+                s += pdb_format_atom(ia=ia + 3, ir=j, rn=aa, xyz=crd[i, 3], c=c, an="O")
+                s += pdb_format_atom(ia=ia + 4, ir=j, rn=aa, xyz=crd[i, 4], c=c, an="CB")
+                s += pdb_format_atom(ia=ia + 5, ir=j, rn=aa, xyz=cen[i], c=c, an="CEN")
+                ia += 6
+            start[1] += nchain
+    start[0] = ia
+    return s, start
+
+
+def dump_pdb(fname, bodies, symframes=[np.eye(4)], **kw):
+    s, *_ = make_pdb(bodies, symframes, **kw)
+    with open(fname, "w") as out:
+        out.write(s)
+
+
 _pdb_atom_record_format = (
     "ATOM  {ia:5d} {an:^4}{idx:^1}{rn:3s} {c:1}{ir:4d}{insert:1s}   "
     "{x:8.3f}{y:8.3f}{z:8.3f}{occ:6.2f}{b:6.2f}\n"
@@ -51,27 +114,3 @@ aa321 = dict(
 
 _chains = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 _chains += _chains.lower() + "0123456789"
-
-
-def pdb_format_atom(
-    ia=0,
-    an="ATOM",
-    idx=" ",
-    rn="RES",
-    c="A",
-    ir=0,
-    insert=" ",
-    x=0,
-    y=0,
-    z=0,
-    occ=0,
-    b=0,
-    xyz=None,
-):
-    if xyz is not None:
-        x, y, z, *_ = xyz.squeeze()
-    if rn in aa1:
-        rn = aa123[rn]
-    if not isinstance(c, str):
-        c = _chains[c]
-    return _pdb_atom_record_format.format(**locals())
