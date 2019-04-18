@@ -7,9 +7,20 @@ this script exists for easy editor integration
 import sys
 import os
 import re
+from time import perf_counter
+
+_override = {
+    "rosetta.py": ["sicdock/tests/test_body.py"],
+    "bvh_algo.hpp": ["sicdock/tests/bvh/test_bvh.py"],
+    "bvh.cpp": ["sicdock/tests/bvh/test_bvh.py"],
+}
+_post = {
+    # "tcdock.py": "pymol body1.pdb body2.pdb",
+    # "test_tcdock.py": "pymol body1.pdb body2.pdb",
+}
 
 
-def hasmain(file):
+def file_has_main(file):
     with open(file) as inp:
         for l in inp:
             if l.startswith('if __name__ == "__main__":'):
@@ -19,52 +30,52 @@ def hasmain(file):
 
 def testfile_of(path, bname):
     print("testfile_of", path, bname)
-    return re.sub("^sicdock", "sicdock/tests", path) + "/test_" + bname
+    t = re.sub("^sicdock", "sicdock/tests", path) + "/test_" + bname
+    if os.path.exists(t):
+        return t
 
 
 def dispatch(file, pytest_args="--duration=5"):
-    dispatch = {
-        "rosetta.py": ["sicdock/tests/test_body.py"],
-        "bvh_algo.hpp": ["sicdock/tests/bvh/test_bvh.py"],
-        "bvh.cpp": ["sicdock/tests/bvh/test_bvh.py"],
-    }
+    """for the love of god... clean me up"""
     file = os.path.relpath(file)
     path, bname = os.path.split(file)
     print("runtests.py dispatch", path, bname)
-    if hasmain(file):
-        return "PYTHONPATH=. python " + file
-    if bname not in dispatch and (
-        not file.endswith(".py") or not file.startswith("sicdock/")
-    ):
-        return "PYTHONPATH=. python " + file
-    if bname in dispatch:
-        if hasmain(dispatch[bname][0]):
-            return "PYTHONPATH=. python " + dispatch[bname][0]
+    if bname in _override:
+        if len(_override[bname]) == 1:
+            file = _override[bname][0]
+            path, bname = os.path.split(file)
         else:
-            tmp = " ".join(dispatch[bname])
-            return "pytest {pytest_args} ".format(**vars()) + tmp
-    if not os.path.basename(file).startswith("test_"):
+            assert 0
+
+    if not bname.startswith("test_"):
         testfile = testfile_of(path, bname)
-        if os.path.exists(testfile):
-            if hasmain(testfile):
-                return "PYTHONPATH=. python " + testfile
-            return "pytest {pytest_args} {testfile}".format(**vars())
-        else:
-            return "PYTHONPATH=. python " + testfile
+        if testfile:
+            file = testfile
+            path, bname = os.path.split(file)
+
+    if not file_has_main(file) and bname.startswith("test_"):
+        cmd = "pytest {pytest_args} {file}".format(**vars())
+    elif file.endswith(".py"):
+        cmd = "PYTHONPATH=. python " + file
     else:
-        if hasmain(file):
-            return "PYTHONPATH=. python " + file
-        return "pytest {pytest_args} {file}".format(**vars())
-    return "pytest {pytest_args} {file}".format(**vars())
+        cmd = "pytest {pytest_args}".format(**vars())
+
+    post = ""
+    if bname in _post:
+        post = _post[bname]
+    return cmd, post
 
 
+t = perf_counter()
+
+post = ""
 if len(sys.argv) is 1:
     cmd = "pytest"
 elif len(sys.argv) is 2:
     if sys.argv[1].endswith(__file__):
         cmd = "pytest"
     else:
-        cmd = dispatch(sys.argv[1])
+        cmd, post = dispatch(sys.argv[1])
 else:
     print("usage: runtests.py FILE")
 
@@ -77,4 +88,7 @@ sys.stdout.flush()
 os.putenv("NUMBA_OPT", "1")
 # os.putenv('NUMBA_DISABLE_JIT', '1')
 os.system(cmd)
-print("=" * 20, "util/runtests.py done", "=" * 37)
+print("=" * 20, "main command done", "=" * 37)
+os.system(post)
+t = perf_counter() - t
+print("=" * 20, "util/runtests.py done, time", t, "=" * 30)

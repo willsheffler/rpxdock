@@ -419,11 +419,41 @@ int bvh_print(BVH<F> &bvh) {
 }
 
 template <typename F>
+py::array_t<F> bvh_obj_centers(BVH<F> &b) {
+  int n = b.objs.size();
+  auto shape = std::vector<int>{n, 4};
+  py::array_t<F> out(shape);
+  py::buffer_info buf = out.request();
+  F *ptr = (F *)buf.ptr;
+  for (int i = 0; i < n; ++i) {
+    ptr[4 * i + 0] = b.objs[i].pos[0];
+    ptr[4 * i + 1] = b.objs[i].pos[1];
+    ptr[4 * i + 2] = b.objs[i].pos[2];
+    ptr[4 * i + 3] = 1;
+  }
+  return out;
+}
+template <typename F>
+V4<F> bvh_obj_com(BVH<F> &b) {
+  int n = b.objs.size();
+  V4<F> com(0, 0, 0, 1);
+  for (int i = 0; i < n; ++i) {
+    com[0] += b.objs[i].pos[0];
+    com[1] += b.objs[i].pos[1];
+    com[2] += b.objs[i].pos[2];
+  }
+  com /= n;
+  return com;
+}
+
+template <typename F>
 void bind_bvh(auto m, std::string name) {
   py::class_<BVH<F>>(m, name.c_str())
       .def("__len__", [](BVH<F> &b) { return b.objs.size(); })
       .def("radius", [](BVH<F> &b) { return b.vols[b.getRootIndex()].rad; })
       .def("center", [](BVH<F> &b) { return b.vols[b.getRootIndex()].cen; })
+      .def("centers", &bvh_obj_centers<F>)
+      .def("com", &bvh_obj_com<F>)
       /**/;
 }
 

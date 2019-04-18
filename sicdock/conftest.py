@@ -1,4 +1,4 @@
-import sicdock.rosetta as ros
+from sicdock.rosetta import get_pose_cached
 import pytest
 import os
 import sys
@@ -21,15 +21,11 @@ def pdbdir(datadir):
     return d
 
 
-def get_pose(pdbdir, fname):
-    return ros.pose_from_file(join(pdbdir, fname))
-
-
 @pytest.fixture(scope="session")
 def C2_3hm4(pdbdir):
-    return get_pose(pdbdir, "C2_3hm4_1.pdb.gz")
+    return get_pose_cached("C2_3hm4_1.pdb.gz", pdbdir)
 
 
 @pytest.fixture(scope="session")
 def C3_1nza(pdbdir):
-    return get_pose(pdbdir, "C3_1nza_1.pdb.gz")
+    return get_pose_cached("C3_1nza_1.pdb.gz", pdbdir)

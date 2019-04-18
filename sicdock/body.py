@@ -28,6 +28,7 @@ class Body:
         if isinstance(sym, int):
             sym = "C%i" % sym
         self.sym = sym
+        self.nfold = int(sym[1:])
         self.seq = np.array(list(self.pose.sequence()))
         self.ss = np.array(list(self.pose.secstruct()))
         self.coord = ros.get_bb_coords(self.pose)
@@ -59,6 +60,9 @@ class Body:
         self.bvh_cen = bvh_create(cen, which_cen)
         self.pos = np.eye(4)
         self.pair_buf = np.empty((10000, 2), dtype="i4")
+
+    def com(self):
+        return self.pos @ self.bvh_bb.com()
 
     def move_by(self, x):
         self.pos = x @ self.pos
@@ -108,17 +112,22 @@ class Body:
         cen = self.stub[..., 3]
         return (self.pos @ cen[..., None]).squeeze()
 
-    def cen_pairs(self, other, maxdis):
-        buf = self.pair_buf
+    def cen_pairs(self, other, maxdis, buf=None):
+        if not buf:
+            buf = self.pair_buf
         n = bvh_collect_pairs(
             self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis, buf
         )
-        return self.pair_buf[:n]
+        return buf[:n]
 
-    def dump_pdb(self, fname):
+    def cen_pair_count(self, other, maxdis):
+        return bvh_count_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis)
+
+    def dump_pdb(self, fname, asym=False):
         s = ""
         ia = 0
-        for i in range(len(self.coord)):
+        n = len(self.coord) // self.nfold if asym else len(self.coord)
+        for i in range(n):
             crd = self.positioned_coord()
             cen = self.positioned_cen()
             c = self.chain[i]

@@ -56,8 +56,8 @@ def test_body(C2_3hm4, C3_1nza, sym1=2, sym2=3):
     # print(bestpos[1])
     body1.move_to(bestpos[0])
     body2.move_to(bestpos[1])
-    body1.dump_pdb("body1.pdb")
-    body2.dump_pdb("body2.pdb")
+    # body1.dump_pdb("body1.pdb")
+    # body2.dump_pdb("body2.pdb")
 
 
 if __name__ == "__main__":

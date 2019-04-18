@@ -1,3 +1,6 @@
+import os
+import _pickle
+
 import numpy as np
 
 from pyrosetta import *
@@ -6,6 +9,18 @@ import pyrosetta.rosetta as ros
 init("-beta -mute all")
 
 from sicdock.io import pdb_format_atom
+
+
+def get_pose_cached(fname, pdbdir="."):
+    path = os.path.join(pdbdir, fname)
+    ppath = path + ".pickle"
+    if not os.path.exists(ppath):
+        pose = pose_from_file(path)
+        with open(ppath, "wb") as out:
+            _pickle.dump(pose, out)
+            return pose
+    with open(ppath, "rb") as inp:
+        return _pickle.load(inp)
 
 
 def numpy_stub_from_rosetta_stub(rosstub):

@@ -308,7 +308,7 @@ def test_bvh_slide_whole():
     # slide test 10,000 iter bvhslide float: 16,934/s double: 16,491/s bvhmin 17,968/s fracmiss: 0.0834
 
     # np.random.seed(0)
-    N1, N2 = 10, 100
+    N1, N2 = 2, 10
     totbvh, totbvhf, totmin = 0, 0, 0
     nmiss = 0
     for j in range(N1):
@@ -570,11 +570,21 @@ def test_slide_collect_pairs():
     )
 
 
+def test_bvh_accessors():
+    xyz = np.random.rand(10, 3) - [0.5, 0.5, 0.5]
+    b = bvh.bvh_create(xyz)
+    assert np.allclose(b.com()[:3], np.mean(xyz, axis=0))
+    p = b.centers()
+    dmat = np.linalg.norm(p[:, :3] - xyz[:, None], axis=2)
+    assert np.allclose(np.min(dmat, axis=1), 0)
+
+
 if __name__ == "__main__":
     # test_bvh_min_dist()
     # test_bvh_isect()
     # test_bvh_slide_whole()
     # test_collect_pairs_simple()
     # test_collect_pairs_simple_selection()
-    test_collect_pairs()
+    # test_collect_pairs()
     # test_slide_collect_pairs()
+    test_bvh_accessors()
