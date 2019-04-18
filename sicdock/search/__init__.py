@@ -1,1 +1,1 @@
-from sicdock.search.tcdock import *
+from sicdock.search.gridslide import *
