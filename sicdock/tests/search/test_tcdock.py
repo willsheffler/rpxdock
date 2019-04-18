@@ -2,32 +2,42 @@ import numpy as np
 import homog as hm
 
 from sicdock.body import Body
-from sicdock.search import Architecture, get_connected_architectures
+from sicdock.search import (
+    Architecture,
+    get_connected_architectures,
+    get_cyclic_cyclic_samples,
+)
 from sicdock.io import dump_pdb
 
 
 def test_tcdock(C3_1nza, C2_3hm4, sym1=3, sym2=2):
 
-    body1 = Body(C3_1nza, sym1)
-    body2 = Body(C2_3hm4, sym2)
+    arch = Architecture("I32")
+    body1 = Body(C3_1nza, sym1, which_ss="HE")
+    body2 = Body(C2_3hm4, sym2, which_ss="HE")
 
-    arch = Architecture("T32")
-    npair, pos1, pos2 = get_connected_architectures(body1, body2, arch, resl=10)
-
-    amin = np.argmax(npair)
-    best = npair[amin]
-    bestpos1 = pos1[amin]
-    bestpos2 = pos2[amin]
-    print("tcdock best", best, "nresult", len(npair))
-    print(bestpos1)
-    print(bestpos2)
-
-    body1.move_to(bestpos1)
-    body2.move_to(bestpos2)
-
-    # dump_pdb(
-    # "assembly.pdb", [body1, body2], arch.symframes(), keep=lambda x: np.sum(x) > 0
-    # )
+    samples = get_cyclic_cyclic_samples(arch, resl=10, max_out_of_plane_angle=1)
+    npair, pos1, pos2 = get_connected_architectures(
+        arch, body1, body2, samples, min_contacts=10
+    )
+    pos1, pos2 = arch.move_to_canonical_unit(pos1, pos2)
+    if len(npair) == 0:
+        print("no results")
+    omax = np.argsort(-npair)
+    for i, imax in enumerate(omax[:10]):
+        best = npair[imax]
+        bestpos1 = pos1[imax]
+        bestpos2 = pos2[imax]
+        print("tcdock best", i, best, "nresult", len(npair))
+        body1.move_to(bestpos1)
+        body2.move_to(bestpos2)
+        dump_pdb(
+            "sicdock%03i.pdb" % i,
+            [body1, body2],
+            arch.symframes()[:8],
+            # keep=lambda x: np.sum(x) > 0,
+            no_duplicate_chains=False,
+        )
 
 
 if __name__ == "__main__":

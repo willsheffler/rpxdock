@@ -14,13 +14,11 @@ from sicdock.bvh import (
 )
 
 
-
-
 _CLASH_RADIUS = 1.75
 
 
 class Body:
-    def __init__(self, pdb, sym=None, **kw):
+    def __init__(self, pdb, sym=None, which_ss="HE", **kw):
         if isinstance(pdb, str):
             self.pdbfile = pdb
             self.pose = ros.pose_from_file(pdb)
@@ -58,7 +56,11 @@ class Body:
         self.stub = ros.get_bb_stubs(self.coord)
         self.bvh_bb = bvh_create(self.coord[..., :3].reshape(-1, 3))
         cen = self.stub[:, :3, 3]
-        which_cen = ~np.isin(self.seq, ["G", "C", "P"])
+        which_cen = np.repeat(False, len(self.ss))
+        for ss in "EHL":
+            if ss in which_ss:
+                which_cen |= self.ss == ss
+        which_cen &= ~np.isin(self.seq, ["G", "C", "P"])
         self.bvh_cen = bvh_create(cen, which_cen)
         self.pos = np.eye(4)
         self.pair_buf = np.empty((10000, 2), dtype="i4")
@@ -129,6 +131,7 @@ class Body:
 
     def dump_pdb(self, fname, asym=False):
         from sicdock.io import pdb_format_atom
+
         s = ""
         ia = 0
         crd = self.positioned_coord(asym=asym)
@@ -147,5 +150,3 @@ class Body:
 
         with open(fname, "w") as out:
             out.write(s)
-
-

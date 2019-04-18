@@ -27,31 +27,53 @@ def pdb_format_atom(
     return _pdb_atom_record_format.format(**locals())
 
 
-def make_pdb(bodies, symframes=[np.eye], start=[0, 0], use_body_sym=False, keep=lambda x: False):
+def make_pdb(
+    bodies,
+    symframes=[np.eye],
+    start=None,
+    use_body_sym=False,
+    keep=lambda x: True,
+    no_duplicate_chains=False,
+):
+    start = [0, 0] if start is None else start
     bodies = [bodies] if isinstance(bodies, Body) else bodies
+    names = "N CA C O CB CEN".split()
     s = ""
     ia = start[0]
     for xsym in symframes:
         for body in bodies:
-            com = xsym @ body.pos[:,3]
+            com = xsym @ body.pos[:, 3]
             if not keep(com):
                 continue
-            crd = xsym @ body.positioned_coord(asym=not use_body_sym)[...,None]
-            cen = xsym @ body.positioned_cen(asym=not use_body_sym)[...,None]
-            nchain = len(np.unique(body.chain[:len(crd)]))
+            crd = xsym @ body.positioned_coord(asym=not use_body_sym)[..., None]
+            cen = xsym @ body.positioned_cen(asym=not use_body_sym)[..., None]
+            nchain = len(np.unique(body.chain[: len(crd)]))
             for i in range(len(crd)):
-                c = body.chain[i] + start[1]
+                ic = body.chain[i] + start[1]
+                if no_duplicate_chains and ic >= len(_chains):
+                    break
+                c = ic % len(_chains)
                 j = body.resno[i]
                 aa = body.seq[i]
                 s += pdb_format_atom(ia=ia + 0, ir=j, rn=aa, xyz=crd[i, 0], c=c, an="N")
-                s += pdb_format_atom(ia=ia + 1, ir=j, rn=aa, xyz=crd[i, 1], c=c, an="CA")
+                s += pdb_format_atom(
+                    ia=ia + 1, ir=j, rn=aa, xyz=crd[i, 1], c=c, an="CA"
+                )
                 s += pdb_format_atom(ia=ia + 2, ir=j, rn=aa, xyz=crd[i, 2], c=c, an="C")
                 s += pdb_format_atom(ia=ia + 3, ir=j, rn=aa, xyz=crd[i, 3], c=c, an="O")
-                s += pdb_format_atom(ia=ia + 4, ir=j, rn=aa, xyz=crd[i, 4], c=c, an="CB")
+                s += pdb_format_atom(
+                    ia=ia + 4, ir=j, rn=aa, xyz=crd[i, 4], c=c, an="CB"
+                )
                 s += pdb_format_atom(ia=ia + 5, ir=j, rn=aa, xyz=cen[i], c=c, an="CEN")
                 ia += 6
             start[1] += nchain
     start[0] = ia
+    if start[1] > len(_chains) and not no_duplicate_chains:
+        print(
+            "WARNING: too many chains for a pdb",
+            start[1] - len(_chains),
+            "will be duplicates",
+        )
     return s, start
 
 
@@ -112,5 +134,6 @@ aa321 = dict(
     TYR="Y",
 )
 
-_chains = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-_chains += _chains.lower() + "0123456789"
+_chains = (
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz!@#$&.<>?]|-_\\~=%"
+)

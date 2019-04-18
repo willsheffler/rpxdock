@@ -5,14 +5,17 @@ import numpy as np
 
 from pyrosetta import *
 import pyrosetta.rosetta as ros
+from pyrosetta.rosetta.core.scoring.dssp import Dssp
 
 init("-beta -mute all")
+
 
 def get_pose_cached(fname, pdbdir="."):
     path = os.path.join(pdbdir, fname)
     ppath = path + ".pickle"
     if not os.path.exists(ppath):
         pose = pose_from_file(path)
+        Dssp(pose).insert_ss_into_pose(pose)
         with open(ppath, "wb") as out:
             _pickle.dump(pose, out)
             return pose
@@ -72,7 +75,6 @@ def get_bb_stubs(bbcords, which_resi=None):
     stub[:, :3, 3] = t
     assert np.allclose(np.linalg.det(stub), 1)
     return stub
-
 
 
 def get_centroids(pose0, which_resi=None):

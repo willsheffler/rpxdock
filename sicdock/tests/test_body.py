@@ -69,8 +69,8 @@ if __name__ == "__main__":
     # f2 = "/home/sheffler/scaffolds/big/C3_3ziy_1.pdb"
     # f1 = "/home/sheffler/scaffolds/wheel/C3.pdb"
     # f2 = "/home/sheffler/scaffolds/wheel/C5.pdb"
-    pose1 = ros.pose_from_file(f1)
-    pose2 = ros.pose_from_file(f2)
+    pose1 = ros.get_pose_cached(f1)
+    pose2 = ros.get_pose_cached(f2)
     test_body(pose1, pose2)
 
     # nres  306  309 sqnpair  307 new 17743/s orig 13511/s

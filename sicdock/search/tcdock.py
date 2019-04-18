@@ -1,6 +1,6 @@
 import numpy as np
 import homog as hm
-from sicdock.sym import symaxes, symframes
+from sicdock.sym import symaxes, symframes, symaxes_second, sym_to_neighbor_olig
 
 
 class Architecture:
@@ -20,6 +20,10 @@ class Architecture:
         self.orig1 = hm.align_vector([0, 0, 1], self.axis1)
         self.orig2 = hm.align_vector([0, 0, 1], self.axis2)
         self.symframes_ = symframes[self.sym]
+        self.axis1_second = symaxes_second[self.sym][self.nfold1]
+        self.axis2_second = symaxes_second[self.sym][self.nfold2]
+        self.to_neighbor_olig1 = sym_to_neighbor_olig[self.sym][self.nfold1]
+        self.to_neighbor_olig2 = sym_to_neighbor_olig[self.sym][self.nfold2]
 
     def align_bodies(self, body1, body2):
         body1.move_to(self.orig1)
@@ -40,6 +44,17 @@ class Architecture:
 
     def symframes(self, cellspacing=None, radius=None):
         return self.symframes_
+
+    def move_to_canonical_unit(self, pos1, pos2):
+        origshape = pos1.shape
+        pos1 = pos1.reshape(-1, 4, 4).copy()
+        pos2 = pos2.reshape(-1, 4, 4).copy()
+        xcen = self.symframes_[:, None] @ pos1[:, :, 3, None]
+        xcen += self.symframes_[:, None] @ pos2[:, :, 3, None]
+        tgt = self.axis1 + self.axis2
+        xdot = np.sum(xcen.squeeze() * tgt, axis=2)
+        x = self.symframes_[np.argmax(xdot, axis=0)]
+        return (x @ pos1).reshape(origshape), (x @ pos2).reshape(origshape)
 
     def place_along_axes(self, pos1, pos2):
         origshape = pos1.shape
@@ -72,30 +87,37 @@ class Architecture:
         return (pos1.reshape(origshape), pos2.reshape(origshape))
 
 
-def get_connected_architectures(
-    body1, body2, arch, resl=1, maxtip=10, minpairs=30, maxpairdis=8.0
-):
-    samp1 = arch.placements1(range(0, 360 // arch.nfold1, resl))
-    samp2 = arch.placements2(range(0, 360 // arch.nfold2, resl))
-    slideangpos = list(range(-maxtip, maxtip + 1, resl))
-    slideangneg = list(range(180 - maxtip, maxtip + 181, resl))
-    samp3 = arch.slide_dir(slideangpos + slideangneg)
+def get_cyclic_cyclic_samples(arch, resl=1, max_out_of_plane_angle=10):
+    tip = max_out_of_plane_angle
+    rots1 = arch.placements1(np.arange(0, 360 // arch.nfold1, resl))
+    rots2 = arch.placements2(np.arange(0, 360 // arch.nfold2, resl))
+    slideposdn = np.arange(0, -0.001 - tip, -resl)[::-1]
+    slideposup = np.arange(resl, tip + 0.001, resl)
+    slidenegdn = np.arange(180, 179.999 - tip, -resl)[::-1]
+    slidenegup = np.arange(180 + resl, tip + 180.001, resl)
+    slides = np.concatenate([slideposdn, slideposup, slidenegdn, slidenegup])
+    slides = arch.slide_dir(slides)
+    return rots1, rots2, slides
 
-    maxsize = len(samp1) * len(samp2) * len(samp3)
+
+def get_connected_architectures(
+    arch, body1, body2, samples, min_contacts=30, contact_dis=8.0
+):
+    maxsize = len(samples[0]) * len(samples[1]) * len(samples[2])
     npair = np.empty(maxsize, np.int32)
     pos1 = np.empty((maxsize, 4, 4))
     pos2 = np.empty((maxsize, 4, 4))
     nresult = 0
-    for x1 in samp1:
+    for x1 in samples[0]:
         body1.move_to(x1)
-        for x2 in samp2:
+        for x2 in samples[1]:
             body2.move_to(x2)
-            for dirn in samp3:
+            for dirn in samples[2]:
                 body1.center()
                 d = body1.slide_to(body2, dirn)
                 if d < 9e8:
-                    npair0 = body1.cen_pair_count(body2, maxpairdis)
-                    if npair0 >= minpairs:
+                    npair0 = body1.cen_pair_count(body2, contact_dis)
+                    if npair0 >= min_contacts:
                         npair[nresult] = npair0
                         pos1[nresult] = body1.pos
                         pos2[nresult] = body2.pos
