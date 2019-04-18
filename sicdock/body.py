@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import homog as hm
 
@@ -150,3 +152,8 @@ class Body:
 
         with open(fname, "w") as out:
             out.write(s)
+
+    def copy(self):
+        b = copy.copy(self)
+        b.pos = np.eye(4)  # mutable state can't be same ref as orig
+        return b

@@ -1,7 +1,11 @@
 import numpy as np
 
 
-def get_cyclic_cyclic_samples(spec, resl=1, max_out_of_plane_angle=10):
+def samples_1xCyclic(spec, resl=1):
+    return spec.placements(np.arange(0, 360 // spec.nfold, resl))
+
+
+def samples_2xCyclic(spec, resl=1, max_out_of_plane_angle=10):
     tip = max_out_of_plane_angle
     rots1 = spec.placements1(np.arange(0, 360 // spec.nfold1, resl))
     rots2 = spec.placements2(np.arange(0, 360 // spec.nfold2, resl))
@@ -14,14 +18,44 @@ def get_cyclic_cyclic_samples(spec, resl=1, max_out_of_plane_angle=10):
     return rots1, rots2, slides
 
 
-def get_connected_architectures(
+def find_connected_1xCyclic(spec, body1, samples, min_contacts=30, contact_dis=8.0):
+    body2 = body1.copy()  # shallow copy except pos
+
+    assert body1.pos is not body2.pos
+    assert body1.coord is body2.coord
+
+    samples_second = spec.placements_second(samples)
+    maxsize = len(samples)
+    npair = np.empty(maxsize, np.int32)
+    pos = np.empty((maxsize, 4, 4))
+    dslide = np.empty(maxsize)
+    nresult, nhit = 0, 0
+    dirn = spec.slide_dir()
+    for x1, x2 in zip(samples, samples_second):
+        body1.move_to(x1)
+        body2.move_to(x2)
+        d = body1.slide_to(body2, dirn)
+        if d < 9e8:
+            nhit += 1
+            npair0 = body1.cen_pair_count(body2, contact_dis)
+            if npair0 >= min_contacts:
+                npair[nresult] = npair0
+                pos[nresult] = body1.pos
+                dslide[nresult] = d
+                nresult += 1
+    assert nhit == maxsize
+    pos = spec.place_along_axis(pos[:nresult], dslide[:nresult])
+    return npair[:nresult], pos
+
+
+def find_connected_2xCyclic(
     spec, body1, body2, samples, min_contacts=30, contact_dis=8.0
 ):
     maxsize = len(samples[0]) * len(samples[1]) * len(samples[2])
     npair = np.empty(maxsize, np.int32)
     pos1 = np.empty((maxsize, 4, 4))
     pos2 = np.empty((maxsize, 4, 4))
-    nresult = 0
+    nresult, nhit = 0, 0
     for x1 in samples[0]:
         body1.move_to(x1)
         for x2 in samples[1]:
@@ -30,11 +64,13 @@ def get_connected_architectures(
                 body1.center()
                 d = body1.slide_to(body2, dirn)
                 if d < 9e8:
+                    nhit += 1
                     npair0 = body1.cen_pair_count(body2, contact_dis)
                     if npair0 >= min_contacts:
                         npair[nresult] = npair0
                         pos1[nresult] = body1.pos
                         pos2[nresult] = body2.pos
                         nresult += 1
+    assert nhit == maxsize
     pos1, pos2 = spec.place_along_axes(pos1[:nresult], pos2[:nresult])
     return npair[:nresult], pos1, pos2

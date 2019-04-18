@@ -25,31 +25,16 @@ icosahedral_axes = {
 }
 axes = dict(T=tetrahedral_axes, O=octahedral_axes, I=icosahedral_axes)
 
-tetrahedral_second_axes = {
-    2: hnormalized([0, 1, 0]),
-    3: hnormalized([1, -1, -1]),
-    33: hnormalized([-1, -1, -1]),
-}  # other c3
-octahedral_second_axes = {
-    2: hnormalized([1, -1, 0]),
-    3: hnormalized([1, -1, 1]),
-    4: hnormalized([0, 1, 0]),
-}
-icosahedral_second_axes = {
-    2: hnormalized([0.809017, 0.309017, -0.5]),
-    3: hnormalized([0.934172372, 0, -0.356822067]),
-    5: hnormalized([0.850651, -0.525731, 0.000000]),
-}
-axes_second = dict(
-    T=tetrahedral_second_axes, O=octahedral_second_axes, I=icosahedral_second_axes
-)
-
 
 to_neighbor_olig = dict(
     T={2: frames["T"][2], 3: frames["T"][1], 33: frames["T"][1]},
     O={2: frames["O"][2], 3: frames["O"][1], 4: frames["O"][1]},
     I={2: frames["I"][1], 3: frames["I"][1], 5: frames["I"][2]},
 )
+
+axes_second = {
+    s: {k: to_neighbor_olig[s][k] @ v for k, v in axes[s].items()} for s in "TOI"
+}
 
 
 # tetrahedral_frames = np.array(

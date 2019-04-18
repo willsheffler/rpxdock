@@ -35,7 +35,7 @@ def pdb_format_atom(
 def make_pdb(
     bodies,
     symframes=[np.eye],
-    start=None,
+    start=(0, 0),
     use_body_sym=False,
     keep=lambda x: True,
     no_duplicate_chains=False,
@@ -55,10 +55,11 @@ def make_pdb(
     if isinstance(chain_letters, int):
         chain_letters = all_pymol_chains[:chain_letters]
 
-    start = [0, 0] if start is None else start
+    startatm = start[0]
+    startchain = start[1]
     bodies = [bodies] if isinstance(bodies, Body) else bodies
     s = ""
-    ia = start[0]
+    ia = startatm
     max_resno = np.repeat(int(-9e9), len(chain_letters))
     for xsym in symframes:
         for body in bodies:
@@ -69,7 +70,7 @@ def make_pdb(
             cen = xsym @ body.positioned_cen(asym=not use_body_sym)[..., None]
             nchain = len(np.unique(body.chain[: len(crd)]))
             for i in range(len(crd)):
-                ic = body.chain[i] + start[1]
+                ic = body.chain[i] + startchain
                 c = ic % len(chain_letters)
                 aa = body.seq[i]
                 resno = body.resno[i]
@@ -79,6 +80,7 @@ def make_pdb(
                     if no_duplicate_reschain_pairs:
                         resno = max_resno[c] + 1
                 max_resno[c] = max(resno, max_resno[c])
+                cletter = chain_letters[c]
                 for j in aindex:
 
                     # ATOM      0  N   MET A   0      20.402  18.063   8.049  1.00  0.00           C
@@ -100,7 +102,7 @@ def make_pdb(
                         ir=resno + 1,
                         rn=aa,
                         xyz=xyz,
-                        c=c,
+                        c=cletter,
                         an=aname,
                         occ=1,
                         elem=elems[j],
@@ -109,8 +111,8 @@ def make_pdb(
                     # return (s,)
                     ia += 1
             s += "TER\n"
-            start[1] += nchain
-    start[0] = ia
+            startchain += nchain
+    startatm = ia
     if start[1] > len(chain_letters):
         if no_duplicate_chains:
             print(
@@ -136,7 +138,7 @@ def make_pdb(
                 len(chain_letters),
                 "will be duplicate chain/resi pairs",
             )
-    return s, start
+    return s, (startatm, startchain)
 
 
 def dump_pdb(fname, bodies, symframes=[np.eye(4)], **kw):

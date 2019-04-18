@@ -13,6 +13,7 @@ _override = {
     "rosetta.py": ["sicdock/tests/test_body.py"],
     "bvh_algo.hpp": ["sicdock/tests/bvh/test_bvh.py"],
     "bvh.cpp": ["sicdock/tests/bvh/test_bvh.py"],
+    "dockspec.py": ["sicdock/tests/search/test_gridslide.py"],
 }
 _post = {
     # "tcdock.py": "pymol body1.pdb body2.pdb",
