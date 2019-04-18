@@ -32,7 +32,7 @@ def pdb_format_atom(
     return _pdb_atom_record_format.format(**locals())
 
 
-def make_pdb(
+def make_pdb_from_bodies(
     bodies,
     symframes=[np.eye],
     start=(0, 0),
@@ -141,8 +141,8 @@ def make_pdb(
     return s, (startatm, startchain)
 
 
-def dump_pdb(fname, bodies, symframes=[np.eye(4)], **kw):
-    s, *_ = make_pdb(bodies, symframes, **kw)
+def dump_pdb_from_bodies(fname, bodies, symframes=[np.eye(4)], **kw):
+    s, *_ = make_pdb_from_bodies(bodies, symframes, **kw)
     with open(fname, "w") as out:
         out.write(s)
 

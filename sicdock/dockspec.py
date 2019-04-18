@@ -39,12 +39,12 @@ class DockSpec1CompCage:
     def symframes(self, cellspacing=None, radius=None):
         return self.symframes_
 
-    def place_along_axis(self, pos, slide_delta):
+    def place_along_axis(self, pos, slide_dist):
         origshape = pos.shape
         pos = pos.reshape(-1, 4, 4)
         # pos2 = pos2.reshape(-1, 4, 4)
 
-        adis = -slide_delta * self.slide_to_axis_displacement
+        adis = -slide_dist * self.slide_to_axis_displacement
         newt = self.axis * adis[:, None]
         newpos = pos.copy()
         newpos[:, :3, 3] = newt[:, :3]
@@ -139,3 +139,50 @@ class DockSpec2CompCage:
         pos2[:, :3, 3] = newt2
 
         return (pos1.reshape(origshape), pos2.reshape(origshape))
+
+
+class DockSpecMonomerToCyclic:
+    def __init__(self, spec):
+        assert len(spec) == 2
+        assert spec[0] == "C"
+        self.spec = spec
+        self.nfold = int(spec[1])
+        assert self.nfold > 1
+        self.angle = 2 * np.pi / self.nfold
+
+        self.orig = np.eye(4)
+        self.to_neighbor_monomer = hm.hrot([0, 0, 1], self.angle)
+        self.orig_second = self.to_neighbor_monomer @ self.orig
+
+        self.symframes_ = [
+            hm.hrot([0, 0, 1], self.angle * i) for i in range(self.nfold)
+        ]
+        self.tan_half_vertex = np.tan((np.pi - self.angle) / 2)
+
+    def slide_dir(self):
+        return [1, 0, 0]
+
+    def placements_second(self, placements):
+        return self.to_neighbor_monomer @ placements
+
+    def symframes(self, cellspacing=None, radius=None):
+        return self.symframes_
+
+    def place_along_axis(self, pos, slide_dist):
+        origshape = pos.shape
+        pos = pos.reshape(-1, 4, 4)
+
+        print(self.nfold, self.angle, self.tan_half_vertex)
+        if self.nfold == 2:
+            dx = slide_dist / 2
+            dy = 0
+        else:
+            dx = slide_dist / 2
+            dy = dx * self.tan_half_vertex
+            print("delta", slide_dist[0], dx[0], dy[0])
+
+        print(np.mean(dx), np.mean(dy))
+        newpos = pos.copy()
+        newpos[:, 0, 3] = dx
+        newpos[:, 1, 3] = dy
+        return newpos.reshape(origshape)

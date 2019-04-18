@@ -29,3 +29,8 @@ def C2_3hm4(pdbdir):
 @pytest.fixture(scope="session")
 def C3_1nza(pdbdir):
     return get_pose_cached("C3_1nza_1.pdb.gz", pdbdir)
+
+
+@pytest.fixture(scope="session")
+def top7(pdbdir):
+    return get_pose_cached("top7.pdb.gz", pdbdir)

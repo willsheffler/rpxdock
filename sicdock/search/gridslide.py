@@ -1,4 +1,11 @@
 import numpy as np
+import sicdock.sampling.orientations as ori
+from homog.quat import quat_to_xform
+
+
+def samples_1xMonomer_orientations(resl):
+    quats = ori.quaternion_set_with_covering_radius_degrees(resl)[0]
+    return quat_to_xform(quats)
 
 
 def samples_1xCyclic(spec, resl=1):
@@ -18,12 +25,8 @@ def samples_2xCyclic(spec, resl=1, max_out_of_plane_angle=10):
     return rots1, rots2, slides
 
 
-def find_connected_1xCyclic(spec, body1, samples, min_contacts=30, contact_dis=8.0):
-    body2 = body1.copy()  # shallow copy except pos
-
-    assert body1.pos is not body2.pos
-    assert body1.coord is body2.coord
-
+def find_connected_1xCyclic(spec, body, samples, min_contacts=30, contact_dis=8.0):
+    body2 = body.copy()  # shallow copy except pos
     samples_second = spec.placements_second(samples)
     maxsize = len(samples)
     npair = np.empty(maxsize, np.int32)
@@ -32,15 +35,15 @@ def find_connected_1xCyclic(spec, body1, samples, min_contacts=30, contact_dis=8
     nresult, nhit = 0, 0
     dirn = spec.slide_dir()
     for x1, x2 in zip(samples, samples_second):
-        body1.move_to(x1)
+        body.move_to(x1)
         body2.move_to(x2)
-        d = body1.slide_to(body2, dirn)
+        d = body.slide_to(body2, dirn)
         if d < 9e8:
             nhit += 1
-            npair0 = body1.cen_pair_count(body2, contact_dis)
+            npair0 = body.cen_pair_count(body2, contact_dis)
             if npair0 >= min_contacts:
                 npair[nresult] = npair0
-                pos[nresult] = body1.pos
+                pos[nresult] = body.pos
                 dslide[nresult] = d
                 nresult += 1
     assert nhit == maxsize
@@ -74,3 +77,29 @@ def find_connected_2xCyclic(
     assert nhit == maxsize
     pos1, pos2 = spec.place_along_axes(pos1[:nresult], pos2[:nresult])
     return npair[:nresult], pos1, pos2
+
+
+def find_connected_monomer_to_cyclic(spec, body, samples, min_contacts, contact_dis):
+    body2 = body.copy()  # shallow copy except pos
+    samples_second = spec.placements_second(samples)
+    maxsize = len(samples)
+    npair = np.empty(maxsize, np.int32)
+    pos = np.empty((maxsize, 4, 4))
+    dslide = np.empty(maxsize)
+    nresult, nhit = 0, 0
+    dirn = spec.slide_dir()
+    for x1, x2 in zip(samples, samples_second):
+        body.move_to(x1)
+        body2.move_to(x2)
+        d = body.slide_to(body2, dirn)
+        if d < 9e8:
+            nhit += 1
+            npair0 = body.cen_pair_count(body2, contact_dis)
+            if npair0 >= min_contacts:
+                npair[nresult] = npair0
+                pos[nresult] = body.pos
+                dslide[nresult] = d
+                nresult += 1
+    assert nhit == maxsize
+    pos = spec.place_along_axis(pos[:nresult], dslide[:nresult])
+    return npair[:nresult], pos

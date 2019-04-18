@@ -14,6 +14,9 @@ _override = {
     "bvh_algo.hpp": ["sicdock/tests/bvh/test_bvh.py"],
     "bvh.cpp": ["sicdock/tests/bvh/test_bvh.py"],
     "dockspec.py": ["sicdock/tests/search/test_gridslide.py"],
+    "_orientations.hpp": ["sicdock/sampling/orientations.py"],
+    "_orientations.cpp": ["sicdock/sampling/orientations.py"],
+    "_orientations_test.cpp": ["sicdock/sampling/orientations.py"],
 }
 _post = {
     # "tcdock.py": "pymol body1.pdb body2.pdb",

@@ -2,9 +2,13 @@ import numpy as np
 import homog as hm
 
 from sicdock.body import Body
-from sicdock.dockspec import DockSpec2CompCage, DockSpec1CompCage
+from sicdock.dockspec import (
+    DockSpec2CompCage,
+    DockSpec1CompCage,
+    DockSpecMonomerToCyclic,
+)
 from sicdock.search import gridslide
-from sicdock.io import dump_pdb
+from sicdock.io import dump_pdb_from_bodies
 from sicdock import sym
 
 
@@ -14,8 +18,7 @@ def test_1xCyclic(
     nfold1=3,
     nfold2=2,
     ndump=0,
-    resl=10,
-    tip=1,
+    resl=0.9,
     contact_dis=8,
     min_contacts=10,
 ):
@@ -44,7 +47,7 @@ def test_1xCyclic(
             best = npair[imax]
             print("tcdock best", i, best, "nresult", len(npair))
             body.move_to(pos[imax])
-            dump_pdb(
+            dump_pdb_from_bodies(
                 "sicdock_%s_%03i.pdb" % (arch, i),
                 body,
                 spec.symframes(),  # [:8],
@@ -62,8 +65,8 @@ def test_2xCyclic(
     nfold1=3,
     nfold2=2,
     ndump=0,
-    resl=10,
-    tip=1,
+    resl=12,
+    tip=12,
     contact_dis=8,
     min_contacts=10,
 ):
@@ -102,11 +105,47 @@ def test_2xCyclic(
             print("tcdock best", i, best, "nresult", len(npair))
             body1.move_to(pos1[imax])
             body2.move_to(pos2[imax])
-            dump_pdb(
+            dump_pdb_from_bodies(
                 "sicdock_%s_%03i.pdb" % (arch, i),
                 [body1, body2],
                 spec.symframes(),  # [:8],
                 # keep=lambda x: np.sum(x) > 0,
+                no_duplicate_chains=False,
+                no_duplicate_reschain_pairs=True,
+                include_cen=False,
+                chain_letters=-1,
+            )
+
+
+def test_monomer_to_cyclic(
+    top7, ndump=0, resl=30, contact_dis=8, min_contacts=10, archs="C2 C3 C4 C5 C6"
+):
+    for arch in archs.split():
+        spec = DockSpecMonomerToCyclic(arch)
+        body = Body(top7, 1, which_ss="HEL")
+        samples = gridslide.samples_1xMonomer_orientations(resl)
+        npair, pos = gridslide.find_connected_monomer_to_cyclic(
+            spec, body, samples, min_contacts=min_contacts, contact_dis=contact_dis
+        )
+
+        body2 = body.copy()
+        pos2 = spec.placements_second(pos)
+        for i, norig in enumerate(npair):
+            body.move_to(pos[i])
+            body2.move_to(pos2[i])
+            n = body.cen_pair_count(body2, contact_dis)
+            assert n == norig
+
+        omax = np.argsort(-npair)
+        for i, imax in enumerate(omax[:ndump]):
+            best = npair[imax]
+            print("tcdock best", i, best, "nresult", len(npair))
+            body.move_to(pos[imax])
+            dump_pdb_from_bodies(
+                "sicdock_%s_%03i.pdb" % (arch, i),
+                body,
+                spec.symframes(),  # [:8],
+                keep=lambda x: x[2] >= 0,
                 no_duplicate_chains=False,
                 no_duplicate_reschain_pairs=True,
                 include_cen=False,
@@ -124,10 +163,14 @@ if __name__ == "__main__":
     # f2 = "/home/sheffler/scaffolds/big/C3_3ziy_1.pdb"
     # f1 = "/home/sheffler/scaffolds/wheel/C3.pdb"
     # f2 = "/home/sheffler/scaffolds/wheel/C5.pdb"
-    pose1 = ros.get_pose_cached(f1)
-    pose2 = ros.get_pose_cached(f2)
+    # pose1 = ros.get_pose_cached(f1)
+    # pose2 = ros.get_pose_cached(f2)
     # pose1 = ros.pose_from_file(f1)
     # pose2 = ros.pose_from_file(f2)
 
-    test_1xCyclic(pose1, pose2, ndump=0, resl=10)
-    test_2xCyclic(pose1, pose2, ndump=0, resl=10)
+    # test_1xCyclic(pose1, pose2, ndump=0, resl=1)
+    # test_2xCyclic(pose1, pose2, ndump=0, resl=10)
+
+    top7 = ros.get_pose_cached("sicdock/data/pdb/top7.pdb.gz")
+
+    test_monomer_to_cyclic(top7, ndump=10, resl=3, archs="C4")

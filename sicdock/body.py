@@ -156,4 +156,6 @@ class Body:
     def copy(self):
         b = copy.copy(self)
         b.pos = np.eye(4)  # mutable state can't be same ref as orig
+        assert b.pos is not self.pos
+        assert b.coord is self.coord
         return b
