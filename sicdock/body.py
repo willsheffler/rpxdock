@@ -105,7 +105,7 @@ class Body:
 
         return delta
 
-    def intersects(self, other, mindis):
+    def intersects(self, other, mindis=2 * _CLASH_RADIUS):
         return bvh_isect(self.bvh_bb, other.bvh_bb, self.pos, other.pos, mindis)
 
     def distance_to(self, other):

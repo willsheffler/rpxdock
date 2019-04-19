@@ -1,3 +1,4 @@
+from time import perf_counter
 import numpy as np
 import homog as hm
 
@@ -30,9 +31,11 @@ def test_1xCyclic(
         body = Body(pose, nfold, which_ss="HEL")
 
         samples = gridslide.samples_1xCyclic(spec, resl=resl)
+        t = perf_counter()
         npair, pos = gridslide.find_connected_1xCyclic(
             spec, body, samples, min_contacts=min_contacts, contact_dis=contact_dis
         )
+        print("search time", perf_counter() - t)
 
         body2 = body.copy()
         pos2 = spec.placements_second(pos)
@@ -44,8 +47,7 @@ def test_1xCyclic(
 
         omax = np.argsort(-npair)
         for i, imax in enumerate(omax[:ndump]):
-            best = npair[imax]
-            print("tcdock best", i, best, "nresult", len(npair))
+            print("tcdock best", i, npair[imax], "nresult", len(npair))
             body.move_to(pos[imax])
             dump_pdb_from_bodies(
                 "sicdock_%s_%03i.pdb" % (arch, i),
@@ -69,9 +71,10 @@ def test_2xCyclic(
     tip=12,
     contact_dis=8,
     min_contacts=10,
+    archs="I32 O32 T32",
 ):
 
-    for arch in "I32 O32 T32".split():
+    for arch in archs.split():
         spec = DockSpec2CompCage(arch)
         body1 = Body(C3_1nza, nfold1, which_ss="HEL")
         body2 = Body(C2_3hm4, nfold2, which_ss="HEL")
@@ -79,7 +82,8 @@ def test_2xCyclic(
         samples = gridslide.samples_2xCyclic(
             spec, resl=resl, max_out_of_plane_angle=tip
         )
-        npair, pos1, pos2 = gridslide.find_connected_2xCyclic(
+        t = perf_counter()
+        npair, pos = gridslide.find_connected_2xCyclic(
             spec,
             body1,
             body2,
@@ -87,29 +91,31 @@ def test_2xCyclic(
             min_contacts=min_contacts,
             contact_dis=contact_dis,
         )
-        pos1, pos2 = spec.move_to_canonical_unit(pos1, pos2)
+        print("search time", perf_counter() - t)
+
+        pos1, pos2 = spec.move_to_canonical_unit(*pos)
         if len(npair) == 0:
             print("no results")
 
-        assert np.all(npair >= min_contacts)
+        assert np.all(npair[:, 0] >= min_contacts)
 
-        for i, norig in enumerate(npair):
+        for i, norig in enumerate(npair[:, 0]):
             body1.move_to(pos1[i])
             body2.move_to(pos2[i])
             n = body1.cen_pair_count(body2, contact_dis)
             assert n == norig
 
-        omax = np.argsort(-npair)
+        omax = np.argsort(-npair[:, 1])  # order by 1b contact
+        print("nresult", len(npair))
         for i, imax in enumerate(omax[:ndump]):
-            best = npair[imax]
-            print("tcdock best", i, best, "nresult", len(npair))
+            print("tcdock best", i, npair[imax])
             body1.move_to(pos1[imax])
             body2.move_to(pos2[imax])
             dump_pdb_from_bodies(
                 "sicdock_%s_%03i.pdb" % (arch, i),
                 [body1, body2],
                 spec.symframes(),  # [:8],
-                # keep=lambda x: np.sum(x) > 0,
+                keep=lambda x: np.sum(x) > 0,
                 no_duplicate_chains=False,
                 no_duplicate_reschain_pairs=True,
                 include_cen=False,
@@ -163,14 +169,15 @@ if __name__ == "__main__":
     # f2 = "/home/sheffler/scaffolds/big/C3_3ziy_1.pdb"
     # f1 = "/home/sheffler/scaffolds/wheel/C3.pdb"
     # f2 = "/home/sheffler/scaffolds/wheel/C5.pdb"
-    # pose1 = ros.get_pose_cached(f1)
-    # pose2 = ros.get_pose_cached(f2)
-    # pose1 = ros.pose_from_file(f1)
-    # pose2 = ros.pose_from_file(f2)
-
+    pose1 = ros.get_pose_cached(f1)
+    pose2 = ros.get_pose_cached(f2)
     # test_1xCyclic(pose1, pose2, ndump=0, resl=1)
-    # test_2xCyclic(pose1, pose2, ndump=0, resl=10)
+    # test_2xCyclic(pose1, pose2, ndump=3, resl=10, archs="T32")
 
-    top7 = ros.get_pose_cached("sicdock/data/pdb/top7.pdb.gz")
+    pose3 = ros.get_pose_cached("sicdock/data/pdb/C5_1ojx.pdb.gz")
+    test_2xCyclic(
+        pose3, pose1, nfold1=5, nfold2=3, ndump=3, resl=5, tip=10, archs="I53"
+    )
 
-    test_monomer_to_cyclic(top7, ndump=10, resl=3, archs="C4")
+    # top7 = ros.get_pose_cached("sicdock/data/pdb/top7.pdb.gz")
+    # test_monomer_to_cyclic(top7, ndump=10, resl=3, archs="C4")

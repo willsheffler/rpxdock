@@ -51,6 +51,17 @@ def find_connected_1xCyclic(spec, body, samples, min_contacts=30, contact_dis=8.
     return npair[:nresult], pos
 
 
+def _check_1body_contacts(body, pos, x_to_neighbor_olig, contact_dis):
+    npair = np.zeros(len(pos), "i4") - 1
+    body_b = body.copy()
+    for i, pos in enumerate(pos):
+        body.move_to(pos)
+        body_b.move_to(x_to_neighbor_olig @ pos)
+        if not body.intersects(body_b):
+            npair[i] = body.cen_pair_count(body_b, contact_dis)
+    return npair
+
+
 def find_connected_2xCyclic(
     spec, body1, body2, samples, min_contacts=30, contact_dis=8.0
 ):
@@ -75,8 +86,13 @@ def find_connected_2xCyclic(
                         pos2[nresult] = body2.pos
                         nresult += 1
     assert nhit == maxsize
+    npair3 = np.empty((nresult, 3))
     pos1, pos2 = spec.place_along_axes(pos1[:nresult], pos2[:nresult])
-    return npair[:nresult], pos1, pos2
+    npair1 = _check_1body_contacts(body1, pos1, spec.to_neighbor_olig1, contact_dis)
+    npair2 = _check_1body_contacts(body2, pos2, spec.to_neighbor_olig2, contact_dis)
+    ok = (npair1 >= 0) * (npair2 >= 0)
+    npair3 = np.stack([npair[:nresult][ok], npair1[ok], npair2[ok]], axis=1)
+    return npair3, (pos1[ok], pos2[ok])
 
 
 def find_connected_monomer_to_cyclic(spec, body, samples, min_contacts, contact_dis):
