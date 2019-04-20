@@ -1,0 +1,66 @@
+#!/usr/bin/env ipython
+
+"""
+ipython ide/test_server.ipy sicdock/tests/search/test_hierarchical.py sublime_build.log 8080
+
+then ping localhost:8080 to run test script within same python env
+
+one way to do this is:
+python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080')"
+"""
+
+import sys, os
+from time import perf_counter
+import http.server
+import socketserver
+from IPython.utils import io
+from importlib import reload
+from sicdock.search import hierarchical, gridslide
+from sicdock import dockspec
+
+totest = sys.argv[1]
+outfile = 'sublime_build.log' if len(sys.argv) < 3 else sys.argv[2]
+PORT = 8080 if len(sys.argv) < 4 else int(sys.argv[3])
+
+to_reload = [hierarchical, gridslide, dockspec]
+
+%load_ext autoreload
+%autoreload 2
+
+count = 0
+
+class TestHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        global count
+        count += 1
+        with open(outfile, 'w') as out:
+            out.write(f"running {totest} {count}")
+        for m in to_reload: reload(m)
+        print('running', count)
+        with io.capture_output() as captured:
+            os.system('rm -f *.pdb')
+            print(sys.argv[0])
+            print('test:', totest)
+            print('runcount:', count)
+            print(f'{" test results ":=^80}')
+            t = perf_counter()
+            %run $totest
+            print('exe time', perf_counter()-t)
+        s = captured.stdout
+        s = s.replace('[0;31m','').replace('[1;32m','').replace('[0;32m','')
+        s = s.replace('[0;34m','').replace('[0;36m', '')
+        s = s.replace('', '').replace('[0m','')
+        with open(outfile, 'w') as out:
+            out.write(s)
+
+
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write("done".encode('utf-8'))
+        self.server.path = self.path
+
+
+with socketserver.TCPServer(("", PORT), TestHandler) as httpd:
+    print("serving at port", PORT)
+    httpd.serve_forever()

@@ -27,7 +27,7 @@ _post = {
 def file_has_main(file):
     with open(file) as inp:
         for l in inp:
-            if l.startswith('if __name__ == "__main__":'):
+            if l.startswith("if __name__ == "):
                 return True
     return False
 
@@ -56,6 +56,8 @@ def dispatch(file, pytest_args="--duration=5"):
         if testfile:
             file = testfile
             path, bname = os.path.split(file)
+
+    print(file, file_has_main(file))
 
     if not file_has_main(file) and bname.startswith("test_"):
         cmd = "pytest {pytest_args} {file}".format(**vars())

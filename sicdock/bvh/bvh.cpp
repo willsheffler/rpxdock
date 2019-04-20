@@ -235,6 +235,8 @@ struct BVMinAxis {
   V3<F> dirn;
   BVMinAxis(V3<F> d, Xform x, F r) : dirn(d), bXa(x), rad(r) {
     assert(r > 0);
+    if (dirn.norm() < 0.0001)
+      throw std::runtime_error("Slide direction must not be 0");
     dirn.normalize();
   }
   F minimumOnVolumeVolume(Sphere<F> r1, Sphere<F> r2) {

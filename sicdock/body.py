@@ -74,7 +74,7 @@ class Body:
         self.pos = x @ self.pos
 
     def move_to(self, x):
-        self.pos = x
+        self.pos = x.copy()
 
     def center(self):
         self.pos[:3, 3] = 0

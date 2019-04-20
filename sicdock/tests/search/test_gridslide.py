@@ -2,6 +2,7 @@ from time import perf_counter
 import numpy as np
 import homog as hm
 
+from sicdock.search.hierarchical import hier_start_samples
 from sicdock.body import Body
 from sicdock.dockspec import (
     DockSpec2CompCage,
@@ -32,7 +33,7 @@ def test_1xCyclic(
 
         samples = gridslide.samples_1xCyclic(spec, resl=resl)
         t = perf_counter()
-        npair, pos = gridslide.find_connected_1xCyclic(
+        npair, pos = gridslide.find_connected_1xCyclic_slide(
             spec, body, samples, min_contacts=min_contacts, contact_dis=contact_dis
         )
         print("search time", perf_counter() - t)
@@ -79,33 +80,42 @@ def test_2xCyclic(
         body1 = Body(C3_1nza, nfold1, which_ss="HEL")
         body2 = Body(C2_3hm4, nfold2, which_ss="HEL")
 
-        samples = gridslide.samples_2xCyclic(
-            spec, resl=resl, max_out_of_plane_angle=tip
+        # samples = gridslide.samples_2xCyclic_slide(
+        # spec, resl=resl, max_out_of_plane_angle=tip
+        # )
+        samples, *_ = hier_start_samples(
+            spec, resl=resl, max_out_of_plane_angle=tip, nstep=5
         )
+
+        print("samples tip=", tip, len(samples[0]), len(samples[1]), len(samples[2]))
+
         t = perf_counter()
-        npair, pos = gridslide.find_connected_2xCyclic(
+        npair, pos = gridslide.find_connected_2xCyclic_slide(
             spec,
             body1,
             body2,
             samples,
             min_contacts=min_contacts,
             contact_dis=contact_dis,
+            onebody=0,
         )
         print("search time", perf_counter() - t)
+        if npair.ndim > 1:
+            npair = npair[0]
 
         pos1, pos2 = spec.move_to_canonical_unit(*pos)
         if len(npair) == 0:
             print("no results")
 
-        assert np.all(npair[:, 0] >= min_contacts)
+        assert np.all(npair >= min_contacts)
 
-        for i, norig in enumerate(npair[:, 0]):
+        for i, norig in enumerate(npair):
             body1.move_to(pos1[i])
             body2.move_to(pos2[i])
             n = body1.cen_pair_count(body2, contact_dis)
             assert n == norig
 
-        omax = np.argsort(-npair[:, 1])  # order by 1b contact
+        omax = np.argsort(-npair)  # order by 1b contact
         print("nresult", len(npair))
         for i, imax in enumerate(omax[:ndump]):
             print("tcdock best", i, npair[imax])
@@ -130,7 +140,7 @@ def test_monomer_to_cyclic(
         spec = DockSpecMonomerToCyclic(arch)
         body = Body(top7, 1, which_ss="HEL")
         samples = gridslide.samples_1xMonomer_orientations(resl)
-        npair, pos = gridslide.find_connected_monomer_to_cyclic(
+        npair, pos = gridslide.find_connected_monomer_to_cyclic_slide(
             spec, body, samples, min_contacts=min_contacts, contact_dis=contact_dis
         )
 
@@ -174,10 +184,14 @@ if __name__ == "__main__":
     # test_1xCyclic(pose1, pose2, ndump=0, resl=1)
     # test_2xCyclic(pose1, pose2, ndump=3, resl=10, archs="T32")
 
-    pose3 = ros.get_pose_cached("sicdock/data/pdb/C5_1ojx.pdb.gz")
     test_2xCyclic(
-        pose3, pose1, nfold1=5, nfold2=3, ndump=3, resl=5, tip=10, archs="I53"
+        pose1, pose2, nfold1=3, nfold2=2, ndump=10, resl=1, tip=16, archs="I32"
     )
+
+    # pose3 = ros.get_pose_cached("sicdock/data/pdb/C5_1ojx.pdb.gz")
+    # test_2xCyclic(
+    # pose3, pose1, nfold1=5, nfold2=3, ndump=3, resl=5, tip=10, archs="I53"
+    # )
 
     # top7 = ros.get_pose_cached("sicdock/data/pdb/top7.pdb.gz")
     # test_monomer_to_cyclic(top7, ndump=10, resl=3, archs="C4")

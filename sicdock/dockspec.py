@@ -87,8 +87,10 @@ class DockSpec2CompCage:
         dirs = hm.hrot(self.axisperp, angles) @ axisdelta
         return dirs[..., :3]
 
-    def placements1(self, angles):
+    def placements1(self, angles, flip=True):
         place1 = hm.hrot(self.axis1, angles, degrees=1) @ self.orig1
+        if not flip:
+            return place1
         place2 = place1 @ hm.hrot([1, 0, 0], 180)
         return np.concatenate([place1, place2])
 
@@ -105,7 +107,7 @@ class DockSpec2CompCage:
         xcen = self.symframes_[:, None] @ pos1[:, :, 3, None]
         xcen += self.symframes_[:, None] @ pos2[:, :, 3, None]
         tgt = self.axis1 + self.axis2
-        xdot = np.sum(xcen.squeeze() * tgt, axis=2)
+        xdot = np.sum(xcen.squeeze(-1) * tgt, axis=2)
         x = self.symframes_[np.argmax(xdot, axis=0)]
         return (x @ pos1).reshape(origshape), (x @ pos2).reshape(origshape)
 
