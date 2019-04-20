@@ -4,7 +4,7 @@ import numpy as np
 import homog as hm
 
 
-def hier_start_samples(spec, resl=16, max_out_of_plane_angle=16, nstep=0, **kw):
+def hier_start_samples(spec, resl=16, max_out_of_plane_angle=16, nstep=1, **kw):
     tip = max_out_of_plane_angle
 
     range1 = 180 / spec.nfold1
@@ -13,21 +13,27 @@ def hier_start_samples(spec, resl=16, max_out_of_plane_angle=16, nstep=0, **kw):
     newresl2 = 2 * range2 / np.ceil(2 * range2 / resl)
     angs1 = np.arange(-range1 + newresl1 / 2, range1, newresl1)
     angs2 = np.arange(-range2 + newresl2 / 2, range2, newresl2)
-    rots1 = spec.placements1(angs1)
-    rots2 = spec.placements2(angs2)
 
     newresl3 = resl
     angs3 = np.zeros(1)
     if tip > resl / 8:
         newresl3 = 2 * tip / np.ceil(2 * tip / resl)
         angs3 = np.arange(-tip + newresl3 / 2, tip, newresl3)
-    slides = np.concatenate([angs3, angs3 + 180])
-    slides = spec.slide_dir(slides)
-
+    angs3 = np.concatenate([angs3, angs3 + 180])
     newresls = np.array([newresl1, newresl2, newresl3])
-    angs = (angs1, angs2, angs3)
 
-    return [rots1, rots2, slides], newresls
+    nr = newresls / 2
+    for i in range(1, nstep):
+        nr /= 2
+        angs1 = (angs1[:, None] + [-nr[0], +nr[0]]).reshape(-1)
+        angs2 = (angs2[:, None] + [-nr[1], +nr[1]]).reshape(-1)
+        angs3 = (angs3[:, None] + [-nr[2], +nr[2]]).reshape(-1)
+
+    rots1 = spec.placements1(angs1)
+    rots2 = spec.placements2(angs2)
+    dirns = spec.slide_dir(angs3)
+
+    return [rots1, rots2, dirns], newresls
 
 
 def hier_expand_samples(spec, pos1, pos2, resls):
@@ -72,7 +78,7 @@ def find_connected_2xCyclic_hier_slide(
     mct = [base_min_contacts]
     mct_update = prune_frac_sortof
     npair, pos = [None] * nstep, [None] * nstep
-    samples, newresls = hier_start_samples(spec, resl=base_resl, **kw)
+    samples, newresl = hier_start_samples(spec, resl=base_resl, **kw)
     nsamp = [np.prod([len(s) for s in samples])]
     for i in range(nstep):
         npair[i], pos[i] = gridslide.find_connected_2xCyclic_slide(
@@ -81,9 +87,8 @@ def find_connected_2xCyclic_hier_slide(
         if len(npair[i]) is 0:
             return npair[i - 1], pos[i - 1]
         if i + 1 < nstep:
-            newresls = newresls / 2
-            # print("newresls", newresls)
-            samples = hier_expand_samples(spec, *pos[i], newresls)
+            newresl /= 2
+            samples = hier_expand_samples(spec, *pos[i], newresl)
             nsamp.append(len(samples[0]))
 
             mct.append(int(np.quantile(npair[i][:, 0], mct_update)))

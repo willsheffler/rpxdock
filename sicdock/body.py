@@ -57,18 +57,34 @@ class Body:
 
         self.stub = ros.get_bb_stubs(self.coord)
         self.bvh_bb = bvh_create(self.coord[..., :3].reshape(-1, 3))
-        cen = self.stub[:, :3, 3]
+        self.allcen = self.stub[:, :, 3]
         which_cen = np.repeat(False, len(self.ss))
         for ss in "EHL":
             if ss in which_ss:
                 which_cen |= self.ss == ss
         which_cen &= ~np.isin(self.seq, ["G", "C", "P"])
-        self.bvh_cen = bvh_create(cen, which_cen)
+        self.bvh_cen = bvh_create(self.allcen[:, :3], which_cen)
+        self.cen = self.allcen[which_cen]
         self.pos = np.eye(4)
         self.pair_buf = np.empty((10000, 2), dtype="i4")
 
     def com(self):
         return self.pos @ self.bvh_bb.com()
+
+    def rg(self):
+        d = self.cen - self.com()
+        return np.sqrt(np.sum(d ** 2) / len(d))
+
+    def radius_max(self):
+        return np.max(self.cen - self.com())
+
+    def rg_xy(self):
+        d = self.cen[:, :2] - self.com()[:2]
+        rg = np.sqrt(np.sum(d ** 2) / len(d))
+        return rg
+
+    def radius_xy_max(self):
+        return np.max(self.cen[:, :2] - self.com()[:2])
 
     def move_by(self, x):
         self.pos = x @ self.pos
@@ -76,7 +92,7 @@ class Body:
     def move_to(self, x):
         self.pos = x.copy()
 
-    def center(self):
+    def move_to_center(self):
         self.pos[:3, 3] = 0
 
     def slide_to(self, other, dirn, radius=_CLASH_RADIUS):

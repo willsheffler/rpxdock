@@ -13,6 +13,8 @@ from sicdock.search import gridslide
 from sicdock.io import dump_pdb_from_bodies
 from sicdock import sym
 
+from sicdock.cluster.prune import prune_results_2comp
+
 
 def test_1xCyclic(
     C3_1nza,
@@ -73,6 +75,7 @@ def test_2xCyclic(
     contact_dis=8,
     min_contacts=10,
     archs="I32 O32 T32",
+    use_hier_leaf_samples=False,
 ):
 
     for arch in archs.split():
@@ -80,14 +83,15 @@ def test_2xCyclic(
         body1 = Body(C3_1nza, nfold1, which_ss="HEL")
         body2 = Body(C2_3hm4, nfold2, which_ss="HEL")
 
-        # samples = gridslide.samples_2xCyclic_slide(
-        # spec, resl=resl, max_out_of_plane_angle=tip
-        # )
-        samples, *_ = hier_start_samples(
-            spec, resl=resl, max_out_of_plane_angle=tip, nstep=5
-        )
-
-        print("samples tip=", tip, len(samples[0]), len(samples[1]), len(samples[2]))
+        if use_hier_leaf_samples:
+            samples, *_ = hier_start_samples(
+                spec, resl=resl, max_out_of_plane_angle=tip, nstep=5
+            )
+        else:
+            samples = gridslide.samples_2xCyclic_slide(
+                spec, resl=resl, max_out_of_plane_angle=tip
+            )
+        print("samples tip:", tip, len(samples[0]), len(samples[1]), len(samples[2]))
 
         t = perf_counter()
         npair, pos = gridslide.find_connected_2xCyclic_slide(
@@ -102,6 +106,12 @@ def test_2xCyclic(
         print("search time", perf_counter() - t)
         if npair.ndim > 1:
             npair = npair[0]
+
+        prev = len(npair), npair[np.argsort(-npair)[:20]]
+        npair, pos = prune_results_2comp(spec, body1, body1, npair, pos, 5)
+        print(len(npair) / prev[0])
+        print(prev[1])
+        print(npair[:20])
 
         pos1, pos2 = spec.move_to_canonical_unit(*pos)
         if len(npair) == 0:
@@ -185,8 +195,20 @@ if __name__ == "__main__":
     # test_2xCyclic(pose1, pose2, ndump=3, resl=10, archs="T32")
 
     test_2xCyclic(
-        pose1, pose2, nfold1=3, nfold2=2, ndump=10, resl=1, tip=16, archs="I32"
+        pose1, pose2, nfold1=3, nfold2=2, ndump=10, resl=2, tip=0, archs="I32"
     )
+    # full run
+    # test_2xCyclic(
+    #     pose1,
+    #     pose2,
+    #     nfold1=3,
+    #     nfold2=2,
+    #     ndump=10,
+    #     resl=16,
+    #     tip=16,
+    #     archs="O32",
+    #     use_hier_leaf_samples=True,
+    # )
 
     # pose3 = ros.get_pose_cached("sicdock/data/pdb/C5_1ojx.pdb.gz")
     # test_2xCyclic(

@@ -16,13 +16,14 @@ import socketserver
 from IPython.utils import io
 from importlib import reload
 from sicdock.search import hierarchical, gridslide
-from sicdock import dockspec
+from sicdock import dockspec, body
+from sicdock.cluster import prune
 
 totest = sys.argv[1]
 outfile = 'sublime_build.log' if len(sys.argv) < 3 else sys.argv[2]
 PORT = 8080 if len(sys.argv) < 4 else int(sys.argv[3])
 
-to_reload = [hierarchical, gridslide, dockspec]
+to_reload = [hierarchical, gridslide, dockspec, body, prune]
 
 %load_ext autoreload
 %autoreload 2

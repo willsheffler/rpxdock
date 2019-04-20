@@ -22,8 +22,8 @@ def test_body(C2_3hm4, C3_1nza, sym1=2, sym2=3):
     for a1 in samp1:
         for a2 in samp2:
             for dirn in samp3:
-                body1.center()
-                body2.center()
+                body1.move_to_center()
+                body2.move_to_center()
                 tmp = perf_counter()
                 d = body1.slide_to(body2, dirn)
                 totslide += perf_counter() - tmp
