@@ -34,11 +34,11 @@ Q to_half_cell(Q const &q) {
                                       : Q(-q.w(), -q.x(), -q.y(), -q.z())))));
 }
 
-template <class Float>
-static Float const *get_raw_48cell_half() {
-  static Float const r = sqrt(2) / 2;
-  static Float const h = 0.5;
-  static Float const raw48[24 * 4] = {
+template <class F>
+static F const *get_raw_48cell_half() {
+  static F const r = sqrt(2) / 2;
+  static F const h = 0.5;
+  static F const raw48[24 * 4] = {
       1,  0,  0,  0,  // 0
       0,  1,  0,  0,  // 1
       0,  0,  1,  0,  // 2
@@ -69,16 +69,16 @@ static Float const *get_raw_48cell_half() {
 
 template <class V4, class Index>
 void get_cell_48cell_half(V4 const &quat, Index &cell) {
-  typedef typename V4::Scalar Float;
+  typedef typename V4::Scalar F;
   V4 const quat_pos = quat.cwiseAbs();
   V4 tmpv = quat_pos;
 
-  Float hyperface_dist;  // dist to closest face
+  F hyperface_dist;      // dist to closest face
   Index hyperface_axis;  // closest hyperface-pair
-  Float edge_dist;       // dist to closest edge
+  F edge_dist;           // dist to closest edge
   Index edge_axis_1;     // first axis of closest edge
   Index edge_axis_2;     // second axis of closest edge
-  Float corner_dist;     // dist to closest corner
+  F corner_dist;         // dist to closest corner
 
   // std::cout << quat_pos.transpose() << std::endl;
   util::max2(quat_pos, hyperface_dist, edge_dist, hyperface_axis, edge_axis_2);
@@ -106,11 +106,11 @@ void get_cell_48cell_half(V4 const &quat, Index &cell) {
 
   // pick case 1000 1111 1100 without if statements
   Index swtch;
-  util::SimpleArray<3, Float>(hyperface_dist, corner_dist, edge_dist)
+  util::SimpleArray<3, F>(hyperface_dist, corner_dist, edge_dist)
       .maxCoeff(&swtch);
   cell = swtch == 0 ? facecell : (swtch == 1 ? cornercell + 4 : edgecell + 12);
   // this is slower !?!
-  // Float mx = std::max(std::max(hyperface_dist,corner_dist),edge_dist);
+  // F mx = std::max(std::max(hyperface_dist,corner_dist),edge_dist);
   // cell2[i] = hyperface_dist==mx ? facecell : (corner_dist==mx ? cornercell+8
   // : edgecell+24);
 }
@@ -119,18 +119,18 @@ using namespace Eigen;
 using std::cout;
 using std::endl;
 
-template <class Float>
-Float cell_width() {
+template <class F>
+F cell_width() {
   return 2.0 * sqrt(2.0) - 2.0;
 }
 
-template <class Float, class Index>
-Eigen::Map<Eigen::Quaternion<Float> const> hbt24_cellcen(Index const &i) {
-  // Float const * tmp = numeric::get_raw_48cell_half<Float>() + 4*i;
+template <class F, class Index>
+Eigen::Map<Eigen::Quaternion<F> const> hbt24_cellcen(Index const &i) {
+  // F const * tmp = numeric::get_raw_48cell_half<F>() + 4*i;
   // std::cout << "   raw hbt24_cellcen " << tmp[0] << " " << tmp[1] << " " <<
   // tmp[2] << " " << tmp[3] << std::endl;
-  return Eigen::Map<Eigen::Quaternion<Float> const>(
-      get_raw_48cell_half<Float>() + 4 * i);
+  return Eigen::Map<Eigen::Quaternion<F> const>(get_raw_48cell_half<F>() +
+                                                4 * i);
 }
 
 template <class A>
@@ -146,34 +146,35 @@ template <class _Xform>
 struct XformHash_bt24_BCC6 {
   using Xform = _Xform;
   typedef uint64_t Key;
-  typedef typename Xform::Scalar Float;
+  typedef typename Xform::Scalar F;
   typedef typename Xform::Scalar Scalar;
-  typedef sicdock::geom::BCC<6, Float, uint64_t> Grid;
-  typedef sicdock::util::SimpleArray<3, Float> F3;
+  typedef sicdock::geom::BCC<6, F, uint64_t> Grid;
+  typedef sicdock::util::SimpleArray<3, F> F3;
   typedef sicdock::util::SimpleArray<3, uint64_t> I3;
-  typedef sicdock::util::SimpleArray<6, Float> F6;
+  typedef sicdock::util::SimpleArray<6, F> F6;
   typedef sicdock::util::SimpleArray<6, uint64_t> I6;
 
-  Float grid_size_ = -1;
-  Float grid_spacing_ = -1;
+  F grid_size_ = -1;
+  F grid_spacing_ = -1;
   Grid grid6_;
   auto grid() const { return grid6_; }
-  Float cart_resl_ = -1, ori_resl_ = -1, cart_bound_ = -1;
-  Float cart_resl() const { return cart_resl_; }
-  Float ori_resl() const { return ori_resl_; }
-  Float cart_bound() const { return cart_bound_; }
+  F cart_resl_ = -1, ori_resl_ = -1, cart_bound_ = -1;
+  F cart_resl() const { return cart_resl_; }
+  F ori_resl() const { return ori_resl_; }
+  F cart_bound() const { return cart_bound_; }
   int ori_nside_ = -1;
   int ori_nside() const { return ori_nside_; }
 
   static std::string name() { return "XformHash_bt24_BCC6"; }
 
   XformHash_bt24_BCC6() {}
+  template <typename Float>
   XformHash_bt24_BCC6(Float cart_resl, Float ori_resl,
                       Float cart_bound = 512.0) {
     this->cart_bound_ = cart_bound;
     init(cart_resl, ori_resl, cart_bound);
   }
-  XformHash_bt24_BCC6(Float cart_resl, int ori_nside, Float cart_bound) {
+  XformHash_bt24_BCC6(F cart_resl, int ori_nside, F cart_bound) {
     // std::cout << "ori_nside c'tor" << std::endl;
     init2(cart_resl, ori_nside, cart_bound);
   }
@@ -194,12 +195,12 @@ struct XformHash_bt24_BCC6 {
       ++ori_nside;  // TODO: HACK multiplier!
     return ori_nside;
   }
-  void init(Float cart_resl, Float ori_resl, Float cart_bound = 512.0) {
+  void init(F cart_resl, F ori_resl, F cart_bound = 512.0) {
     this->cart_bound_ = cart_bound;
     this->ori_resl_ = ori_resl;
     init2(cart_resl, get_ori_nside(), cart_bound);
   }
-  void init2(Float cart_resl, int ori_nside, Float cart_bound) {
+  void init2(F cart_resl, int ori_nside, F cart_bound) {
     cart_resl_ = cart_resl / (sqrt(3.0) / 2.0);
     cart_bound_ = cart_bound;
     ori_nside_ = ori_nside;
@@ -207,8 +208,7 @@ struct XformHash_bt24_BCC6 {
     I6 nside = get_bounds(cart_resl_, ori_nside_, cart_bound_, lb, ub);
     grid6_.init(nside, lb, ub);
   }
-  I6 get_bounds(Float cart_resl, int ori_nside, float cart_bound, F6 &lb,
-                F6 &ub) {
+  I6 get_bounds(F cart_resl, int ori_nside, float cart_bound, F6 &lb, F6 &ub) {
     I6 nside;
     if (2 * (int)(cart_bound / cart_resl) > 8192) {
       throw std::out_of_range("can have at most 8192 cart cells!");
@@ -222,15 +222,15 @@ struct XformHash_bt24_BCC6 {
     return nside;
   }
   F6 xform_to_F6(Xform x, Key &cell_index) const {
-    Eigen::Matrix<Float, 3, 3> rotation = x.linear();
-    Eigen::Quaternion<Float> q(rotation);
+    Eigen::Matrix<F, 3, 3> rotation = x.linear();
+    Eigen::Quaternion<F> q(rotation);
     // std::cout << q.coeffs().transpose() << std::endl;
     get_cell_48cell_half(q.coeffs(), cell_index);
-    q = hbt24_cellcen<Float>(cell_index).inverse() * q;
+    q = hbt24_cellcen<F>(cell_index).inverse() * q;
     q = to_half_cell(q);
-    F3 params(params[0] = q.x() / q.w() / cell_width<Float>() + 0.5,
-              params[1] = q.y() / q.w() / cell_width<Float>() + 0.5,
-              params[2] = q.z() / q.w() / cell_width<Float>() + 0.5);
+    F3 params(params[0] = q.x() / q.w() / cell_width<F>() + 0.5,
+              params[1] = q.y() / q.w() / cell_width<F>() + 0.5,
+              params[2] = q.z() / q.w() / cell_width<F>() + 0.5);
     assert(cell_index < 24);
     clamp01(params);
     F6 params6;
@@ -242,17 +242,17 @@ struct XformHash_bt24_BCC6 {
     return params6;
   }
   /* compiler totally gets rid of the copies on O1 or better
-  F6 xform_to_F6_raw(Float *fp, Key &cell_index) const {
+  F6 xform_to_F6_raw(F *fp, Key &cell_index) const {
     // strange that this isn'd RowMajor
-    Eigen::Map<Matrix<Float, 3, 3>, Unaligned, Stride<1, 4>> rotation(fp);
-    Eigen::Quaternion<Float> q(rotation);
+    Eigen::Map<Matrix<F, 3, 3>, Unaligned, Stride<1, 4>> rotation(fp);
+    Eigen::Quaternion<F> q(rotation);
     // std::cout << q.coeffs().transpose() << std::endl;
     get_cell_48cell_half(q.coeffs(), cell_index);
-    q = hbt24_cellcen<Float>(cell_index).inverse() * q;
+    q = hbt24_cellcen<F>(cell_index).inverse() * q;
     q = to_half_cell(q);
-    F3 params(params[0] = q.x() / q.w() / cell_width<Float>() + 0.5,
-              params[1] = q.y() / q.w() / cell_width<Float>() + 0.5,
-              params[2] = q.z() / q.w() / cell_width<Float>() + 0.5);
+    F3 params(params[0] = q.x() / q.w() / cell_width<F>() + 0.5,
+              params[1] = q.y() / q.w() / cell_width<F>() + 0.5,
+              params[2] = q.z() / q.w() / cell_width<F>() + 0.5);
     assert(cell_index < 24);
     clamp01(params);
     F6 params6;
@@ -263,7 +263,7 @@ struct XformHash_bt24_BCC6 {
     // std::cout << params6 << std::endl;
     return params6;
   }
-  Key get_key_raw(Float *fp) const {
+  Key get_key_raw(F *fp) const {
     Key cell_index;
     F6 p6 = xform_to_F6_raw(fp, cell_index);
     assert((grid6_[p6] >> 59) == 0);
@@ -272,12 +272,12 @@ struct XformHash_bt24_BCC6 {
   */
   Xform F6_to_xform(F6 params6, Key cell_index) const {
     F3 params = params6.template last<3>();
-    Float const &w(cell_width<Float>());
+    F const &w(cell_width<F>());
     clamp01(params);
     params = w * (params - 0.5);  // now |params| < sqrt(2)-1
-    Eigen::Quaternion<Float> q(1.0, params[0], params[1], params[2]);
+    Eigen::Quaternion<F> q(1.0, params[0], params[1], params[2]);
     q.normalize();
-    q = hbt24_cellcen<Float>(cell_index) * q;
+    q = hbt24_cellcen<F>(cell_index) * q;
     Xform center(q.matrix());
     for (int i = 0; i < 3; ++i) center.translation()[i] = params6[i];
     return center;

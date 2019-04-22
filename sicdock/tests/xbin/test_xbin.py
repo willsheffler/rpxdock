@@ -6,31 +6,44 @@ from sicdock.xbin import xbin_test, xbin
 import homog as hm
 
 
+def test_xbin_cpp():
+    assert xbin_test.TEST_XformHash_XformHash_bt24_BCC6()
+
+
 def test_create_binner():
-    binner = xbin._XBin_double(1.0, 15.0, 256.0)
-    print(binner)
+    binner = xbin.XBin(1.0, 15.0, 256.0)
+    binner2 = xbin.XBin_float(1.0, 15.0, 256.0)
+    assert binner
+    assert binner2
 
 
-def test_get_keys():
-    N = 1_000
+def test_key_of():
+    N = 1_000_00
+    binparam = (0.3, 5.0, 256.0)
 
-    binner = xbin._XBin_double(0.3, 5.0, 256.0)
     tgen = perf_counter()
     x = hm.rand_xform(N)
+    xfloat = hm.rand_xform(N).astype("f4")
     tgen = perf_counter() - tgen
 
     t = perf_counter()
-    k = xbin.get_keys_double(binner, x)
+    k = xbin.key_of(x, *binparam)
     t = perf_counter() - t
 
+    tf = perf_counter()
+
+    k = xbin.key_of(xfloat, *binparam)
+    tf = perf_counter() - tf
+
     tc = perf_counter()
-    c = xbin.get_centers_double(binner, k)
+    c = xbin.bincen_of(k, *binparam)
     tc = perf_counter() - tc
 
     uniq = len(np.unique(k))
 
     print(
-        f"performance keys {int(N/t):,} cens {int(N/tc):,} cover {N/uniq} tgen {int(N/tgen):,}"
+        f"performance keys: {int(N/t):,} kfloat: {int(N/tf):,} cens: {int(N/tc):,}",
+        f"cover {N/uniq} tgen: {int(N/tgen):,}",
     )
 
 
@@ -41,9 +54,9 @@ def test_xbin_covrad():
         cart_resl = np.random.rand() * 10 + 0.1
         ori_resl = np.random.rand() * 50 + 2.5
         xforms = hm.rand_xform(nsamp)
-        xb = xbin._XBin_double(cart_resl, ori_resl, 512)
-        idx = xbin.get_keys_double(xb, xforms)
-        cen = xbin.get_centers_double(xb, idx)
+        xb = xbin.XBin(cart_resl, ori_resl, 512)
+        idx = xb.key_of(xforms)
+        cen = xb.bincen_of(idx)
         cart_dist = np.linalg.norm(xforms[..., :3, 3] - cen[..., :3, 3], axis=-1)
         ori_dist = hm.angle_of(hm.hinv(cen) @ xforms)
         # if not np.all(cart_dist < cart_resl):
@@ -57,6 +70,6 @@ def test_xbin_covrad():
 
 
 if __name__ == "__main__":
-    xbin_test.TEST_XformHash_XformHash_bt24_BCC6()
-    test_get_keys()
-    test_xbin_covrad()
+    assert xbin_test.TEST_XformHash_XformHash_bt24_BCC6()
+    # test_key_of()
+    # test_xbin_covrad()

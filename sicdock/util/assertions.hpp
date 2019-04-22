@@ -1,9 +1,9 @@
 #pragma once
 
-#define _TEST(cond)                          \
-  if (!(cond)) {                             \
-    std::cerr << "some error!" << std::endl; \
-    return false;                            \
+#define _TEST(cond)                                                    \
+  if (!(cond)) {                                                       \
+    std::cerr << "ERROR " << __FILE__ << ":" << __LINE__ << std::endl; \
+    return false;                                                      \
   }
 
 #define ASSERT_LT(x, y) _TEST(x < y);

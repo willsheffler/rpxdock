@@ -18,6 +18,9 @@ _override = {
     "_orientations.cpp": ["sicdock/sampling/orientations.py"],
     "_orientations_test.cpp": ["sicdock/sampling/orientations.py"],
     "cookie_cutter.cpp": ["sicdock/cluster/cluster.py"],
+    "xbin.hpp": ["sicdock/tests/xbin/test_xbin.py"],
+    "xbin.cpp": ["sicdock/tests/xbin/test_xbin.py"],
+    "xbin_test.cpp": ["sicdock/tests/xbin/test_xbin.py"],
 }
 _post = {
     # "tcdock.py": "pymol body1.pdb body2.pdb",
