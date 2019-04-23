@@ -146,10 +146,10 @@ class ResPairData:
 
     def subset_by_pdb(self, keep, sanity_check=False, **kw):
         """keep subset of data in same order as original"""
-
         keepers = self._get_keepers_by_pdb(keep, **kw)
         residx = np.isin(self.data.r_pdbid, keepers)
         pairidx = np.isin(self.data.p_pdbid, keepers)
+
         rpsub = self.data.sel(pdbid=keepers, resid=residx, pairid=pairidx)
 
         _update_relational_data(rpsub, self.data.pdb_res_offsets, keepers)

@@ -46,17 +46,18 @@ def assign_rotamers(rp, rotspace):
     return rotids, rotlbl, allrotchi
 
 
-def check_rotamer_deviation(rp, rotspace):
+def check_rotamer_deviation(rp, rotspace, quiet=False):
     rotlbl = rp.rotlbl
     means = np.full((len(rotlbl), 4), np.nan)
     sds = np.full((len(rotlbl), 4), np.nan)
     for irot in range(2, len(rotlbl)):
         aa = rotlbl[irot][0]
         aaid = int(rp.aa2id.sel(aa=aa))
-
         aars = rotspace["aa"][irot - 2]
         assert aa == aars
         nchi = aa_nchi[aa]
+        if np.sum(rp.rotid == irot) == 0:
+            continue
         rotchi = np.array([rotspace["x" + str(i + 1)][irot - 2] for i in range(nchi)])
         chi = np.stack(
             [rp["chi" + str(i + 1)][rp.rotid == irot] for i in range(nchi)], axis=1
@@ -67,12 +68,15 @@ def check_rotamer_deviation(rp, rotspace):
         s = np.std(diff, axis=0)
         means[irot, :nchi] = m
         sds[irot, :nchi] = s
-        for i in range(nchi):
-            print(
-                f"{irot:3} {i} {rotchi[i]:6.1f} {m[i]:6.1f} {s[i]:5.1f} {rotlbl[irot]}"
-            )
-
-    print("avg mean diff", np.nanmean(means), "avg mean sd", np.nanstd(sds))
+        if not quiet:
+            for i in range(nchi):
+                print(
+                    f"{irot:3} {i} {rotchi[i]:6.1f} {m[i]:6.1f} {s[i]:5.1f} {rotlbl[irot]}"
+                )
+    m = np.nanmean(means)
+    s = np.nanstd(sds)
+    print("avg mean diff", m, "avg mean sd", s)
+    return m, s
 
 
 aa_nchi = dict(

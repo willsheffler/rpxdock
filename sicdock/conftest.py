@@ -1,8 +1,7 @@
 from sicdock.rosetta import get_pose_cached
-import pytest
-import os
-import sys
+import pytest, os, sys, _pickle
 from os.path import join, dirname, abspath, exists
+from sicdock.motif import ResPairData, load_respairscore
 
 
 @pytest.fixture(scope="session")
@@ -39,3 +38,15 @@ def top7(pdbdir):
 @pytest.fixture(scope="session")
 def C5_1ojx(pdbdir):
     return get_pose_cached("C5_1ojx.pdb.gz", pdbdir)
+
+
+@pytest.fixture(scope="session")
+def respairdat(datadir):
+    with open(join(datadir, "respairdat10.pickle"), "rb") as inp:
+        return ResPairData(_pickle.load(inp))
+
+
+@pytest.fixture(scope="session")
+def respairscore(datadir):
+    f = join(datadir, "respairscore10")
+    return load_respairscore(f)

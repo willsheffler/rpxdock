@@ -38,8 +38,8 @@ py::array_t<double> logsum_bins(py::array_t<uint64_t> lbub,
   py::array_t<double> out(lbub.size());
   double* pout = (double*)out.request().ptr;
   for (int i = 0; i < lbub.size(); ++i) {
-    int lb = plbub[i] >> 32;
-    int ub = (plbub[i] << 32) >> 32;
+    int ub = plbub[i] >> 32;
+    int lb = (plbub[i] << 32) >> 32;
     double sum = 0;
     for (int j = lb; j < ub; ++j) {
       sum += std::exp(pvals[j]);
@@ -86,7 +86,7 @@ py::tuple jagged_bin(py::array_t<Key> k) {
   for (int i = 0; i < uniqkeys.size(); ++i) {
     pkeys[i] = uniqkeys[i];
     uint64_t lb = breaks[i], ub = breaks[i + 1];
-    pranges[i] = lb << 32 | ub;
+    pranges[i] = ub << 32 | lb;
   }
 
   py::tuple out(3);
