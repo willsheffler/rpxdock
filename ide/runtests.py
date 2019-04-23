@@ -8,6 +8,7 @@ import sys
 import os
 import re
 from time import perf_counter
+from collections import defaultdict
 
 _override = {
     "rosetta.py": ["sicdock/tests/test_body.py"],
@@ -19,13 +20,11 @@ _override = {
     "_orientations_test.cpp": ["sicdock/sampling/orientations.py"],
     "cookie_cutter.cpp": ["sicdock/cluster/cluster.py"],
     "xbin.hpp": ["sicdock/tests/xbin/test_xbin.py"],
-    "xbin.cpp": ["sicdock/tests/xbin/test_xbin.py"],
+    "_xbin.cpp": ["sicdock/tests/xbin/test_xbin.py"],
     "xbin_test.cpp": ["sicdock/tests/xbin/test_xbin.py"],
+    "_motif.cpp": ["sicdock/motif/motif.py"],
 }
-_post = {
-    # "tcdock.py": "pymol body1.pdb body2.pdb",
-    # "test_tcdock.py": "pymol body1.pdb body2.pdb",
-}
+_post = defaultdict(lambda: "")
 
 
 def file_has_main(file):
@@ -55,13 +54,11 @@ def dispatch(file, pytest_args="--duration=5"):
         else:
             assert 0
 
-    if not bname.startswith("test_"):
+    if not file_has_main(file) and not bname.startswith("test_"):
         testfile = testfile_of(path, bname)
         if testfile:
             file = testfile
             path, bname = os.path.split(file)
-
-    print(file, file_has_main(file))
 
     if not file_has_main(file) and bname.startswith("test_"):
         cmd = "pytest {pytest_args} {file}".format(**vars())
@@ -71,9 +68,7 @@ def dispatch(file, pytest_args="--duration=5"):
         cmd = "pytest {pytest_args}".format(**vars())
 
     post = ""
-    if bname in _post:
-        post = _post[bname]
-    return cmd, post
+    return cmd, _post[bname]
 
 
 t = perf_counter()

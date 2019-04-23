@@ -138,12 +138,12 @@ bool test_xform_hash_perf(double cart_resl, double ang_resl,
 
   double tot_cell_vol = covrad * covrad * covrad * covrad * covrad * covrad *
                         xh.approx_nori() / (cart_resl * cart_resl * cart_resl);
-  printf(
-      " %5.3f/%5.1f cr %5.3f dt %5.3f da %6.3f x2k: %7.3fns k2x: %7.3fns "
-      "%9.3f "
-      "%7lu\n",
-      cart_resl, ang_resl, covrad, max_dt / cart_resl, max_da / ang_resl,
-      time_key / N2, time_cen / N2, tot_cell_vol, xh.approx_nori());
+  // printf(
+  // " %5.3f/%5.1f cr %5.3f dt %5.3f da %6.3f x2k: %7.3fns k2x: %7.3fns "
+  // "%9.3f "
+  // "%7lu\n",
+  // cart_resl, ang_resl, covrad, max_dt / cart_resl, max_da / ang_resl,
+  // time_key / N2, time_cen / N2, tot_cell_vol, xh.approx_nori());
 
   // cout << " rate " << N1*N2/time_key << "  " << N1*N2/time_cen << endl;
   return true;
@@ -153,17 +153,17 @@ bool TEST_XformHash_XformHash_bt24_BCC6() {
   unsigned int s = 0;
   int N = 10 * 1000;
   bool pass = true;
-  cout << "  bt24_BCC6";
+  // cout << "  bt24_BCC6";
   pass &= test_xform_hash_perf<XformHash_bt24_BCC6>(4.00, 30.0, N, ++s);
-  cout << "  bt24_BCC6";
+  // cout << "  bt24_BCC6";
   pass &= test_xform_hash_perf<XformHash_bt24_BCC6>(2.00, 20.0, N, ++s);
-  cout << "  bt24_BCC6";
+  // cout << "  bt24_BCC6";
   pass &= test_xform_hash_perf<XformHash_bt24_BCC6>(1.00, 15.0, N, ++s);
-  cout << "  bt24_BCC6";
+  // cout << "  bt24_BCC6";
   pass &= test_xform_hash_perf<XformHash_bt24_BCC6>(0.50, 10.0, N, ++s);
-  cout << "  bt24_BCC6";
+  // cout << "  bt24_BCC6";
   pass &= test_xform_hash_perf<XformHash_bt24_BCC6>(0.25, 5.0, N, ++s);
-  cout << "  bt24_BCC6";
+  // cout << "  bt24_BCC6";
   pass &= test_xform_hash_perf<XformHash_bt24_BCC6>(0.11, 3.3, N, ++s);
   return pass;
 }

@@ -50,33 +50,6 @@ def rosetta_stub_from_numpy_stub(npstub):
     return rosstub
 
 
-def get_bb_stubs(bbcords, which_resi=None):
-    assert bbcords.ndim == 3
-    assert bbcords.shape[1] >= 3  # n, ca, c
-
-    stub = np.zeros((bbcords.shape[0], 4, 4))
-    stub[:, 3, 3] = 1
-
-    n = bbcords[:, 0, :3]
-    ca = bbcords[:, 1, :3]
-    c = bbcords[:, 2, :3]
-    e1 = n - ca
-    # e1 = (c + n) / 2.0 - ca  # from old motif stuff to maintain compatibility
-    e1 /= np.linalg.norm(e1, axis=1)[:, None]
-    e3 = np.cross(e1, c - ca)
-    e3 /= np.linalg.norm(e3, axis=1)[:, None]
-    e2 = np.cross(e3, e1)
-    stub[:, :3, 0] = e1
-    stub[:, :3, 1] = e2
-    stub[:, :3, 2] = e3
-    # magic numbers from rosetta centroids in some set of pdbs
-    avg_centroid_offset = [-0.80571551, -1.60735769, 1.46276045]
-    t = stub[:, :3, :3] @ avg_centroid_offset + ca
-    stub[:, :3, 3] = t
-    assert np.allclose(np.linalg.det(stub), 1)
-    return stub
-
-
 def get_centroids(pose0, which_resi=None):
     pose = pose0.clone()
     pyrosetta.rosetta.core.util.switch_to_residue_type_set(pose, "centroid")

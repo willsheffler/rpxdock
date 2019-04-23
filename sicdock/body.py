@@ -14,7 +14,7 @@ from sicdock.bvh import (
     bvh_print,
     bvh_count_pairs,
 )
-
+from sicdock import motif
 
 _CLASH_RADIUS = 1.75
 
@@ -55,7 +55,7 @@ class Body:
         assert len(self.ss) == len(self.coord)
         assert len(self.chain) == len(self.coord)
 
-        self.stub = ros.get_bb_stubs(self.coord)
+        self.stub = motif.bb_stubs(self.coord)
         self.bvh_bb = bvh_create(self.coord[..., :3].reshape(-1, 3))
         self.allcen = self.stub[:, :, 3]
         which_cen = np.repeat(False, len(self.ss))

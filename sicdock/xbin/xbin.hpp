@@ -266,8 +266,8 @@ struct XformHash_bt24_BCC6 {
   Key get_key_raw(F *fp) const {
     Key cell_index;
     F6 p6 = xform_to_F6_raw(fp, cell_index);
-    assert((grid6_[p6] >> 59) == 0);
-    return cell_index << 59 | grid6_[p6];
+    assert((grid6_[p6] >> 55) == 0);
+    return cell_index << 55 | grid6_[p6];
   }
   */
   Xform F6_to_xform(F6 params6, Key cell_index) const {
@@ -286,12 +286,19 @@ struct XformHash_bt24_BCC6 {
   Key get_key(Xform x) const {
     Key cell_index;
     F6 p6 = xform_to_F6(x, cell_index);
-    assert((grid6_[p6] >> 59) == 0);
-    return cell_index << 59 | grid6_[p6];
+#ifdef NDEBUG
+#undef NDEBUG
+    assert((grid6_[p6] >> 55) == 0);
+#define NDEBUG
+#else
+    assert((grid6_[p6] >> 55) == 0);
+#endif
+
+    return cell_index << 55 | grid6_[p6];
   }
   Xform get_center(Key key) const {
-    Key cell_index = key >> 59;
-    F6 params6 = grid6_[key & (((Key)1 << 59) - (Key)1)];
+    Key cell_index = key >> 55;
+    F6 params6 = grid6_[key & (((Key)1 << 55) - (Key)1)];
     return F6_to_xform(params6, cell_index);
   }
   Key approx_size() const { return grid6_.size() * 24; }
