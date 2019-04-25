@@ -14,6 +14,7 @@ _override = {
     "rosetta.py": ["sicdock/tests/test_body.py"],
     "bvh_algo.hpp": ["sicdock/tests/bvh/test_bvh.py"],
     "bvh.cpp": ["sicdock/tests/bvh/test_bvh.py"],
+    "bvh.hpp": ["sicdock/tests/bvh/test_bvh.py"],
     "dockspec.py": ["sicdock/tests/search/test_gridslide.py"],
     "_orientations.hpp": ["sicdock/sampling/orientations.py"],
     "_orientations.cpp": ["sicdock/sampling/orientations.py"],
@@ -23,6 +24,13 @@ _override = {
     "_xbin.cpp": ["sicdock/tests/xbin/test_xbin.py"],
     "xbin_test.cpp": ["sicdock/tests/xbin/test_xbin.py"],
     "_motif.cpp": ["sicdock/motif/motif.py"],
+    "primitive.hpp": ["sicdock/tests/geom/test_geom.py"],
+    "SimpleArray.hpp": ["sicdock/tests/util/test_util.py"],
+    "SimpleArray_test.cpp": ["sicdock/tests/util/test_util.py"],
+    "dilated_int.hpp": ["sicdock/tests/util/test_util.py"],
+    "dilated_int_test.cpp": ["sicdock/tests/util/test_util.py"],
+    "numeric.hpp": ["sicdock/tests/xbin/test_xbin.py"],
+    "xform_hierarchy.cpp": ["sicdock/tests/sampling/test_xform_hierarchy.py"],
 }
 _post = defaultdict(lambda: "")
 

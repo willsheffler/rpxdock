@@ -9,9 +9,7 @@ namespace geom {
 
 using namespace util;
 
-template <class Ary>
-auto welzl_bounding_sphere(Ary const& points) noexcept;
-
+struct Empty {};
 template <class F>
 class Sphere {
   using Scalar = F;
@@ -21,6 +19,7 @@ class Sphere {
  public:
   Vec3 cen;
   F rad;
+  int lb, ub;
 
   Sphere() : cen(0, 0, 0), rad(1) {}
   Sphere(Vec3 c, F r) : cen(c), rad(r) {}
@@ -61,7 +60,10 @@ class Sphere {
     // std::cout << d << std::endl;
     auto dir = (that.cen - cen).normalized();
     auto c = cen + dir * (d / 2 - this->rad);
-    return Sphere<F>(c, d / 2 + epsilon2<F>() / 2.0);
+    auto out = Sphere<F>(c, d / 2 + epsilon2<F>() / 2.0);
+    out.lb = std::min(this->lb, that.lb);
+    out.ub = std::max(this->ub, that.ub);
+    return out;
   }
 
   // Distance from p to boundary of the Sphere
@@ -143,16 +145,36 @@ auto welzl_bounding_sphere_impl(Ary const& points, size_t index,
   return welzl_bounding_sphere_impl(points, index, sos, numsos + 1);
 }
 
-template <class Ary>
+template <class Ary, class Sph, bool range>
+struct UpdateBounds {
+  static void update_bounds(Ary const& points, Sph& sph) {}
+};
+
+template <class Ary, class Sph>
+struct UpdateBounds<Ary, Sph, false> {
+  static void update_bounds(Ary const& points, Sph& sph) {}
+};
+template <class Ary, class Sph>
+struct UpdateBounds<Ary, Sph, true> {
+  static void update_bounds(Ary const& points, Sph& sph) {
+    for (size_t i = 0; i < points.size(); ++i) {
+      sph.lb = std::min(sph.lb, points.get_index(i));
+      sph.ub = std::max(sph.ub, points.get_index(i));
+    }
+  }
+};
+
+template <bool range = false, class Ary>
 auto welzl_bounding_sphere(Ary const& points) noexcept {
   using Pt = typename Ary::value_type;
-  // using Scalar = typename Pt::Scalar;
-  // using Sph = Sphere<Scalar>;
+  using Sph = Sphere<typename Pt::Scalar>;
   std::vector<Pt> sos(4);
-  return welzl_bounding_sphere_impl(points, points.size(), sos, 0);
+  Sph bound = welzl_bounding_sphere_impl(points, points.size(), sos, 0);
+  UpdateBounds<Ary, Sph, range>::update_bounds(points, bound);
+  return bound;
 }
 
-template <class Ary>
+template <bool range = false, class Ary>
 auto central_bounding_sphere(Ary const& points) noexcept {
   using Pt = typename Ary::value_type;
   using Scalar = typename Pt::Scalar;
@@ -171,7 +193,9 @@ auto central_bounding_sphere(Ary const& points) noexcept {
     }
     rad = sqrt(rad) + eps;
   }
-  return Sph(cen, rad);
+  Sph bound(cen, rad);
+  UpdateBounds<Ary, Sph, range>::update_bounds(points, bound);
+  return bound;
 }
 
 /**

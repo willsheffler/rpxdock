@@ -41,8 +41,16 @@ struct PtIdx {
 
 auto bounding_vol(V3<float> v) { return Sphere<float>(v); }
 auto bounding_vol(V3<double> v) { return Sphere<double>(v); }
-auto bounding_vol(PtIdx<float> v) { return Sphere<float>(v.pos); }
-auto bounding_vol(PtIdx<double> v) { return Sphere<double>(v.pos); }
+auto bounding_vol(PtIdx<float> v) {
+  auto s = Sphere<float>(v.pos);
+  s.lb = s.ub = v.idx;
+  return s;
+}
+auto bounding_vol(PtIdx<double> v) {
+  auto s = Sphere<double>(v.pos);
+  s.lb = s.ub = v.idx;
+  return s;
+}
 }  // namespace Eigen
 
 template <typename F>
@@ -210,7 +218,7 @@ bool naive_isect(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
 
   // bounding sphere check
   auto vol1 = bvh1.getVolume(bvh1.getRootIndex());
-  auto vol2 = bvh1.getVolume(bvh2.getRootIndex());
+  auto vol2 = bvh2.getVolume(bvh2.getRootIndex());
   vol1.cen = x1 * vol1.cen;
   vol2.cen = x2 * vol2.cen;
   if (!vol1.contact(vol2, mindist)) return false;
@@ -223,6 +231,72 @@ bool naive_isect(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
     }
   }
   return false;
+}
+
+template <typename F>
+struct BVHIsectRange {
+  using Scalar = F;
+  using Xform = X3<F>;
+  BVHIsectRange(F r, Xform x, int _ub)
+      : rad(r), rad2(r * r), bXa(x), mid(_ub / 2), ub(_ub) {}
+  bool intersectVolumeVolume(Sphere<F> r1, Sphere<F> r2) {
+    if (r1.lb > ub || r1.ub < lb) return false;
+    return r1.signdis(bXa * r2) < rad;
+  }
+  bool intersectVolumeObject(Sphere<F> r, PtIdx<F> v) {
+    if (r.lb > ub || r.ub < lb) return false;
+    return r.signdis(bXa * v.pos) < rad;
+  }
+  bool intersectObjectVolume(PtIdx<F> v, Sphere<F> r) {
+    if (v.idx > ub || v.idx < lb) return false;
+    return (bXa * r).signdis(v.pos) < rad;
+  }
+  bool intersectObjectObject(PtIdx<F> v1, PtIdx<F> v2) {
+    bool isect = (v1.pos - bXa * v2.pos).squaredNorm() < rad2;
+    if (isect)
+      if (v1.idx < mid)
+        lb = std::max(v1.idx, lb);
+      else
+        ub = std::min(v1.idx, ub);
+    return false;
+  }
+  F rad = 0, rad2 = 0;
+  int lb = 0, ub, mid;
+  Xform bXa = Xform::Identity();
+};
+template <typename F>
+py::tuple bvh_isect_range(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
+                          F mindist) {
+  X3<F> x1(pos1), x2(pos2);
+  BVHIsectRange<F> query(mindist, x1.inverse() * x2, bvh1.objs.size());
+  sicdock::bvh::BVIntersect(bvh1, bvh2, query);
+  py::tuple out(2);
+  out[0] = query.lb;
+  out[1] = query.ub;
+  return out;
+}
+template <typename F>
+py::tuple naive_isect_range(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
+                            F mindist) {
+  X3<F> x1(pos1), x2(pos2);
+  X3<F> pos = x1.inverse() * x2;
+  F dist2 = mindist * mindist;
+  int lb = 0, ub = bvh1.objs.size(), mid = ub / 2;
+  for (auto o1 : bvh1.objs) {
+    for (auto o2 : bvh2.objs) {
+      auto d2 = (o1.pos - pos * o2.pos).squaredNorm();
+      if (d2 < dist2) {
+        if (o1.idx < mid)
+          lb = std::max(o1.idx, lb);
+        else
+          ub = std::min(o1.idx, ub);
+      }
+    }
+  }
+  py::tuple out(2);
+  out[0] = lb;
+  out[1] = ub;
+  return out;
 }
 
 template <typename F>
@@ -484,11 +558,15 @@ PYBIND11_MODULE(bvh, m) {
   m.def("naive_isect", &naive_isect<double>);
   m.def("naive_isect_fixed", &naive_isect_fixed<double>);
 
+  m.def("bvh_isect_range", &bvh_isect_range<double>, "intersction test",
+        "bvh1"_a, "bvh2"_a, "pos1"_a, "pos2"_a, "mindist"_a);
+  m.def("naive_isect_range", &naive_isect_range<double>);
+
   m.def("bvh_slide", &bvh_slide<double>, "slide into contact", "bvh1"_a,
         "bvh2"_a, "pos1"_a, "pos2"_a, "rad"_a, "dirn"_a);
 
-  // m.def("bvh_slide_32bit", &bvh_slide<float>, "slide into contact", "bvh1"_a,
-  // "bvh2"_a, "pos1"_a, "pos2"_a, "rad"_a, "dirn"_a);
+  // m.def("bvh_slide_32bit", &bvh_slide<float>, "slide into contact",
+  // "bvh1"_a, "bvh2"_a, "pos1"_a, "pos2"_a, "rad"_a, "dirn"_a);
 
   m.def("bvh_collect_pairs", &bvh_collect_pairs<double>);
   m.def("bvh_count_pairs", &bvh_count_pairs<double>);

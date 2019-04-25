@@ -20,10 +20,13 @@ _CLASH_RADIUS = 1.75
 
 
 class Body:
-    def __init__(self, pdb, sym=None, which_ss="HE", **kw):
+    def __init__(self, pdb, sym="C1", which_ss="HE", posecache=False, **kw):
         if isinstance(pdb, str):
             self.pdbfile = pdb
-            self.pose = ros.pose_from_file(pdb)
+            if posecache:
+                self.pose = ros.get_pose_cached(pdb)
+            else:
+                self.pose = ros.pose_from_file(pdb)
         else:
             self.pose = pdb
 
@@ -88,12 +91,15 @@ class Body:
 
     def move_by(self, x):
         self.pos = x @ self.pos
+        return self
 
     def move_to(self, x):
         self.pos = x.copy()
+        return self
 
     def move_to_center(self):
         self.pos[:3, 3] = 0
+        return self
 
     def slide_to(self, other, dirn, radius=_CLASH_RADIUS):
         dirn = np.array(dirn, dtype=np.float64)

@@ -122,7 +122,7 @@ def test_key_of_pairs2_ss():
 
 
 if __name__ == "__main__":
-    # assert xbin_test.TEST_XformHash_XformHash_bt24_BCC6()
-    # test_key_of()
-    # test_xbin_covrad()
+    assert xbin_test.TEST_XformHash_XformHash_bt24_BCC6()
+    test_key_of()
+    test_xbin_covrad()
     test_key_of_pairs2_ss()

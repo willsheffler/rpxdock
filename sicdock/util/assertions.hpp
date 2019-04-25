@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #define _TEST(cond)                                                    \
   if (!(cond)) {                                                       \
     std::cerr << "ERROR " << __FILE__ << ":" << __LINE__ << std::endl; \

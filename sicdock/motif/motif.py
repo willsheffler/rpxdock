@@ -106,7 +106,7 @@ def build_motif_table(rp, cart_resl=1, ori_resl=20):
 
     # print(rp)
 
-    # f = "/home/sheffler/debug/sicdock/datafiles/respairdat_si20_rotamers.pickle"
+    # f = "/home/sheffler/debug/sicdock/datafiles/respairdat_si30_rotamers.pickle"
     # add_xbin_to_respairdat(rp, f)
 
 

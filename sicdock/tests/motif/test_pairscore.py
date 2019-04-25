@@ -32,10 +32,19 @@ def test_pair_score(respairscore):
         assert len(np.unique(ssj[lb:ub])) == 1
 
 
+def test_bin_score(respairscore):
+    keys = np.zeros(len(respairscore.keys) * 2, dtype="u8")
+    keys[: len(respairscore.keys)] = respairscore.keys
+    np.random.shuffle(keys)
+    t = time.perf_counter()
+    s = respairscore.bin_score(keys)
+    t = time.perf_counter() - t
+    print(f"perf {int(len(s) / t):,} {len(s):,}")
+
+
 def test_bin_get_all_data(respairscore):
-    # lb, ub = respairscore.range_map[respairscore.keys].view("u4").reshape(-1, 2).swapaxes(0, 1)
-    # nrange = ub - lb
-    # kbigbin = respairscore.keys[np.argsort(-nrange)]
+    # on real system: perf perrot: 434,667 perkey: 141,453
+
     assert not respairscore.range_map.__contains__(0)
     keys = np.zeros(len(respairscore.keys) * 2, dtype="u8")
     keys[: len(respairscore.keys)] = respairscore.keys
@@ -59,12 +68,15 @@ def test_bin_get_all_data(respairscore):
 if __name__ == "__main__":
     import _pickle
 
-    # with open("sicdock/data/respairdat10.pickle", "rb") as inp:
+    # f = "/home/sheffler/debug/sicdock/datafiles/respairdat_si30_rotamers.pickle"
+    # f2 = "/home/sheffler/debug/sicdock/datafiles/respairdat_si30_rotamers"
+    # f = "sicdock/data/respairdat10.pickle"
+    f2 = "sicdock/data/respairscore10"
+    # with open(f, "rb") as inp:
     #     rp = ResPairData(_pickle.load(inp))
-    #     test_create_res_pair_score(rp, "sicdock/data/respairscore10")
+    #     test_create_res_pair_score(rp, f2)
 
-    rps = load_respairscore("sicdock/data/respairscore10")
-
+    rps = load_respairscore(f2)
     # test_pair_score(rps)
-
     test_bin_get_all_data(rps)
+    # test_bin_score(rps)

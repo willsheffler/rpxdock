@@ -579,7 +579,79 @@ def test_bvh_accessors():
     assert np.allclose(np.min(dmat, axis=1), 0)
 
 
+def random_walk(N):
+    x = np.random.randn(N + 1, 3).astype("f").cumsum(axis=0)
+    x -= x.mean(axis=0)
+    return 0.5 * x / x.std()
+
+
+def test_bvh_isect_range(body=None, cart_sd=0.3, N2=10, mindist=0.02):
+    N1 = 1 if body else 5
+    N = N1 * N2
+    totbvh, totnaive, totbvh0, nhit = 0, 0, 0, 0
+
+    for ibvh in range(N1):
+        if body:
+            bvh1, bvh2 = body.bvh_bb, body.bvh_bb
+        else:
+            # xyz1 = np.random.rand(2000, 3) - [0.5, 0.5, 0.5]
+            # xyz2 = np.random.rand(2000, 3) - [0.5, 0.5, 0.5]
+            xyz1 = random_walk(1000)
+            xyz2 = random_walk(1000)
+            tcre = perf_counter()
+            bvh1 = bvh.bvh_create(xyz1)
+            bvh2 = bvh.bvh_create(xyz2)
+            tcre = perf_counter() - tcre
+
+        for i in range(N2):
+
+            pos1 = hm.rand_xform(cart_sd=cart_sd)
+            pos2 = hm.rand_xform(cart_sd=cart_sd)
+
+            tbvh0 = perf_counter()
+            c = bvh.bvh_isect(
+                bvh1=bvh1, bvh2=bvh2, pos1=pos1, pos2=pos2, mindist=mindist
+            )
+            tbvh0 = perf_counter() - tbvh0
+
+            if not c:
+                continue
+            nhit += 1
+
+            tbvh = perf_counter()
+            range1 = bvh.bvh_isect_range(
+                bvh1=bvh1, bvh2=bvh2, pos1=pos1, pos2=pos2, mindist=mindist
+            )
+            tbvh = perf_counter() - tbvh
+
+            tn = perf_counter()
+            range2 = bvh.naive_isect_range(bvh1, bvh2, pos1, pos2, mindist)
+            assert range1 == range2
+            tn = perf_counter() - tn
+
+            # print(f"{str(range1):=^80}")
+            # body.move_to(pos1).dump_pdb("test1.pdb")
+            # body.move_to(pos2).dump_pdb("test2.pdb")
+            # return
+
+            # print(f"{i:3} range {range1} {tn / tbvh:8.2f}, {tn:1.6f}, {tbvh:1.6f}")
+
+            totbvh += tbvh
+            totnaive += tn
+            totbvh0 += tbvh0
+
+    print(
+        f"iscet {nhit:,} hit of {N:,} iter bvh: {int(nhit/totbvh):,}/s fastnaive {int(nhit/totnaive):,}/s",
+        f"ratio {int(totnaive/totbvh):,}x isect-only: {totbvh/totbvh0:3.3f}x",
+    )
+
+
 if __name__ == "__main__":
+    from sicdock.body import Body
+
+    b = Body("sicdock/data/pdb/DHR14.pdb")
+    test_bvh_isect_range(b, cart_sd=15, N2=500, mindist=3.5)
+
     # test_bvh_min_dist()
     # test_bvh_isect()
     # test_bvh_slide_whole()
@@ -587,4 +659,5 @@ if __name__ == "__main__":
     # test_collect_pairs_simple_selection()
     # test_collect_pairs()
     # test_slide_collect_pairs()
-    test_bvh_accessors()
+    # test_bvh_accessors()
+    # test_bvh_isect_range()

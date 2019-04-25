@@ -55,6 +55,7 @@ struct P1Range {
   auto const &operator[](size_t i) const { return (a + i)->first; }
   auto &operator[](size_t i) { return (a + i)->first; }
   size_t size() const { return b - a; }
+  auto get_index(size_t i) const { return (a + i)->second; }
 };
 template <class RAiter>
 auto p1range(RAiter a, RAiter b) {
@@ -64,16 +65,17 @@ auto p1range(RAiter a, RAiter b) {
   return r;
 }
 
-template <typename _Scalar, typename _Object>
+template <typename _Scalar, typename _Object,
+          typename _Volume = Sphere<_Scalar>>
 class WelzlBVH {
  public:
   static int const Dim = 3;
   typedef _Object Object;
-  typedef std::vector<Object, Eigen::aligned_allocator<Object> > Objs;
+  typedef std::vector<Object, Eigen::aligned_allocator<Object>> Objs;
   typedef _Scalar Scalar;
   // typedef Eigen::AlignedBox<Scalar, Dim> Volume;
-  typedef Sphere<Scalar> Volume;
-  typedef std::vector<Volume, Eigen::aligned_allocator<Volume> > Vols;
+  typedef _Volume Volume;
+  typedef std::vector<Volume, Eigen::aligned_allocator<Volume>> Vols;
   typedef int Index;
   typedef const int *VolumeIterator;  // the iterators are just pointers into
                                       // the tree's vectors
@@ -185,34 +187,8 @@ class WelzlBVH {
 
  private:
   typedef V3intPair<Scalar> VIPair;
-  typedef std::vector<VIPair, Eigen::aligned_allocator<VIPair> > VIPairs;
+  typedef std::vector<VIPair, Eigen::aligned_allocator<VIPair>> VIPairs;
   typedef Eigen::Matrix<Scalar, Dim, 1> VectorType;
-
-  // template <class Oiter>
-  // void get_subtree_leaves(Index idx, Oiter out) {
-  //   VolumeIterator vbeg = nullptr, vend = nullptr;
-  //   ObjectIterator obeg = nullptr, oend = nullptr;
-  //   getChildren(idx, vbeg, vend, obeg, oend);
-  //   // std::cout << "gco " << idx << " range: " << vend - vbeg << " vals";
-  //   // for (auto i = vbeg; i != vend; ++i) std::cout << " " << *i;
-  //   // std::cout << std::endl;
-  //   for (auto i = vbeg; i != vend; ++i) get_subtree_leaves(*i, out);
-  //   for (auto i = obeg; i != oend; ++i) ++out = *i;
-  // }
-
-  // // todo: more efficient to build welzl sets in coodinated way?
-  // void welzlize_vols(VIPairs const &ocen) {
-  //   std::vector<Object> subleaf;
-  //   for (int i = 0; i < vols.size(); ++i) {
-  //     subleaf.clear();
-  //     get_subtree_leaves(i, std::back_inserter(subleaf));
-  //     if (subleaf.size() > 2) {
-  //       auto welzl = welzl_bounding_sphere(subleaf);
-  //       // few pathological cases w/n=3
-  //       if (welzl.rad < vols[i].rad) vols[i] = welzl;
-  //     }
-  //   }
-  // }
 
   struct AxisComparator {
     int dim;
@@ -252,7 +228,7 @@ class WelzlBVH {
       build(ocen, from, mid, ovol, (dim + 1) % Dim);
       int idx1 = (int)vols.size() - 1;
       auto merge = vols[idx1].merged(ovol[ocen[mid].second]);
-      auto welzl = welzl_bounding_sphere(subtree_objs);
+      auto welzl = welzl_bounding_sphere<true>(subtree_objs);
       vols.push_back(welzl.rad < merge.rad ? welzl : merge);
       child.push_back(idx1);
       child.push_back(mid + (int)objs.size() - 1);
@@ -267,7 +243,7 @@ class WelzlBVH {
       build(ocen, mid, to, ovol, (dim + 1) % Dim);
       int idx2 = (int)vols.size() - 1;
       auto merge = vols[idx1].merged(vols[idx2]);
-      auto welzl = welzl_bounding_sphere(subtree_objs);
+      auto welzl = welzl_bounding_sphere<true>(subtree_objs);
       vols.push_back(welzl.rad < merge.rad ? welzl : merge);
       child.push_back(idx1);
       child.push_back(idx2);
