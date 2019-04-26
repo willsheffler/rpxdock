@@ -78,7 +78,7 @@ int get_num_ori_cells(int ori_nside, double& xcov) {
 }
 
 template <template <class X> class XformHash>
-bool test_xform_hash_perf(double cart_resl, double ang_resl,
+bool xform_hash_perf_test(double cart_resl, double ang_resl,
                           int const N2 = 100 * 1000, unsigned int seed = 0) {
   std::mt19937 rng((unsigned int)time(0) + seed);
 
@@ -154,17 +154,17 @@ bool TEST_XformHash_XformHash_bt24_BCC6() {
   int N = 10 * 1000;
   bool pass = true;
   // cout << "  bt24_BCC6";
-  pass &= test_xform_hash_perf<XformHash_bt24_BCC6>(4.00, 30.0, N, ++s);
+  pass &= xform_hash_perf_test<XformHash_bt24_BCC6>(4.00, 30.0, N, ++s);
   // cout << "  bt24_BCC6";
-  pass &= test_xform_hash_perf<XformHash_bt24_BCC6>(2.00, 20.0, N, ++s);
+  pass &= xform_hash_perf_test<XformHash_bt24_BCC6>(2.00, 20.0, N, ++s);
   // cout << "  bt24_BCC6";
-  pass &= test_xform_hash_perf<XformHash_bt24_BCC6>(1.00, 15.0, N, ++s);
+  pass &= xform_hash_perf_test<XformHash_bt24_BCC6>(1.00, 15.0, N, ++s);
   // cout << "  bt24_BCC6";
-  pass &= test_xform_hash_perf<XformHash_bt24_BCC6>(0.50, 10.0, N, ++s);
+  pass &= xform_hash_perf_test<XformHash_bt24_BCC6>(0.50, 10.0, N, ++s);
   // cout << "  bt24_BCC6";
-  pass &= test_xform_hash_perf<XformHash_bt24_BCC6>(0.25, 5.0, N, ++s);
+  pass &= xform_hash_perf_test<XformHash_bt24_BCC6>(0.25, 5.0, N, ++s);
   // cout << "  bt24_BCC6";
-  pass &= test_xform_hash_perf<XformHash_bt24_BCC6>(0.11, 3.3, N, ++s);
+  pass &= xform_hash_perf_test<XformHash_bt24_BCC6>(0.11, 3.3, N, ++s);
   return pass;
 }
 

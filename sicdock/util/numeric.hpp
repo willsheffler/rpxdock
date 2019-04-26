@@ -21,24 +21,19 @@ void max2(Vector vector, typename Vector::Scalar &mx1,
   mx2 = vector.maxCoeff(&argmax_2);
 }
 
-static bool is_not_0(double a) { return fabs(a) > 0.00000001; }
-static bool is_not_0(float a) {
-  return fabs(a) > 0.0001;
-}  // need something higher than numeric_limits::epsilon
 template <class Q>
 Q to_half_cell(Q const &q) {
-  return is_not_0(q.w())
+  using NL = std::numeric_limits<typename Q::Scalar>;
+  auto epsilon = std::sqrt(NL::epsilon());
+  return (q.w() > epsilon)
              ? (q.w() > 0 ? q : Q(-q.w(), -q.x(), -q.y(), -q.z()))
-             : (
-                   // q
-                   is_not_0(q.x())
-                       ? (q.x() > 0 ? q : Q(-q.w(), -q.x(), -q.y(), -q.z()))
-                       : (is_not_0(q.y())
-                              ? (q.y() > 0 ? q
-                                           : Q(-q.w(), -q.x(), -q.y(), -q.z()))
-                              : ((q.z() > 0
-                                      ? q
-                                      : Q(-q.w(), -q.x(), -q.y(), -q.z())))));
+             : ((q.x() > epsilon)
+                    ? (q.x() > 0 ? q : Q(-q.w(), -q.x(), -q.y(), -q.z()))
+                    : ((q.y() > epsilon)
+                           ? (q.y() > 0 ? q : Q(-q.w(), -q.x(), -q.y(), -q.z()))
+                           : ((q.z() > 0
+                                   ? q
+                                   : Q(-q.w(), -q.x(), -q.y(), -q.z())))));
 }
 
 template <class F>
@@ -137,11 +132,8 @@ F cell_width() {
 
 template <class F, class Index>
 Eigen::Map<Eigen::Quaternion<F> const> hbt24_cellcen(Index const &i) {
-  // F const * tmp = numeric::get_raw_48cell_half<F>() + 4*i;
-  // std::cout << "   raw hbt24_cellcen " << tmp[0] << " " << tmp[1] << " " <<
-  // tmp[2] << " " << tmp[3] << std::endl;
-  return Eigen::Map<Eigen::Quaternion<F> const>(get_raw_48cell_half<F>() +
-                                                4 * i);
+  using QuatWrap = Eigen::Map<Eigen::Quaternion<F> const>;
+  return QuatWrap(get_raw_48cell_half<F>() + 4 * i);
 }
 
 template <class A>

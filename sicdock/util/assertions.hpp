@@ -16,3 +16,4 @@
 #define ASSERT_TRUE(x) _TEST(x);
 #define ASSERT_FALSE(x) _TEST(!x);
 #define ASSERT_FLOAT_EQ(x, y) _TEST(fabs(x - y) < 0.0001);
+#define ASSERT_NEAR(x, y, t) _TEST(fabs(x - y) < t);

@@ -16,6 +16,10 @@ template <class F>
 using V4 = Eigen::Matrix<F, 4, 1>;
 template <class F>
 using M4 = Eigen::Matrix<F, 4, 4, Eigen::RowMajor>;
+template <class F>
+using V5 = Eigen::Matrix<F, 5, 1>;
+template <class F>
+using V6 = Eigen::Matrix<F, 6, 1>;
 
 using V3f = V3<float>;
 using V3d = V3<double>;

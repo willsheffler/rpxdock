@@ -12,7 +12,7 @@ import homog as hm
 
 
 def test_bvh_isect_cpp():
-    assert bvh_test.test_bvh_test_isect()
+    assert bvh_test.TEST_bvh_test_isect()
 
 
 def test_bvh_isect_fixed():
@@ -93,8 +93,8 @@ def test_bvh_isect():
     )
 
 
-def test_bvhf_min_cpp():
-    assert bvh_test.test_bvh_test_min()
+def test_bvh_min_cpp():
+    assert bvh_test.TEST_bvh_test_min()
 
 
 def test_bvh_min_dist_fixed():

@@ -80,7 +80,7 @@ bool geom_primitive_sphere_test(int niter) {
   return true;
 }
 
-bool test_geom_primitive_sphere() {
+bool TEST_geom_primitive_sphere() {
   bool success = true;
   success &= geom_primitive_sphere_test<float>(10000);
   success &= geom_primitive_sphere_test<double>(10000);
@@ -112,7 +112,7 @@ bool geom_primitive_welzl_test(size_t Ntest, size_t Npoints) {
   return true;
 }
 
-bool test_geom_primitive_welzl_bounding_sphere() {
+bool TEST_geom_primitive_welzl_bounding_sphere() {
   bool success = true;
   success &= geom_primitive_welzl_test<float>(10, 10);
   success &= geom_primitive_welzl_test<double>(100, 100);
@@ -120,9 +120,9 @@ bool test_geom_primitive_welzl_bounding_sphere() {
 }
 
 PYBIND11_MODULE(primitive_test, m) {
-  m.def("test_geom_primitive_sphere", &test_geom_primitive_sphere);
-  m.def("test_geom_primitive_welzl_bounding_sphere",
-        &test_geom_primitive_welzl_bounding_sphere);
+  m.def("TEST_geom_primitive_sphere", &TEST_geom_primitive_sphere);
+  m.def("TEST_geom_primitive_welzl_bounding_sphere",
+        &TEST_geom_primitive_welzl_bounding_sphere);
 }
 
 }  // namespace rif_geom_prim_test

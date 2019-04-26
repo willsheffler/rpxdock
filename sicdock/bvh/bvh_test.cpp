@@ -90,7 +90,7 @@ struct PPMin {
   void reset() { calls = 0; }
 };
 
-bool test_bvh_test_min() {
+bool TEST_bvh_test_min() {
   typedef std::vector<PtIdxF, aligned_allocator<PtIdxF>> StdVectorOfVector3d;
   StdVectorOfVector3d ptsA, ptsB;
   std::uniform_real_distribution<> r(0, 1);
@@ -173,7 +173,7 @@ struct PPIsect {
   Xform bXa = Xform::Identity();
 };
 
-bool test_bvh_test_isect() {
+bool TEST_bvh_test_isect() {
   typedef std::vector<PtIdxF, aligned_allocator<PtIdxF>> StdVectorOfVector3d;
   std::uniform_real_distribution<> r(0, 1);
   std::mt19937& g(global_rng());
@@ -241,8 +241,8 @@ bool test_bvh_test_isect() {
 }
 
 PYBIND11_MODULE(bvh_test, m) {
-  m.def("test_bvh_test_min", &test_bvh_test_min);
-  m.def("test_bvh_test_isect", &test_bvh_test_isect);
+  m.def("TEST_bvh_test_min", &TEST_bvh_test_min);
+  m.def("TEST_bvh_test_isect", &TEST_bvh_test_isect);
 }
 
 }  // namespace sicdock_geom_bvh_test

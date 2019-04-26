@@ -30,6 +30,7 @@ _override = {
     "dilated_int.hpp": ["sicdock/tests/util/test_util.py"],
     "dilated_int_test.cpp": ["sicdock/tests/util/test_util.py"],
     "numeric.hpp": ["sicdock/tests/xbin/test_xbin.py"],
+    "xform_hierarchy.hpp": ["sicdock/tests/sampling/test_xform_hierarchy.py"],
     "xform_hierarchy.cpp": ["sicdock/tests/sampling/test_xform_hierarchy.py"],
 }
 _post = defaultdict(lambda: "")

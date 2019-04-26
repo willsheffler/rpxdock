@@ -1,18 +1,20 @@
 /*cppimport
 <%
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
-cfg['dependencies'] = [../util/assertions.hpp', '_orientations.hpp']
-
+cfg['compiler_args'] = ['-std=c++17', '-w']
+cfg['dependencies'] = ['_orientations.hpp']
 
 setup_pybind11(cfg)
 %>
 */
 
-#include <gtest/gtest.h>
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
+
 #include <Eigen/Dense>
 #include <iostream>
-#include <sicdock/sampling/_orientations.hpp>
+#include "sicdock/sampling/_orientations.hpp"
+#include "sicdock/util/assertions.hpp"
 
 #include <sys/param.h>
 #include <unistd.h>
@@ -23,7 +25,7 @@ namespace orientations {
 
 // fails on travis-ci with llvm
 // shouldn't touch the fs from the c++ layer
-TEST(Orientation, read_karney_datasets) {
+bool TEST_Orientation_read_karney_datasets() {
   std::string str(
       "# Orientation set c48u1, number = 24, radius = 62.80 degrees\n"
       "# $Id: c48u1.grid 6102 2006-02-21 19:45:40Z ckarney $\n"
@@ -70,7 +72,12 @@ TEST(Orientation, read_karney_datasets) {
 
   ASSERT_NEAR(quats(23, 2), 0.707107, 0.0001);
 
-  // ASSERT_TRUE(false);
+  return true;
+}
+
+PYBIND11_MODULE(_orientations_test, m) {
+  m.def("TEST_Orientation_read_karney_datasets",
+        &TEST_Orientation_read_karney_datasets);
 }
 
 }  // namespace orientations

@@ -4,6 +4,13 @@ import numpy as np
 import sicdock.sampling.orientations as ori
 import pytest
 
+from cppimport import import_hook
+from sicdock.sampling._orientations_test import *
+
+
+def test_orientation_cpp():
+    assert TEST_Orientation_read_karney_datasets()
+
 
 def test_read_karney_orientations():
     with gzip.open(ori.karney_data_path("c48u1.grid.gz")) as input:
