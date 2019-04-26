@@ -24,66 +24,57 @@ namespace sampling {
 using namespace util;
 using namespace Eigen;
 
-double dist(X3d x, X3d y) {
-  double lever = 0.5;
-  auto t2 = (x.translation() - y.translation()).squaredNorm();
-  auto m1 = x.linear(), m2 = y.linear();
-  auto a = Eigen::AngleAxisd(m1.transpose() * m2).angle();
-  // std::cout << a << std::endl;
-  // auto r = x.linear()-
-  // return (x.matrix() - y.matrix()).norm();
-  return std::sqrt(t2 + a * a * lever * lever);
-}
-
-bool TEST_xform_hier_simple() {
-  V3d lb(0, 0, 0);
-  V3d ub(100, 100, 100);
-  V3<uint64_t> bs(1, 1, 1);
-  XformHier<> xh(lb, ub, bs, 999.0);
-  std::cout << xh.ori_ncell_ << std::endl;
-  X3d xi, xj;
-
-  int resl = 0;
-  // random sampling?
-
-  Eigen::MatrixXd dmat(xh.size(resl), xh.size(resl));
-
-  for (int i = 0; i < xh.size(resl); ++i) {
-    bool ivalid = xh.get_value(resl, i, xi);
-    for (int j = 0; j < xh.size(resl); ++j) {
-      bool jvalid = xh.get_value(resl, j, xj);
-      if (ivalid && jvalid && abs(i - j) > 0) {
-        dmat(i, j) = dist(xi, xj);
-      } else {
-        dmat(i, j) = 9e9 * (i + 1) + 9e18 * (j + 1);
-      }
-    }
+template <int N, typename F, typename I>
+py::tuple get_trans(CartHier<N, F, I> ch, int resl,
+                    Ref<Matrix<I, Dynamic, 1>> idx) {
+  std::vector<size_t> xshape{idx.size(), N};
+  py::array_t<bool> iout(idx.size());
+  py::array_t<F> xout(xshape);
+  bool* iptr = (bool*)iout.request().ptr;
+  Matrix<F, N, 1>* tptr = (Matrix<F, N, 1>*)xout.request().ptr;
+  size_t nout = 0;
+  for (size_t i = 0; i < idx.size(); ++i) {
+    iptr[i] = ch.get_value(resl, idx[i], tptr[nout]);
+    if (iptr[i]) ++nout;
   }
-
-  std::cout << "mindis " << dmat.minCoeff() << std::endl;
-  // std::cout << valid << " " << x.translation().transpose() << std::endl;
-  // std::cout << "   " << x.linear().row(0) << std::endl;
-  // std::cout << "   " << x.linear().row(1) << std::endl;
-
-  return true;
+  py::tuple out(2);
+  out[0] = iout;
+  out[1] = xout[py::slice(0, nout, 1)];
+  return out;
+}
+template <typename F, typename I>
+py::tuple get_ori(OriHier<F, I> oh, int resl, Ref<Matrix<I, Dynamic, 1>> idx) {
+  std::vector<size_t> xshape{idx.size(), 4, 4};
+  py::array_t<bool> iout(idx.size());
+  py::array_t<F> xout(xshape);
+  bool* iptr = (bool*)iout.request().ptr;
+  X3<F>* xptr = (X3<F>*)xout.request().ptr;
+  size_t nout = 0;
+  for (size_t i = 0; i < idx.size(); ++i) {
+    iptr[i] = oh.get_value(resl, idx[i], xptr[nout]);
+    if (iptr[i]) ++nout;
+  }
+  py::tuple out(2);
+  out[0] = iout;
+  out[1] = xout[py::slice(0, nout, 1)];
+  return out;
 }
 
 template <typename F, typename I>
 py::tuple get_xforms(XformHier<F, I> xh, int resl,
                      Ref<Matrix<I, Dynamic, 1>> idx) {
   std::vector<size_t> xshape{idx.size(), 4, 4};
-  py::array_t<I> iout(idx.size());
+  py::array_t<bool> iout(idx.size());
   py::array_t<F> xout(xshape);
-  I* iptr = (I*)iout.request().ptr;
+  bool* iptr = (bool*)iout.request().ptr;
   X3<F>* xptr = (X3<F>*)xout.request().ptr;
   size_t nout = 0;
   for (size_t i = 0; i < idx.size(); ++i) {
-    iptr[nout] = idx[i];
-    bool valid = xh.get_value(resl, iptr[nout], xptr[nout]);
-    if (valid) ++nout;
+    iptr[i] = xh.get_value(resl, idx[i], xptr[nout]);
+    if (iptr[i]) ++nout;
   }
   py::tuple out(2);
-  out[0] = iout[py::slice(0, nout, 1)];
+  out[0] = iout;
   out[1] = xout[py::slice(0, nout, 1)];
   return out;
 }
@@ -143,12 +134,47 @@ py::tuple expand_top_N(XformHier<F, I> xh, int N, int resl,
   return expand_top_N_impl(xh, N, resl, si.size(), siptr);
 }
 
+template <int N, typename F, typename I>
+void bind_CartHier(auto m, std::string name) {
+  using Fn = Matrix<F, N, 1>;
+  using In = Matrix<I, N, 1>;
+  py::class_<CartHier<N, F, I>>(m, name.c_str())
+      .def(py::init<Fn, Fn, In>(), "lb"_a, "ub"_a, "bs"_a)
+      .def("size", &CartHier<N, F, I>::size)
+      .def("get_trans", &get_trans<N, F, I>)
+      // .def("expand_top_N",
+      //      (py::tuple(*)(CartHier<N,F, I>, int, int,
+      //      py::array_t<ScoreIndex>))
+      //      &
+      //          expand_top_N<F, I>)
+      // .def("expand_top_N", (py::tuple(*)(CartHier<N,F, I>, int, int,
+      //                                    py::array_t<F>, py::array_t<I>)) &
+      //                          expand_top_N<F, I>)
+      /**/;
+}
 template <typename F, typename I>
-void bind_xh(auto m, std::string name) {
+void bind_OriHier(auto m, std::string name) {
+  py::class_<OriHier<F, I>>(m, name.c_str())
+      .def(py::init<F>(), "ori_resl"_a)
+      .def("size", &OriHier<F, I>::size)
+      .def("ori_nside", &OriHier<F, I>::ori_nside)
+      .def("get_ori", &get_ori<F, I>)
+      // .def("expand_top_N",
+      //      (py::tuple(*)(OriHier<F, I>, int, int, py::array_t<ScoreIndex>)) &
+      //          expand_top_N<F, I>)
+      // .def("expand_top_N", (py::tuple(*)(OriHier<F, I>, int, int,
+      //                                    py::array_t<F>, py::array_t<I>)) &
+      //                          expand_top_N<F, I>)
+      /**/;
+}
+
+template <typename F, typename I>
+void bind_XformHier(auto m, std::string name) {
   py::class_<XformHier<F, I>>(m, name.c_str())
       .def(py::init<V3<F>, V3<F>, V3<I>, F>(), "lb"_a, "ub"_a, "bs"_a,
            "ori_resl"_a)
       .def("size", &XformHier<F, I>::size)
+      .def("ori_nside", &XformHier<F, I>::ori_nside)
       .def("get_xforms", &get_xforms<F, I>)
       .def("expand_top_N",
            (py::tuple(*)(XformHier<F, I>, int, int, py::array_t<ScoreIndex>)) &
@@ -160,11 +186,48 @@ void bind_xh(auto m, std::string name) {
       /**/;
 }
 
-PYBIND11_MODULE(xform_hierarchy, m) {
-  // bind_xh<float>(m, "WelzlBVH_float");
-  bind_xh<double, uint64_t>(m, "XformHier");
+template <typename I, int DIM>
+Matrix<I, Dynamic, DIM + 1, RowMajor> zorder2coeffs(
+    Ref<Matrix<I, Dynamic, 1>> idx, I resl) {
+  Matrix<I, Dynamic, DIM + 1, RowMajor> out(idx.size(), DIM + 1);
+  for (size_t i = 0; i < idx.size(); ++i) {
+    out(i, 0) = idx[i] >> (DIM * resl);
+    I hier_index = idx[i] & (((I)1 << (DIM * resl)) - 1);
+    for (size_t j = 0; j < DIM; ++j) {
+      out(i, j + 1) = util::undilate<DIM>(hier_index >> j);
+    }
+  }
+  return out;
+}
+template <typename I, int DIM>
+Matrix<I, Dynamic, 1> coeffs2zorder(
+    Ref<Matrix<I, Dynamic, DIM + 1, RowMajor>> idx, I resl) {
+  Matrix<I, Dynamic, 1> out(idx.rows());
+  for (size_t i = 0; i < idx.rows(); ++i) {
+    I cell_index = idx(i, 0);
+    I index = 0;
+    for (size_t j = 0; j < DIM; ++j)
+      index |= util::dilate<DIM>(idx(i, j + 1)) << j;
+    index = index | (cell_index << (DIM * resl));
+    out[i] = index;
+  }
+  return out;
+}
 
-  m.def("TEST_xform_hier_simple", &TEST_xform_hier_simple);
+PYBIND11_MODULE(xform_hierarchy, m) {
+  bind_CartHier<1, double, uint64_t>(m, "CartHier1D");
+  bind_CartHier<2, double, uint64_t>(m, "CartHier2D");
+  bind_CartHier<3, double, uint64_t>(m, "CartHier3D");
+  bind_CartHier<4, double, uint64_t>(m, "CartHier4D");
+  bind_CartHier<5, double, uint64_t>(m, "CartHier5D");
+  bind_CartHier<6, double, uint64_t>(m, "CartHier6D");
+  bind_OriHier<double, uint64_t>(m, "OriHier");
+  bind_XformHier<double, uint64_t>(m, "XformHier");
+
+  m.def("zorder3coeffs", &zorder2coeffs<uint64_t, 3>);
+  m.def("coeffs3zorder", &coeffs2zorder<uint64_t, 3>);
+  m.def("zorder6coeffs", &zorder2coeffs<uint64_t, 6>);
+  m.def("coeffs6zorder", &coeffs2zorder<uint64_t, 6>);
 
   PYBIND11_NUMPY_DTYPE(ScoreIndex, score, index);
 }

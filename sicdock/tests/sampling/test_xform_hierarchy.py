@@ -4,6 +4,91 @@ from cppimport import import_hook
 from sicdock.sampling.xform_hierarchy import *
 
 
+def urange(*args):
+    return np.arange(*args, dtype="u8")
+
+
+def urandint(*args):
+    return np.random.randint(*args, dtype="u8")
+
+
+def test_cart_hier1():
+    ch = CartHier1D([0], [1], [1])
+    for resl in range(1, 10):
+        i, t = ch.get_trans(resl, np.arange(ch.size(resl), dtype="u8"))
+        assert len(i) == 2 ** resl == ch.size(resl)
+        diff = np.diff(t, axis=0)
+        assert np.min(diff) == np.max(diff)
+        assert np.allclose(np.min(diff), 1 / 2 ** resl)
+    for i in range(10):
+        tmp = np.random.randn(2)
+        lb, ub = min(tmp), max(tmp)
+        bs = urandint(1, 11)
+        ch2 = CartHier1D([lb], [ub], [bs])
+        for resl in range(4):
+            assert ch2.size(resl) == ch.size(resl) * bs
+
+
+def test_xform_hierarchy_product():
+    oh = OriHier(999)
+    ch = CartHier3D([0] * 3, [1] * 3, [1] * 3)
+    xh = XformHier([0] * 3, [1] * 3, [1] * 3, 999)
+    resl = 0
+    i, x = xh.get_xforms(resl, urange(xh.size(resl)))
+    i, o = oh.get_ori(resl, urange(oh.size(resl)))
+    i, t = ch.get_trans(resl, urange(ch.size(resl)))
+    assert np.allclose(x[:, :3, :3], o[:, :3, :3])
+    assert np.allclose(x[:, :3, 3], t)
+
+    resl = 1
+    i, x = xh.get_xforms(resl, urange(0, xh.size(resl), 8))
+    i, o = oh.get_ori(resl, urange(oh.size(resl)))
+    i, t = ch.get_trans(resl, urange(ch.size(resl)))
+    assert np.allclose(x.reshape(24, -1, 4, 4)[0, :, :3, 3], t)
+    assert np.allclose(
+        x.reshape(24, -1, 4, 4)[:, ::8, :3, :3], o.reshape(24, -1, 4, 4)[:, ::8, :3, :3]
+    )
+
+
+def test_xform_hierarchy_product_zorder():
+    for ang in [999, 30, 20, 10, 5]:
+        ho = OriHier(ang)
+        hx = XformHier([0] * 3, [1] * 3, [1] * 3, ang)
+        assert hx.ori_nside() == ho.ori_nside()
+        Nmax = 1_000
+        for resl in range(8):
+            n0 = ho.size(resl)
+            idx0 = urange(n0) if n0 < Nmax else urandint(0, n0, Nmax)
+            io, xo = ho.get_ori(resl, idx0)
+            z6 = np.zeros((np.sum(io), 7), dtype="u8")
+            z6[:, :4] = zorder3coeffs(idx0[io], resl)
+            ix = coeffs6zorder(z6, resl)
+            wx, xx = hx.get_xforms(resl, ix)
+            assert len(wx) == len(ix)
+            assert np.allclose(xx[:, :3, :3], xo[:, :3, :3])
+
+    for i in range(10):
+        tmp = np.random.randn(2, 3)
+        lb = np.minimum(*tmp)
+        ub = np.maximum(*tmp)
+        bs = urandint(1, 10, 3)
+        hc = CartHier3D(lb, ub, bs)
+        hx = XformHier(lb, ub, bs, 999)
+        Nmax = 10_000
+        for resl in range(8):
+            n0 = ho.size(resl)
+            idx0 = urange(n0) if n0 < Nmax else urandint(0, n0, Nmax)
+            io, to = hc.get_trans(resl, idx0)
+            z6 = np.zeros((np.sum(io), 7), dtype="u8")
+            z3 = zorder3coeffs(idx0[io], resl)
+            z6[:, 0] = 24 * z3[:, 0]
+            z6[:, 4:] = z3[:, 1:]
+            ix = coeffs6zorder(z6, resl)
+            wx, xx = hx.get_xforms(resl, ix)
+            # assert len(wx) == len(ix)
+            assert np.allclose(xx[:, :3, 3], to[wx])
+
+
 def test_xform_hierarchy_cpp():
     assert TEST_xform_hier_simple()
 
@@ -99,10 +184,29 @@ def test_xform_hierarchy_expand_top_N_locality():
     xh = XformHier(lb=[0, 0, 0], ub=[2, 2, 2], bs=[2, 2, 2], ori_resl=30.0)
 
 
+def test_zorder():
+    idx = urange(1e5)
+    for resl in range(5):
+        coef = zorder6coeffs(idx, resl)
+        assert np.all(coeffs6zorder(coef, resl) == idx)
+
+    for resl in range(10):
+        n = min(1_000_000, 100 * 2 ** resl)
+        coef = urandint(0, 2 ** resl, (n, 7), dtype="u8")
+        coef[:, 0] = urandint(0, 1024, n)
+        idx = coeffs6zorder(coef, resl)
+        coef2 = zorder6coeffs(idx, resl)
+        # print(idx[:3])
+        # print(coef[:3])
+        assert np.all(coef2 == coef)
+
+
 if __name__ == "__main__":
-    # test_xform_hierarchy_cpp()
+    # test_zorder()
+    # test_cart_hier1()
+    test_xform_hierarchy_product_zorder()
     # test_xform_hierarchy_ctor()
     # test_xform_hierarchy_get_xforms()
-    test_xform_hierarchy_get_xforms_bs()
+    # test_xform_hierarchy_get_xforms_bs()
     # test_xform_hierarchy_expand_top_N()
     # test_xform_hierarchy_expand_top_N_locality()
