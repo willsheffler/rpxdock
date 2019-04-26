@@ -122,8 +122,8 @@ bool TEST_bvh_test_min() {
 
     minimizer.reset();
     auto tcreate = Timer("tc");
-    WelzlBVH<F, PtIdxF> bvhA(ptsA.begin(), ptsA.end());
-    WelzlBVH<F, PtIdxF> bvhB(ptsB.begin(), ptsB.end());
+    SphereBVH<F, PtIdxF> bvhA(ptsA.begin(), ptsA.end());
+    SphereBVH<F, PtIdxF> bvhB(ptsB.begin(), ptsB.end());
     tcreate.stop();
     auto tbvh = Timer("tbvh");
     F bvhmin = BVMinimize(bvhA, bvhB, minimizer);
@@ -214,8 +214,8 @@ bool TEST_bvh_test_isect() {
     query.bXa = X;  // commenting this out should fail
 
     auto tcreate = Timer("tc");
-    WelzlBVH<F, PtIdxF> bvhA(ptsA.begin(), ptsA.end());
-    WelzlBVH<F, PtIdxF> bvhB(ptsB.begin(), ptsB.end());
+    SphereBVH<F, PtIdxF> bvhA(ptsA.begin(), ptsA.end());
+    SphereBVH<F, PtIdxF> bvhB(ptsB.begin(), ptsB.end());
     tcreate.stop();
     // std::cout << bvhA.vols[0] << std::endl;
     // std::cout << bvhB.vols[0] << std::endl;

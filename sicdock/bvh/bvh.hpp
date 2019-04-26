@@ -16,16 +16,17 @@ namespace sicdock {
 namespace bvh {
 
 using namespace geom;
+using namespace Eigen;
 
 // internal pair class for the BVH--used instead of std::pair because of
 // alignment
-template <class F>
-struct V3intPair {
-  using first_type = V3<F>;
+template <class F, int DIM>
+struct VintPair {
+  using first_type = Matrix<F, DIM, 1>;
   using secont_type = int;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(F, 3)
-  V3intPair(const V3<F> &v, int i) : first(v), second(i) {}
-  V3<F> first;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(F, DIM)
+  VintPair(const first_type &v, int i) : first(v), second(i) {}
+  first_type first;
   int second;
 };
 
@@ -65,15 +66,23 @@ auto p1range(RAiter a, RAiter b) {
   return r;
 }
 
-template <typename _Scalar, typename _Object,
-          typename _Volume = Sphere<_Scalar>>
-class WelzlBVH {
+template <typename F, bool idrange = false>
+struct WelzlBoundingSphere {
+  static Sphere<F> bound(auto subtree_objs) {
+    return welzl_bounding_sphere<true>(subtree_objs);
+  }
+};
+
+template <typename _Scalar, typename _Object, int _DIM = 3,
+          typename _Volume = Sphere<_Scalar>,
+          typename BoundingSphere = WelzlBoundingSphere<_Scalar, true>>
+class SphereBVH {
  public:
-  static int const Dim = 3;
+  static int const DIM = _DIM;
   typedef _Object Object;
   typedef std::vector<Object, Eigen::aligned_allocator<Object>> Objs;
-  typedef _Scalar Scalar;
-  // typedef Eigen::AlignedBox<Scalar, Dim> Volume;
+  typedef _Scalar F;
+  // typedef Eigen::AlignedBox<F, DIM> Volume;
   typedef _Volume Volume;
   typedef std::vector<Volume, Eigen::aligned_allocator<Volume>> Vols;
   typedef int Index;
@@ -87,15 +96,15 @@ class WelzlBVH {
   Vols vols;
   Objs objs;
 
-  WelzlBVH() {}
+  SphereBVH() {}
 
   template <typename Iter>
-  WelzlBVH(Iter begin, Iter end) {
+  SphereBVH(Iter begin, Iter end) {
     init(begin, end, 0, 0);
   }  // int is recognized by init as not being an iterator type
 
   template <typename OIter, typename BIter>
-  WelzlBVH(OIter begin, OIter end, BIter sphbeg, BIter sphend) {
+  SphereBVH(OIter begin, OIter end, BIter sphbeg, BIter sphend) {
     init(begin, end, sphbeg, sphend);
   }
 
@@ -186,9 +195,9 @@ class WelzlBVH {
   inline const Volume &getVolume(Index index) const { return vols[index]; }
 
  private:
-  typedef V3intPair<Scalar> VIPair;
+  typedef VintPair<F, DIM> VIPair;
   typedef std::vector<VIPair, Eigen::aligned_allocator<VIPair>> VIPairs;
-  typedef Eigen::Matrix<Scalar, Dim, 1> VectorType;
+  typedef Eigen::Matrix<F, DIM, 1> VectorType;
 
   struct AxisComparator {
     int dim;
@@ -198,8 +207,8 @@ class WelzlBVH {
     }
   };
   struct DotComparator {
-    V3<Scalar> normal;
-    DotComparator(V3<Scalar> n) : normal(n) {}
+    Matrix<F, DIM, 1> normal;
+    DotComparator(Matrix<F, DIM, 1> n) : normal(n) {}
     template <class Pair>
     DotComparator(Pair p) : normal(p.second - p.first) {}
     inline bool operator()(const VIPair &v1, const VIPair &v2) const {
@@ -225,11 +234,14 @@ class WelzlBVH {
       nth_element(ocen.begin() + from, ocen.begin() + mid, ocen.begin() + to,
                   DotComparator(most_separated_points_on_AABB(subtree_objs)));
       // AxisComparator(dim));
-      build(ocen, from, mid, ovol, (dim + 1) % Dim);
+      build(ocen, from, mid, ovol, (dim + 1) % DIM);
       int idx1 = (int)vols.size() - 1;
-      auto merge = vols[idx1].merged(ovol[ocen[mid].second]);
-      auto welzl = welzl_bounding_sphere<true>(subtree_objs);
-      vols.push_back(welzl.rad < merge.rad ? welzl : merge);
+      Volume bound = BoundingSphere::bound(subtree_objs);
+      vols.push_back(bound);
+      // Volume merge = vols[idx1].merged(ovol[ocen[mid].second]);
+      // if (merge.rad + 0.0001 < bound.rad)
+      // std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+      // vols.push_back(bound.rad < merge.rad ? bound : merge);
       child.push_back(idx1);
       child.push_back(mid + (int)objs.size() - 1);
     } else {
@@ -238,13 +250,16 @@ class WelzlBVH {
       nth_element(ocen.begin() + from, ocen.begin() + mid, ocen.begin() + to,
                   DotComparator(most_separated_points_on_AABB(subtree_objs)));
       // AxisComparator(dim));
-      build(ocen, from, mid, ovol, (dim + 1) % Dim);
+      build(ocen, from, mid, ovol, (dim + 1) % DIM);
       int idx1 = (int)vols.size() - 1;
-      build(ocen, mid, to, ovol, (dim + 1) % Dim);
+      build(ocen, mid, to, ovol, (dim + 1) % DIM);
       int idx2 = (int)vols.size() - 1;
-      auto merge = vols[idx1].merged(vols[idx2]);
-      auto welzl = welzl_bounding_sphere<true>(subtree_objs);
-      vols.push_back(welzl.rad < merge.rad ? welzl : merge);
+      Volume bound = BoundingSphere::bound(subtree_objs);
+      vols.push_back(bound);
+      // Volume merge = vols[idx1].merged(vols[idx2]);
+      // if (merge.rad + 0.0001 < bound.rad)
+      // std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+      // vols.push_back(bound.rad < merge.rad ? bound : merge);
       child.push_back(idx1);
       child.push_back(idx2);
     }

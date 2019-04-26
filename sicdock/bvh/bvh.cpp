@@ -1,7 +1,7 @@
 /*cppimport
 <%
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
+cfg['compiler_args'] = ['-std=c++17', '-w', '-O1']
 cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
 '../util/global_rng.hpp', 'bvh.hpp', 'bvh_algo.hpp', '../util/numeric.hpp']
 
@@ -54,7 +54,7 @@ auto bounding_vol(PtIdx<double> v) {
 }  // namespace Eigen
 
 template <typename F>
-using BVH = sicdock::bvh::WelzlBVH<F, PtIdx<F>>;
+using BVH = sicdock::bvh::SphereBVH<F, PtIdx<F>>;
 using BVHf = BVH<float>;
 using BVHd = BVH<double>;
 
@@ -534,8 +534,8 @@ void bind_bvh(auto m, std::string name) {
 }
 
 PYBIND11_MODULE(bvh, m) {
-  // bind_bvh<float>(m, "WelzlBVH_float");
-  bind_bvh<double>(m, "WelzlBVH_double");
+  // bind_bvh<float>(m, "SphereBVH_float");
+  bind_bvh<double>(m, "SphereBVH_double");
 
   m.def("bvh_create", &bvh_create<double>, "make_bvh", "coords"_a,
         "which"_a = py::array_t<bool>());

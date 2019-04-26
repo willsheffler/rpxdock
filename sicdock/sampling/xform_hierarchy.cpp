@@ -1,7 +1,7 @@
 /*cppimport
 <%
 cfg['include_dirs'] = ['../..', '../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w']
+cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['../util/dilated_int.hpp', '../util/numeric.hpp',
 'xform_hierarchy.hpp']
 
@@ -44,19 +44,19 @@ py::tuple get_trans(CartHier<N, F, I> ch, int resl,
 }
 template <typename F, typename I>
 py::tuple get_ori(OriHier<F, I> oh, int resl, Ref<Matrix<I, Dynamic, 1>> idx) {
-  std::vector<size_t> xshape{idx.size(), 4, 4};
+  std::vector<size_t> orishape{idx.size(), 3, 3};
   py::array_t<bool> iout(idx.size());
-  py::array_t<F> xout(xshape);
+  py::array_t<F> oriout(orishape);
   bool* iptr = (bool*)iout.request().ptr;
-  X3<F>* xptr = (X3<F>*)xout.request().ptr;
+  M3<F>* oriptr = (M3<F>*)oriout.request().ptr;
   size_t nout = 0;
   for (size_t i = 0; i < idx.size(); ++i) {
-    iptr[i] = oh.get_value(resl, idx[i], xptr[nout]);
+    iptr[i] = oh.get_value(resl, idx[i], oriptr[nout]);
     if (iptr[i]) ++nout;
   }
   py::tuple out(2);
   out[0] = iout;
-  out[1] = xout[py::slice(0, nout, 1)];
+  out[1] = oriout[py::slice(0, nout, 1)];
   return out;
 }
 

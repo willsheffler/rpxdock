@@ -81,21 +81,20 @@ struct OriHier {
   using F3 = V3<F>;
   using I6 = V6<I>;
   using I3 = V3<I>;
-  using X = X3<F>;
   F ori_resl_;
-  I ori_nside_;
-  F ori_one_over_nside_;
+  I onside_;
+  F recip_nside_;
   I ori_ncell_;
   OriHier(F ori_resl) {
     this->ori_resl_ = ori_resl;
-    this->ori_nside_ = ori_get_nside_for_rot_resl_deg(this->ori_resl_);
-    this->ori_one_over_nside_ = 1.0 / (F)this->ori_nside_;
-    this->ori_ncell_ =
-        24 * this->ori_nside_ * this->ori_nside_ * this->ori_nside_;
+    this->onside_ = ori_get_nside_for_rot_resl_deg(this->ori_resl_);
+    this->recip_nside_ = 1.0 / (F)this->onside_;
+    this->ori_ncell_ = 24 * this->onside_ * this->onside_ * this->onside_;
   }
   I size(I resl) const { return ori_ncell_ * ONE << (ORI_DIM * resl); }
-  I ori_nside() const { return ori_nside_; }
-  bool get_value(I resl, I index, X& xform) const {
+  I ori_nside() const { return onside_; }
+
+  bool get_value(I resl, I index, M3<F>& ori) const {
     assert(resl <= MAX_RESL_ONE_CELL);  // not rigerous check if Ncells > 1
     if (index >= size(resl)) return false;
     I cell_index = index >> (ORI_DIM * resl);
@@ -106,9 +105,7 @@ struct OriHier {
       I undilated = util::undilate<ORI_DIM>(hier_index >> i);
       params[i] = (static_cast<F>(undilated) + 0.5) * scale;
     }
-    M3<F> m;
-    bool valid = this->ori_params_to_value(params, cell_index, resl, m);
-    xform.linear() = m;
+    bool valid = this->ori_params_to_value(params, cell_index, resl, ori);
     return valid;
   }
 
@@ -119,18 +116,13 @@ struct OriHier {
     // // cout << "        set p0 " << params << endl;
     F const& w(cell_width<F>());
 
-    F3 p = params * this->ori_one_over_nside_;
+    F3 p = params * recip_nside_;
 
-    I h48_cell_index =
-        cell_index / (this->ori_nside_ * this->ori_nside_ * this->ori_nside_);
-    cell_index =
-        cell_index % (this->ori_nside_ * this->ori_nside_ * this->ori_nside_);
-    p[0] += this->ori_one_over_nside_ * (F)(cell_index % this->ori_nside_);
-    p[1] += this->ori_one_over_nside_ *
-            (F)(cell_index / this->ori_nside_ % this->ori_nside_);
-    p[2] += this->ori_one_over_nside_ *
-            (F)(cell_index / (this->ori_nside_ * this->ori_nside_) %
-                this->ori_nside_);
+    I h48_cell_index = cell_index / (onside_ * onside_ * onside_);
+    cell_index = cell_index % (onside_ * onside_ * onside_);
+    p[0] += recip_nside_ * (F)(cell_index % onside_);
+    p[1] += recip_nside_ * (F)(cell_index / onside_ % onside_);
+    p[2] += recip_nside_ * (F)(cell_index / (onside_ * onside_) % onside_);
 
     // if( !( p[0] >= 0.0 && p[0] <= 1.0 ) ) cout << "BAD param val: " << p[0]
     // << endl; if( !( p[1] >= 0.0 && p[1] <= 1.0 ) ) cout << "BAD param val: "

@@ -29,6 +29,12 @@ using X3d = X3<double>;
 using M4f = M4<float>;
 using M4d = M4<double>;
 
+using RowMajorXd =
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+using RefRowMajorXd = Eigen::Ref<RowMajorXd>;
+using VectorXd = Eigen::Matrix<double, Eigen::Dynamic, 1>;
+using RefVectorXd = Eigen::Ref<VectorXd>;
+
 template <class F>
 F epsilon2() {
   return std::sqrt(std::numeric_limits<F>::epsilon());

@@ -12,9 +12,10 @@ from collections import defaultdict
 
 _override = {
     "rosetta.py": ["sicdock/tests/test_body.py"],
-    "bvh_algo.hpp": ["sicdock/tests/bvh/test_bvh.py"],
+    "bvh_algo.hpp": ["sicdock/tests/bvh/test_bvh_nd.py"],
     "bvh.cpp": ["sicdock/tests/bvh/test_bvh.py"],
-    "bvh.hpp": ["sicdock/tests/bvh/test_bvh.py"],
+    "bvh_nd.cpp": ["sicdock/tests/bvh/test_bvh_nd.py"],
+    "bvh.hpp": ["sicdock/tests/bvh/test_bvh_nd.py"],
     "dockspec.py": ["sicdock/tests/search/test_gridslide.py"],
     "_orientations.hpp": ["sicdock/sampling/orientations.py"],
     "_orientations.cpp": ["sicdock/sampling/orientations.py"],
@@ -32,6 +33,8 @@ _override = {
     "numeric.hpp": ["sicdock/tests/xbin/test_xbin.py"],
     "xform_hierarchy.hpp": ["sicdock/tests/sampling/test_xform_hierarchy.py"],
     "xform_hierarchy.cpp": ["sicdock/tests/sampling/test_xform_hierarchy.py"],
+    "miniball.cpp": ["sicdock/tests/geom/test_geom.py"],
+    "miniball.hpp": ["sicdock/tests/geom/test_geom.py"],
 }
 _post = defaultdict(lambda: "")
 
@@ -96,13 +99,13 @@ else:
 print("call:", sys.argv)
 print("cwd:", os.getcwd())
 print("cmd:", cmd)
-print("=" * 20, "util/runtests.py running cmd in cwd", "=" * 23)
+print(f"{' util/runtests.py running cmd in cwd ':=^80}")
 sys.stdout.flush()
 # if 1cmd.startswith('pytest '):
 os.putenv("NUMBA_OPT", "1")
 # os.putenv('NUMBA_DISABLE_JIT', '1')
 os.system(cmd)
-print("=" * 20, "main command done", "=" * 37)
+print(f"{' main command done ':=^80}")
 os.system(post)
 t = perf_counter() - t
-print("=" * 20, "util/runtests.py done, time", t, "=" * 30)
+print(f"{f' runtests.py done, time {t:7.3f} ':=^80}")
