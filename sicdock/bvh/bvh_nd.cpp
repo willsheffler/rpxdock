@@ -1,7 +1,7 @@
 /*cppimport
 <%
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w', '-O1']
+cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
 '../util/global_rng.hpp', 'bvh.hpp', 'bvh_algo.hpp', '../util/numeric.hpp']
 
@@ -16,6 +16,7 @@ setup_pybind11(cfg)
 
 #include "miniball/Seb.h"
 #include "sicdock/bvh/bvh.hpp"
+#include "sicdock/geom/primitive.hpp"
 #include "sicdock/util/Timer.hpp"
 #include "sicdock/util/assertions.hpp"
 #include "sicdock/util/global_rng.hpp"
@@ -29,83 +30,6 @@ using namespace util;
 using namespace geom;
 
 namespace py = pybind11;
-
-template <typename F, int DIM>
-struct SphereND {
-  using This = SphereND<F, DIM>;
-  using Vn = Matrix<F, DIM, 1>;
-
-  Vn cen;
-  F rad = 0;
-  int lb = 0, ub = 0;
-  SphereND() { cen.fill(0); }
-  SphereND(Vn c) : cen(c) {}
-  SphereND(Vn c, F r) : cen(c), rad(r) {}
-  This merged(This that) const {
-    if (this->contains(that)) return *this;
-    if (that.contains(*this)) return that;
-    F d = rad + that.rad + (cen - that.cen).norm();
-    // std::cout << d << std::endl;
-    auto dir = (that.cen - cen).normalized();
-    auto c = cen + dir * (d / 2 - this->rad);
-    auto out = This(c, d / 2 + epsilon2<F>() / 2.0);
-    out.lb = std::min(this->lb, that.lb);
-    out.ub = std::max(this->ub, that.ub);
-    return out;
-  }
-  // Distance from p to boundary of the Sphere
-  F signdis(Vn pt) const { return (cen - pt).norm() - rad; }
-  F signdis2(Vn pt) const {  // NOT square of signdis!
-    return (cen - pt).squaredNorm() - rad * rad;
-  }
-  F signdis(This s) const { return (cen - s.cen).norm() - rad - s.rad; }
-  bool intersect(This that) const {
-    F rtot = rad + that.rad;
-    return (cen - that.cen).squaredNorm() <= rtot;
-  }
-  bool contact(This that, F contact_dis) const {
-    F rtot = rad + that.rad + contact_dis;
-    return (cen - that.cen).squaredNorm() <= rtot * rtot;
-  }
-  bool contains(Vn pt) const { return (cen - pt).squaredNorm() < rad * rad; }
-  bool contains(This that) const {
-    auto d = (cen - that.cen).norm();
-    return d + that.rad <= rad;
-  }
-  bool operator==(This that) const {
-    return cen.isApprox(that.cen) && fabs(rad - that.rad) < epsilon2<F>();
-  }
-};
-template <class F, int DIM>
-std::ostream& operator<<(std::ostream& out, SphereND<F, DIM> const& s) {
-  out << "SphereND r = " << s.rad << ", c = ";
-  for (int i = 0; i < DIM; ++i) out << " " << s.cen[i];
-  return out;
-}
-//////////////////////////////////////////
-
-struct BVHPointAccessor {
-  RefRowMajorXd data;
-  BVHPointAccessor(RefRowMajorXd d) : data(d) {}
-  double* operator[](size_t i) const { return (double*)data.row(i).data(); }
-  double* operator[](size_t i) { return data.row(i).data(); }
-  size_t size() const { return data.rows(); }
-};
-
-template <typename F, int DIM>
-struct BoundingSphereND {
-  static SphereND<F, DIM> bound(auto pts) {
-    using Vn = Matrix<F, DIM, 1>;
-    using Miniball =
-        Seb::Smallest_enclosing_ball<F, decltype(pts[0]), decltype(pts)>;
-    Miniball mb(DIM, pts);
-    SphereND<F, DIM> out;
-    out.rad = mb.radius();
-    auto cen_it = mb.center_begin();
-    for (int i = 0; i < DIM; ++i) out.cen[i] = cen_it[i];
-    return out;
-  }
-};
 
 namespace Eigen {
 
@@ -136,13 +60,163 @@ namespace sicdock {
 namespace bvh {
 
 template <typename F, int DIM>
-SphereBVH<F, PtIdxND<Matrix<F, DIM, 1>>, DIM, SphereND<F, DIM>,
-          BoundingSphereND<F, DIM>>
-create_bvh_nd(RefRowMajorXd pts) {
+struct BoundingSphereND {
+  static SphereND<F, DIM> bound(auto pts) {
+    using Vn = Matrix<F, DIM, 1>;
+    using Miniball =
+        Seb::Smallest_enclosing_ball<F, decltype(pts[0]), decltype(pts)>;
+    Miniball mb(DIM, pts);
+    SphereND<F, DIM> out;
+    out.rad = mb.radius();
+    auto cen_it = mb.center_begin();
+    for (int i = 0; i < DIM; ++i) out.cen[i] = cen_it[i];
+    return out;
+  }
+};
+
+template <typename F, int DIM>
+using BVH = SphereBVH<F, PtIdxND<Matrix<F, DIM, 1>>, DIM, SphereND<F, DIM>,
+                      BoundingSphereND<F, DIM>>;
+
+template <typename F, int DIM>
+struct BVIsectND {
+  using Sph = SphereND<F, DIM>;
+  using Obj = PtIdxND<Matrix<F, DIM, 1>>;
+  BVIsectND(F r) : rad(r), rad2(r * r) {}
+  bool intersectVolumeVolume(Sph s1, Sph s2) { return s1.signdis(s2) < rad; }
+  bool intersectVolumeObject(Sph s1, Obj o2) {
+    return s1.signdis(o2.pos) < rad;
+  }
+  bool intersectObjectVolume(Obj o1, Sph s2) {
+    return s2.signdis(o1.pos) < rad;
+  }
+  bool intersectObjectObject(Obj o1, Obj o2) {
+    bool isect = (o1.pos - o2.pos).squaredNorm() < rad2;
+    result |= isect;
+    return isect;
+  }
+  F rad = 0, rad2 = 0;
+  bool result = false;
+};
+template <typename F, int DIM>
+bool bvh_isect(BVH<F, DIM>& bvh1, BVH<F, DIM>& bvh2, F thresh) {
+  BVIsectND<F, DIM> query(thresh);
+  sicdock::bvh::BVIntersect(bvh1, bvh2, query);
+  return query.result;
+}
+template <typename F, int DIM>
+bool naive_isect(BVH<F, DIM>& bvh1, BVH<F, DIM>& bvh2, F thresh) {
+  F dist2 = thresh * thresh;
+  for (auto o1 : bvh1.objs) {
+    for (auto o2 : bvh2.objs) {
+      auto d2 = (o1.pos - o2.pos).squaredNorm();
+      if (d2 < dist2) return true;
+    }
+  }
+  return false;
+}
+
+template <typename F>
+Matrix<F, 9, 1> reinterp_mul(M3<F> rot, Matrix<F, 9, 1> v9) {
+  M3<F>* cen = (M3<F>*)(&v9);
+  M3<F> newcen = rot * *cen;
+  return *((Matrix<F, 9, 1>*)newcen.data());
+}
+template <typename F>
+SphereND<F, 9> reinterp_mul(M3<F> rot, SphereND<F, 9> sph) {
+  SphereND<F, 9> out;
+  out.rad = sph.rad;
+  out.cen = reinterp_mul(rot, sph.cen);
+  return out;
+}
+template <typename F>
+Matrix<F, 12, 1> reinterp_mul(X3C<F> rot, Matrix<F, 12, 1> v12) {
+  X3C<F>* cen = (X3C<F>*)(&v12);
+  X3C<F> newcen = rot * *cen;
+  return *((Matrix<F, 12, 1>*)newcen.data());
+}
+template <typename F>
+SphereND<F, 12> reinterp_mul(X3C<F> rot, SphereND<F, 12> sph) {
+  SphereND<F, 12> out;
+  out.rad = sph.rad;
+  out.cen = reinterp_mul(rot, sph.cen);
+  return out;
+}
+
+template <typename F, int DIM, typename X>
+struct BVHIsectNDXform {
+  using Sph = SphereND<F, DIM>;
+  using Obj = PtIdxND<Matrix<F, DIM, 1>>;
+  BVHIsectNDXform(F r, X x = X::Identity()) : rad(r), rad2(r * r), bXa(x) {}
+  bool intersectVolumeVolume(Sph s1, Sph s2) {
+    return s1.signdis(reinterp_mul(bXa, s2)) < rad;
+  }
+  bool intersectVolumeObject(Sph s1, Obj o2) {
+    return s1.signdis(reinterp_mul(bXa, o2.pos)) < rad;
+  }
+  bool intersectObjectVolume(Obj o1, Sph s2) {
+    return (reinterp_mul(bXa, s2)).signdis(o1.pos) < rad;
+  }
+  bool intersectObjectObject(Obj o1, Obj o2) {
+    bool isect = (o1.pos - reinterp_mul(bXa, o2.pos)).squaredNorm() < rad2;
+    result |= isect;
+    return isect;
+  }
+  F rad = 0, rad2 = 0;
+  bool result = false;
+  X bXa = X::Identity();
+};
+
+template <typename F>
+bool bvh_isect_ori(BVH<F, 9>& bvh1, BVH<F, 9>& bvh2, M3<F> pos1, M3<F> pos2,
+                   F mindist) {
+  M3<F> pos = pos1.inverse() * pos2;
+  BVHIsectNDXform<F, 9, M3<F>> query(mindist, pos);
+  sicdock::bvh::BVIntersect(bvh1, bvh2, query);
+  return query.result;
+}
+template <typename F>
+bool naive_isect_ori(BVH<F, 9>& bvh1, BVH<F, 9>& bvh2, M3<F> pos1, M3<F> pos2,
+                     F mindist) {
+  M3<F> pos = pos1.inverse() * pos2;
+  F dist2 = mindist * mindist;
+  for (auto o1 : bvh1.objs) {
+    for (auto o2 : bvh2.objs) {
+      auto d2 = (o1.pos - reinterp_mul(pos, o2.pos)).squaredNorm();
+      if (d2 < dist2) return true;
+    }
+  }
+  return false;
+}
+template <typename F>
+bool bvh_isect_xform(BVH<F, 12>& bvh1, BVH<F, 12>& bvh2, M4<F> pos1, M4<F> pos2,
+                     F mindist) {
+  X3C<F> x1(pos1), x2(pos2);
+  X3C<F> x = x1.inverse() * x2;
+  BVHIsectNDXform<F, 12, X3C<F>> query(mindist, x);
+  sicdock::bvh::BVIntersect(bvh1, bvh2, query);
+  return query.result;
+}
+template <typename F>
+bool naive_isect_xform(BVH<F, 12>& bvh1, BVH<F, 12>& bvh2, M4<F> pos1,
+                       M4<F> pos2, F mindist) {
+  X3C<F> x1(pos1), x2(pos2);
+  X3C<F> x = x1.inverse() * x2;
+  F dist2 = mindist * mindist;
+  for (auto o1 : bvh1.objs) {
+    for (auto o2 : bvh2.objs) {
+      auto d2 = (o1.pos - reinterp_mul(x, o2.pos)).squaredNorm();
+      if (d2 < dist2) return true;
+    }
+  }
+  return false;
+}
+
+template <typename F, int DIM>
+BVH<F, DIM> create_bvh_nd(RefRowMajorXd pts) {
   using Pt = Matrix<F, DIM, 1>;
   using Pi = PtIdxND<Pt>;
-  using Sph = SphereND<F, DIM>;
-  using BVH = SphereBVH<F, Pi, DIM, Sph, BoundingSphereND<F, DIM>>;
+  using BVH = BVH<F, DIM>;
   std::vector<Pi> objs;
   for (int i = 0; i < pts.rows(); ++i) {
     Pi pi;
@@ -174,11 +248,7 @@ Matrix<typename BVH::F, BVH::DIM, 1> bvh_obj_com(BVH& b) {
 
 template <typename F, int DIM>
 void bind_bvh_ND(auto m, std::string name) {
-  using Pt = Matrix<F, DIM, 1>;
-  using Pi = PtIdxND<Pt>;
-  using Sph = SphereND<F, DIM>;
-  using BVH = SphereBVH<F, Pi, DIM, Sph, BoundingSphereND<F, DIM>>;
-
+  using BVH = BVH<F, DIM>;
   py::class_<BVH>(m, name.c_str())
       .def("__len__", [](BVH& b) { return b.objs.size(); })
       .def("radius", [](BVH& b) { return b.vols[b.getRootIndex()].rad; })
@@ -191,7 +261,18 @@ void bind_bvh_ND(auto m, std::string name) {
 PYBIND11_MODULE(bvh_nd, m) {
   bind_bvh_ND<double, 7>(m, "SphereBVH7");
   m.def("create_bvh7", &create_bvh_nd<double, 7>);
-  /**/
+  m.def("bvh_isect7", &bvh_isect<double, 7>);
+  m.def("naive_isect7", &naive_isect<double, 7>);
+
+  bind_bvh_ND<double, 9>(m, "SphereBVH9");
+  m.def("create_bvh9", &create_bvh_nd<double, 9>);
+  m.def("bvh_isect_ori", &bvh_isect_ori<double>);
+  m.def("naive_isect_ori", &naive_isect_ori<double>);
+
+  bind_bvh_ND<double, 12>(m, "SphereBVH12");
+  m.def("create_bvh12", &create_bvh_nd<double, 12>);
+  m.def("bvh_isect_xform", &bvh_isect_xform<double>);
+  m.def("naive_isect_xform", &naive_isect_xform<double>);
 }
 }  // namespace bvh
 }  // namespace sicdock

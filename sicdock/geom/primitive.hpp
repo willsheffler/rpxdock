@@ -234,5 +234,60 @@ auto most_separated_points_on_AABB(Ary const& pt) {
   }
   return std::make_pair(pt[mn], pt[mx]);
 }
+
+template <typename F, int DIM>
+struct SphereND {
+  using This = SphereND<F, DIM>;
+  using Vn = Eigen::Matrix<F, DIM, 1>;
+
+  Vn cen;
+  F rad = 0;
+  int lb = 0, ub = 0;
+  SphereND() { cen.fill(0); }
+  SphereND(Vn c) : cen(c) {}
+  SphereND(Vn c, F r) : cen(c), rad(r) {}
+  This merged(This that) const {
+    if (this->contains(that)) return *this;
+    if (that.contains(*this)) return that;
+    F d = rad + that.rad + (cen - that.cen).norm();
+    // std::cout << d << std::endl;
+    auto dir = (that.cen - cen).normalized();
+    auto c = cen + dir * (d / 2 - this->rad);
+    auto out = This(c, d / 2 + epsilon2<F>() / 2.0);
+    out.lb = std::min(this->lb, that.lb);
+    out.ub = std::max(this->ub, that.ub);
+    return out;
+  }
+  // Distance from p to boundary of the Sphere
+  F signdis(Vn pt) const { return (cen - pt).norm() - rad; }
+  F signdis2(Vn pt) const {  // NOT square of signdis!
+    return (cen - pt).squaredNorm() - rad * rad;
+  }
+  F signdis(This s) const { return (cen - s.cen).norm() - rad - s.rad; }
+  bool intersect(This that) const {
+    F rtot = rad + that.rad;
+    return (cen - that.cen).squaredNorm() <= rtot;
+  }
+  bool contact(This that, F contact_dis) const {
+    F rtot = rad + that.rad + contact_dis;
+    return (cen - that.cen).squaredNorm() <= rtot * rtot;
+  }
+  bool contains(Vn pt) const { return (cen - pt).squaredNorm() < rad * rad; }
+  bool contains(This that) const {
+    auto d = (cen - that.cen).norm();
+    return d + that.rad <= rad;
+  }
+  bool operator==(This that) const {
+    return cen.isApprox(that.cen) && fabs(rad - that.rad) < epsilon2<F>();
+  }
+};
+template <class F, int DIM>
+std::ostream& operator<<(std::ostream& out, SphereND<F, DIM> const& s) {
+  out << "SphereND r = " << s.rad << ", c = ";
+  for (int i = 0; i < DIM; ++i) out << " " << s.cen[i];
+  return out;
+}
+//////////////////////////////////////////
+
 }  // namespace geom
 }  // namespace sicdock

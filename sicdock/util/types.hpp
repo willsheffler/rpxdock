@@ -13,6 +13,8 @@ using M3 = Eigen::Matrix<F, 3, 3, Eigen::RowMajor>;
 template <class F>
 using X3 = Eigen::Transform<F, 3, Eigen::Affine, Eigen::RowMajor>;
 template <class F>
+using X3C = Eigen::Transform<F, 3, Eigen::AffineCompact, Eigen::RowMajor>;
+template <class F>
 using V4 = Eigen::Matrix<F, 4, 1>;
 template <class F>
 using M4 = Eigen::Matrix<F, 4, 4, Eigen::RowMajor>;
@@ -34,6 +36,12 @@ using RowMajorXd =
 using RefRowMajorXd = Eigen::Ref<RowMajorXd>;
 using VectorXd = Eigen::Matrix<double, Eigen::Dynamic, 1>;
 using RefVectorXd = Eigen::Ref<VectorXd>;
+
+template <typename F>
+using RowMajorX =
+    Eigen::Matrix<F, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+template <typename F>
+using RefRowMajorX = Eigen::Ref<RowMajorX<F>>;
 
 template <class F>
 F epsilon2() {
