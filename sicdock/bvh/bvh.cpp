@@ -95,6 +95,30 @@ BVH<F> bvh_create(py::array_t<F> coords, py::array_t<bool> which) {
 }
 
 template <typename F>
+struct BVHMinDistOne {
+  using Scalar = F;
+  int idx = -1;
+  F minval = 9e9;
+  V3<F> pt;
+  BVHMinDistOne(V3<F> p) : pt(p) {}
+  F minimumOnVolume(Sphere<F> r) { return r.signdis(pt); }
+  F minimumOnObject(PtIdx<F> a) {
+    F v = (a.pos - pt).norm();
+    if (v < minval) {
+      minval = v;
+      idx = a.idx;
+    }
+    return v;
+  }
+};
+template <typename F>
+py::tuple bvh_min_dist_one(BVH<F> &bvh, V3<F> pt) {
+  BVHMinDistOne<F> minimizer(pt);
+  auto result = sicdock::bvh::BVMinimize(bvh, minimizer);
+  return py::make_tuple(result, minimizer.idx);
+}
+
+template <typename F>
 struct BVHMinDistQuery {
   using Scalar = F;
   using Xform = X3<F>;
@@ -270,10 +294,7 @@ py::tuple bvh_isect_range(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
   X3<F> x1(pos1), x2(pos2);
   BVHIsectRange<F> query(mindist, x1.inverse() * x2, bvh1.objs.size());
   sicdock::bvh::BVIntersect(bvh1, bvh2, query);
-  py::tuple out(2);
-  out[0] = query.lb;
-  out[1] = query.ub;
-  return out;
+  return py::make_tuple(query.lb, query.ub);
 }
 template <typename F>
 py::tuple naive_isect_range(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
@@ -293,10 +314,7 @@ py::tuple naive_isect_range(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
       }
     }
   }
-  py::tuple out(2);
-  out[0] = lb;
-  out[1] = ub;
-  return out;
+  return py::make_tuple(lb, ub);
 }
 
 template <typename F>
@@ -573,6 +591,8 @@ PYBIND11_MODULE(bvh, m) {
   m.def("naive_collect_pairs", &naive_collect_pairs<double>);
 
   m.def("bvh_print", &bvh_print<double>);
+
+  m.def("bvh_min_dist_one", &bvh_min_dist_one<double>);
 }
 
 }  // namespace bvh

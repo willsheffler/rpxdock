@@ -213,6 +213,84 @@ bool naive_isect_xform(BVH<F, 12>& bvh1, BVH<F, 12>& bvh2, M4<F> pos1,
 }
 
 template <typename F, int DIM>
+struct BVMinOneND {
+  using Scalar = F;
+  using Sph = SphereND<F, DIM>;
+  using Obj = PtIdxND<Matrix<F, DIM, 1>>;
+  Matrix<F, DIM, 1> pt;
+  BVMinOneND(Matrix<F, DIM, 1> p) : pt(p) {}
+  F minimumOnVolume(Sph s) { return s.signdis(pt); }
+  F minimumOnObject(Obj o) { return (o.pos - pt).norm(); }
+};
+template <typename F, int DIM>
+F bvh_min_one(BVH<F, DIM>& bvh, Matrix<F, DIM, 1> pt) {
+  BVMinOneND<F, DIM> query(pt);
+  return sicdock::bvh::BVMinimize(bvh, query);
+}
+template <typename F>
+F bvh_min_one_ori(BVH<F, 9>& bvh, M3<F> m) {
+  Matrix<F, 9, 1> pt = *((Matrix<F, 9, 1>*)(&m));
+  BVMinOneND<F, 9> query(pt);
+  return sicdock::bvh::BVMinimize(bvh, query);
+}
+template <typename F, int DIM>
+F bvh_min_one_quatplus(BVH<F, DIM>& bvh, Matrix<F, DIM, 1> q) {
+  BVMinOneND<F, DIM> query(q);
+  return sicdock::bvh::BVMinimize(bvh, query);
+}
+template <typename F>
+F bvh_min_one_quat(BVH<F, 4>& bvh, M3<F> rot) {
+  Quaternion<F> q(rot);
+  Matrix<F, 4, 1> pt = *((Matrix<F, 4, 1>*)(&q));
+  BVMinOneND<F, 4> query(pt);
+  return sicdock::bvh::BVMinimize(bvh, query);
+}
+template <typename F>
+py::tuple naive_min_one_quat(BVH<F, 4>& bvh, M3<F> rot) {
+  Quaternion<F> q(rot);
+  Matrix<F, 4, 1> pt = *((Matrix<F, 4, 1>*)(&q));
+  F mn2 = 9e9;
+  int idx = -1;
+  for (int i = 0; i < bvh.objs.size(); ++i) {
+    F d2 = (bvh.objs[i].pos - pt).squaredNorm();
+    if (d2 < mn2) {
+      mn2 = d2;
+      idx = i;
+    }
+  }
+  return py::make_tuple(std::sqrt(mn2), idx);
+}
+
+template <typename F, int DIM>
+struct BVIsectOneND {
+  using Sph = SphereND<F, DIM>;
+  using Obj = PtIdxND<Matrix<F, DIM, 1>>;
+  Matrix<F, DIM, 1> pt;
+  BVIsectOneND(Matrix<F, DIM, 1> p, F r) : pt(p), rad(r), rad2(r * r) {}
+  bool intersectVolume(Sph s) { return s.signdis(pt) < rad; }
+  bool intersectObject(Obj o) {
+    bool isect = (o.pos - pt).squaredNorm() < rad2;
+    result |= isect;
+    return isect;
+  }
+  F rad = 0, rad2 = 0;
+  bool result = false;
+};
+template <typename F, int DIM>
+bool bvh_isect_one(BVH<F, DIM>& bvh, Matrix<F, DIM, 1> pt, F thresh) {
+  BVIsectOneND<F, DIM> query(pt, thresh);
+  sicdock::bvh::BVIntersect(bvh, query);
+  return query.result;
+}
+template <typename F>
+bool bvh_isect_one_ori(BVH<F, 9>& bvh, M3<F> m, F thresh) {
+  Matrix<F, 9, 1> pt = *((Matrix<F, 9, 1>*)(&m));
+  BVIsectOneND<F, 9> query(pt, thresh);
+  sicdock::bvh::BVIntersect(bvh, query);
+  return query.result;
+}
+
+template <typename F, int DIM>
 BVH<F, DIM> create_bvh_nd(RefRowMajorXd pts) {
   using Pt = Matrix<F, DIM, 1>;
   using Pi = PtIdxND<Pt>;
@@ -222,6 +300,47 @@ BVH<F, DIM> create_bvh_nd(RefRowMajorXd pts) {
     Pi pi;
     pi.idx = i;
     for (int j = 0; j < DIM; ++j) pi.pos[j] = pts(i, j);
+    objs.push_back(pi);
+  }
+  return BVH(objs.begin(), objs.end());
+}
+
+template <typename F, int DIM>
+BVH<F, DIM> create_bvh_quatplus(RefRowMajorXd pts) {
+  using Pt = Matrix<F, DIM, 1>;
+  using Pi = PtIdxND<Pt>;
+  using BVH = BVH<F, DIM>;
+  std::vector<Pi> objs;
+  for (int i = 0; i < pts.rows(); ++i) {
+    Pi pi;
+    pi.idx = i;
+    for (int j = 0; j < DIM; ++j) pi.pos[j] = pts(i, j);
+    objs.push_back(pi);
+    for (int j = 0; j < 4; ++j) pi.pos[j] = -pi.pos[j];
+    objs.push_back(pi);
+  }
+  return BVH(objs.begin(), objs.end());
+}
+
+template <typename F>
+BVH<F, 4> create_bvh_quat(RefRowMajorXd pts) {
+  if (pts.cols() == 4) {
+    return create_bvh_quatplus<F, 4>(pts);
+  } else if (pts.cols() != 9) {
+    throw std::runtime_error("quat coords shape must be (N,9) or (N,4)");
+  }
+  using Pt = Matrix<F, 4, 1>;
+  using Pi = PtIdxND<Pt>;
+  using BVH = BVH<F, 4>;
+  std::vector<Pi> objs;
+  for (int i = 0; i < pts.rows(); ++i) {
+    Map<M3<F>> rot(pts.row(i).data());
+    Quaternion<F> q(rot);
+    Pi pi;
+    pi.idx = i;
+    pi.pos = *((Pt*)(&q));
+    objs.push_back(pi);
+    pi.pos = -pi.pos;
     objs.push_back(pi);
   }
   return BVH(objs.begin(), objs.end());
@@ -259,20 +378,27 @@ void bind_bvh_ND(auto m, std::string name) {
 }
 
 PYBIND11_MODULE(bvh_nd, m) {
+  bind_bvh_ND<double, 4>(m, "SphereBVH4");
+  m.def("create_bvh_quat", &create_bvh_quat<double>);
+  m.def("bvh_min_one_quat", &bvh_min_one_quat<double>);
+  m.def("naive_min_one_quat", &naive_min_one_quat<double>);
+
   bind_bvh_ND<double, 7>(m, "SphereBVH7");
   m.def("create_bvh7", &create_bvh_nd<double, 7>);
   m.def("bvh_isect7", &bvh_isect<double, 7>);
   m.def("naive_isect7", &naive_isect<double, 7>);
 
-  bind_bvh_ND<double, 9>(m, "SphereBVH9");
-  m.def("create_bvh9", &create_bvh_nd<double, 9>);
-  m.def("bvh_isect_ori", &bvh_isect_ori<double>);
-  m.def("naive_isect_ori", &naive_isect_ori<double>);
+  // bind_bvh_ND<double, 9>(m, "SphereBVH9");
+  // m.def("create_bvh9", &create_bvh_nd<double, 9>);
+  // m.def("bvh_isect_ori", &bvh_isect_ori<double>);
+  // m.def("naive_isect_ori", &naive_isect_ori<double>);
+  // m.def("bvh_isect_one_ori", &bvh_isect_one_ori<double>);
+  // m.def("bvh_min_one_ori", &bvh_min_one_ori<double>);
 
-  bind_bvh_ND<double, 12>(m, "SphereBVH12");
-  m.def("create_bvh12", &create_bvh_nd<double, 12>);
-  m.def("bvh_isect_xform", &bvh_isect_xform<double>);
-  m.def("naive_isect_xform", &naive_isect_xform<double>);
+  // bind_bvh_ND<double, 12>(m, "SphereBVH12");
+  // m.def("create_bvh12", &create_bvh_nd<double, 12>);
+  // m.def("bvh_isect_xform", &bvh_isect_xform<double>);
+  // m.def("naive_isect_xform", &naive_isect_xform<double>);
 }
 }  // namespace bvh
 }  // namespace sicdock

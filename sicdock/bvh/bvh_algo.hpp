@@ -267,7 +267,9 @@ struct minimizer_helper2 {
   */
 template <typename BVH, typename Minimizer>
 typename Minimizer::Scalar BVMinimize(const BVH &tree, Minimizer &minimizer) {
-  return internal::minimize_helper(tree, minimizer, tree.getRootIndex());
+  return internal::minimize_helper(
+      tree, minimizer, tree.getRootIndex(),
+      std::numeric_limits<typename Minimizer::Scalar>::max());
 }
 
 /**  Given two BVH's, runs the query on their cartesian product encapsulated by

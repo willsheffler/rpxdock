@@ -102,9 +102,10 @@ struct XformHash_bt24_BCC6 {
     get_cell_48cell_half(q.coeffs(), cell_index);
     q = hbt24_cellcen<F>(cell_index).inverse() * q;
     q = to_half_cell(q);
-    F3 params(params[0] = q.x() / q.w() / cell_width<F>() + 0.5,
-              params[1] = q.y() / q.w() / cell_width<F>() + 0.5,
-              params[2] = q.z() / q.w() / cell_width<F>() + 0.5);
+    F w = 2 * (sqrt(2) - 1);
+    F3 params(params[0] = q.x() / q.w() / w + 0.5,
+              params[1] = q.y() / q.w() / w + 0.5,
+              params[2] = q.z() / q.w() / w + 0.5);
     assert(cell_index < 24);
     clamp01(params);
     F6 params6;
@@ -115,38 +116,9 @@ struct XformHash_bt24_BCC6 {
     // std::cout << params6 << std::endl;
     return params6;
   }
-  /* compiler totally gets rid of the copies on O1 or better
-  F6 xform_to_F6_raw(F *fp, Key &cell_index) const {
-    // strange that this isn'd RowMajor
-    Eigen::Map<Matrix<F, 3, 3>, Unaligned, Stride<1, 4>> rotation(fp);
-    Eigen::Quaternion<F> q(rotation);
-    // std::cout << q.coeffs().transpose() << std::endl;
-    get_cell_48cell_half(q.coeffs(), cell_index);
-    q = hbt24_cellcen<F>(cell_index).inverse() * q;
-    q = to_half_cell(q);
-    F3 params(params[0] = q.x() / q.w() / cell_width<F>() + 0.5,
-              params[1] = q.y() / q.w() / cell_width<F>() + 0.5,
-              params[2] = q.z() / q.w() / cell_width<F>() + 0.5);
-    assert(cell_index < 24);
-    clamp01(params);
-    F6 params6;
-    for (int i = 0; i < 3; ++i) {
-      params6[i] = fp[4 * i + 3];
-      params6[i + 3] = params[i];
-    }
-    // std::cout << params6 << std::endl;
-    return params6;
-  }
-  Key get_key_raw(F *fp) const {
-    Key cell_index;
-    F6 p6 = xform_to_F6_raw(fp, cell_index);
-    assert((grid6_[p6] >> 55) == 0);
-    return cell_index << 55 | grid6_[p6];
-  }
-  */
   Xform F6_to_xform(F6 params6, Key cell_index) const {
     F3 params = params6.template last<3>();
-    F const &w(cell_width<F>());
+    F w = 2 * (sqrt(2) - 1);
     clamp01(params);
     params = w * (params - 0.5);  // now |params| < sqrt(2)-1
     Eigen::Quaternion<F> q(1.0, params[0], params[1], params[2]);

@@ -25,7 +25,7 @@ def test_bvh_nd():
     print("frac", nhit / ntot)
 
 
-def test_bvh_ori():
+def DISABLED_test_bvh_ori():
     ntot, nhit, ttot = 0, 0, 0
     thresh = 0.03
     for i in range(3):
@@ -45,12 +45,13 @@ def test_bvh_ori():
     print(f"frac {nhit / ntot}, {int(ntot / ttot):,}/s")
 
 
-def test_bvh_xform():
+def DISABLED_test_bvh_xform():
     ntot, nhit, ttot = 0, 0, 0
     thresh = 0.5
     for i in range(3):
-        xforms1 = hm.rand_xform(1000, cart_sd=0.5).reshape(-1, 16)[:, :12]
-        # xforms1[:, 9:] += 0.3
+        xforms1 = hm.rand_xform(1000, cart_sd=0.5)
+        xforms1[:, :3, 3] += 1.0
+        xforms1 = xforms1.reshape(-1, 16)[:, :12]
         xforms2 = hm.rand_xform(1000, cart_sd=0.5).reshape(-1, 16)[:, :12]
         bvh1 = bvh_nd.create_bvh12(xforms1)
         bvh2 = bvh_nd.create_bvh12(xforms2)
@@ -66,7 +67,22 @@ def test_bvh_xform():
     print(f"frac {nhit / ntot}, {int(ntot / ttot):,}/s")
 
 
+def test_bvh_quat_min():
+    N = 100
+    o = hm.rand_xform(1000)[:, :3, :3].copy()
+    assert np.allclose(np.linalg.det(o), 1)
+    bvh_ohier = bvh_nd.create_bvh_quat(o.reshape(-1, 9))
+    samp = hm.rand_xform(N)[:, :3, :3]
+    for j in range(N):
+        d1 = bvh_nd.bvh_min_one_quat(bvh_ohier, samp[j])
+        d2 = bvh_nd.naive_min_one_quat(bvh_ohier, samp[j])[0]
+        if d1 != d2:
+            print(d1, d2)
+        assert np.allclose(d1, d2)
+
+
 if __name__ == "__main__":
     # test_bvh_nd()
     # test_bvh_ori()
-    test_bvh_xform()
+    # test_bvh_xform()
+    test_bvh_quat_min()

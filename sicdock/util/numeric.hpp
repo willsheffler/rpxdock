@@ -36,6 +36,15 @@ Q to_half_cell(Q const &q) {
                                    : Q(-q.w(), -q.x(), -q.y(), -q.z())))));
 }
 
+template <typename Vn>
+Vn first4_quat_to_half_cell(Vn v) {
+  using F = typename Vn::Scalar;
+  Eigen::Quaternion<F> *q = (Eigen::Quaternion<F> *)(&v);
+  Eigen::Quaternion<F> p = util::to_half_cell(*q);
+  for (int j = 0; j < 4; ++j) v[j] = ((F *)(&p))[j];
+  return v;
+}
+
 template <class F>
 static F const *get_raw_48cell_half() {
   static F const r = sqrt(2) / 2;
@@ -124,11 +133,6 @@ void get_cell_48cell_half(V4 const &quat, Index &cell) {
 using namespace Eigen;
 using std::cout;
 using std::endl;
-
-template <class F>
-F cell_width() {
-  return 2.0 * sqrt(2.0) - 2.0;
-}
 
 template <class F, class Index>
 Eigen::Map<Eigen::Quaternion<F> const> hbt24_cellcen(Index const &i) {

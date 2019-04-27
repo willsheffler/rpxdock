@@ -1,8 +1,11 @@
+from time import perf_counter
 import itertools as it
 import numpy as np
 from cppimport import import_hook
 from sicdock.sampling.xform_hierarchy import *
+from sicdock.bvh import bvh_nd
 import homog as hm
+from scipy.spatial.distance import cdist
 
 
 def urange(*args):
@@ -246,10 +249,50 @@ def test_ori_hier_1cell():
 
 
 def test_ori_hier_rand():
+    # r1 = hm.rand_xform(100)[:, :3, :3]
+    # r2 = hm.rand_xform(100)[:, :3, :3]
+    # q1 = hm.quat.rot_to_quat(r1)
+    # q2 = hm.quat.rot_to_quat(r2)
+    # qdist = 3 * np.minimum(cdist(q1, q2), cdist(q1, -q2))
+    # # qdist = np.arccos(2 * np.sum(q1[:, None] * q2, axis=2) - 1)
+    # adist = hm.angle_of(r1[:, None].swapaxes(-1, -2) @ r2)
+    # import matplotlib.pyplot as plt
+    # plt.scatter(qdist, adist)
+    # plt.show()
+    # return
+    N = 10_000
     ohier = OriHier(9e9)
-    for resl in range(1, 4):
-        w, o = ohier.get_ori(resl, urange(ohier.size(resl) / 24))
+    cut = [99, 59, 31, 16, 8, 4]  # not quite angles!!
+    for resl in range(4):
+        w, o = ohier.get_ori(resl, urange(ohier.size(resl)))
         assert np.allclose(np.linalg.det(o), 1)
+        bvh_ohier = bvh_nd.create_bvh_quat(o.reshape(-1, 9).copy())
+        dis = np.empty(N)
+        samp = hm.rand_xform(N)[:, :3, :3]
+        for j in range(N):
+            dis[j] = bvh_nd.bvh_min_one_quat(bvh_ohier, samp[j])
+        mx = 3.0 * np.max(dis) * 180 / np.pi
+        me = 3.0 * np.mean(dis) * 180 / np.pi
+        print(f"{resl} {len(bvh_ohier):6,} {mx} {me} {mx / me}")
+        assert mx < cut[resl]
+
+
+def test_avg_dist():
+    from sicdock.bvh import bvh
+
+    N = 1000
+    ch = CartHier3D([-1, -1, -1], [2, 2, 2], [1, 1, 1])
+    for resl in range(1, 4):
+        i, grid = ch.get_trans(resl, urange(ch.size(3)))
+        gridbvh = bvh.bvh_create(grid)
+        dis = np.empty(N)
+        samp = np.random.rand(N, 3)
+        for j in range(N):
+            dis[j] = bvh.bvh_min_dist_one(gridbvh, samp[j])[0]
+        mx = 3.0 * np.max(dis) * 180 / np.pi
+        me = 3.0 * np.mean(dis) * 180 / np.pi
+        print(f"{resl} {len(gridbvh):6,} {mx} {me} {mx / me}")
+        assert mx / me < 3
 
 
 if __name__ == "__main__":
@@ -264,3 +307,4 @@ if __name__ == "__main__":
     # test_ori_hier_all2()
     # test_ori_hier_1cell()
     test_ori_hier_rand()
+    # test_avg_dist()

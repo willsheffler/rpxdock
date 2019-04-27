@@ -113,9 +113,6 @@ struct OriHier {
   ///@return false iff invalid parameters
   bool ori_params_to_value(F3 params, I cell_index, I resl,
                            M3<F>& value) const {
-    // // cout << "        set p0 " << params << endl;
-    F const& w(cell_width<F>());
-
     F3 p = params * recip_nside_;
 
     I h48_cell_index = cell_index / (onside_ * onside_ * onside_);
@@ -142,24 +139,19 @@ struct OriHier {
     // std::cout << cell_index << " " << p << " " << p << std::endl;
     // static int count = 0; if( ++count > 30 ) std::exit(-1);
 
+    F w = 2 * (sqrt(2) - 1);
     p = w * (p - F3(0.5, 0.5, 0.5));  // now |p| < sqrt(2)-1
-
-    // if( resl > 3 ){
     F corner_dist = fabs(p[0]) + fabs(p[1]) + fabs(p[2]);
     F delta = sqrt(3.0) / 2.0 / w / (F)(1 << resl);
-    // // static int count = 0;
-    // //          std::cout << corner_dist << "    " << p << " " << p <<
-    // std::endl;
-    //          if(++count > 100) std::exit(-1);
-    if (corner_dist - delta > 1.0)
-      return false;  // TODO make this check more rigerous???
-    // }
 
-    // Eigen::Quaternion<F> q( sqrt(1.0-p.squaredNorm()), p[0], p[1], p[2]
-    // ); assert( fabs(q.squaredNorm()-1.0) < 0.000001 );
+    // TODO make this check more rigerous???
+    if (corner_dist - delta > 1.0) return false;
+
     Eigen::Quaternion<F> q(1.0, p[0], p[1], p[2]);
-    q.normalize();
+    // Eigen::Quaternion<F> q(sqrt(1.0 - p.squaredNorm()), p[0], p[1], p[2]);
+    // assert(fabs(q.squaredNorm() - 1.0) < 0.000001);
 
+    q.normalize();
     q = hbt24_cellcen<F>(h48_cell_index) * q;
 
     value = q.matrix();
@@ -207,7 +199,7 @@ struct OriHier {
     }
     return nside + 1;
   }
-};
+};  // namespace sampling
 
 template <typename F = double, typename I = uint64_t>
 struct XformHier : public OriHier<F, I>, public CartHier<3, F, I> {
