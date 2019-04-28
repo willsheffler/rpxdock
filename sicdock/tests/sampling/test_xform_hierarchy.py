@@ -3,7 +3,7 @@ import itertools as it
 import numpy as np
 from cppimport import import_hook
 from sicdock.sampling.xform_hierarchy import *
-from sicdock.bvh import bvh_nd
+from sicdock.bvh.bvh_nd import *
 import homog as hm
 from scipy.spatial.distance import cdist
 
@@ -248,33 +248,107 @@ def test_ori_hier_1cell():
         assert np.all(mn < ub)
 
 
+def analyze_ori_hier(nside, resl, nsamp):
+    ohier = OriHier_nside(nside)
+    w, hori = ohier.get_ori(resl, urange(ohier.size(resl)))
+    assert np.allclose(np.linalg.det(hori), 1)
+    hquat = hm.quat.rot_to_quat(hori)
+    hquat += np.random.randn(*hquat.shape) * 0.000000000001
+    bvh_ohier = create_bvh_quat(hquat)
+    assert np.allclose(bvh_ohier.com(), 0)
+    samp = hm.rand_xform(nsamp)[:, :3, :3]
+    quat = hm.quat.rot_to_quat(samp)
+
+    t = perf_counter()
+    mindis, wmin = bvh_mindist4d(bvh_ohier, quat.copy())
+    tbvh = perf_counter() - t
+    t = perf_counter()
+    mindis2, wmin2 = bvh_mindist4d_naive(bvh_ohier, quat.copy())
+    tnai = perf_counter() - t
+    assert np.allclose(mindis, mindis2)
+
+    imax = np.argmax(mindis)
+    hclose = hquat[wmin[imax]]
+    sclose = quat[imax]
+    d = np.linalg.norm(hclose - sclose)
+    if d > mindis[imax] * 1.1:
+        hclose = -hclose
+    d = np.linalg.norm(hclose - sclose)
+    assert np.allclose(d, mindis[imax])
+    a = hm.quat.quat_to_rot(sclose)
+    b = hm.quat.quat_to_rot(hclose)
+    angle = hm.angle_of(a.T @ b) * 180 / np.pi
+
+    maxmindis = np.max(mindis)
+    sphcellvol = 4 / 3 * np.pi * maxmindis ** 3
+    totgridvol = len(hquat) * sphcellvol
+    totquatvol = np.pi ** 2
+    overcover = totgridvol / totquatvol
+
+    return len(hquat), maxmindis, angle, overcover, tbvh
+
+
+def test_ori_hier_angresl():
+    assert OriHier(93).ori_nside() == 1
+    assert OriHier(92).ori_nside() == 2
+    assert OriHier(66).ori_nside() == 3
+    assert OriHier(47).ori_nside() == 4
+    assert OriHier(37).ori_nside() == 5
+    assert OriHier(30).ori_nside() == 6
+    assert OriHier(26).ori_nside() == 7
+    assert OriHier(22).ori_nside() == 8
+    assert OriHier(19).ori_nside() == 9
+    assert OriHier(17).ori_nside() == 10
+    assert OriHier(15).ori_nside() == 11
+    assert OriHier(14).ori_nside() == 12
+    assert OriHier(13).ori_nside() == 13
+    assert OriHier(12).ori_nside() == 14
+    assert OriHier(11).ori_nside() == 15
+    assert OriHier(10).ori_nside() == 16
+
+
+def test_ori_hier_rand_nside():
+    N = 1_000
+    covang = [
+        None,
+        92.609,  # 1
+        66.065,  # 2
+        47.017,  # 3
+        37.702,  # 4
+        30.643,  # 5
+        26.018,  # 6
+        22.466,  # 7
+        19.543,  # 8
+        17.607,  # 9
+        15.928,  # 10
+        14.282,  # 11
+        13.149,  # 12
+        12.238,  # 13
+        11.405,  # 14
+        10.589,  # 15
+    ]
+    for nside in range(1, 8):
+        nhier, maxmindis, angle, overcover, tbvh = analyze_ori_hier(nside, 0, N)
+        assert angle < covang[nside] * 1.01
+        print(
+            f"{nside:2} {nhier:9,} bvh: {int(N / tbvh):9,} ",
+            f"oc: {overcover:5.2f} ang: {angle:7.3f} dis: {maxmindis:7.4f}",
+        )
+
+
 def test_ori_hier_rand():
-    # r1 = hm.rand_xform(100)[:, :3, :3]
-    # r2 = hm.rand_xform(100)[:, :3, :3]
-    # q1 = hm.quat.rot_to_quat(r1)
-    # q2 = hm.quat.rot_to_quat(r2)
-    # qdist = 3 * np.minimum(cdist(q1, q2), cdist(q1, -q2))
-    # # qdist = np.arccos(2 * np.sum(q1[:, None] * q2, axis=2) - 1)
-    # adist = hm.angle_of(r1[:, None].swapaxes(-1, -2) @ r2)
     # import matplotlib.pyplot as plt
     # plt.scatter(qdist, adist)
     # plt.show()
-    # return
+    maxang = np.array([92.521, 66.050, 37.285, 19.475, 9.891, 4.879, 2.517]) * 1.1
     N = 10_000
-    ohier = OriHier(9e9)
-    cut = [99, 59, 31, 16, 8, 4]  # not quite angles!!
     for resl in range(4):
-        w, o = ohier.get_ori(resl, urange(ohier.size(resl)))
-        assert np.allclose(np.linalg.det(o), 1)
-        bvh_ohier = bvh_nd.create_bvh_quat(o.reshape(-1, 9).copy())
-        dis = np.empty(N)
-        samp = hm.rand_xform(N)[:, :3, :3]
-        for j in range(N):
-            dis[j] = bvh_nd.bvh_min_one_quat(bvh_ohier, samp[j])
-        mx = 3.0 * np.max(dis) * 180 / np.pi
-        me = 3.0 * np.mean(dis) * 180 / np.pi
-        print(f"{resl} {len(bvh_ohier):6,} {mx} {me} {mx / me}")
-        assert mx < cut[resl]
+        nhier, maxmindis, angle, overcover, tbvh = analyze_ori_hier(1, resl, N)
+        assert angle < maxang[resl]
+        print(
+            f"{resl} {nhier:7,} bvh: {int(N / tbvh):,} ",
+            f"oc: {overcover:5.2f} ang: {angle:7.3f} dis: {maxmindis:7.4f}",
+        )
 
 
 def test_avg_dist():
@@ -306,5 +380,7 @@ if __name__ == "__main__":
     # test_xform_hierarchy_expand_top_N()
     # test_ori_hier_all2()
     # test_ori_hier_1cell()
-    test_ori_hier_rand()
+    # test_ori_hier_rand()
+    # test_ori_hier_rand_nside()
     # test_avg_dist()
+    test_ori_hier_angresl()

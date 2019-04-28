@@ -23,6 +23,7 @@ _override = {
     "cookie_cutter.cpp": ["sicdock/cluster/cluster.py"],
     "xbin.hpp": ["sicdock/tests/xbin/test_xbin.py"],
     "_xbin.cpp": ["sicdock/tests/xbin/test_xbin.py"],
+    "xmap.cpp": ["sicdock/tests/xbin/test_xmap.py"],
     "xbin_test.cpp": ["sicdock/tests/xbin/test_xbin.py"],
     "_motif.cpp": ["sicdock/motif/motif.py"],
     "primitive.hpp": ["sicdock/tests/geom/test_geom.py"],

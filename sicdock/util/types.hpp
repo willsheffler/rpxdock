@@ -36,6 +36,7 @@ using RowMajorXd =
 using RefRowMajorXd = Eigen::Ref<RowMajorXd>;
 using VectorXd = Eigen::Matrix<double, Eigen::Dynamic, 1>;
 using RefVectorXd = Eigen::Ref<VectorXd>;
+using VectorXi = Eigen::Matrix<int, Eigen::Dynamic, 1>;
 
 template <typename F>
 using RowMajorX =

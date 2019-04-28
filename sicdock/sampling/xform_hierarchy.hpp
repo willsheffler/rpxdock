@@ -81,15 +81,18 @@ struct OriHier {
   using F3 = V3<F>;
   using I6 = V6<I>;
   using I3 = V3<I>;
-  F ori_resl_;
   I onside_;
   F recip_nside_;
   I ori_ncell_;
   OriHier(F ori_resl) {
-    this->ori_resl_ = ori_resl;
-    this->onside_ = ori_get_nside_for_rot_resl_deg(this->ori_resl_);
-    this->recip_nside_ = 1.0 / (F)this->onside_;
-    this->ori_ncell_ = 24 * this->onside_ * this->onside_ * this->onside_;
+    onside_ = ori_get_nside_for_rot_resl_deg(ori_resl);
+    recip_nside_ = 1.0 / (F)onside_;
+    ori_ncell_ = 24 * onside_ * onside_ * onside_;
+  }
+  OriHier(int nside) {
+    onside_ = nside;
+    recip_nside_ = 1.0 / (F)onside_;
+    ori_ncell_ = 24 * onside_ * onside_ * onside_;
   }
   I size(I resl) const { return ori_ncell_ * ONE << (ORI_DIM * resl); }
   I ori_nside() const { return onside_; }
@@ -160,32 +163,22 @@ struct OriHier {
   }
 
   static F const* ori_get_covrad_data() {
-    static F const covrad[25] = {
-        62.76235,  // 1
-        38.63604,  // 2
-        26.71264,  // 3
-        20.62393,  // 4
-        17.02567,  // 5
-        14.25487,  // 6
-        12.42992,  // 7
-        11.02897,  // 8
-        9.62588,   // 9
-        8.70544,   // 10
-        7.82964,   // 11
-        7.28521,   // 12
-        6.62071,   // 13
-        6.13243,   // 14
-        5.81918,   // 15
-        5.44871,   // 16
-        5.14951,   // 17
-        4.82331,   // 18
-        4.52938,   // 19
-        4.31905,   // 20
-        4.07469,   // 21
-        3.93772,   // 22
-        3.77275,   // 23
-        3.64786,   // 24
-        3.44081    // 25
+    static F const covrad[15] = {
+        92.609,  //  1
+        66.065,  //  2
+        47.017,  //  3
+        37.702,  //  4
+        30.643,  //  5
+        26.018,  //  6
+        22.466,  //  7
+        19.543,  //  8
+        17.607,  //  9
+        15.928,  //  10
+        14.282,  //  11
+        13.149,  //  12
+        12.238,  //  13
+        11.405,  //  14
+        10.589,  //  15
     };
     return covrad;
   }

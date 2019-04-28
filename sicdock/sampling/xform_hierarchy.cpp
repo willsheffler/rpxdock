@@ -1,7 +1,7 @@
 /*cppimport
 <%
 cfg['include_dirs'] = ['../..', '../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w', '-O1']
+cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['../util/dilated_int.hpp', '../util/numeric.hpp',
 'xform_hierarchy.hpp']
 
@@ -142,14 +142,6 @@ void bind_CartHier(auto m, std::string name) {
       .def(py::init<Fn, Fn, In>(), "lb"_a, "ub"_a, "bs"_a)
       .def("size", &CartHier<N, F, I>::size)
       .def("get_trans", &get_trans<N, F, I>)
-      // .def("expand_top_N",
-      //      (py::tuple(*)(CartHier<N,F, I>, int, int,
-      //      py::array_t<ScoreIndex>))
-      //      &
-      //          expand_top_N<F, I>)
-      // .def("expand_top_N", (py::tuple(*)(CartHier<N,F, I>, int, int,
-      //                                    py::array_t<F>, py::array_t<I>)) &
-      //                          expand_top_N<F, I>)
       /**/;
 }
 template <typename F, typename I>
@@ -159,13 +151,12 @@ void bind_OriHier(auto m, std::string name) {
       .def("size", &OriHier<F, I>::size)
       .def("ori_nside", &OriHier<F, I>::ori_nside)
       .def("get_ori", &get_ori<F, I>)
-      // .def("expand_top_N",
-      //      (py::tuple(*)(OriHier<F, I>, int, int, py::array_t<ScoreIndex>)) &
-      //          expand_top_N<F, I>)
-      // .def("expand_top_N", (py::tuple(*)(OriHier<F, I>, int, int,
-      //                                    py::array_t<F>, py::array_t<I>)) &
-      //                          expand_top_N<F, I>)
       /**/;
+}
+
+template <typename F, typename I>
+OriHier<F, I> OriHier_nside(int nside) {
+  return OriHier(nside);
 }
 
 template <typename F, typename I>
@@ -221,7 +212,10 @@ PYBIND11_MODULE(xform_hierarchy, m) {
   bind_CartHier<4, double, uint64_t>(m, "CartHier4D");
   bind_CartHier<5, double, uint64_t>(m, "CartHier5D");
   bind_CartHier<6, double, uint64_t>(m, "CartHier6D");
+
   bind_OriHier<double, uint64_t>(m, "OriHier");
+  m.def("OriHier_nside", &OriHier_nside<double, uint64_t>);
+
   bind_XformHier<double, uint64_t>(m, "XformHier");
 
   m.def("zorder3coeffs", &zorder2coeffs<uint64_t, 3>);

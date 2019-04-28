@@ -38,16 +38,13 @@ struct PtIdx {
   V3<F> pos;
   int idx;
 };
-
-auto bounding_vol(V3<float> v) { return Sphere<float>(v); }
-auto bounding_vol(V3<double> v) { return Sphere<double>(v); }
-auto bounding_vol(PtIdx<float> v) {
-  auto s = Sphere<float>(v.pos);
-  s.lb = s.ub = v.idx;
-  return s;
+template <typename F>
+auto bounding_vol(V3<F> v) {
+  return Sphere<F>(v);
 }
-auto bounding_vol(PtIdx<double> v) {
-  auto s = Sphere<double>(v.pos);
+template <typename F>
+auto bounding_vol(PtIdx<F> v) {
+  auto s = Sphere<F>(v.pos);
   s.lb = s.ub = v.idx;
   return s;
 }

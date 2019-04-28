@@ -1,7 +1,7 @@
 /*cppimport
 <%
 cfg['include_dirs'] = ['../..']
-cfg['compiler_args'] = ['-std=c++17']
+cfg['compiler_args'] = ['-std=c++17', '-w']
 cfg['dependencies'] = ['dilated_int.hpp']
 
 setup_pybind11(cfg)

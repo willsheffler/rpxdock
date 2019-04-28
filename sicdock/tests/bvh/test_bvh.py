@@ -16,7 +16,7 @@ def test_bvh_isect_cpp():
 
 
 def test_bvh_isect_fixed():
-    print()
+    # print()
     mindist = 0.01
 
     totbvh, totnaive = 0, 0
@@ -43,7 +43,7 @@ def test_bvh_isect_fixed():
 
         assert clash1 == clash2
 
-        print(f"{i:3} clash {clash1:1} {tn / tbvh:8.2f}, {tn:1.6f}, {tbvh:1.6f}")
+        # print(f"{i:3} clash {clash1:1} {tn / tbvh:8.2f}, {tn:1.6f}, {tbvh:1.6f}")
 
         totbvh += tbvh
         totnaive += tn
@@ -52,7 +52,7 @@ def test_bvh_isect_fixed():
 
 
 def test_bvh_isect():
-    print()
+    # print()
     mindist = 0.02
 
     totbvh, totnaive = 0, 0
@@ -82,7 +82,7 @@ def test_bvh_isect():
 
         assert clash1 == clash2
 
-        print(f"{i:3} clash {clash1:1} {tn / tbvh:8.2f}, {tn:1.6f}, {tbvh:1.6f}")
+        # print(f"{i:3} clash {clash1:1} {tn / tbvh:8.2f}, {tn:1.6f}, {tbvh:1.6f}")
 
         totbvh += tbvh
         totnaive += tn
@@ -137,7 +137,7 @@ def test_bvh_min_dist():
     bvh1 = bvh.bvh_create(xyz1)
     bvh2 = bvh.bvh_create(xyz2)
     tcre = perf_counter() - tcre
-    print()
+    # print()
     totbvh, totnaive = 0, 0
     N = 10
     for i in range(N):
@@ -155,11 +155,11 @@ def test_bvh_min_dist():
         tn = perf_counter() - tn
         assert np.allclose(dn, d, atol=1e-6)
 
-        print(
-            f"tnaivecpp {tn:1.6f} tbvh {tbvh:1.6f} tcpp/tbvh {tn/tbvh:8.1f}",
-            np.linalg.norm(pos1[:3, 3]),
-            dtest - d,
-        )
+        # print(
+        # f"tnaivecpp {tn:1.6f} tbvh {tbvh:1.6f} tcpp/tbvh {tn/tbvh:8.1f}",
+        # np.linalg.norm(pos1[:3, 3]),
+        # dtest - d,
+        # )
         totnaive += tn
         totbvh += tbvh
 
@@ -181,7 +181,7 @@ def test_bvh_min_dist_floormin():
     bvh1 = bvh.bvh_create(xyz1)
     bvh2 = bvh.bvh_create(xyz2)
     tcre = perf_counter() - tcre
-    print()
+    # print()
     totbvh, totnaive = 0, 0
     N = 10
     for i in range(N):
@@ -199,11 +199,11 @@ def test_bvh_min_dist_floormin():
         tn = perf_counter() - tn
         assert np.allclose(dn, d, atol=1e-6)
 
-        print(
-            f"tnaivecpp {tn:1.6f} tbvh {tbvh:1.6f} tcpp/tbvh {tn/tbvh:8.1f}",
-            np.linalg.norm(pos1[:3, 3]),
-            dtest - d,
-        )
+        # print(
+        # f"tnaivecpp {tn:1.6f} tbvh {tbvh:1.6f} tcpp/tbvh {tn/tbvh:8.1f}",
+        # np.linalg.norm(pos1[:3, 3]),
+        # dtest - d,
+        # )
         totnaive += tn
         totbvh += tbvh
 
@@ -649,11 +649,19 @@ def test_bvh_isect_range(body=None, cart_sd=0.3, N2=10, mindist=0.02):
 if __name__ == "__main__":
     from sicdock.body import Body
 
-    b = Body("sicdock/data/pdb/DHR14.pdb")
-    test_bvh_isect_range(b, cart_sd=15, N2=500, mindist=3.5)
+    # b = Body("sicdock/data/pdb/DHR14.pdb")
+    # test_bvh_isect_range(b, cart_sd=15, N2=500, mindist=3.5)
 
-    test_bvh_min_dist()
+    test_bvh_isect_cpp()
+    test_bvh_isect_fixed()
     test_bvh_isect()
+    test_bvh_min_cpp()
+    test_bvh_min_dist_fixed()
+    test_bvh_min_dist()
+    test_bvh_min_dist_floormin()
+    test_bvh_slide_single_inline()
+    test_bvh_slide_single()
+    test_bvh_slide_single_xform()
     test_bvh_slide_whole()
     test_collect_pairs_simple()
     test_collect_pairs_simple_selection()

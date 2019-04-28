@@ -8,7 +8,9 @@ cfg['dependencies'] = ['../geom/bcc.hpp','../util/assertions.hpp',
 setup_pybind11(cfg)
 %>
 */
+
 #include <iostream>
+#include <string>
 
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>

@@ -1,7 +1,7 @@
 /*cppimport
 <%
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17']
+cfg['compiler_args'] = ['-std=c++17', '-w']
 cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
 '../util/global_rng.hpp']
 
@@ -133,10 +133,11 @@ bool TEST_bvh_test_min() {
     ASSERT_FLOAT_EQ(brutemin, bvhmin);
 
     float ratio = 1. * brutecalls / bvhcalls;
-    std::cout << "    min Brute/BVH " << dx << " " << ratio << " " << brutemin
-              << " " << bvhmin << " " << brutecalls << " " << bvhcalls << " "
-              << tbrute << " " << tcreate << " " << tbvh << " "
-              << tbrute.elapsed() / tbvh.elapsed() << std::endl;
+    // std::cout << "    min Brute/BVH " << dx << " " << ratio << " " <<
+    // brutemin
+    //           << " " << bvhmin << " " << brutecalls << " " << bvhcalls << " "
+    //           << tbrute << " " << tcreate << " " << tbvh << " "
+    //           << tbrute.elapsed() / tbvh.elapsed() << std::endl;
   }
   return true;
 }
@@ -230,10 +231,10 @@ bool TEST_bvh_test_isect() {
 
     float ratio = 1. * brutecalls / bvhcalls;
     avg_ratio += ratio;
-    std::cout << "    isect Brute/BVH " << dx << " " << ratio << " "
-              << bruteisect << " " << bvhisect << " " << brutecalls << " "
-              << bvhcalls << " " << tbrute << " " << tcreate << " " << tbvh
-              << " " << tbrute.elapsed() / tbvh.elapsed() << std::endl;
+    // std::cout << "    isect Brute/BVH " << dx << " " << ratio << " "
+    //           << bruteisect << " " << bvhisect << " " << brutecalls << " "
+    //           << bvhcalls << " " << tbrute << " " << tcreate << " " << tbvh
+    //           << " " << tbrute.elapsed() / tbvh.elapsed() << std::endl;
   }
   avg_ratio /= niter;
   std::cout << "avg Brute/BVH " << avg_ratio << std::endl;
