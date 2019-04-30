@@ -33,7 +33,7 @@ void test_mod_phmap_inplace(PHMap<K, V> &phmap) {
   for (auto &[k, v] : phmap.phmap_) {
     v = v * 2;
   }
-  phmap.phmap_.emplace(12345, 12345);
+  phmap.phmap_.insert_or_assign(12345, 12345);
 }
 
 template <typename K, typename V>
@@ -67,19 +67,22 @@ py::array_t<V> PHMap_get(PHMap<K, V> const &phmap, py::array_t<K> keys,
 
 template <typename K, typename V>
 void PHMap_set(PHMap<K, V> &phmap, py::array_t<K> keys, py::array_t<V> vals) {
-  if (keys.size() != vals.size())
+  if (keys.size() != vals.size() && vals.size() != 1)
     throw std::runtime_error("Size of first dimension must match.");
   py::buffer_info kbuf = keys.request();
   auto *kptr = (K *)kbuf.ptr;
   py::buffer_info vbuf = vals.request();
   auto *vptr = (V *)vbuf.ptr;
-  for (size_t idx = 0; idx < keys.size(); idx++) {
-    phmap.phmap_.emplace(kptr[idx], vptr[idx]);
-  }
+  if (vals.size() == 1)
+    for (size_t idx = 0; idx < keys.size(); idx++)
+      phmap.phmap_.insert_or_assign(kptr[idx], vptr[0]);
+  else
+    for (size_t idx = 0; idx < keys.size(); idx++)
+      phmap.phmap_.insert_or_assign(kptr[idx], vptr[idx]);
 }
 // template <typename K, typename V>
 // void PHMap_set_single(PHMap<K, V> &phmap, K key, V val) {
-//   phmap.phmap_.emplace(key, val);
+//   phmap.phmap_.insert_or_assign(key, val);
 // }
 
 template <typename K, typename V>
@@ -148,7 +151,7 @@ void PHMap_load(PHMap<K, V> &phmap, std::string filename) {
   std::pair<K, V> in_key_value;
   while (stream.peek() != EOF) {
     iarchive(in_key_value);
-    phmap.phmap_.emplace(in_key_value.first, in_key_value.second);
+    phmap.phmap_.insert_or_assign(in_key_value.first, in_key_value.second);
   }
 }
 

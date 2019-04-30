@@ -83,6 +83,10 @@ void bind_bcc(py::module m, std::string name) {
   cls.def("__getitem__", &BCC_getvals<DIM, F, K>);
   cls.def("keys", &BCC_getkeys<DIM, F, K>);
   cls.def("vals", &BCC_getvals<DIM, F, K>);
+  cls.def_property_readonly("lower", &BCC::lower);
+  cls.def_property_readonly("upper", &BCC::upper);
+  cls.def_property_readonly("width", &BCC::width);
+  cls.def_property_readonly("nside", &BCC::nside);
   if constexpr (DIM == 6) cls.def("neighbors_6_3", &BCC_neighbors_6_3<F, K>);
   if constexpr (DIM == 3) cls.def("neighbors_3", &BCC_neighbors_3<F, K>);
 }

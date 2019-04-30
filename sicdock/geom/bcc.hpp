@@ -126,15 +126,23 @@ struct BCC {
   }
 
   template <typename Iiter>
-  std::enable_if_t<DIM == 6> neighbors_6_3(I index, Iiter &iter, int range = 1,
-                                           bool do_midpoints = true,
-                                           bool odd_last3 = false) const
+  std::enable_if_t<DIM == 6> neighbors_6_3(I index, Iiter &iter, int radius = 1,
+                                           bool midpoints = true,
+                                           bool extra_midpoints = false) const
       noexcept {
-    bool odd0 = index & 1, odd = odd0;
+    bool odd0 = index & 1;
+    // std::cout << "bcc get_floats " << index << std::endl;
+    // In idx0;
+    // for (int i = 0; i < DIM; ++i)
+    // idx0[i] = ((index >> 1) / nside_prefsum_[i]) % nside_[i];
+
     In tmp = ((index >> 1) / nside_prefsum_);
     In idx0 = mod(tmp, nside_), idx = idx0;
-    int lb = -range, ub = range + 1;
-    int olb = 1 - range, oub = range + 1;
+
+    bool odd = odd0;
+    // In idx = idx0;
+    int lb = -radius, ub = radius + 1;
+    int olb = 1 - radius, oub = radius + 1;
 
     // -0+ wtih same parity
     for (int i = lb; i < ub; ++i) {
@@ -147,7 +155,7 @@ struct BCC {
         }
       }
     }
-    if (!do_midpoints) return;
+    if (!midpoints) return;
     // -+ wtih opposite parity
     odd = !odd;
     for (int i = olb; i < oub; ++i) {
@@ -157,7 +165,7 @@ struct BCC {
         for (int k = olb; k < oub; ++k) {
           idx[2] = idx0[2] + k - odd;
 
-          if (odd_last3)
+          if (extra_midpoints)
             for (int l = 0; l < 2; ++l) {
               idx[3] = idx0[3] + l - odd;
               for (int m = 0; m < 2; ++m) {
@@ -175,15 +183,15 @@ struct BCC {
     }
   }
   template <typename Iiter>
-  std::enable_if_t<DIM == 3> neighbors_3(I index, Iiter &iter, int range = 1,
-                                         bool do_midpoints = true,
+  std::enable_if_t<DIM == 3> neighbors_3(I index, Iiter &iter, int radius = 1,
+                                         bool midpoints = true,
                                          bool more_midpoints = false) const
       noexcept {
     bool odd0 = index & 1, odd = odd0;
     In tmp = ((index >> 1) / nside_prefsum_);
     In idx0 = mod(tmp, nside_), idx = idx0;
-    int lb = -range, ub = range + 1;
-    int olb = 1 - range, oub = range + 1;
+    int lb = -radius, ub = radius + 1;
+    int olb = 1 - radius, oub = radius + 1;
     if (more_midpoints) {
       olb -= 1;
       oub += 1;
@@ -200,7 +208,7 @@ struct BCC {
         }
       }
     }
-    if (!do_midpoints) return;
+    if (!midpoints) return;
     // -+ wtih opposite parity
     odd = !odd;
     for (int i = olb; i < oub; ++i) {

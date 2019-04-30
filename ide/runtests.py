@@ -22,7 +22,7 @@ _override = {
     "_orientations_test.cpp": ["sicdock/sampling/orientations.py"],
     "cookie_cutter.cpp": ["sicdock/cluster/cluster.py"],
     "xbin.hpp": ["sicdock/tests/xbin/test_xbin.py"],
-    "_xbin.cpp": ["sicdock/tests/xbin/test_xbin.py"],
+    "xbin.cpp": ["sicdock/tests/xbin/test_xbin.py"],
     "xmap.cpp": ["sicdock/tests/xbin/test_xmap.py"],
     "phmap.cpp": ["sicdock/tests/phmap/test_phmap.py"],
     "phmap.hpp": ["sicdock/tests/phmap/test_phmap.py"],
@@ -40,6 +40,7 @@ _override = {
     "smear.cpp": ["sicdock/tests/xbin/test_smear.py"],
     "bcc.hpp": ["sicdock/tests/geom/test_bcc.py"],
     "bcc.cpp": ["sicdock/tests/geom/test_bcc.py"],
+    "pybind_types.hpp": ["sicdock/tests/util/test_pybind_types.py"],
 }
 _post = defaultdict(lambda: "")
 

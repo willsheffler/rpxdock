@@ -1,6 +1,6 @@
 import numpy as np
 from sicdock.geom import primitive_test
-from sicdock.geom import test_miniball, miniball
+from sicdock.geom import miniball_test, miniball
 
 
 def test_geom_sphere():
@@ -12,8 +12,8 @@ def test_geom_welzl_sphere():
 
 
 def test_miniball_cpp():
-    assert test_miniball(10_000, 7, False)
-    assert test_miniball(10_000, 12, False)
+    assert miniball_test(10_000, 7, False)
+    assert miniball_test(10_000, 12, False)
 
 
 def test_miniball_py():

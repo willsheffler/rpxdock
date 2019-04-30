@@ -4,7 +4,7 @@ from sicdock import phmap
 
 
 def test_phmap():
-    N = 10_000
+    N = 10000
     phm = phmap.PHMap_u8u8()
     k = np.random.randint(0, 2 ** 64, N, dtype="u8")
     k = np.unique(k)
@@ -16,13 +16,15 @@ def test_phmap():
 
     assert phm[k[0]] == v[0]
     assert phm[k[1234]] == v[1234]
+    phm[k[:10]] = 10
+    assert np.all(phm[k[:10]] == 10)
 
     phm[77] = 77
     assert phm[77] == 77
 
 
 def test_phmap_contains():
-    N = 10_000
+    N = 10000
     phm = phmap.PHMap_u8u8()
     k = np.random.randint(0, 2 ** 32, N, dtype="u8")
     k = np.unique(k)
@@ -41,7 +43,7 @@ def test_phmap_contains():
 
 
 def test_phmap_items():
-    N = 1_000
+    N = 1000
     phm = phmap.PHMap_u8u8()
     k = np.random.randint(0, 2 ** 64, N, dtype="u8")
     k = np.unique(k)
@@ -60,7 +62,7 @@ def test_phmap_items():
 
 
 def test_phmap_dump_load(tmpdir):
-    N = 1_000
+    N = 1000
     phm = phmap.PHMap_u8u8()
     k = np.random.randint(0, 2 ** 64, N, dtype="u8")
     k = np.unique(k)

@@ -33,7 +33,7 @@ namespace geom {
 namespace miniball_test {
 using namespace util;
 
-bool test_miniball(int n = 1000, int d = 7, bool on_boundary = false) {
+bool miniball_test(int n = 1000, int d = 7, bool on_boundary = false) {
   typedef double F;
   typedef Seb::Point<F> Point;
   typedef std::vector<Point> PointVector;
@@ -102,7 +102,7 @@ bool test_miniball(int n = 1000, int d = 7, bool on_boundary = false) {
 }
 
 PYBIND11_MODULE(miniball, m) {
-  m.def("test_miniball", &test_miniball);
+  m.def("miniball_test", &miniball_test);
   m.def("miniball", &miniball);
 }
 

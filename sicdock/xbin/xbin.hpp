@@ -17,6 +17,7 @@ using namespace util;
 
 template <typename _Xform, typename _K = uint64_t>
 struct XformHash_bt24_BCC6 {
+  const _K GRID_KEY_BITS = 55;
   using Xform = _Xform;
   using K = _K;
   typedef typename Xform::Scalar F;
@@ -25,17 +26,15 @@ struct XformHash_bt24_BCC6 {
   typedef Eigen::Array<F, 6, 1> F6;
   typedef Eigen::Array<K, 6, 1> I6;
 
-  F grid_size_ = -1;
-  F grid_spacing_ = -1;
   Grid grid6_;
-  auto grid() const { return grid6_; }
   F cart_resl_ = -1, ori_resl_ = -1, cart_bound_ = -1;
+  int ori_nside_ = -1;
+
   F cart_resl() const { return cart_resl_; }
   F ori_resl() const { return ori_resl_; }
   F cart_bound() const { return cart_bound_; }
-  int ori_nside_ = -1;
   int ori_nside() const { return ori_nside_; }
-
+  auto grid() const { return grid6_; }
   static std::string name() { return "XformHash_bt24_BCC6"; }
 
   XformHash_bt24_BCC6() {}
@@ -74,12 +73,13 @@ struct XformHash_bt24_BCC6 {
     if (2 * (int)(cart_bound / cart_resl) > 8192) {
       throw std::out_of_range("can have at most 8192 cart cells!");
     }
-    nside[0] = nside[1] = nside[2] = 2.0 * cart_bound / cart_resl;
-    nside[3] = nside[4] = nside[5] = ori_nside + 1;
-    lb[0] = lb[1] = lb[2] = -cart_bound;
-    ub[0] = ub[1] = ub[2] = cart_bound;
+    nside[0] = nside[1] = nside[2] = 1 + 2.0 * cart_bound / cart_resl;
+    nside[3] = nside[4] = nside[5] = ori_nside + 2;
+    // shift to make 0,0,0 center of cell
+    lb[0] = lb[1] = lb[2] = -cart_bound - cart_resl / 2;
+    ub[0] = ub[1] = ub[2] = cart_bound + cart_resl / 2;
     lb[3] = lb[4] = lb[5] = -1.0 / ori_nside;
-    ub[3] = ub[4] = ub[5] = 1.0;
+    ub[3] = ub[4] = ub[5] = 1.0 + 1.0 / ori_nside;
     return nside;
   }
   F6 xform_to_F6(Xform x, K &cell_index) const {
@@ -127,21 +127,25 @@ struct XformHash_bt24_BCC6 {
     F6 p6 = xform_to_F6(x, cell_index);
 #ifdef NDEBUG
 #undef NDEBUG
-    assert((grid6_[p6] >> 55) == 0);
+    assert((grid6_[p6] >> GRID_KEY_BITS) == 0);
 #define NDEBUG
 #else
-    assert((grid6_[p6] >> 55) == 0);
+    assert((grid6_[p6] >> GRID_KEY_BITS) == 0);
 #endif
 
     return combine_cell_grid_index(cell_index, grid6_[p6]);
   }
-  K cell_index(K key) const { return key >> 55; }
+  bool bad_grid_key(K k) const { return 0 < (k >> GRID_KEY_BITS); }
+  bool bad_cell_index(K k) const { return k > 23; }
+  K cell_index(K key) const { return key >> GRID_KEY_BITS; }
+  K grid_key(K key) const { return (key << 9) >> 9; }
   K combine_cell_grid_index(K cell_index, K grid_index) const {
-    return cell_index << 55 | grid_index;
+    return cell_index << GRID_KEY_BITS | grid_index;
   }
+
   Xform get_center(K key) const {
-    K cell_index = key >> 55;
-    auto tmp = grid6_[key & (((K)1 << 55) - (K)1)];
+    K cell_index = key >> GRID_KEY_BITS;
+    auto tmp = grid6_[key & (((K)1 << GRID_KEY_BITS) - (K)1)];
     F6 params6;
     for (int i = 0; i < 6; ++i) params6[i] = tmp[i];
     return F6_to_xform(params6, cell_index);

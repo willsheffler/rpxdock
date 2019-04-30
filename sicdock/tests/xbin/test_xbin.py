@@ -83,15 +83,14 @@ def test_key_of_pairs():
     assert np.all(k1 == k3)
 
 
-def test_xbin_covrad():
-
-    niter = 30
-    nsamp = 1000
+def test_xbin_covrad(niter=20, nsamp=5000):
+    ori_tight, cart_tight = False, False
     for i in range(niter):
         cart_resl = np.random.rand() * 10 + 0.125
-        ori_resl = np.random.rand() * 50 + 2.5
+        ori_resl = np.random.rand() * 50 + 2.6
         xforms = hm.rand_xform(nsamp)
         xb = xbin.XBin(cart_resl, ori_resl, 512)
+        ori_resl = xb.ori_resl
         idx = xb.key_of(xforms)
         cen = xb.bincen_of(idx)
         cart_dist = np.linalg.norm(xforms[..., :3, 3] - cen[..., :3, 3], axis=-1)
@@ -103,7 +102,11 @@ def test_xbin_covrad():
         # print('ori_resl', ori_resl, 'nside:', xb.ori_nside,
         # 'max(ori_dist):', np.max(ori_dist))
         assert np.all(cart_dist < cart_resl)
-        assert np.all(ori_dist < ori_resl / 180 * np.pi)
+        assert np.all(ori_dist < 1.05 * ori_resl / 180 * np.pi)
+        cart_tight |= np.max(cart_dist) > cart_resl * 0.85
+        ori_tight |= np.max(ori_dist) > ori_resl * 0.8 / 180 * np.pi
+    assert cart_tight
+    assert ori_tight
 
 
 def test_xbin_covrad_ori():
@@ -111,8 +114,8 @@ def test_xbin_covrad_ori():
     for ori_nside in range(1, 20):
         cart_resl = 1
         xb = xbin.create_XBin_nside(cart_resl, ori_nside, 512)
-        ori_resl = xb.ori_resl()
-        assert ori_nside == xb.ori_nside()
+        ori_resl = xb.ori_resl
+        assert ori_nside == xb.ori_nside
         xforms = hm.rand_xform(nsamp)
         idx = xb.key_of(xforms)
         cen = xb.bincen_of(idx)
@@ -146,14 +149,16 @@ def test_key_of_pairs2_ss():
 
 def test_xbin_grid():
     xb = xbin.create_XBin_nside(1, 1, 512)
-    bcc = xb.grid()
+    bcc = xb.grid6
     print(bcc)
 
 
 if __name__ == "__main__":
     # test_xbin_cpp()
+    # test_create_binner()
     # test_key_of()
-    # test_xbin_covrad()
+    # test_key_of_pairs()
+    test_xbin_covrad()
     # test_xbin_covrad_ori()
     # test_key_of_pairs2_ss()
-    test_xbin_grid()
+    # test_xbin_grid()

@@ -49,6 +49,9 @@ using RefVectorXd = RefVectorX<double>;
 using VectorXi = VectorX<int>;
 using RefVectorXi = RefVectorX<int>;
 
+template <typename F>
+using MapVectorXform = Eigen::Map<VectorX<X3<F>>>;
+
 template <class F>
 F epsilon2() {
   return std::sqrt(std::numeric_limits<F>::epsilon());
