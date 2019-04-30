@@ -45,7 +45,7 @@ def test_bin_score(respairscore):
 def test_bin_get_all_data(respairscore):
     # on real system: perf perrot: 434,667 perkey: 141,453
 
-    assert not respairscore.range_map.__contains__(0)
+    assert not respairscore.range_map.has([0])
     keys = np.zeros(len(respairscore.keys) * 2, dtype="u8")
     keys[: len(respairscore.keys)] = respairscore.keys
     np.random.shuffle(keys)
@@ -65,18 +65,18 @@ def test_bin_get_all_data(respairscore):
     print(f"perf perrot: {int(totsize / t):,} perkey: {int(len(binrots) / t):,}")
 
 
-if __name__ == "__main__":
+if 0:  # __name__ == "__main__":
     import _pickle
 
     # f = "/home/sheffler/debug/sicdock/datafiles/respairdat_si30_rotamers.pickle"
     # f2 = "/home/sheffler/debug/sicdock/datafiles/respairdat_si30_rotamers"
-    # f = "sicdock/data/respairdat10.pickle"
+    f = "sicdock/data/respairdat10_plus_xmap_rots.pickle"
     f2 = "sicdock/data/respairscore10"
-    # with open(f, "rb") as inp:
-    #     rp = ResPairData(_pickle.load(inp))
-    #     test_create_res_pair_score(rp, f2)
+    with open(f, "rb") as inp:
+        rp = ResPairData(_pickle.load(inp))
+        test_create_res_pair_score(rp, f2)
 
     rps = load_respairscore(f2)
-    # test_pair_score(rps)
+    test_pair_score(rps)
     test_bin_get_all_data(rps)
-    # test_bin_score(rps)
+    test_bin_score(rps)

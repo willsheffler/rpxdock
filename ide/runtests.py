@@ -24,11 +24,11 @@ _override = {
     "xbin.hpp": ["sicdock/tests/xbin/test_xbin.py"],
     "_xbin.cpp": ["sicdock/tests/xbin/test_xbin.py"],
     "xmap.cpp": ["sicdock/tests/xbin/test_xmap.py"],
+    "phmap.cpp": ["sicdock/tests/phmap/test_phmap.py"],
+    "phmap.hpp": ["sicdock/tests/phmap/test_phmap.py"],
     "xbin_test.cpp": ["sicdock/tests/xbin/test_xbin.py"],
     "_motif.cpp": ["sicdock/motif/motif.py"],
     "primitive.hpp": ["sicdock/tests/geom/test_geom.py"],
-    "SimpleArray.hpp": ["sicdock/tests/util/test_util.py"],
-    "SimpleArray_test.cpp": ["sicdock/tests/util/test_util.py"],
     "dilated_int.hpp": ["sicdock/tests/util/test_util.py"],
     "dilated_int_test.cpp": ["sicdock/tests/util/test_util.py"],
     "numeric.hpp": ["sicdock/tests/xbin/test_xbin.py"],
@@ -36,6 +36,10 @@ _override = {
     "xform_hierarchy.cpp": ["sicdock/tests/sampling/test_xform_hierarchy.py"],
     "miniball.cpp": ["sicdock/tests/geom/test_geom.py"],
     "miniball.hpp": ["sicdock/tests/geom/test_geom.py"],
+    "smear.hpp": ["sicdock/tests/xbin/test_smear.py"],
+    "smear.cpp": ["sicdock/tests/xbin/test_smear.py"],
+    "bcc.hpp": ["sicdock/tests/geom/test_bcc.py"],
+    "bcc.cpp": ["sicdock/tests/geom/test_bcc.py"],
 }
 _post = defaultdict(lambda: "")
 

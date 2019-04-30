@@ -3,6 +3,22 @@ import pytest, os, sys, _pickle
 from os.path import join, dirname, abspath, exists
 from sicdock.motif import ResPairData, load_respairscore
 
+# addoption doesn't work for me
+# def pytest_addoption(parser):
+#     parser.addoption(
+#         "--runslow", action="store_true", default=False, help="run slow tests"
+#     )
+#
+#
+# def pytest_collection_modifyitems(config, items):
+#     if config.getoption("--runslow"):
+#         # --runslow given in cli: do not skip slow tests
+#         return
+#     skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+#     for item in items:
+#         if "slow" in item.keywords:
+#             item.add_marker(skip_slow)
+
 
 @pytest.fixture(scope="session")
 def datadir():
@@ -42,7 +58,7 @@ def C5_1ojx(pdbdir):
 
 @pytest.fixture(scope="session")
 def respairdat(datadir):
-    with open(join(datadir, "respairdat10.pickle"), "rb") as inp:
+    with open(join(datadir, "respairdat10_plus_xmap_rots.pickle"), "rb") as inp:
         return ResPairData(_pickle.load(inp))
 
 

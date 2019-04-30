@@ -1,18 +1,16 @@
 #pragma once
 
-#include "sicdock/util/SimpleArray.hpp"
 #include "sicdock/util/types.hpp"
-
 namespace sicdock {
 namespace util {
 
-template <class F>
+template <typename F>
 F square(F x) {
   return x * x;
 }
 
 ///@brief return sum of highest two elements in vector
-template <class Vector, class Index>
+template <typename Vector, typename Index>
 void max2(Vector vector, typename Vector::Scalar &mx1,
           typename Vector::Scalar &mx2, Index &argmax_1, Index &argmax_2) {
   // TODO: is there a faster way to do this?
@@ -21,7 +19,7 @@ void max2(Vector vector, typename Vector::Scalar &mx1,
   mx2 = vector.maxCoeff(&argmax_2);
 }
 
-template <class Q>
+template <typename Q>
 Q to_half_cell(Q const &q) {
   using NL = std::numeric_limits<typename Q::Scalar>;
   auto epsilon = std::sqrt(NL::epsilon());
@@ -45,7 +43,7 @@ Vn first4_quat_to_half_cell(Vn v) {
   return v;
 }
 
-template <class F>
+template <typename F>
 static F const *get_raw_48cell_half() {
   static F const r = sqrt(2) / 2;
   static F const h = 0.5;
@@ -78,7 +76,7 @@ static F const *get_raw_48cell_half() {
   return raw48;
 }
 
-template <class V4, class Index>
+template <typename V4, typename Index>
 void get_cell_48cell_half(V4 const &quat, Index &cell) {
   typedef typename V4::Scalar F;
   V4 const quat_pos = quat.cwiseAbs();
@@ -130,21 +128,25 @@ void get_cell_48cell_half(V4 const &quat, Index &cell) {
   }
 }
 
-using namespace Eigen;
-using std::cout;
-using std::endl;
-
-template <class F, class Index>
+template <typename F, typename Index>
 Eigen::Map<Eigen::Quaternion<F> const> hbt24_cellcen(Index const &i) {
   using QuatWrap = Eigen::Map<Eigen::Quaternion<F> const>;
   return QuatWrap(get_raw_48cell_half<F>() + 4 * i);
 }
 
-template <class A>
+template <int DIM, typename A>
 void clamp01(A &a) {
-  for (int i = 0; i < A::N; ++i) {
+  for (int i = 0; i < DIM; ++i) {
     a[i] = fmin(1.0, fmax(0.0, a[i]));
   }
+}
+
+template <typename T, int DIM>
+Eigen::Array<T, DIM, 1> mod(Eigen::Array<T, DIM, 1> a,
+                            Eigen::Array<T, DIM, 1> b) {
+  Eigen::Array<T, DIM, 1> out;
+  for (int i = 0; i < DIM; ++i) out[i] = a[i] % b[i];
+  return out;
 }
 
 }  // namespace util

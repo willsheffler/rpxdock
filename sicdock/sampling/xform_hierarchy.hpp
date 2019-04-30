@@ -1,6 +1,5 @@
 #pragma once
 
-#include "sicdock/util/SimpleArray.hpp"
 #include "sicdock/util/dilated_int.hpp"
 #include "sicdock/util/numeric.hpp"
 #include "sicdock/util/types.hpp"

@@ -7,7 +7,39 @@ from sicdock.rotamer import get_rotamer_space, assign_rotamers, check_rotamer_de
 from sicdock.motif import _motif as cpp
 from sicdock.motif.pairscore import ResPairScore, create_res_pair_score
 from sicdock.motif.pairdat import ResPairData
-import getpy as gp
+from sicdock.data import pdbdir
+
+
+def pair_key_ss(resi, ssi, resj, ssj, stub, cart_resl, ori_resl):
+    kij = xbin.key_of_pairs2(resi, resj, stub, stub, cart_resl, ori_resl)
+    kji = xbin.key_of_pairs2(resj, resi, stub, stub, cart_resl, ori_resl)
+    assert kij.dtype == np.uint64
+    ssi = ssi.astype("u8")
+    ssj = ssj.astype("u8")
+    kijss = np.bitwise_or(np.left_shift(ssi, 62), np.left_shift(ssj, 60))
+    kjiss = np.bitwise_or(np.left_shift(ssj, 62), np.left_shift(ssi, 60))
+    kssij = np.bitwise_or(kij, kijss)
+    kssji = np.bitwise_or(kji, kjiss)
+    # assert np.all(np.right_shift(kssij, 62) == ssi)
+    # assert np.all(np.right_shift(kssji, 62) == ssj)
+    # assert np.all(np.right_shift(np.left_shift(kssij, 2), 62) == ssj)
+    # assert np.all(np.right_shift(np.left_shift(kssji, 2), 62) == ssi)
+    # assert np.all(np.right_shift(np.left_shift(kssij, 4), 4) == kij)
+    # assert np.all(np.right_shift(np.left_shift(kssji, 4), 4) == kji)
+    return kssij, kssji
+
+
+def get_pair_keys(rp, min_ssep=10, cart_resl=1, ori_resl=20):
+    mask = (rp.p_resj - rp.p_resi).data >= min_ssep
+    resi = rp.p_resi.data[mask]
+    resj = rp.p_resj.data[mask]
+    ssi = rp.ssid[resi]
+    ssj = rp.ssid[resj]
+    stub = rp.stub.data
+    kij = np.zeros(len(rp.p_resi), dtype="u8")
+    kji = np.zeros(len(rp.p_resi), dtype="u8")
+    kij[mask], kji[mask] = pair_key_ss(resi, ssi, resj, ssj, stub, cart_resl, ori_resl)
+    return kij, kji
 
 
 def bb_stubs(n, ca=None, c=None):
@@ -84,7 +116,7 @@ def make_respairdat_subsets(rp):
     keep = np.arange(len(rp.pdbid))
     np.random.shuffle(keep)
     rp10 = rp.subset_by_pdb(keep[:10])
-    with open("sicdock/tests/motif/respairdat10.pickle", "wb") as out:
+    with open("sicdock/tests/motif/respairdat10_plus_xmap_rots.pickle", "wb") as out:
         _pickle.dump(rp10.data, out)
     rp100 = rp.subset_by_pdb(keep[:100])
     with open("sicdock/tests/motif/respairdat100.pickle", "wb") as out:
@@ -92,6 +124,15 @@ def make_respairdat_subsets(rp):
     rp1000 = rp.subset_by_pdb(keep[:1000])
     with open("sicdock/tests/motif/respairdat1000.pickle", "wb") as out:
         _pickle.dump(rp1000.data, out)
+
+
+def remove_redundant_pdbs(pdbs, sequence_identity=30):
+    assert sequence_identity in (30, 40, 50, 70, 90, 95, 100)
+    listfile = "pdbids_20190403_si%i.txt" % sequence_identity
+    with open(os.path.join(pdbdir, listfile)) as inp:
+        goodids = set(l.strip() for l in inp.readlines())
+        assert all(len(g) == 4 for g in goodids)
+    return np.array([i for i, p in enumerate(pdbs) if p[:4].upper() in goodids])
 
 
 def build_motif_table(rp, cart_resl=1, ori_resl=20):
@@ -110,7 +151,7 @@ def build_motif_table(rp, cart_resl=1, ori_resl=20):
     # add_xbin_to_respairdat(rp, f)
 
 
-if __name__ == "__main__":
+if 0:  # __name__ == "__main__":
     from sicdock.motif._loadhack import respairdat
 
     build_motif_table(respairdat)

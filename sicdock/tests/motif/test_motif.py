@@ -1,36 +1,5 @@
 from sicdock.motif import *
-
-
-def pair_key_ss(resi, ssi, resj, ssj, stub, cart_resl, ori_resl):
-    kij = xbin.key_of_pairs2(resi, resj, stub, stub, cart_resl, ori_resl)
-    kji = xbin.key_of_pairs2(resj, resi, stub, stub, cart_resl, ori_resl)
-    assert kij.dtype == np.uint64
-    ssi = ssi.astype("u8")
-    ssj = ssj.astype("u8")
-    kijss = np.bitwise_or(np.left_shift(ssi, 62), np.left_shift(ssj, 60))
-    kjiss = np.bitwise_or(np.left_shift(ssj, 62), np.left_shift(ssi, 60))
-    kssij = np.bitwise_or(kij, kijss)
-    kssji = np.bitwise_or(kji, kjiss)
-    # assert np.all(np.right_shift(kssij, 62) == ssi)
-    # assert np.all(np.right_shift(kssji, 62) == ssj)
-    # assert np.all(np.right_shift(np.left_shift(kssij, 2), 62) == ssj)
-    # assert np.all(np.right_shift(np.left_shift(kssji, 2), 62) == ssi)
-    # assert np.all(np.right_shift(np.left_shift(kssij, 4), 4) == kij)
-    # assert np.all(np.right_shift(np.left_shift(kssji, 4), 4) == kji)
-    return kssij, kssji
-
-
-def get_pair_keys(rp, min_ssep=10, cart_resl=1, ori_resl=20):
-    mask = (rp.p_resj - rp.p_resi).data >= min_ssep
-    resi = rp.p_resi.data[mask]
-    resj = rp.p_resj.data[mask]
-    ssi = rp.ssid[resi]
-    ssj = rp.ssid[resj]
-    stub = rp.stub.data
-    kij = np.zeros(len(rp.p_resi), dtype="u8")
-    kji = np.zeros(len(rp.p_resi), dtype="u8")
-    kij[mask], kji[mask] = pair_key_ss(resi, ssi, resj, ssj, stub, cart_resl, ori_resl)
-    return kij, kji
+import pytest
 
 
 def test_jagged_bin():
@@ -77,13 +46,24 @@ def test_pair_key(respairdat):
     assert np.all(np.right_shift(np.left_shift(kji, 2), 62) == ss[resi])
 
 
-def test_respairdat_mod(respairdat):
+@pytest.mark.slow
+def test_respairdat_addrots(respairdat):
     rotspace = get_rotamer_space()
     add_rots_to_respairdat(respairdat, rotspace)
     m, s = check_rotamer_deviation(respairdat, rotspace, quiet=1)
     assert m < 20
     assert s < 20
     add_xbin_to_respairdat(respairdat, min_ssep=10, cart_resl=1, ori_resl=20)
+
+
+def test_remove_redundant_pdbs():
+    pdbs = "12AS 155C 16PK 16VP 1914 19HC 1A04 1A05 1A0C 1A0D".split()
+    assert 3 == len(remove_redundant_pdbs(pdbs, 30))
+    assert 4 == len(remove_redundant_pdbs(pdbs, 40))
+    assert 5 == len(remove_redundant_pdbs(pdbs, 50))
+    assert 7 == len(remove_redundant_pdbs(pdbs, 70))
+    assert 9 == len(remove_redundant_pdbs(pdbs, 90))
+    assert 10 == len(remove_redundant_pdbs(pdbs, 95))
 
 
 # if __name__ == "__main__":

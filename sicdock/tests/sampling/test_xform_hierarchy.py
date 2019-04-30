@@ -6,6 +6,7 @@ from sicdock.sampling.xform_hierarchy import *
 from sicdock.bvh.bvh_nd import *
 import homog as hm
 from scipy.spatial.distance import cdist
+from sicdock.geom.rotation import angle_of_3x3
 
 
 def urange(*args):
@@ -204,22 +205,21 @@ def test_zorder():
 
 
 def test_ori_hier_all2():
-    minrange = np.array(
-        [(116.5, 116.6), (68.8, 68.9), (39.4, 42.5), (19.3, 20.7), (9.5, 9.9), (5, 6)]
-    )
-    corner = [(0, 0), (0, 0), (0.125, 14)]
+    minrange = np.array([(89.9, 90.1), (41.0, 41.1), (20, 23)])
+    corner = [(0, 0), (0, 0), (0.125, 0.2)]
     ohier = OriHier(9e9)
-    for resl in range(3):
+    for resl in range(2):
         w, o = ohier.get_ori(resl, urange(ohier.size(resl)))
         assert np.allclose(np.linalg.det(o), 1)
         rel = o.swapaxes(1, 2)[:, None] @ o
-        amat = hm.angle_of(rel)
+        amat = angle_of_3x3(rel)
         assert np.allclose(amat.diagonal(), 0)
         np.fill_diagonal(amat, 9e9)
         mn = amat.min(axis=0)
         cfrac, cang = corner[resl]
-        print(np.unique(mn), cang, cfrac)
-        assert np.sum(mn < cang * np.pi / 180) / len(mn) == cfrac
+        # print(np.unique(mn), cang, cfrac)
+        # print("foo", np.sum(mn < cang) / len(mn))
+        assert np.sum(mn < cang) / len(mn) == cfrac
         mn = mn[mn > cang]
         # print(resl, len(mn), np.unique(mn) * 180 / np.pi)
         lb, ub = minrange[resl] / 180 * np.pi
@@ -229,21 +229,25 @@ def test_ori_hier_all2():
 
 
 def test_ori_hier_1cell():
-    minrange = np.array(
-        [(116.5, 116.6), (73.6, 73.7), (39.4, 42.5), (19.3, 23.0), (9.5, 12)]
-    )
+    minrange = np.array([(0, 0), (44.9, 45), (20.9, 22.5)])
     ohier = OriHier(9e9)
-    for resl in range(1, 4):
+    for resl in range(1, 3):
         w, o = ohier.get_ori(resl, urange(ohier.size(resl) / 24))
         assert np.allclose(np.linalg.det(o), 1)
         rel = o.swapaxes(1, 2)[:, None] @ o
-        amat = hm.angle_of(rel)
+        amat = angle_of_3x3(rel)
         assert np.allclose(amat.diagonal(), 0)
         np.fill_diagonal(amat, 9e9)
         mn = amat.min(axis=0)
         # print(resl, len(mn), np.unique(mn) * 180 / np.pi)
         lb, ub = minrange[resl] / 180 * np.pi
-        print(resl, np.unique((mn * 180 / np.pi).round(1)))
+        print(
+            "foo",
+            resl,
+            np.min(mn) * 180 / np.pi,
+            np.max(mn) * 180 / np.pi,
+            minrange[resl],
+        )
         assert np.all(lb < mn)
         assert np.all(mn < ub)
 
@@ -277,7 +281,7 @@ def analyze_ori_hier(nside, resl, nsamp):
     assert np.allclose(d, mindis[imax])
     a = hm.quat.quat_to_rot(sclose)
     b = hm.quat.quat_to_rot(hclose)
-    angle = hm.angle_of(a.T @ b) * 180 / np.pi
+    angle = angle_of_3x3(a.T @ b) * 180 / np.pi
 
     maxmindis = np.max(mindis)
     sphcellvol = 4 / 3 * np.pi * maxmindis ** 3
@@ -378,9 +382,9 @@ if __name__ == "__main__":
     # test_xform_hierarchy_get_xforms()
     # test_xform_hierarchy_get_xforms_bs()
     # test_xform_hierarchy_expand_top_N()
-    # test_ori_hier_all2()
-    # test_ori_hier_1cell()
+    test_ori_hier_all2()
+    test_ori_hier_1cell()
     # test_ori_hier_rand()
     # test_ori_hier_rand_nside()
     # test_avg_dist()
-    test_ori_hier_angresl()
+    # test_ori_hier_angresl()

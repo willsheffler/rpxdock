@@ -1,6 +1,6 @@
 #pragma once
 
-#include "sicdock/util/SimpleArray.hpp"
+#include "sicdock/util/numeric.hpp"
 #include "sicdock/util/str.hpp"
 // #include "util/template_loop.hpp"
 
@@ -8,6 +8,8 @@
 
 namespace sicdock {
 namespace geom {
+
+using util::mod;
 
 // TODO: add bounds checking .at methods!
 
@@ -20,107 +22,206 @@ namespace geom {
  *      if range is 0..1 and 2 cells, x values could be 0, 0.25, 0.5 and 0.75
  * ((not 1.0!!))
  */
-template <int _DIM, class _Float = double, class _Index = uint64_t>
+template <int _DIM, typename _Float = double, typename _Index = uint64_t>
 struct BCC {
   static const int DIM = _DIM;
-  using Float = _Float;
-  using Index = _Index;
-  using Indices = util::SimpleArray<DIM, Index>;
-  using Floats = util::SimpleArray<DIM, Float>;
+  using F = _Float;
+  using I = _Index;
+  using In = Eigen::Array<I, DIM, 1>;
+  using Fn = Eigen::Array<F, DIM, 1>;
 
   static_assert((DIM > 2));
 
-  Indices nside_, nside_prefsum_;
-  Floats lower_, width_, lower_cen_, half_width_;
-  Indices nside() const { return nside_; }
-  Floats lower() const { return lower_; }
-  Floats width() const { return width_; }
-  Floats upper() const {
-    return lower_ + width_ * (nside().template cast<Float>());
-  }
+  In nside_, nside_prefsum_;
+  Fn lower_, width_, lower_cen_, half_width_;
+  In nside() const { return nside_; }
+  Fn lower() const { return lower_; }
+  Fn width() const { return width_; }
+  Fn upper() const { return lower_ + width_ * (nside().template cast<F>()); }
 
-  bool operator!=(BCC<DIM, Float, Index> o) const { return !(*this == o); }
-  bool operator==(BCC<DIM, Float, Index> o) const {
+  bool operator!=(BCC<DIM, F, I> o) const { return !(*this == o); }
+  bool operator==(BCC<DIM, F, I> o) const {
     return nside_ == o.nside_ && lower_ == o.lower_ && width_ == o.width_;
   }
 
   BCC() {}
 
-  template <class Sizes>
-  BCC(Sizes sizes, Floats lower = Floats(0), Floats upper = Floats(1)) {
+  BCC(In sizes, Fn lower = Fn(0), Fn upper = Fn(1)) {
     init(sizes, lower, upper);
   }
 
-  template <class Sizes>
-  void init(Sizes sizes, Floats lower, Floats upper) {
+  void init(In sizes, Fn lower, Fn upper) {
     nside_ = sizes;
     lower_ = lower;
-    for (size_t i = 0; i < DIM; ++i) nside_prefsum_[i] = nside_.prod(i);
-    width_ = (upper - lower_) / nside_.template cast<Float>();
+    nside_prefsum_[0] = 1;
+    for (size_t i = 1; i < DIM; ++i)
+      nside_prefsum_[i] = nside_prefsum_[i - 1] * nside_[i - 1];
+    width_ = (upper - lower_) / nside_.template cast<F>();
     half_width_ = width_ / 2.0;
     lower_cen_ = lower_ + half_width_;
     __int128 totsize = 2;
     for (size_t i = 0; i < DIM; ++i) {
-      if (totsize * nside_[i] < totsize)
-        throw std::invalid_argument("Index Type is too narrow");
+      if (sizes[i] > 18446744073709551)
+        throw std::invalid_argument(
+            "I Type is too narrow, are you passing negative vals?");
       totsize *= __int128(nside_[i]);
-      if (totsize > __int128(std::numeric_limits<Index>::max()))
-        throw std::invalid_argument("Index Type is too narrow");
+      if (totsize > __int128(std::numeric_limits<I>::max())) {
+        for (int i = 0; i < DIM; ++i)
+          std::cout << i << " " << nside_[i] << std::endl;
+        throw std::invalid_argument("I Type is too narrow");
+      }
     }
     // std::cout << lower_ << std::endl;
-    // std::cout << lower_ + nside_.template cast<Float>() * width_ <<
+    // std::cout << lower_ + nside_.template cast<F>() * width_ <<
     // std::endl;
   }
 
-  Index size() const noexcept { return nside_.prod() * 2; }
+  I size() const noexcept { return nside_.prod() * 2; }
   int dim() const noexcept { return DIM; }
 
-  Floats operator[](Index index) const noexcept {
+  Fn get_value(I index) const noexcept {
     bool odd = index & 1;
     // std::cout << "bcc get_floats " << index << std::endl;
-    Indices indices = ((index >> 1) / nside_prefsum_) % nside_;
+    In indices;
+    for (int i = 0; i < DIM; ++i)
+      indices[i] = ((index >> 1) / nside_prefsum_[i]) % nside_[i];
     // std::cout << "bcc get_floats " << indices << " " << odd << std::endl;
     return this->get_center(indices, odd);
   }
+  Fn operator[](I index) const noexcept { return get_value(index); }
 
-  Floats get_center(Indices indices, bool odd) const noexcept {
-    return lower_cen_ + width_ * indices.template cast<Float>() +
-           (odd ? half_width_ : 0);
+  Fn get_center(In indices, bool odd) const noexcept {
+    return lower_cen_ + width_ * indices.template cast<F>() +
+           (odd ? half_width_ : Fn(0));
   }
 
-  Indices get_indices(Floats value, bool &odd) const noexcept {
+  In get_indices(Fn value, bool &odd) const noexcept {
     value = (value - lower_) / width_;
     // std::cout << "bcc::get_indices lower_ " << lower_ << std::endl;
     // std::cout << "bcc::get_indices width_ " << width_ << std::endl;
     // std::cout << "bcc::get_indices " << value << std::endl;
-    Indices const indices = value.template cast<Index>();
+    In const indices = value.template cast<I>();
     // std::cout << "bcc::get_indices " << indices << std::endl;
-    value = value - indices.template cast<Float>() - 0.5;
+    value = value - indices.template cast<F>() - 0.5;
     // std::cout << "bcc::get_indices " << value << std::endl;
-    Indices const corner_indices = indices - (value < 0).template cast<Index>();
+    In const corner_indices = indices - (value < 0).template cast<I>();
     // std::cout << "bcc::get_indices " << corner_indices << std::endl;
     odd = (0.25 * DIM) < fabs((value.sign() * value).sum());
     return odd ? corner_indices : indices;
   }
 
-  Index operator[](Floats value) const noexcept {
+  template <typename Ary>
+  I get_index(Ary value) const noexcept {
     bool odd;
-    Indices indices = get_indices(value, odd);
+    In indices = get_indices(value, odd);
     // std::cout << "bcc get_idx " << indices << " " << odd << std::endl;
-    Index index = (nside_prefsum_ * indices).sum();
+    I index = (nside_prefsum_ * indices).sum();
     index = (index << 1) + odd;
     // std::cout << "bcc get idx " << index << std::endl;
     return index;
   }
+  template <typename Ary>
+  I operator[](Ary value) const noexcept {
+    return get_index(value);
+  }
 
-  template <class Iiter>
-  void neighbors(Index index, Iiter iter, bool edges = false,
-                 bool edges2 = false) const noexcept {
+  template <typename Iiter>
+  std::enable_if_t<DIM == 6> neighbors_6_3(I index, Iiter &iter, int range = 1,
+                                           bool do_midpoints = true,
+                                           bool odd_last3 = false) const
+      noexcept {
+    bool odd0 = index & 1, odd = odd0;
+    In tmp = ((index >> 1) / nside_prefsum_);
+    In idx0 = mod(tmp, nside_), idx = idx0;
+    int lb = -range, ub = range + 1;
+    int olb = 1 - range, oub = range + 1;
+
+    // -0+ wtih same parity
+    for (int i = lb; i < ub; ++i) {
+      idx[0] = idx0[0] + i;
+      for (int j = lb; j < ub; ++j) {
+        idx[1] = idx0[1] + j;
+        for (int k = lb; k < ub; ++k) {
+          idx[2] = idx0[2] + k;
+          *iter++ = (nside_prefsum_ * idx).sum() << 1 | odd;
+        }
+      }
+    }
+    if (!do_midpoints) return;
+    // -+ wtih opposite parity
+    odd = !odd;
+    for (int i = olb; i < oub; ++i) {
+      idx[0] = idx0[0] + i - odd;
+      for (int j = olb; j < oub; ++j) {
+        idx[1] = idx0[1] + j - odd;
+        for (int k = olb; k < oub; ++k) {
+          idx[2] = idx0[2] + k - odd;
+
+          if (odd_last3)
+            for (int l = 0; l < 2; ++l) {
+              idx[3] = idx0[3] + l - odd;
+              for (int m = 0; m < 2; ++m) {
+                idx[4] = idx0[4] + m - odd;
+                for (int n = 0; n < 2; ++n) {
+                  idx[5] = idx0[5] + n - odd;
+                  *iter++ = (nside_prefsum_ * idx).sum() << 1 | odd;
+                }
+              }
+            }
+          else
+            *iter++ = (nside_prefsum_ * idx).sum() << 1 | odd;
+        }
+      }
+    }
+  }
+  template <typename Iiter>
+  std::enable_if_t<DIM == 3> neighbors_3(I index, Iiter &iter, int range = 1,
+                                         bool do_midpoints = true,
+                                         bool more_midpoints = false) const
+      noexcept {
+    bool odd0 = index & 1, odd = odd0;
+    In tmp = ((index >> 1) / nside_prefsum_);
+    In idx0 = mod(tmp, nside_), idx = idx0;
+    int lb = -range, ub = range + 1;
+    int olb = 1 - range, oub = range + 1;
+    if (more_midpoints) {
+      olb -= 1;
+      oub += 1;
+    }
+
+    // -0+ wtih same parity
+    for (int i = lb; i < ub; ++i) {
+      idx[0] = idx0[0] + i;
+      for (int j = lb; j < ub; ++j) {
+        idx[1] = idx0[1] + j;
+        for (int k = lb; k < ub; ++k) {
+          idx[2] = idx0[2] + k;
+          *iter++ = (nside_prefsum_ * idx).sum() << 1 | odd;
+        }
+      }
+    }
+    if (!do_midpoints) return;
+    // -+ wtih opposite parity
+    odd = !odd;
+    for (int i = olb; i < oub; ++i) {
+      idx[0] = idx0[0] + i - odd;
+      for (int j = olb; j < oub; ++j) {
+        idx[1] = idx0[1] + j - odd;
+        for (int k = olb; k < oub; ++k) {
+          idx[2] = idx0[2] + k - odd;
+          *iter++ = (nside_prefsum_ * idx).sum() << 1 | odd;
+        }
+      }
+    }
+  }
+
+  template <typename Iiter>
+  void neighbors_old(I index, Iiter iter, bool edges = false) const noexcept {
     *iter++ = index;
     bool odd = index & 1;
-    Indices indices = ((index >> 1) / nside_prefsum_) % nside_;
+    In indices = ((index >> 1) / nside_prefsum_) % nside_;
     // std::cout << indices << std::endl;
-    for (Index i = 0; i < DIM; ++i) {
+    for (I i = 0; i < DIM; ++i) {
       indices[i] += 1;
       // std::cout << indices << " " << i1 << std::endl;
       if ((indices < nside_).sum() == DIM)
@@ -132,9 +233,9 @@ struct BCC {
       indices[i] += 1;  // reset
     }
     odd = !odd;
-    Index sodd = odd ? -1 : 1;
-    for (Index i = 0; i < (1 << DIM); ++i) {
-      Indices corner(indices);
+    I sodd = odd ? -1 : 1;
+    for (I i = 0; i < (1 << DIM); ++i) {
+      In corner(indices);
       for (int d = 0; d < DIM; ++d) corner[d] += ((i >> d) & 1) ? sodd : 0;
       // std::cout << corner << std::endl;
       if ((corner < nside_).sum() == DIM)
@@ -142,8 +243,8 @@ struct BCC {
     }
     if (edges) {
       odd = !odd;
-      for (Index i = 0; i < DIM - 1; ++i) {
-        for (Index j = i + 1; j < DIM; ++j) {
+      for (I i = 0; i < DIM - 1; ++i) {
+        for (I j = i + 1; j < DIM; ++j) {
           indices[i] += 1;
           indices[j] += 1;  // +1,+1
           // std::cout << indices << " " << i1 << std::endl;
@@ -170,70 +271,70 @@ struct BCC {
   }
 };
 
-template <int DIM, class Float, class Index>
-std::ostream &operator<<(std::ostream &out, BCC<DIM, Float, Index> bcc) {
+template <int DIM, typename F, typename I>
+std::ostream &operator<<(std::ostream &out, BCC<DIM, F, I> bcc) {
   using namespace util;
-  std::string name = "BCC" + str(DIM) + short_str<Float>() + short_str<Index>();
+  std::string name = "BCC" + str(DIM) + short_str<F>() + short_str<I>();
   return out << name << "(lb=[" << bcc.lower_ << "], ub=["
-             << (bcc.width_ * bcc.nside_.template cast<Float>() + bcc.lower_)
+             << (bcc.width_ * bcc.nside_.template cast<F>() + bcc.lower_)
              << "], width=[" << bcc.width_ << "], nside=[" << bcc.nside_
              << "])";
 }
 
-template <int DIM, class Float, class Index = uint64_t>
+template <int DIM, typename F, typename I = uint64_t>
 struct Cubic {
-  typedef util::SimpleArray<DIM, Index> Indices;
-  typedef util::SimpleArray<DIM, Float> Floats;
+  typedef Eigen::Array<I, DIM, 1> In;
+  typedef Eigen::Array<F, DIM, 1> Fn;
   static_assert((DIM > 2));
 
-  Indices nside_, nside_prefsum_;
-  Floats lower_, width_, lower_cen_, half_width_;
+  In nside_, nside_prefsum_;
+  Fn lower_, width_, lower_cen_, half_width_;
 
   Cubic() {}
 
-  template <class Sizes>
-  Cubic(Sizes sizes, Floats lower = Floats(0), Floats upper = Floats(1)) {
+  template <typename Sizes>
+  Cubic(Sizes sizes, Fn lower = Fn(0), Fn upper = Fn(1)) {
     init(sizes, lower, upper);
   }
 
-  template <class Sizes>
-  void init(Sizes sizes, Floats lower = Floats(0), Floats upper = Floats(1)) {
+  template <typename Sizes>
+  void init(Sizes sizes, Fn lower = Fn(0), Fn upper = Fn(1)) {
     nside_ = sizes;
     lower_ = lower;
     for (size_t i = 0; i < DIM; ++i) nside_prefsum_[i] = nside_.prod(i);
-    width_ = (upper - lower_) / nside_.template cast<Float>();
+    width_ = (upper - lower_) / nside_.template cast<F>();
     half_width_ = width_ / 2.0;
     lower_cen_ = lower_ + half_width_;
   }
 
-  Index size() const noexcept { return nside_.prod(); }
+  I size() const noexcept { return nside_.prod(); }
 
-  Floats operator[](Index index) const noexcept {
-    Indices indices = (index / nside_prefsum_) % nside_;
+  Fn operator[](I index) const noexcept {
+    In indices = (index / nside_prefsum_) % nside_;
     return get_center(indices);
   }
 
-  Floats get_center(Indices indices) const noexcept {
-    return lower_cen_ + width_ * indices.template cast<Float>();
+  Fn get_center(In indices) const noexcept {
+    return lower_cen_ + width_ * indices.template cast<F>();
   }
 
-  Indices get_indices(Floats value) const noexcept {
+  In get_indices(Fn value) const noexcept {
     value = (value - lower_) / width_;
-    return value.template cast<Index>();
+    return value.template cast<I>();
   }
 
-  Index operator[](Floats value) const noexcept {
-    Indices indices = get_indices(value);
+  I operator[](Fn value) const noexcept {
+    In indices = get_indices(value);
     return (nside_prefsum_ * indices).sum();
   }
 
-  template <class Iiter>
-  void neighbors(Index index, Iiter iter, bool = false) const noexcept {
-    Indices idx0 = (index / nside_prefsum_) % nside_;
-    Indices threes(1);
+  template <typename Iiter>
+  void neighbors(I index, Iiter iter, bool = false) const noexcept {
+    In idx0 = (index / nside_prefsum_) % nside_;
+    In threes(1);
     for (int d = 1; d < DIM; ++d) threes[d] = 3 * threes[d - 1];
     for (int i = 0; i < threes[DIM - 1] * 3; ++i) {
-      Indices idx(idx0);
+      In idx(idx0);
       for (int d = 0; d < DIM; ++d) idx[d] += ((i / threes[d]) % 3) - 1;
       // std::cout << i << " " << (idx-idx0).template cast<int>()+1 <<
       // std::endl;

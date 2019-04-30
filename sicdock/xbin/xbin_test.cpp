@@ -83,10 +83,11 @@ bool xform_hash_perf_test(double cart_resl, double ang_resl,
   std::mt19937 rng((unsigned int)time(0) + seed);
 
   double time_key = 0.0, time_cen = 0.0;
-  double cart_resl2 = cart_resl * cart_resl;
-  double ang_resl2 = ang_resl * ang_resl;
 
   XformHash<Xform> xh(cart_resl, ang_resl, 512.0);
+  ang_resl = xh.ori_resl();
+  double cart_resl2 = cart_resl * cart_resl;
+  double ang_resl2 = ang_resl * ang_resl;
 
   std::vector<Xform> samples(N2), centers(N2);
 
@@ -123,18 +124,16 @@ bool xform_hash_perf_test(double cart_resl, double ang_resl,
     covrad = fmax(covrad, err);
     max_dt = fmax(max_dt, dt);
     max_da = fmax(max_da, da);
-    if (dt >= cart_resl || da >= ang_resl) {
-      std::cout << "TEST FAIL 127: " << cart_resl << " " << ang_resl << " "
-                << dt << " " << da << std::endl;
-    }
-    ASSERT_LT(dt, cart_resl)
-    ASSERT_LT(da, ang_resl)
   }
-  if (max_dt * 1.25 <= cart_resl || max_da * 1.41 <= ang_resl)
-    std::cout << "TEST FAIL 134: " << cart_resl << " " << ang_resl << " "
-              << max_dt << " " << max_da << std::endl;
-  ASSERT_GT(max_dt * 1.25, cart_resl)
-  ASSERT_GT(max_da * 1.41, ang_resl)  // multiplier of 1.41??
+  if (max_dt > cart_resl * 1.1 || max_dt < cart_resl * 0.8)
+    std::cout << "TEST FAIL cart: " << cart_resl << " " << max_dt << std::endl;
+  if (max_da > ang_resl * 1.1 || max_da < ang_resl * 0.8)
+    std::cout << "TEST FAIL ang: " << ang_resl << " " << max_da << " "
+              << xh.get_ori_resl(xh.ori_nside_) << std::endl;
+  ASSERT_GT(max_dt, cart_resl * 0.8)
+  ASSERT_LT(max_dt, cart_resl * 1.1)
+  ASSERT_GT(max_da, ang_resl * 0.8)
+  ASSERT_LT(max_da, ang_resl * 1.1)
 
   double tot_cell_vol = covrad * covrad * covrad * covrad * covrad * covrad *
                         xh.approx_nori() / (cart_resl * cart_resl * cart_resl);

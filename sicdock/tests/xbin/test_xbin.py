@@ -2,6 +2,8 @@ from time import perf_counter
 import numpy as np
 from cppimport import import_hook
 from sicdock.xbin import xbin_test, xbin
+from sicdock.geom.rotation import angle_of_3x3
+from sicdock.geom import bcc
 
 import homog as hm
 
@@ -82,17 +84,18 @@ def test_key_of_pairs():
 
 
 def test_xbin_covrad():
+
     niter = 30
     nsamp = 1000
     for i in range(niter):
-        cart_resl = np.random.rand() * 10 + 0.1
+        cart_resl = np.random.rand() * 10 + 0.125
         ori_resl = np.random.rand() * 50 + 2.5
         xforms = hm.rand_xform(nsamp)
         xb = xbin.XBin(cart_resl, ori_resl, 512)
         idx = xb.key_of(xforms)
         cen = xb.bincen_of(idx)
         cart_dist = np.linalg.norm(xforms[..., :3, 3] - cen[..., :3, 3], axis=-1)
-        ori_dist = hm.angle_of(hm.hinv(cen) @ xforms)
+        ori_dist = angle_of_3x3(cen[:, :3, :3].swapaxes(-1, -2) @ xforms[:, :3, :3])
         # if not np.all(cart_dist < cart_resl):
         # print('ori_resl', ori_resl, 'nside:', xb.ori_nside,
         # 'max(cart_dist):', np.max(cart_dist), cart_resl)
@@ -101,6 +104,26 @@ def test_xbin_covrad():
         # 'max(ori_dist):', np.max(ori_dist))
         assert np.all(cart_dist < cart_resl)
         assert np.all(ori_dist < ori_resl / 180 * np.pi)
+
+
+def test_xbin_covrad_ori():
+    nsamp = 10_000
+    for ori_nside in range(1, 20):
+        cart_resl = 1
+        xb = xbin.create_XBin_nside(cart_resl, ori_nside, 512)
+        ori_resl = xb.ori_resl()
+        assert ori_nside == xb.ori_nside()
+        xforms = hm.rand_xform(nsamp)
+        idx = xb.key_of(xforms)
+        cen = xb.bincen_of(idx)
+        cart_dist = np.linalg.norm(xforms[..., :3, 3] - cen[..., :3, 3], axis=-1)
+        ori_dist = angle_of_3x3(cen[:, :3, :3].swapaxes(-1, -2) @ xforms[:, :3, :3])
+        maxhole = np.max(ori_dist) * 180 / np.pi
+        print(f"nside: {ori_nside:2} resl: {ori_resl:7.2f}", f"actual: {maxhole}")
+        if maxhole > ori_resl:
+            print("NEW", ori_nside, maxhole)
+        assert maxhole <= ori_resl * 1.1
+        assert ori_resl * 0.8 < maxhole
 
 
 def test_key_of_pairs2_ss():
@@ -121,8 +144,16 @@ def test_key_of_pairs2_ss():
     assert np.all(ss2[i2] == np.right_shift(np.left_shift(kss, 2), 62))
 
 
+def test_xbin_grid():
+    xb = xbin.create_XBin_nside(1, 1, 512)
+    bcc = xb.grid()
+    print(bcc)
+
+
 if __name__ == "__main__":
-    assert xbin_test.TEST_XformHash_XformHash_bt24_BCC6()
-    test_key_of()
-    test_xbin_covrad()
-    test_key_of_pairs2_ss()
+    # test_xbin_cpp()
+    # test_key_of()
+    # test_xbin_covrad()
+    # test_xbin_covrad_ori()
+    # test_key_of_pairs2_ss()
+    test_xbin_grid()

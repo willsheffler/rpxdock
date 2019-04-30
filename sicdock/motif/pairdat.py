@@ -279,15 +279,14 @@ class ResPairData:
 
     def only_whats_needed(self, task):
         not_needed = dict(
-            seqproftest="phi psi omega chi1 chi2 chi3 chi4 chain r_fa_sol r_fa_intra_atr_xover4 r_fa_intra_rep_xover4 r_fa_intra_sol_xover4 r_lk_ball r_lk_ball_iso r_lk_ball_bridge r_lk_ball_bridge_uncpl r_fa_elec r_fa_intra_elec r_pro_close r_hbond_sr_bb r_hbond_lr_bb r_hbond_bb_sc r_hb_sc r_dslf_fa13 r_rama_prepro r_omega r_p_aa_pp r_fa_dun_rot r_fa_dun_dev r_fa_dun_semi r_hxl_tors r_ref sasa2 sasa4 nnb6 nnb8 nnb12 nnb14 p_hb_bb_bb p_hb_bb_sc p_hb_sc_bb p_hb_sc_sc p_fa_atr p_fa_rep p_fa_sol p_lk_ball p_fa_elec p_hbond_sr_bb p_hbond_lr_bb xijbin_0.5_15 xjibin_0.5_15 xijbin_0.5_30 xjibin_0.5_30 xijbin_1.0_7.5 xjibin_1.0_7.5 xijbin_1.0_30 xjibin_1.0_30 xijbin_2.0_7.5 xjibin_2.0_7.5 xijbin_2.0_15 xjibin_2.0_15".split()
+            seqproftest="phi psi omega chi1 chi2 chi3 chi4 chain r_fa_sol r_fa_intra_atr_xover4 r_fa_intra_rep_xover4 r_fa_intra_sol_xover4 r_lk_ball r_lk_ball_iso r_lk_ball_bridge r_lk_ball_bridge_uncpl r_fa_elec r_fa_intra_elec r_pro_close r_hbond_sr_bb r_hbond_lr_bb r_hbond_bb_sc r_hb_sc r_dslf_fa13 r_rama_prepro r_omega r_p_aa_pp r_fa_dun_rot r_fa_dun_dev r_fa_dun_semi r_hxl_tors r_ref sasa2 sasa4 nnb6 nnb8 nnb12 nnb14 p_hb_bb_bb p_hb_bb_sc p_hb_sc_bb p_hb_sc_sc p_fa_atr p_fa_rep p_fa_sol p_lk_ball p_fa_elec p_hbond_sr_bb p_hbond_lr_bb".split(),
+            respairscore="r_fa_intra_atr_xover4 r_fa_intra_rep_xover4 r_fa_intra_sol_xover4 r_lk_ball_iso r_lk_ball_bridge r_lk_ball_bridge_uncpl r_fa_intra_elec r_pro_close r_rama_prepro r_omega r_p_aa_pp r_hxl_tors r_ref sasa2 sasa4 nnb6 nnb8 nnb12 nnb14 p_hb_bb_bb p_hb_bb_sc p_hb_sc_bb p_fa_atr p_fa_rep p_fa_sol p_lk_ball p_fa_elec".split(),
         )
-
-        for v in not_needed["seqproftest"]:
+        assert task in not_needed
+        for v in not_needed[task]:
             if not v in self.data:
                 print("ResPairData.only_whats_needed: missing:", v)
-
-        assert task in not_needed
-        self.data = self.data.drop(not_needed[task])
+        return ResPairData(self.data.drop(not_needed[task]))
 
 
 def _get_pdb_names(files):

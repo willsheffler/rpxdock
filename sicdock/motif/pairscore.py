@@ -1,16 +1,16 @@
 import os, _pickle
 import numpy as np
-import getpy as gp
 from cppimport import import_hook
 import sicdock.motif._motif as cpp
+from sicdock.phmap import PHMap_u8u8, PHMap_u8f8
 
 
 def load_respairscore(path):
     assert os.path.isdir(path)
     with open(os.path.join(path, "resdata.pickle"), "rb") as inp:
         rps = _pickle.load(inp)
-    rps.score_map = gp.Dict(np.uint64, np.float64)
-    rps.range_map = gp.Dict(np.uint64, np.uint64)
+    rps.score_map = PHMap_u8f8()
+    rps.range_map = PHMap_u8u8()
     rps.score_map.load(os.path.join(path, "score_map.bin"))
     rps.range_map.load(os.path.join(path, "range_map.bin"))
     return rps
@@ -18,8 +18,8 @@ def load_respairscore(path):
 
 class ResPairScore:
     def __init__(self, keys, score_map, range_map, res1, res2, rp):
-        assert np.all(score_map.__contains__(keys))
-        assert np.all(range_map.__contains__(keys))
+        assert np.all(score_map.has(keys))
+        assert np.all(range_map.has(keys))
         self.keys = keys
         self.score_map = score_map
         self.range_map = range_map
@@ -37,12 +37,12 @@ class ResPairScore:
 
     def bin_score(self, keys):
         score = np.zeros(len(keys))
-        mask = self.score_map.__contains__(keys)
+        mask = self.score_map.has(keys)
         score[mask] = self.score_map[keys[mask]]
         return score
 
     def bin_get_all_data(self, keys):
-        mask = self.range_map.__contains__(keys)
+        mask = self.range_map.has(keys)
         ranges = self.range_map[keys[mask]].view("u4").reshape(-1, 2)
         out = np.empty(len(ranges), dtype="O")
         for i, r in enumerate(ranges):
@@ -86,10 +86,10 @@ def create_res_pair_score(rp, path=None, min_ssep=10, maxsize=None):
     ebin = cpp.logsum_bins(binrange, -epair)
     assert len(ebin) == len(binkey)
     mask = ebin > 0.1
-    pair_score = gp.Dict(np.uint64, np.float64)
+    pair_score = PHMap_u8f8()
     pair_score[binkey[mask]] = ebin[mask]
     # pair_score.dump("/home/sheffler/debug/sicdock/datafiles/pair_score.bin")
-    pair_range = gp.Dict(np.uint64, np.uint64)
+    pair_range = PHMap_u8u8()
     pair_range[binkey[mask]] = binrange[mask]
     res1 = np.concatenate([rp.p_resi.data[:N], rp.p_resj.data[:N]])[order]
     res2 = np.concatenate([rp.p_resj.data[:N], rp.p_resi.data[:N]])[order]

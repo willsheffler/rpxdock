@@ -34,10 +34,10 @@ namespace miniball_test {
 using namespace util;
 
 bool test_miniball(int n = 1000, int d = 7, bool on_boundary = false) {
-  typedef double FT;
-  typedef Seb::Point<FT> Point;
+  typedef double F;
+  typedef Seb::Point<F> Point;
   typedef std::vector<Point> PointVector;
-  typedef Seb::Smallest_enclosing_ball<FT> Miniball;
+  typedef Seb::Smallest_enclosing_ball<F> Miniball;
 
   using std::cout;
   using std::endl;
@@ -51,7 +51,7 @@ bool test_miniball(int n = 1000, int d = 7, bool on_boundary = false) {
     // Generate coordindates in [-1,1]
     double len = 0;
     for (int j = 0; j < d; ++j) {
-      coords[j] = static_cast<FT>(2.0 * rand() / RAND_MAX - 1.0);
+      coords[j] = static_cast<F>(2.0 * rand() / RAND_MAX - 1.0);
       len += coords[j] * coords[j];
     }
 
@@ -67,8 +67,8 @@ bool test_miniball(int n = 1000, int d = 7, bool on_boundary = false) {
   Miniball mb(d, S);
   t.stop();
   // Output
-  FT rad = mb.radius();
-  FT rad_squared = mb.squared_radius();
+  F rad = mb.radius();
+  F rad_squared = mb.squared_radius();
   cout << "Running time: " << t.elapsed() << "s" << endl
        << "Radius = " << rad << " (squared: " << rad_squared << ")" << endl;
   // << "Center:" << endl;
@@ -76,7 +76,7 @@ bool test_miniball(int n = 1000, int d = 7, bool on_boundary = false) {
   // for (int j = 0; j < d; ++j) cout << "  " << center_it[j] << endl;
   cout << "=====================================================" << endl;
   using MiniballHack =
-      Seb::Smallest_enclosing_ball<FT, double *, EigenPointAccessor>;
+      Seb::Smallest_enclosing_ball<F, double *, EigenPointAccessor>;
   RowMajorXd ecrd(n, d);
   EigenPointAccessor pa(ecrd);
   for (int i = 0; i < n; ++i)
@@ -84,8 +84,8 @@ bool test_miniball(int n = 1000, int d = 7, bool on_boundary = false) {
   util::Timer t2;
   MiniballHack mbhack(d, pa);
   t2.stop();
-  FT rad2 = mbhack.radius();
-  FT rad2_squared = mbhack.squared_radius();
+  F rad2 = mbhack.radius();
+  F rad2_squared = mbhack.squared_radius();
   // cout << "Running time: " << t2.elapsed() << "s" << endl
   //      << "Radius = " << rad << " (squared: " << rad_squared << ")" << endl
   //      << "Center:" << endl;
