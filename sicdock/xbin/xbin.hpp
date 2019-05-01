@@ -28,6 +28,7 @@ struct XformHash_bt24_BCC6 {
 
   Grid grid6_;
   F cart_resl_ = -1, ori_resl_ = -1, cart_bound_ = -1;
+  F orig_cart_resl_;
   int ori_nside_ = -1;
 
   F cart_resl() const { return cart_resl_; }
@@ -61,6 +62,7 @@ struct XformHash_bt24_BCC6 {
     init2(cart_resl, get_ori_nside(), cart_bound);
   }
   void init2(F cart_resl, int ori_nside, F cart_bound) {
+    orig_cart_resl_ = cart_resl;
     cart_resl_ = cart_resl / (sqrt(3.0) / 2.0);
     cart_bound_ = cart_bound;
     ori_nside_ = ori_nside;

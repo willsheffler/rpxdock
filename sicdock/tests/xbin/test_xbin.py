@@ -1,7 +1,8 @@
+import _pickle
 from time import perf_counter
 import numpy as np
 from cppimport import import_hook
-from sicdock.xbin import xbin_test, xbin
+from sicdock.xbin import xbin_test, XBin, XBin_float, create_XBin_nside
 from sicdock.geom.rotation import angle_of_3x3
 from sicdock.geom import bcc
 
@@ -24,39 +25,35 @@ def test_xbin_cpp():
 
 
 def test_create_binner():
-    binner = xbin.XBin(1.0, 15.0, 256.0)
-    binner2 = xbin.XBin_float(1.0, 15.0, 256.0)
+    binner = XBin(1.0, 15.0, 256.0)
+    binner2 = XBin_float(1.0, 15.0, 256.0)
     assert binner
     assert binner2
 
 
 def test_key_of():
     N = 1_000_00
-    binparam = (0.3, 5.0, 256.0)
-
+    xb = XBin(0.3, 5.0, 256.0)
+    xbf = XBin_float(0.3, 5.0, 256.0)
     tgen = perf_counter()
     x = hm.rand_xform(N)
     xfloat = hm.rand_xform(N).astype("f4")
     tgen = perf_counter() - tgen
 
     t = perf_counter()
-    k = xbin.key_of(x, *binparam)
+    k = xb.key_of(x)
     t = perf_counter() - t
 
     tf = perf_counter()
 
-    k = xbin.key_of(xfloat, *binparam)
+    k = xbf.key_of(xfloat)
     tf = perf_counter() - tf
 
     tc = perf_counter()
-    c = xbin.bincen_of(k, *binparam)
+    c = xb.bincen_of(k)
     tc = perf_counter() - tc
 
     uniq = len(np.unique(k))
-
-    xbin.key_of(x[:10], 1, 20)
-    xbin.key_of(x[:10], 1)
-    xbin.key_of(x[:10])
 
     print(
         f"performance keys: {int(N/t):,} kfloat: {int(N/tf):,} cens: {int(N/tc):,}",
@@ -65,6 +62,7 @@ def test_key_of():
 
 
 def test_key_of_pairs():
+    xb = XBin(1, 20)
     N = 10_000
     N1, N2 = 100, 1000
     x1 = hm.rand_xform(N1)
@@ -72,14 +70,14 @@ def test_key_of_pairs():
     i1 = np.random.randint(0, N1, N)
     i2 = np.random.randint(0, N2, N)
     p = np.stack([i1, i2], axis=1)
-    k1 = xbin.key_of_pairs(p, x1, x2)
+    k1 = xb.key_of_pairs(p, x1, x2)
 
     px1 = x1[p[:, 0]]
     px2 = x2[p[:, 1]]
-    k2 = xbin.key_of(np.linalg.inv(px1) @ px2)
+    k2 = xb.key_of(np.linalg.inv(px1) @ px2)
     assert np.all(k1 == k2)
 
-    k3 = xbin.key_of_pairs2(i1, i2, x1, x2)
+    k3 = xb.key_of_pairs2(i1, i2, x1, x2)
     assert np.all(k1 == k3)
 
 
@@ -89,7 +87,7 @@ def test_xbin_covrad(niter=20, nsamp=5000):
         cart_resl = np.random.rand() * 10 + 0.125
         ori_resl = np.random.rand() * 50 + 2.6
         xforms = hm.rand_xform(nsamp)
-        xb = xbin.XBin(cart_resl, ori_resl, 512)
+        xb = XBin(cart_resl, ori_resl, 512)
         ori_resl = xb.ori_resl
         idx = xb.key_of(xforms)
         cen = xb.bincen_of(idx)
@@ -113,7 +111,7 @@ def test_xbin_covrad_ori():
     nsamp = 10_000
     for ori_nside in range(1, 20):
         cart_resl = 1
-        xb = xbin.create_XBin_nside(cart_resl, ori_nside, 512)
+        xb = create_XBin_nside(cart_resl, ori_nside, 512)
         ori_resl = xb.ori_resl
         assert ori_nside == xb.ori_nside
         xforms = hm.rand_xform(nsamp)
@@ -130,6 +128,7 @@ def test_xbin_covrad_ori():
 
 
 def test_key_of_pairs2_ss():
+    xb = XBin()
     N = 10_000
     N1, N2 = 100, 1000
     x1 = hm.rand_xform(N1)
@@ -139,16 +138,29 @@ def test_key_of_pairs2_ss():
     i1 = np.random.randint(0, N1, N)
     i2 = np.random.randint(0, N2, N)
     # p = np.stack([i1, i2], axis=1)
-    k1 = xbin.key_of_pairs2(i1, i2, x1, x2)
+    k1 = xb.key_of_pairs2(i1, i2, x1, x2)
 
-    kss = xbin.key_of_pairs2_ss(i1, i2, ss1, ss2, x1, x2)
+    kss = xb.key_of_pairs2_ss(i1, i2, ss1, ss2, x1, x2)
     assert np.all(k1 == np.right_shift(np.left_shift(kss, 4), 4))
     assert np.all(ss1[i1] == np.right_shift(np.left_shift(kss, 0), 62))
     assert np.all(ss2[i2] == np.right_shift(np.left_shift(kss, 2), 62))
 
 
+def test_pickle(tmpdir):
+    xb = XBin(1, 2, 3)
+    with open(tmpdir + "/foo", "wb") as out:
+        _pickle.dump(xb, out)
+
+    with open(tmpdir + "/foo", "rb") as inp:
+        xb2 = _pickle.load(inp)
+
+    assert xb.cart_resl == xb2.cart_resl
+    assert xb.ori_nside == xb2.ori_nside
+    assert xb.cart_bound == xb2.cart_bound
+
+
 def test_xbin_grid():
-    xb = xbin.create_XBin_nside(1, 1, 512)
+    xb = create_XBin_nside(1, 1, 512)
     bcc = xb.grid6
     print(bcc)
 
@@ -156,9 +168,13 @@ def test_xbin_grid():
 if __name__ == "__main__":
     # test_xbin_cpp()
     # test_create_binner()
-    # test_key_of()
+    test_key_of()
     # test_key_of_pairs()
-    test_xbin_covrad()
+    # test_xbin_covrad()
     # test_xbin_covrad_ori()
     # test_key_of_pairs2_ss()
     # test_xbin_grid()
+
+    # import tempfile
+
+    # test_pickle(tempfile.mkdtemp())

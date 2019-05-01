@@ -1,5 +1,39 @@
 from sicdock.motif import *
+from sicdock.xbin import XBin
 import pytest
+
+
+def pair_key_ss_py(xbin, resi, resj, ss, stub):
+    ssi = ss[resi]
+    ssj = ss[resj]
+    kij = xbin.key_of_pairs2(resi, resj, stub, stub)
+    kji = xbin.key_of_pairs2(resj, resi, stub, stub)
+    assert kij.dtype == np.uint64
+    ssi = ssi.astype("u8")
+    ssj = ssj.astype("u8")
+    kijss = np.bitwise_or(np.left_shift(ssi, 62), np.left_shift(ssj, 60))
+    kjiss = np.bitwise_or(np.left_shift(ssj, 62), np.left_shift(ssi, 60))
+    kssij = np.bitwise_or(kij, kijss)
+    kssji = np.bitwise_or(kji, kjiss)
+    # assert np.all(np.right_shift(kssij, 62) == ssi)
+    # assert np.all(np.right_shift(kssji, 62) == ssj)
+    # assert np.all(np.right_shift(np.left_shift(kssij, 2), 62) == ssj)
+    # assert np.all(np.right_shift(np.left_shift(kssji, 2), 62) == ssi)
+    # assert np.all(np.right_shift(np.left_shift(kssij, 4), 4) == kij)
+    # assert np.all(np.right_shift(np.left_shift(kssji, 4), 4) == kji)
+    return kssij, kssji
+
+
+def get_pair_keys_py(rp, xbin, min_ssep=10):
+    mask = (rp.p_resj - rp.p_resi).data >= min_ssep
+    resi = rp.p_resi.data[mask]
+    resj = rp.p_resj.data[mask]
+    stub = rp.stub.data
+    ss = rp.ssid.data
+    kij = np.zeros(len(rp.p_resi), dtype="u8")
+    kji = np.zeros(len(rp.p_resi), dtype="u8")
+    kij[mask], kji[mask] = pair_key_ss_py(xbin, resi, resj, ss, stub)
+    return kij, kji
 
 
 def test_jagged_bin():
@@ -32,9 +66,10 @@ def test_jagged_bin_zero():
 
 
 def test_pair_key(respairdat):
+    xbin = XBin(1, 20)
     rp = respairdat
-    kij, kji = get_pair_keys_cpp(rp, min_ssep=0)
-    kij2, kji2 = get_pair_keys(rp, min_ssep=0)
+    kij, kji = get_pair_keys(rp, xbin, min_ssep=0)
+    kij2, kji2 = get_pair_keys_py(rp, xbin, min_ssep=0)
     assert np.all(kij == kij2)
     assert np.all(kji == kji2)
     ss = rp.ssid.data
@@ -53,7 +88,8 @@ def test_respairdat_addrots(respairdat):
     m, s = check_rotamer_deviation(respairdat, rotspace, quiet=1)
     assert m < 20
     assert s < 20
-    add_xbin_to_respairdat(respairdat, min_ssep=10, cart_resl=1, ori_resl=20)
+    xbin = XBin(cart_resl=1, ori_resl=20)
+    add_xbin_to_respairdat(respairdat, xbin, min_ssep=10)
 
 
 def test_remove_redundant_pdbs():
