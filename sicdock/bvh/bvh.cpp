@@ -1,7 +1,7 @@
 /*cppimport
 <%
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
+cfg['compiler_args'] = ['-std=c++17', '-w', '-O1']
 cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
 '../util/global_rng.hpp', 'bvh.hpp', 'bvh_algo.hpp', '../util/numeric.hpp']
 
@@ -72,8 +72,8 @@ BVH<F> bvh_create(py::array_t<F> coords, py::array_t<bool> which) {
     throw std::runtime_error("'which' shape must be (N,) matching coord shape");
   bool *ptrw = (bool *)bufw.ptr;
 
-  typedef std::vector<PtIdx<F>, aligned_allocator<PtIdx<F>>> Holder;
-  Holder holder;
+  typedef std::vector<PtIdx<F>, aligned_allocator<PtIdx<F>>> Objs;
+  Objs holder;
 
   int stride0 = buf.strides[0] / sizeof(F);
   int stride1 = buf.strides[1] / sizeof(F);
@@ -538,6 +538,58 @@ V4<F> bvh_obj_com(BVH<F> &b) {
 }
 
 template <typename F>
+py::tuple BVH_get_state(BVH<F> const &bvh) {
+  VectorX<int> child(bvh.child.size());
+  for (int i = 0; i < bvh.child.size(); ++i) child[i] = bvh.child[i];
+  RowMajorX<F> sph(bvh.vols.size(), 4);
+  for (int i = 0; i < bvh.vols.size(); ++i) {
+    for (int j = 0; j < 3; ++j) sph(i, j) = bvh.vols[i].cen[j];
+    sph(i, 3) = bvh.vols[i].rad;
+  }
+  RowMajorX<int> lbub(bvh.vols.size(), 2);
+  for (int i = 0; i < bvh.vols.size(); ++i) {
+    lbub(i, 0) = bvh.vols[i].lb;
+    lbub(i, 1) = bvh.vols[i].ub;
+  }
+  RowMajorX<F> pos(bvh.objs.size(), 3);
+  for (int i = 0; i < bvh.objs.size(); ++i) {
+    for (int j = 0; j < 3; ++j) pos(i, j) = bvh.objs[i].pos[j];
+  }
+  VectorX<int> idx(bvh.objs.size());
+  for (int i = 0; i < bvh.objs.size(); ++i) idx[i] = bvh.objs[i].idx;
+
+  return py::make_tuple(child, sph, lbub, pos, idx);
+}
+template <typename F>
+std::unique_ptr<BVH<F>> bvh_set_state(py::tuple state) {
+  auto bvh = std::make_unique<BVH<F>>();
+  auto child = state[0].cast<VectorX<int>>();
+  auto sph = state[1].cast<RowMajorX<F>>();
+  auto lbub = state[2].cast<RowMajorX<int>>();
+  auto pos = state[3].cast<RowMajorX<F>>();
+  auto idx = state[4].cast<VectorX<int>>();
+
+  for (int i = 0; i < child.size(); ++i) {
+    bvh->child.push_back(child[i]);
+  }
+  for (int i = 0; i < sph.rows(); ++i) {
+    Sphere<F> sphere;
+    for (int j = 0; j < 3; ++j) sphere.cen[j] = sph(i, j);
+    sphere.rad = sph(i, 3);
+    sphere.lb = lbub(i, 0);
+    sphere.ub = lbub(i, 1);
+    bvh->vols.push_back(sphere);
+  }
+  for (int i = 0; i < idx.size(); ++i) {
+    PtIdx<F> pt;
+    for (int j = 0; j < 3; ++j) pt.pos[j] = pos(i, j);
+    pt.idx = idx[i];
+    bvh->objs.push_back(pt);
+  }
+  return bvh;
+}
+
+template <typename F>
 void bind_bvh(auto m, std::string name) {
   py::class_<BVH<F>>(m, name.c_str())
       .def("__len__", [](BVH<F> &b) { return b.objs.size(); })
@@ -545,6 +597,8 @@ void bind_bvh(auto m, std::string name) {
       .def("center", [](BVH<F> &b) { return b.vols[b.getRootIndex()].cen; })
       .def("centers", &bvh_obj_centers<F>)
       .def("com", &bvh_obj_com<F>)
+      .def(py::pickle([](const BVH<F> &bvh) { return BVH_get_state<F>(bvh); },
+                      [](py::tuple t) { return bvh_set_state<F>(t); }))
       /**/;
 }
 

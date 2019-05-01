@@ -1,3 +1,4 @@
+import _pickle
 from time import perf_counter
 import numpy as np
 from cppimport import import_hook

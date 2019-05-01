@@ -1,3 +1,4 @@
+import _pickle
 from time import perf_counter
 import numpy as np
 from cppimport import import_hook
@@ -646,26 +647,65 @@ def test_bvh_isect_range(body=None, cart_sd=0.3, N2=10, mindist=0.02):
     )
 
 
+def test_bvh_pickle(tmpdir):
+    xyz1 = np.random.rand(1000, 3) - [0.5, 0.5, 0.5]
+    xyz2 = np.random.rand(1000, 3) - [0.5, 0.5, 0.5]
+    bvh1 = bvh.bvh_create(xyz1)
+    bvh2 = bvh.bvh_create(xyz2)
+    pos1 = hm.rand_xform(cart_sd=1)
+    pos2 = hm.rand_xform(cart_sd=1)
+    tbvh = perf_counter()
+    d, i1, i2 = bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
+    rng = bvh.bvh_isect_range(bvh1, bvh2, pos1, pos2, mindist=d + 0.01)
+
+    with open(tmpdir + "/1", "wb") as out:
+        _pickle.dump(bvh1, out)
+    with open(tmpdir + "/2", "wb") as out:
+        _pickle.dump(bvh2, out)
+    with open(tmpdir + "/1", "rb") as out:
+        bvh1b = _pickle.load(out)
+    with open(tmpdir + "/2", "rb") as out:
+        bvh2b = _pickle.load(out)
+
+    assert len(bvh1) == len(bvh1b)
+    assert len(bvh2) == len(bvh2b)
+    assert np.allclose(bvh1.com(), bvh1b.com())
+    assert np.allclose(bvh1.centers(), bvh1b.centers())
+    assert np.allclose(bvh2.com(), bvh2b.com())
+    assert np.allclose(bvh2.centers(), bvh2b.centers())
+
+    db, i1b, i2b = bvh.bvh_min_dist(bvh1b, bvh2b, pos1, pos2)
+    assert np.allclose(d, db)
+    assert i1 == i1b
+    assert i2 == i2b
+    rngb = bvh.bvh_isect_range(bvh1b, bvh2b, pos1, pos2, mindist=d + 0.01)
+    assert rngb == rng
+
+
 if __name__ == "__main__":
-    from sicdock.body import Body
+    # from sicdock.body import Body
 
     # b = Body("sicdock/data/pdb/DHR14.pdb")
     # test_bvh_isect_range(b, cart_sd=15, N2=500, mindist=3.5)
 
-    test_bvh_isect_cpp()
-    test_bvh_isect_fixed()
-    test_bvh_isect()
-    test_bvh_min_cpp()
-    test_bvh_min_dist_fixed()
-    test_bvh_min_dist()
-    test_bvh_min_dist_floormin()
-    test_bvh_slide_single_inline()
-    test_bvh_slide_single()
-    test_bvh_slide_single_xform()
-    test_bvh_slide_whole()
-    test_collect_pairs_simple()
-    test_collect_pairs_simple_selection()
-    test_collect_pairs()
-    test_slide_collect_pairs()
-    test_bvh_accessors()
-    test_bvh_isect_range()
+    # test_bvh_isect_cpp()
+    # test_bvh_isect_fixed()
+    # test_bvh_isect()
+    # test_bvh_min_cpp()
+    # test_bvh_min_dist_fixed()
+    # test_bvh_min_dist()
+    # test_bvh_min_dist_floormin()
+    # test_bvh_slide_single_inline()
+    # test_bvh_slide_single()
+    # test_bvh_slide_single_xform()
+    # test_bvh_slide_whole()
+    # test_collect_pairs_simple()
+    # test_collect_pairs_simple_selection()
+    # test_collect_pairs()
+    # test_slide_collect_pairs()
+    # test_bvh_accessors()
+    # test_bvh_isect_range()
+
+    import tempfile
+
+    test_bvh_pickle(tempfile.mkdtemp())
