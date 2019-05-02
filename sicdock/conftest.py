@@ -1,7 +1,8 @@
 from sicdock.rosetta import get_pose_cached
 import pytest, os, sys, _pickle
 from os.path import join, dirname, abspath, exists
-from sicdock.motif import ResPairData, load_respairscore
+from sicdock.motif.pairdat import ResPairData
+from sicdock.motif.pairscore import load_respairscore
 
 # addoption doesn't work for me
 # def pytest_addoption(parser):

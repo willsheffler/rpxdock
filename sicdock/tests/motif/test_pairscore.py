@@ -1,5 +1,6 @@
 import time
-from sicdock.motif import *
+from sicdock.motif.pairdat import *
+from sicdock.motif.pairscore import *
 
 
 def test_create_res_pair_score(respairdat, tmpdir):
@@ -65,18 +66,20 @@ def test_bin_get_all_data(respairscore):
     print(f"perf perrot: {int(totsize / t):,} perkey: {int(len(binrots) / t):,}")
 
 
-if 0:  # __name__ == "__main__":
+if __name__ == "__main__":
     import _pickle
+    import tempfile
 
-    # f = "/home/sheffler/debug/sicdock/datafiles/respairdat_si30_rotamers.pickle"
-    # f2 = "/home/sheffler/debug/sicdock/datafiles/respairdat_si30_rotamers"
-    f = "sicdock/data/respairdat10_plus_xmap_rots.pickle"
-    f2 = "sicdock/data/respairscore10"
+    # # f = "/home/sheffler/debug/sicdock/datafiles/respairdat_si30_rotamers.pickle"
+    # # f2 = "/home/sheffler/debug/sicdock/datafiles/respairdat_si30_rotamers"
+    # f = "sicdock/data/respairdat10_plus_xmap_rots.pickle"
+    # f2 = "sicdock/data/respairscore10"
+    f = "sicdock/data/respairdat10.pickle"
     with open(f, "rb") as inp:
         rp = ResPairData(_pickle.load(inp))
-        test_create_res_pair_score(rp, f2)
+    test_create_res_pair_score(rp, tempfile.mkdtemp())
 
-    rps = load_respairscore(f2)
-    test_pair_score(rps)
-    test_bin_get_all_data(rps)
-    test_bin_score(rps)
+    # rps = load_respairscore(f2)
+    # test_pair_score(rps)
+    # test_bin_get_all_data(rps)
+    # test_bin_score(rps)

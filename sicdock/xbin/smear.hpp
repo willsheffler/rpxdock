@@ -27,7 +27,9 @@ struct PHMapUpdateMax {
       : map(m.phmap_), xbin(b), cell_index(c), val0(v), key0(k0) {}
   PHMapUpdateMax<F, K, V>& operator++(int) { return *this; }
   PHMapUpdateMax<F, K, V>& operator*() { return *this; }
-  void operator=(K bcc_key) {
+  void operator=(std::pair<K, K> key_rad) {
+    K bcc_key = key_rad.first;
+    K rad = key_rad.second;
     K key = xbin.combine_cell_grid_index(cell_index, bcc_key);
 
     // if (xbin.bad_grid_key(bcc_key)) {
@@ -62,16 +64,16 @@ struct PHMapUpdateMax {
 
 template <typename F, typename K, typename V>
 std::unique_ptr<PHMap<K, V>> smear(XBin<F, K>& xbin, PHMap<K, V>& phmap,
-                                   int radius = 1, bool do_midpoints = true,
-                                   bool odd_last3 = true) {
+                                   int radius = 1, bool extrahalf = false,
+                                   bool odd_last3 = true, bool sphere = true) {
   auto out = std::make_unique<PHMap<K, V>>();
   // std::cout << "MAP LOC " << &out->phmap_ << std::endl;
   for (auto [key, val] : phmap.phmap_) {
     K bcc_key = xbin.grid_key(key);
     K cell_key = xbin.cell_index(key);
     auto updater = PHMapUpdateMax(*out, xbin, cell_key, val, key);
-    xbin.grid().neighbors_6_3(bcc_key, updater, radius, do_midpoints,
-                              odd_last3);
+    xbin.grid().neighbors_6_3(bcc_key, updater, radius, extrahalf, odd_last3,
+                              sphere);
   }
   // std::cout << "smear out size " << out->size() << std::endl;
   return out;

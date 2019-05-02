@@ -26,34 +26,34 @@ using namespace util;
 
 template <typename K>
 struct MyIter {
-  std::vector<K>& vals;
-  MyIter(std::vector<K>& v) : vals(v) {}
+  std::vector<std::pair<K, K>>& vals;
+  MyIter(std::vector<std::pair<K, K>>& v) : vals(v) {}
   MyIter<K>& operator++(int) { return *this; }
   MyIter<K>& operator*() { return *this; }
-  void operator=(K k) { vals.push_back(k); }
+  void operator=(std::pair<K, K> kk) { vals.push_back(kk); }
 };
 
 template <typename F, typename K>
-py::array_t<K> BCC_neighbors_6_3(BCC<6, F, K>& bcc, K index, int range,
-                                 bool do_midpoints, bool odd_last3) {
-  std::vector<K> tmp;
+py::array_t<K> BCC_neighbors_6_3(BCC<6, F, K>& bcc, K index, int radius,
+                                 bool extrahalf, bool oddlast3, bool sphere) {
+  std::vector<std::pair<K, K>> tmp;
   MyIter<K> iter(tmp);
-  bcc.neighbors_6_3(index, iter, range, do_midpoints, odd_last3);
+  bcc.neighbors_6_3(index, iter, radius, extrahalf, oddlast3, sphere);
   py::array_t<K> out(tmp.size());
   K* kptr = (K*)out.request().ptr;
-  std::copy(tmp.begin(), tmp.end(), kptr);
+  for (int i = 0; i < tmp.size(); ++i) kptr[i] = tmp[i].first;
   return out;
 }
 
 template <typename F, typename K>
-py::array_t<K> BCC_neighbors_3(BCC<3, F, K>& bcc, K index, int range,
-                               bool do_midpoints, bool more_midpoints) {
-  std::vector<K> tmp;
+py::array_t<K> BCC_neighbors_3(BCC<3, F, K>& bcc, K index, int radius,
+                               bool extrahalf, bool sphere) {
+  std::vector<std::pair<K, K>> tmp;
   MyIter<K> iter(tmp);
-  bcc.neighbors_3(index, iter, range, do_midpoints, more_midpoints);
+  bcc.neighbors_3(index, iter, radius, extrahalf, sphere);
   py::array_t<K> out(tmp.size());
   K* kptr = (K*)out.request().ptr;
-  std::copy(tmp.begin(), tmp.end(), kptr);
+  for (int i = 0; i < tmp.size(); ++i) kptr[i] = tmp[i].first;
   return out;
 }
 
@@ -87,13 +87,22 @@ void bind_bcc(py::module m, std::string name) {
   cls.def_property_readonly("upper", &BCC::upper);
   cls.def_property_readonly("width", &BCC::width);
   cls.def_property_readonly("nside", &BCC::nside);
-  if constexpr (DIM == 6) cls.def("neighbors_6_3", &BCC_neighbors_6_3<F, K>);
-  if constexpr (DIM == 3) cls.def("neighbors_3", &BCC_neighbors_3<F, K>);
+  if constexpr (DIM == 6)
+    cls.def("neighbors_6_3", &BCC_neighbors_6_3<F, K>,
+            "get indices of neighboring cells, last3 dims only +-1", "index"_a,
+            "radius"_a = 1, "extrahalf"_a = false, "oddlast3"_a = true,
+            "sphere"_a = true);
+  if constexpr (DIM == 3)
+    cls.def("neighbors_3", &BCC_neighbors_3<F, K>,
+            "get indices of neighboring cells", "index"_a, "radius"_a = 1,
+            "extrahalf"_a = false, "sphere"_a = true);
 }
 
 PYBIND11_MODULE(bcc, m) {
   bind_bcc<3, double, uint64_t>(m, "BCC3");
   bind_bcc<6, double, uint64_t>(m, "BCC6");
+  bind_bcc<3, float, uint64_t>(m, "BCC3_float");
+  bind_bcc<6, float, uint64_t>(m, "BCC6_float");
   /**/
 }
 }  // namespace geom

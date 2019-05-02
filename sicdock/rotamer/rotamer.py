@@ -1,7 +1,10 @@
 import numpy as np
+from sicdock.rotamer.richardson import get_rotamer_space
 
 
-def assign_rotamers(rp, rotspace):
+def assign_rotamers(rp, rotspace=None):
+    if rotspace is None:
+        rotspace = get_rotamer_space()
 
     rotlbl = list("GA")
     rotids = -np.ones(len(rp.ca), dtype="i4")
@@ -41,7 +44,7 @@ def assign_rotamers(rp, rotspace):
     for i in range(len(rotlbl)):
         aa = rotlbl[i][0]
         aaid = int(rp.aa2id.sel(aa=aa))
-        assert np.all(rp.aaid[rp.rotid == i] == aaid)
+        assert np.all(rp.aaid[rotids == i] == aaid)
     assert len(allrotchi) == len(rotlbl)
     return rotids, rotlbl, allrotchi
 

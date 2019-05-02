@@ -8,32 +8,7 @@ from sicdock.xbin.smear import smear
 from sicdock.phmap import PHMap_u8f8
 from sicdock.geom.rotation import angle_of_3x3
 
-
-def test_smear_no_midpoints():
-    for r in range(1, 6):
-        w = 2 * r + 1
-        cart_resl = 1.0
-        xb = XBin(cart_resl, 9e9)
-        gr = xb.grid6
-        pm = PHMap_u8f8()
-        cen = np.eye(4)
-        kcen = xb.key_of(np.eye(4))
-        bcen = xb.bincen_of(kcen)
-        assert np.allclose(np.eye(4), bcen)
-        phm = PHMap_u8f8()
-        phm[xb.key_of(bcen)] = 1.0
-        smeared = smear(xb, phm, radius=r, midpoints=False, extra_midpoints=False)
-        assert isinstance(smeared, PHMap_u8f8)
-        assert len(smeared) == w ** 3
-        k, v = smeared.items_array()
-        x = xb.bincen_of(k)
-        cart_dis = np.linalg.norm(bcen[0, :3, 3] - x[:, :3, 3], axis=1)
-        assert np.min(cart_dis) == 0
-        assert list(Counter(x[:, 0, 3]).values()) == ([w ** 2] * w)
-        assert list(Counter(x[:, 1, 3]).values()) == ([w ** 2] * w)
-        assert list(Counter(x[:, 2, 3]).values()) == ([w ** 2] * w)
-        ori_dist = angle_of_3x3(x[:, :3, :3])
-        assert np.max(ori_dist) == 0
+xident_f4 = np.eye(4).astype("f4")
 
 
 def test_smear_midpoints():
@@ -43,13 +18,13 @@ def test_smear_midpoints():
         xb = XBin(cart_resl, 9e9)
         gr = xb.grid6
         pm = PHMap_u8f8()
-        cen = np.eye(4)
-        kcen = xb.key_of(np.eye(4))
+        cen = xident_f4
+        kcen = xb.key_of(xident_f4)
         bcen = xb.bincen_of(kcen)
-        assert np.allclose(np.eye(4), bcen)
+        assert np.allclose(cen, bcen, atol=1e-4)
         phm = PHMap_u8f8()
         phm[xb.key_of(bcen)] = 1.0
-        smeared = smear(xb, phm, radius=r, midpoints=True, extra_midpoints=False)
+        smeared = smear(xb, phm, radius=r, extrahalf=0, oddlast3=0, sphere=0)
         assert isinstance(smeared, PHMap_u8f8)
         assert len(smeared) == w ** 3 + (w - 1) ** 3
         k, v = smeared.items_array()
@@ -72,13 +47,13 @@ def test_smear_midpoints_alldims():
         xb = XBin(cart_resl, 9e9)
         gr = xb.grid6
         pm = PHMap_u8f8()
-        cen = np.eye(4)
-        kcen = xb.key_of(np.eye(4))
+        cen = xident_f4
+        kcen = xb.key_of(xident_f4)
         bcen = xb.bincen_of(kcen)
-        assert np.allclose(np.eye(4), bcen)
+        assert np.allclose(cen, bcen, atol=1e-4)
         phm = PHMap_u8f8()
         phm[xb.key_of(bcen)] = 1.0
-        smeared = smear(xb, phm, radius=r, midpoints=True, extra_midpoints=True)
+        smeared = smear(xb, phm, radius=r, extrahalf=0, oddlast3=1, sphere=0)
         assert isinstance(smeared, PHMap_u8f8)
         assert len(smeared) == w ** 3 + 8 * (w - 1) ** 3
         k, v = smeared.items_array()
@@ -86,9 +61,9 @@ def test_smear_midpoints_alldims():
         cart_dis = np.linalg.norm(bcen[0, :3, 3] - x[:, :3, 3], axis=1)
         d = 0.57787751
         uvals = np.arange(-2 * r, 2 * r + 0.001) * d
-        assert np.allclose(np.unique(x[:, 0, 3]), uvals)
-        assert np.allclose(np.unique(x[:, 1, 3]), uvals)
-        assert np.allclose(np.unique(x[:, 2, 3]), uvals)
+        assert np.allclose(np.unique(x[:, 0, 3]), uvals, atol=1e-4)
+        assert np.allclose(np.unique(x[:, 1, 3]), uvals, atol=1e-4)
+        assert np.allclose(np.unique(x[:, 2, 3]), uvals, atol=1e-4)
         counts = [w ** 2] * w + [8 * (w - 1) ** 2] * (w - 1)
         assert sorted(Counter(x[:, 0, 3]).values()) == counts
         assert sorted(Counter(x[:, 1, 3]).values()) == counts
@@ -119,7 +94,7 @@ def test_smear_bounding():
     N1 = 5_000
     N2 = 50_000
     cart_sd = 2
-    xorig = hm.rand_xform(N1, cart_sd=cart_sd)
+    xorig = hm.rand_xform(N1, cart_sd=cart_sd).astype("f4")
     sorig = np.exp(np.random.rand(N1))
     cart_resl = 1.0
     ori_resl = 20
@@ -136,7 +111,7 @@ def test_smear_bounding():
         f"fexpand {len(pm1) / len(pm0):7.2f} cell rate {int(len(pm1) / t):,} expand_rate {int(len(pm0) / t):,}"
     )
 
-    x = hm.rand_xform(N2, cart_sd=cart_sd)
+    x = hm.rand_xform(N2, cart_sd=cart_sd).astype("f4")
     s0 = pm0[xb0.key_of(x)]
     s1 = pm1[xb0.key_of(x)]
     ge, gt, not0 = check_scores(s0, s1)
@@ -182,8 +157,6 @@ def smear_bench():
 
 
 if __name__ == "__main__":
-    # test_smear_no_midpoints()
-    # test_smear_midpoints()
-    # test_smear_midpoints_alldims()
-    # test_smear_bounding()
-    smear_bench()
+    test_smear_midpoints()
+    test_smear_midpoints_alldims()
+    test_smear_bounding()

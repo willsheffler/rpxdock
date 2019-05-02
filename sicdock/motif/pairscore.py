@@ -3,6 +3,9 @@ import numpy as np
 from cppimport import import_hook
 import sicdock.motif._motif as cpp
 from sicdock.phmap import PHMap_u8u8, PHMap_u8f8
+from sicdock.motif.motif import bb_stubs, add_xbin_to_respairdat
+from sicdock.xbin import XBin
+from sicdock.rotamer import get_rotamer_space, assign_rotamers
 
 
 def load_respairscore(path):
@@ -77,7 +80,17 @@ class ResPairScore:
         return self.respair[lb:ub]
 
 
-def create_res_pair_score(rp, path=None, min_ssep=10, maxsize=None):
+def create_res_pair_score(
+    rp, path=None, min_ssep=10, maxsize=None, cart_resl=1, ori_resl=20, cart_bound=128
+):
+    if "stub" not in rp.data:
+        rp.data["stub"] = ["resid", "hrow", ""], bb_stubs(rp.n, rp.ca, rp.c)
+    if "kij" not in rp.data:
+        xbin = XBin(cart_resl, ori_resl, cart_bound)
+        add_xbin_to_respairdat(rp, xbin, min_ssep)
+    if "rotid" not in rp.data:
+        rotspace = get_rotamer_space()
+        add_rots_to_respairdat(rp)
     N = maxsize
     keys0 = np.concatenate([rp.kij.data[:N], rp.kji.data[:N]])
     order, binkey, binrange = cpp.jagged_bin(keys0)

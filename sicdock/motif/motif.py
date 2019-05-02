@@ -2,17 +2,10 @@ import os, sys, time, _pickle
 from cppimport import import_hook
 import numpy as np
 
-from sicdock import xbin
 from sicdock.rotamer import get_rotamer_space, assign_rotamers, check_rotamer_deviation
 from sicdock.motif import _motif as cpp
-from sicdock.motif.pairscore import ResPairScore, create_res_pair_score
 from sicdock.motif.pairdat import ResPairData
 from sicdock.data import pdbdir
-
-
-class MotifBin:
-    def __init__(self, xbin):
-        self.xbin = xbin
 
 
 def bb_stubs(n, ca=None, c=None):
@@ -59,18 +52,18 @@ def get_pair_keys(rp, xbin, min_ssep=10):
     return kij, kji
 
 
-def add_rots_to_respairdat(rp, rotspace):
-    rotids, rotlbl, rotchi = assign_rotamers(rp, rotspace)
-    rp.data["rotid"] = ["resid"], rotids
-    rp.data.attrs["rotlbl"] = rotlbl
-    rp.data.attrs["rotchi"] = rotchi
-
-
 def add_xbin_to_respairdat(rp, xbin, min_ssep):
     kij, kji = get_pair_keys(rp, xbin, min_ssep=10)
     rp.data["kij"] = ["pairid"], kij
     rp.data["kji"] = ["pairid"], kji
     rp.attrs["xbin_type"] = "wtihss"
+
+
+def add_rots_to_respairdat(rp, rotspace):
+    rotids, rotlbl, rotchi = assign_rotamers(rp, rotspace)
+    rp.data["rotid"] = ["resid"], rotids
+    rp.data.attrs["rotlbl"] = rotlbl
+    rp.data.attrs["rotchi"] = rotchi
 
 
 def make_respairdat_subsets(rp):
@@ -94,22 +87,6 @@ def remove_redundant_pdbs(pdbs, sequence_identity=30):
         goodids = set(l.strip() for l in inp.readlines())
         assert all(len(g) == 4 for g in goodids)
     return np.array([i for i, p in enumerate(pdbs) if p[:4].upper() in goodids])
-
-
-def build_motif_table(rp, cart_resl=1, ori_resl=20):
-    pass
-
-    # rps = create_res_pair_score(
-    # rp, "/home/sheffler/debug/sicdock/datafiles/respairscore100", maxsize=None
-    # )
-
-    # rps = ResPairScore("/home/sheffler/debug/sicdock/datafiles/motif_score")
-    # print(rps)
-
-    # print(rp)
-
-    # f = "/home/sheffler/debug/sicdock/datafiles/respairdat_si30_rotamers.pickle"
-    # add_xbin_to_respairdat(rp, f)
 
 
 if 0:  # __name__ == "__main__":

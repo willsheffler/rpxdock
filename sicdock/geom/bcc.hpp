@@ -10,6 +10,7 @@ namespace sicdock {
 namespace geom {
 
 using util::mod;
+using util::sqr;
 
 // TODO: add bounds checking .at methods!
 
@@ -126,98 +127,98 @@ struct BCC {
   }
 
   template <typename Iiter>
-  std::enable_if_t<DIM == 6> neighbors_6_3(I index, Iiter &iter, int radius = 1,
-                                           bool midpoints = true,
-                                           bool extra_midpoints = false) const
-      noexcept {
-    bool odd0 = index & 1;
-    // std::cout << "bcc get_floats " << index << std::endl;
-    // In idx0;
-    // for (int i = 0; i < DIM; ++i)
-    // idx0[i] = ((index >> 1) / nside_prefsum_[i]) % nside_[i];
+  std::enable_if_t<DIM == 6> neighbors_6_3(I index, Iiter &iter, int rad,
+                                           bool exhalf, bool oddlast3,
+                                           bool sphere) const noexcept {
+    bool odd = index & 1;
+    In idx0 = mod((In)((index >> 1) / nside_prefsum_), nside_);
+    In idx;
+    int lb = -rad - (exhalf && !odd);
+    int ub = +rad + (exhalf && odd);
+    int rcut = (sqr(2 * rad + exhalf) + sqr(2 * (rad + 1) + exhalf)) / 2;
+    // if (sphere) std::cout << "SPHCUT " << rad << " " << rcut << std::endl;
+    int eh = odd ? -1 : 0;
+    int oh = odd ? 0 : 1;
+    bool oddex = (odd != exhalf);
+    int l3shift = oddlast3 ? -(!odd) : 0;
+    int last3ub = oddlast3 ? 1 : 0;
 
-    In tmp = ((index >> 1) / nside_prefsum_);
-    In idx0 = mod(tmp, nside_), idx = idx0;
+    for (int i5 = 0; i5 <= last3ub; ++i5) {
+      I key5 = nside_prefsum_[5] * (idx0[5] + i5 + l3shift);
+      for (int i4 = 0; i4 <= last3ub; ++i4) {
+        I key4 = key5 + nside_prefsum_[4] * (idx0[4] + i4 + l3shift);
+        for (int i3 = 0; i3 <= last3ub; ++i3) {
+          I key3 = key4 + nside_prefsum_[3] * (idx0[3] + i3 + l3shift);
 
-    bool odd = odd0;
-    // In idx = idx0;
-    int lb = -radius, ub = radius + 1;
-    int olb = 1 - radius, oub = radius + 1;
+          for (int i2 = lb; i2 <= ub; ++i2) {
+            I key2 = key3 + nside_prefsum_[2] * (idx0[2] + i2);
+            bool edge2 = oddex ? i2 == lb : i2 == ub;
+            for (int i1 = lb; i1 <= ub; ++i1) {
+              I key1 = key2 + nside_prefsum_[1] * (idx0[1] + i1);
+              bool edge1 = edge2 || ((oddex ? i1 == lb : i1 == ub));
+              for (int i0 = lb; i0 <= ub; ++i0) {
+                I key0 = key1 + nside_prefsum_[0] * (idx0[0] + i0);
+                I key = key0 << 1;
+                bool edge = edge1 || (oddex ? i0 == lb : i0 == ub);
 
-    // -0+ wtih same parity
-    for (int i = lb; i < ub; ++i) {
-      idx[0] = idx0[0] + i;
-      for (int j = lb; j < ub; ++j) {
-        idx[1] = idx0[1] + j;
-        for (int k = lb; k < ub; ++k) {
-          idx[2] = idx0[2] + k;
-          *iter++ = (nside_prefsum_ * idx).sum() << 1 | odd;
-        }
-      }
-    }
-    if (!midpoints) return;
-    // -+ wtih opposite parity
-    odd = !odd;
-    for (int i = olb; i < oub; ++i) {
-      idx[0] = idx0[0] + i - odd;
-      for (int j = olb; j < oub; ++j) {
-        idx[1] = idx0[1] + j - odd;
-        for (int k = olb; k < oub; ++k) {
-          idx[2] = idx0[2] + k - odd;
+                bool inoddlast3 = i5 + l3shift || i4 + l3shift || i3 + l3shift;
+                bool skip0 = inoddlast3 && !odd;
+                bool skip1 = inoddlast3 && odd;
 
-          if (extra_midpoints)
-            for (int l = 0; l < 2; ++l) {
-              idx[3] = idx0[3] + l - odd;
-              for (int m = 0; m < 2; ++m) {
-                idx[4] = idx0[4] + m - odd;
-                for (int n = 0; n < 2; ++n) {
-                  idx[5] = idx0[5] + n - odd;
-                  *iter++ = (nside_prefsum_ * idx).sum() << 1 | odd;
+                if (!skip0) {
+                  int erad = sqr(2 * i2 + eh) + sqr(2 * i1 + eh) +
+                             sqr(2 * i0 + eh) /*+ sqr(i5 + l3shift) +
+                             sqr(i4 + l3shift) + sqr(i3 + l3shift)*/
+                      ;
+                  if ((!sphere || erad < rcut) && (!oddex || !edge))
+                    *iter++ = std::make_pair(key | 0, erad);
+                }
+                if (!skip1) {
+                  int orad = sqr(2 * i2 + oh) + sqr(2 * i1 + oh) +
+                             sqr(2 * i0 + oh) /* + sqr(i5 + l3shift) +
+                              sqr(i4 + l3shift) + sqr(i3 + l3shift)*/
+                      ;
+                  if ((!sphere || orad < rcut) && (oddex || !edge))
+                    *iter++ = std::make_pair(key | 1, orad);
                 }
               }
             }
-          else
-            *iter++ = (nside_prefsum_ * idx).sum() << 1 | odd;
+          }
         }
       }
     }
   }
   template <typename Iiter>
-  std::enable_if_t<DIM == 3> neighbors_3(I index, Iiter &iter, int radius = 1,
-                                         bool midpoints = true,
-                                         bool more_midpoints = false) const
-      noexcept {
-    bool odd0 = index & 1, odd = odd0;
-    In tmp = ((index >> 1) / nside_prefsum_);
-    In idx0 = mod(tmp, nside_), idx = idx0;
-    int lb = -radius, ub = radius + 1;
-    int olb = 1 - radius, oub = radius + 1;
-    if (more_midpoints) {
-      olb -= 1;
-      oub += 1;
-    }
-
-    // -0+ wtih same parity
-    for (int i = lb; i < ub; ++i) {
-      idx[0] = idx0[0] + i;
-      for (int j = lb; j < ub; ++j) {
-        idx[1] = idx0[1] + j;
-        for (int k = lb; k < ub; ++k) {
-          idx[2] = idx0[2] + k;
-          *iter++ = (nside_prefsum_ * idx).sum() << 1 | odd;
-        }
-      }
-    }
-    if (!midpoints) return;
-    // -+ wtih opposite parity
-    odd = !odd;
-    for (int i = olb; i < oub; ++i) {
-      idx[0] = idx0[0] + i - odd;
-      for (int j = olb; j < oub; ++j) {
-        idx[1] = idx0[1] + j - odd;
-        for (int k = olb; k < oub; ++k) {
-          idx[2] = idx0[2] + k - odd;
-          *iter++ = (nside_prefsum_ * idx).sum() << 1 | odd;
+  std::enable_if_t<DIM == 3> neighbors_3(I index, Iiter &iter, int const rad,
+                                         bool const exhalf,
+                                         bool const sphere) const noexcept {
+    bool odd = index & 1;
+    In idx0 = mod((In)((index >> 1) / nside_prefsum_), nside_);
+    In idx;
+    int lb = -rad - (exhalf && !odd);
+    int ub = +rad + (exhalf && odd);
+    int rcut = (sqr(2 * rad + exhalf) + sqr(2 * (rad + 1) + exhalf)) / 2;
+    // if (sphere) std::cout << "SPHCUT " << rad << " " << rcut <<
+    // std::endl;
+    int eh = odd ? -1 : 0;
+    int oh = odd ? 0 : 1;
+    bool oddex = (odd != exhalf);
+    for (int i2 = lb; i2 <= ub; ++i2) {
+      I key2 = nside_prefsum_[2] * (idx0[2] + i2);
+      bool edge2 = oddex ? i2 == lb : i2 == ub;
+      for (int i1 = lb; i1 <= ub; ++i1) {
+        I key1 = key2 + nside_prefsum_[1] * (idx0[1] + i1);
+        bool edge1 = edge2 || ((oddex ? i1 == lb : i1 == ub));
+        for (int i0 = lb; i0 <= ub; ++i0) {
+          I key0 = key1 + nside_prefsum_[0] * (idx0[0] + i0);
+          I key = key0 << 1;
+          bool edge = edge1 || (oddex ? i0 == lb : i0 == ub);
+          int erad = sqr(2 * i2 + eh) + sqr(2 * i1 + eh) + sqr(2 * i0 + eh);
+          int orad = sqr(2 * i2 + oh) + sqr(2 * i1 + oh) + sqr(2 * i0 + oh);
+          if ((!sphere || erad < rcut) && (!oddex || !edge))
+            *iter++ = std::make_pair(key | 0, erad);
+          if ((!sphere || orad < rcut) && (oddex || !edge))
+            *iter++ = std::make_pair(key | 1, orad);
         }
       }
     }

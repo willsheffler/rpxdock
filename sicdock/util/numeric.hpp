@@ -8,6 +8,10 @@ template <typename F>
 F square(F x) {
   return x * x;
 }
+template <typename F>
+F sqr(F x) {
+  return x * x;
+}
 
 ///@brief return sum of highest two elements in vector
 template <typename Vector, typename Index>

@@ -1,3 +1,4 @@
+import _pickle
 from time import perf_counter
 import numpy as np
 import homog as hm
@@ -60,18 +61,41 @@ def test_body(C2_3hm4, C3_1nza, sym1=2, sym2=3):
     # body2.dump_pdb_from_bodies("body2.pdb")
 
 
+def test_body_pickle(C3_1nza, tmpdir):
+    b = Body(C3_1nza)
+    with open(tmpdir + "/a", "wb") as out:
+        _pickle.dump(b, out)
+    with open(tmpdir + "/a", "rb") as inp:
+        b2 = _pickle.load(inp)
+
+    assert np.allclose(b.coord, b2.coord)
+    assert np.allclose(b.pos, b2.pos)
+    assert np.allclose(b.cen, b2.cen)
+    assert b.sym == b2.sym
+    assert b.nfold == b2.nfold
+    assert np.all(b.seq == b2.seq)
+    assert np.all(b.ss == b2.ss)
+    assert np.allclose(b.chain, b2.chain)
+    assert np.allclose(b.resno, b2.resno)
+    assert np.allclose(b.bvh_bb.centers(), b2.bvh_bb.centers())
+    assert np.allclose(b.bvh_cen.centers(), b2.bvh_cen.centers())
+
+
 if __name__ == "__main__":
     import sicdock.rosetta as ros
+    from tempfile import mkdtemp
 
-    f1 = "sicdock/data/pdb/C2_3hm4_1.pdb.gz"
+    # f1 = "sicdock/data/pdb/C2_3hm4_1.pdb.gz"
     f2 = "sicdock/data/pdb/C3_1nza_1.pdb.gz"
     # f1 = "/home/sheffler/scaffolds/big/C2_3jpz_1.pdb"
     # f2 = "/home/sheffler/scaffolds/big/C3_3ziy_1.pdb"
     # f1 = "/home/sheffler/scaffolds/wheel/C3.pdb"
     # f2 = "/home/sheffler/scaffolds/wheel/C5.pdb"
-    pose1 = ros.get_pose_cached(f1)
+    # pose1 = ros.get_pose_cached(f1)
     pose2 = ros.get_pose_cached(f2)
-    test_body(pose1, pose2)
+    # test_body(pose1, pose2)
+
+    test_body_pickle(f2, mkdtemp())
 
     # nres  306  309 sqnpair  307 new 17743/s orig 13511/s
     # nres  728 1371 sqnpair  999 new  8246/s orig  4287/s

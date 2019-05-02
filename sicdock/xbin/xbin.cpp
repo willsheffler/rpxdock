@@ -50,7 +50,7 @@ py::array bincen_of(VectorX<K> keys, double rcart, double rori, double mxcart) {
 }
 
 template <typename F, typename K>
-VectorX<K> _key_of(XBin<F, K> const &binner, py::array_t<F> _xforms) {
+VectorX<K> key_of(XBin<F, K> const &binner, py::array_t<F> _xforms) {
   MapVectorXform<F> xforms = xform_py_to_eigen(_xforms);
   VectorX<K> out(xforms.size());
   for (int i = 0; i < xforms.size(); ++i) {
@@ -60,30 +60,8 @@ VectorX<K> _key_of(XBin<F, K> const &binner, py::array_t<F> _xforms) {
   return out;
 }
 
-template <typename F, typename K>
-VectorX<K> key_of_type(py::array_t<F> x, double rcart, double rori,
-                       double mxcart) {
-  XBin<F, K> binner(rcart, rori, mxcart);
-  return _key_of(binner, x);
-}
-
-template <typename K>
-VectorX<K> key_of(py::array x, double rcart, double rori, double mxcart) {
-  auto buf = pybind11::array::ensure(x);
-  if (!buf) throw std::runtime_error("bad array");
-  if (buf.ndim() != 3 || buf.shape()[1] != 4 || buf.shape()[2] != 4)
-    throw std::runtime_error("array must be shape (N,4,4)");
-  if (py::isinstance<py::array_t<double>>(x)) {
-    return key_of_type<double, K>(x, rcart, rori, mxcart);
-  } else if (py::isinstance<py::array_t<float>>(x)) {
-    return key_of_type<float, K>(x, rcart, rori, mxcart);
-  } else {
-    throw std::runtime_error("array dtype must be f4 or f8");
-  }
-}
-
-template <typename I, typename F, typename K, typename FX>
-py::array_t<K> kop_impl(XBin<FX, K> const &xb, py::array_t<I> p,
+template <typename I, typename F, typename K>
+py::array_t<K> kop_impl(XBin<F, K> const &xb, py::array_t<I> p,
                         py::array_t<F> x1, py::array_t<F> x2) {
   I *pp = (I *)p.request().ptr;
   X3<F> *px1 = (X3<F> *)x1.request().ptr;
@@ -93,15 +71,14 @@ py::array_t<K> kop_impl(XBin<FX, K> const &xb, py::array_t<I> p,
   for (int ip = 0; ip < keys.size(); ++ip) {
     I i1 = pp[2 * ip + 0];
     I i2 = pp[2 * ip + 1];
-    X3<F> x = px1[i1].inverse() * (px2[i2]);
-    out[ip] = xb.get_key(x.template cast<FX>());
+    out[ip] = xb.get_key(px1[i1].inverse() * (px2[i2]));
   }
 
   return keys;
 }
 
-template <typename K, typename FX>
-py::array_t<K> key_of_pairs(XBin<FX, K> const &xb, py::array xp, py::array x1,
+template <typename K, typename F>
+py::array_t<K> key_of_pairs(XBin<F, K> const &xb, py::array xp, py::array x1,
                             py::array x2) {
   check_xform_array(x1);
   check_xform_array(x2);
@@ -114,29 +91,21 @@ py::array_t<K> key_of_pairs(XBin<FX, K> const &xb, py::array xp, py::array x1,
     throw std::runtime_error("bad strides, strides not supported");
   if (x1.dtype() != x2.dtype())
     throw std::runtime_error("xform arrays must have same dtype");
-  if (py::isinstance<py::array_t<int64_t>>(xp) &&
-      py::isinstance<py::array_t<double>>(x1) &&
-      py::isinstance<py::array_t<double>>(x2)) {
-    return kop_impl<int64_t, double, K, FX>(xb, xp, x1, x2);
-  } else if (py::isinstance<py::array_t<int32_t>>(xp) &&
-             py::isinstance<py::array_t<double>>(x1) &&
-             py::isinstance<py::array_t<double>>(x2)) {
-    return kop_impl<int64_t, double, K, FX>(xb, xp, x1, x2);
-  } else if (py::isinstance<py::array_t<int64_t>>(xp) &&
-             py::isinstance<py::array_t<float>>(x1) &&
-             py::isinstance<py::array_t<float>>(x2)) {
-    return kop_impl<int64_t, float, K, FX>(xb, xp, x1, x2);
-  } else if (py::isinstance<py::array_t<int32_t>>(xp) &&
-             py::isinstance<py::array_t<float>>(x1) &&
-             py::isinstance<py::array_t<float>>(x2)) {
-    return kop_impl<int64_t, float, K, FX>(xb, xp, x1, x2);
+  if (py::isinstance<py::array_t<int64_t>>(xp)) {
+    return kop_impl<int64_t, F, K>(xb, xp, x1, x2);
+  } else if (py::isinstance<py::array_t<int32_t>>(xp)) {
+    return kop_impl<int32_t, F, K>(xb, xp, x1, x2);
+  } else if (py::isinstance<py::array_t<uint64_t>>(xp)) {
+    return kop_impl<uint64_t, F, K>(xb, xp, x1, x2);
+  } else if (py::isinstance<py::array_t<uint32_t>>(xp)) {
+    return kop_impl<uint32_t, F, K>(xb, xp, x1, x2);
   } else {
     throw std::runtime_error("array dtype must be matching f4 or f8");
   }
 }
 
-template <typename I, typename F, typename K, typename FX>
-py::array_t<K> kop2_impl(XBin<FX, K> const &xb, py::array_t<I> i1,
+template <typename I, typename F, typename K>
+py::array_t<K> kop2_impl(XBin<F, K> const &xb, py::array_t<I> i1,
                          py::array_t<I> i2, py::array_t<F> x1,
                          py::array_t<F> x2) {
   I *i1p = (I *)i1.request().ptr;
@@ -146,15 +115,14 @@ py::array_t<K> kop2_impl(XBin<FX, K> const &xb, py::array_t<I> i1,
   py::array_t<K> keys(i1.shape()[0]);
   K *out = (K *)keys.request().ptr;
   for (int i = 0; i < keys.size(); ++i) {
-    X3<FX> x = (px1[i1p[i]].inverse() * (px2[i2p[i]])).template cast<FX>();
-    out[i] = xb.get_key(x);
+    out[i] = xb.get_key(px1[i1p[i]].inverse() * (px2[i2p[i]]));
   }
 
   return keys;
 }
 
-template <typename K, typename FX>
-py::array_t<uint64_t> key_of_pairs2(XBin<FX, K> const &xb, py::array i1,
+template <typename K, typename F>
+py::array_t<uint64_t> key_of_pairs2(XBin<F, K> const &xb, py::array i1,
                                     py::array i2, py::array x1, py::array x2) {
   check_xform_array(x1);
   check_xform_array(x2);
@@ -170,25 +138,21 @@ py::array_t<uint64_t> key_of_pairs2(XBin<FX, K> const &xb, py::array i1,
     throw std::runtime_error("index arrays must have same dtype");
   if (x1.dtype() != x2.dtype())
     throw std::runtime_error("xform arrays must have same dtype");
-  if (py::isinstance<py::array_t<int64_t>>(i1) &&
-      py::isinstance<py::array_t<double>>(x1)) {
-    return kop2_impl<int64_t, double, K, FX>(xb, i1, i2, x1, x2);
-  } else if (py::isinstance<py::array_t<int32_t>>(i1) &&
-             py::isinstance<py::array_t<double>>(x1)) {
-    return kop2_impl<int64_t, double, K, FX>(xb, i1, i2, x1, x2);
-  } else if (py::isinstance<py::array_t<int64_t>>(i1) &&
-             py::isinstance<py::array_t<float>>(x1)) {
-    return kop2_impl<int64_t, float, K, FX>(xb, i1, i2, x1, x2);
-  } else if (py::isinstance<py::array_t<int32_t>>(i1) &&
-             py::isinstance<py::array_t<float>>(x1)) {
-    return kop2_impl<int64_t, float, K, FX>(xb, i1, i2, x1, x2);
+  if (py::isinstance<py::array_t<int64_t>>(i1)) {
+    return kop2_impl<int64_t, F, K>(xb, i1, i2, x1, x2);
+  } else if (py::isinstance<py::array_t<int32_t>>(i1)) {
+    return kop2_impl<int32_t, F, K>(xb, i1, i2, x1, x2);
+  } else if (py::isinstance<py::array_t<uint64_t>>(i1)) {
+    return kop2_impl<uint64_t, F, K>(xb, i1, i2, x1, x2);
+  } else if (py::isinstance<py::array_t<uint32_t>>(i1)) {
+    return kop2_impl<uint32_t, F, K>(xb, i1, i2, x1, x2);
   } else {
     throw std::runtime_error("array dtype must be matching f4 or f8");
   }
 }
 
-template <typename I, typename F, typename K, typename FX>
-py::array_t<K> kop2ss_impl(XBin<FX, K> const &xb, py::array_t<I> i1,
+template <typename I, typename F, typename K>
+py::array_t<K> kop2ss_impl(XBin<F, K> const &xb, py::array_t<I> i1,
                            py::array_t<I> i2, py::array_t<I> ss1,
                            py::array_t<I> ss2, py::array_t<F> x1,
                            py::array_t<F> x2) {
@@ -201,16 +165,15 @@ py::array_t<K> kop2ss_impl(XBin<FX, K> const &xb, py::array_t<I> i1,
   py::array_t<K> keys(i1.shape()[0]);
   K *out = (K *)keys.request().ptr;
   for (int i = 0; i < keys.size(); ++i) {
-    X3<FX> x = (x1p[i1p[i]].inverse() * (x2p[i2p[i]])).template cast<FX>();
-    K k = xb.get_key(x);
+    K k = xb.get_key(x1p[i1p[i]].inverse() * (x2p[i2p[i]]));
     out[i] = k | ((K)ss1p[i1p[i]] << 62) | ((K)ss2p[i2p[i]] << 60);
   }
 
   return keys;
 }
 
-template <typename K, typename FX>
-py::array_t<K> key_of_pairs2_ss(XBin<FX, K> const &xb, py::array i1,
+template <typename K, typename F>
+py::array_t<K> key_of_pairs2_ss(XBin<F, K> const &xb, py::array i1,
                                 py::array i2, py::array ss1, py::array ss2,
                                 py::array x1, py::array x2) {
   check_xform_array(x1);
@@ -227,22 +190,18 @@ py::array_t<K> key_of_pairs2_ss(XBin<FX, K> const &xb, py::array i1,
     throw std::runtime_error("index arrays must have same dtype");
   if (x1.dtype() != x2.dtype())
     throw std::runtime_error("xform arrays must have same dtype");
-  if (py::isinstance<py::array_t<int64_t>>(i1) &&
-      py::isinstance<py::array_t<double>>(x1)) {
-    return kop2ss_impl<int64_t, double, K, FX>(xb, i1, i2, ss1, ss2, x1, x2);
-  } else if (py::isinstance<py::array_t<int32_t>>(i1) &&
-             py::isinstance<py::array_t<double>>(x1)) {
-    return kop2ss_impl<int64_t, double, K, FX>(xb, i1, i2, ss1, ss2, x1, x2);
-  } else if (py::isinstance<py::array_t<int64_t>>(i1) &&
-             py::isinstance<py::array_t<float>>(x1)) {
-    return kop2ss_impl<int64_t, float, K, FX>(xb, i1, i2, ss1, ss2, x1, x2);
-  } else if (py::isinstance<py::array_t<int32_t>>(i1) &&
-             py::isinstance<py::array_t<float>>(x1)) {
-    return kop2ss_impl<int64_t, float, K, FX>(xb, i1, i2, ss1, ss2, x1, x2);
+  if (py::isinstance<py::array_t<int64_t>>(i1)) {
+    return kop2ss_impl<int64_t, F, K>(xb, i1, i2, ss1, ss2, x1, x2);
+  } else if (py::isinstance<py::array_t<int32_t>>(i1)) {
+    return kop2ss_impl<int32_t, F, K>(xb, i1, i2, ss1, ss2, x1, x2);
+  } else if (py::isinstance<py::array_t<uint64_t>>(i1)) {
+    return kop2ss_impl<uint64_t, F, K>(xb, i1, i2, ss1, ss2, x1, x2);
+  } else if (py::isinstance<py::array_t<uint32_t>>(i1)) {
+    return kop2ss_impl<uint32_t, F, K>(xb, i1, i2, ss1, ss2, x1, x2);
   } else {
     throw std::runtime_error("array dtype must be matching f4 or f8");
   }
-}
+}  // namespace xbin
 
 template <typename K, typename FX>
 py::array_t<K> key_of_pairs2_ss_same(XBin<FX, K> const &xb, py::array i1,
@@ -279,9 +238,9 @@ void bind_xbin(py::module m, std::string name) {
       py::class_<THIS>(m, name.c_str())
           .def(py::init<F, F, F>(), "cart_resl"_a = 1.0, "ori_resl"_a = 20.0,
                "cart_bound"_a = 512.0)
-          .def("__getitem__", &_key_of<F, K>)
+          .def("__getitem__", &key_of<F, K>)
           .def("__getitem__", &_bincen_of<F, K>)
-          .def("key_of", &_key_of<F, K>, "key of xform", "xform"_c)
+          .def("key_of", &key_of<F, K>, "key of xform", "xform"_c)
           .def("bincen_of", &_bincen_of<F, K>)
           .def("xform_to_F6", &xform_to_F6<F, K>)
           .def("F6_to_xform", &F6_to_xform<F, K>)
@@ -290,6 +249,14 @@ void bind_xbin(py::module m, std::string name) {
           .def_readonly("ori_resl", &THIS::ori_resl_)
           .def_readonly("cart_bound", &THIS::cart_bound_)
           .def_readonly("ori_nside", &THIS::ori_nside_)
+          .def("key_of_pairs2_ss", &key_of_pairs2_ss<K, F>, "idx1"_c, "idx2"_c,
+               "ss1"_c, "ss2"_c, "xform1"_c, "xform2"_c)
+          .def("key_of_pairs2_ss", &key_of_pairs2_ss_same<K, F>, "idx1"_c,
+               "idx2"_c, "ss"_c, "xform"_c)
+          .def("key_of_pairs2", &key_of_pairs2<K, F>, "idx1"_c, "idx2"_c,
+               "xform1"_c, "xform2"_c)
+          .def("key_of_pairs", &key_of_pairs<K, F>, "pairs"_c, "xform1"_c,
+               "xform2"_c)
           .def(py::pickle(
               [](const THIS &xbin) {  // __getstate__
                 return py::make_tuple(xbin.orig_cart_resl_, xbin.ori_nside_,
@@ -299,14 +266,6 @@ void bind_xbin(py::module m, std::string name) {
                 if (t.size() != 3) throw std::runtime_error("Invalid state!");
                 return THIS(t[0].cast<F>(), t[1].cast<int>(), t[2].cast<F>());
               }))
-          .def("key_of_pairs2_ss", &key_of_pairs2_ss<K, F>, "idx1"_c, "idx2"_c,
-               "ss1"_c, "ss2"_c, "xform1"_c, "xform2"_c)
-          .def("key_of_pairs2_ss", &key_of_pairs2_ss_same<K, F>, "idx1"_c,
-               "idx2"_c, "ss"_c, "xform"_c)
-          .def("key_of_pairs2", &key_of_pairs2<K, F>, "idx1"_c, "idx2"_c,
-               "xform1"_c, "xform2"_c)
-          .def("key_of_pairs", &key_of_pairs<K, F>, "pairs"_c, "xform1"_c,
-               "xform2"_c)
 
       /**/;
 }  // namespace xbin
@@ -318,15 +277,10 @@ XBin<F, K> create_XBin_nside(F cart_resl, int nside, F cart_bound) {
 
 PYBIND11_MODULE(xbin, m) {
   using K = uint64_t;
-
-  bind_xbin<double, K>(m, "XBin");
+  bind_xbin<double, K>(m, "XBin_double");
   bind_xbin<float, K>(m, "XBin_float");
   m.def("create_XBin_nside", &create_XBin_nside<double, K>);
   m.def("create_XBin_nside_float", &create_XBin_nside<float, K>);
-  // m.def("key_of", &key_of<K>, "xform"_c, "cart_resl"_a = 1.0,
-  //       "ori_resl"_a = 20.0, "cart_bound"_a = 512.0);
-  // m.def("bincen_of", &bincen_of<K>, "", "keys"_c, "cart_resl"_a = 1.0,
-  //       "ori_resl"_a = 20.0, "cart_bound"_a = 512.0);
 }
 
 }  // namespace xbin

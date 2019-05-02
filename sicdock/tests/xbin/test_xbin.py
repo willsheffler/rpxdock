@@ -2,7 +2,7 @@ import _pickle
 from time import perf_counter
 import numpy as np
 from cppimport import import_hook
-from sicdock.xbin import xbin_test, XBin, XBin_float, create_XBin_nside
+from sicdock.xbin import xbin_test, XBin_double, XBin_float, create_XBin_nside
 from sicdock.geom.rotation import angle_of_3x3
 from sicdock.geom import bcc
 
@@ -25,7 +25,7 @@ def test_xbin_cpp():
 
 
 def test_create_binner():
-    binner = XBin(1.0, 15.0, 256.0)
+    binner = XBin_double(1.0, 15.0, 256.0)
     binner2 = XBin_float(1.0, 15.0, 256.0)
     assert binner
     assert binner2
@@ -33,7 +33,7 @@ def test_create_binner():
 
 def test_key_of():
     N = 1_000_00
-    xb = XBin(0.3, 5.0, 256.0)
+    xb = XBin_double(0.3, 5.0, 256.0)
     xbf = XBin_float(0.3, 5.0, 256.0)
     tgen = perf_counter()
     x = hm.rand_xform(N)
@@ -62,7 +62,7 @@ def test_key_of():
 
 
 def test_key_of_pairs():
-    xb = XBin(1, 20)
+    xb = XBin_double(1, 20)
     N = 10_000
     N1, N2 = 100, 1000
     x1 = hm.rand_xform(N1)
@@ -87,7 +87,7 @@ def test_xbin_covrad(niter=20, nsamp=5000):
         cart_resl = np.random.rand() * 10 + 0.125
         ori_resl = np.random.rand() * 50 + 2.6
         xforms = hm.rand_xform(nsamp)
-        xb = XBin(cart_resl, ori_resl, 512)
+        xb = XBin_double(cart_resl, ori_resl, 512)
         ori_resl = xb.ori_resl
         idx = xb.key_of(xforms)
         cen = xb.bincen_of(idx)
@@ -128,11 +128,11 @@ def test_xbin_covrad_ori():
 
 
 def test_key_of_pairs2_ss():
-    xb = XBin()
+    xb = XBin_float()
     N = 10_000
     N1, N2 = 100, 1000
-    x1 = hm.rand_xform(N1)
-    x2 = hm.rand_xform(N2)
+    x1 = hm.rand_xform(N1).astype('f4')
+    x2 = hm.rand_xform(N2).astype('f4')
     ss1 = np.random.randint(0, 3, N1)
     ss2 = np.random.randint(0, 3, N2)
     i1 = np.random.randint(0, N1, N)
@@ -147,7 +147,7 @@ def test_key_of_pairs2_ss():
 
 
 def test_pickle(tmpdir):
-    xb = XBin(1, 2, 3)
+    xb = XBin_double(1, 2, 3)
     with open(tmpdir + "/foo", "wb") as out:
         _pickle.dump(xb, out)
 

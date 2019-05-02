@@ -2,7 +2,7 @@ from time import perf_counter
 from sicdock.search.hierarchical import *
 from sicdock.dockspec import DockSpec2CompCage
 from sicdock.body import Body
-from sicdock.io import dump_pdb_from_bodies
+from sicdock.io.io_body import dump_pdb_from_bodies
 from sicdock.cluster import prune_results_2comp
 
 

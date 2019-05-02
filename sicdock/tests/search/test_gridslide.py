@@ -10,7 +10,7 @@ from sicdock.dockspec import (
     DockSpecMonomerToCyclic,
 )
 from sicdock.search import gridslide
-from sicdock.io import dump_pdb_from_bodies
+from sicdock.io.io_body import dump_pdb_from_bodies
 from sicdock import sym
 
 from sicdock.cluster.prune import prune_results_2comp
