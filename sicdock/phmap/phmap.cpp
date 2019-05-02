@@ -11,19 +11,12 @@ setup_pybind11(cfg)
 #include "sicdock/phmap/phmap.hpp"
 // #include <parallel_hashmap/phmap_utils.h>
 
+#include <iostream>
+
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
 using namespace pybind11::literals;
-
-#include <cereal/archives/binary.hpp>
-#include <cereal/types/array.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/utility.hpp>
-#include <cereal/types/vector.hpp>
-#include <fstream>
-
-#include <iostream>
 
 namespace sicdock {
 namespace phmap {
@@ -127,36 +120,8 @@ bool PHMap_contains(PHMap<K, V> &phmap, py::array_t<K> keys) {
   return true;
 }
 
-// template <typename K, typename V>
-// bool PHMap_has_single(PHMap<K, V> &phmap, K key) {
-//   auto search = phmap.phmap_.find(key);
-//   if (search != phmap.phmap_.end()) return true;
-//   return false;
-// }
-
 template <typename K, typename V>
-void PHMap_dump(PHMap<K, V> &phmap, std::string filename) {
-  std::ofstream stream(filename, std::ios::binary);
-  cereal::BinaryOutputArchive oarchive(stream);
-
-  for (auto &key_value : phmap.phmap_) {
-    oarchive(key_value);
-  }
-}
-template <typename K, typename V>
-void PHMap_load(PHMap<K, V> &phmap, std::string filename) {
-  std::ifstream stream(filename, std::ios::binary);
-  cereal::BinaryInputArchive iarchive(stream);
-
-  std::pair<K, V> in_key_value;
-  while (stream.peek() != EOF) {
-    iarchive(in_key_value);
-    phmap.phmap_.insert_or_assign(in_key_value.first, in_key_value.second);
-  }
-}
-
-template <typename K, typename V>
-py::tuple items_array(PHMap<K, V> const &phmap) {
+py::tuple PHMap_items_array(PHMap<K, V> const &phmap) {
   py::array_t<K> keys(phmap.size());
   py::array_t<V> vals(phmap.size());
   K *kptr = (K *)keys.request().ptr;
@@ -168,6 +133,17 @@ py::tuple items_array(PHMap<K, V> const &phmap) {
     ++i;
   }
   return py::make_tuple(keys, vals);
+}
+
+template <typename K, typename V>
+bool PHMap_eq(PHMap<K, V> const &a, PHMap<K, V> const &b) {
+  if (a.size() != b.size()) return false;
+  for (auto [k, v] : a.phmap_) {
+    auto it = b.phmap_.find(k);
+    if (it == b.phmap_.end()) return false;
+    if (it->second != v) return false;
+  }
+  return true;
 }
 
 template <typename K, typename V>
@@ -183,14 +159,26 @@ void bind_phmap(const py::module &m, std::string name) {
       .def("__delitem__", &PHMap_del<K, V>)
       .def("has", &PHMap_has<K, V>)
       .def("__contains__", &PHMap_contains<K, V>)
-      .def("dump", &PHMap_dump<K, V>)
-      .def("load", &PHMap_load<K, V>)
-      .def("items_array", &items_array<K, V>)
+      .def("items_array", &PHMap_items_array<K, V>)
+      .def("__eq__", &PHMap_eq<K, V>)
       .def("items",
-           [](const PHMap &c) {
+           [](PHMap const &c) {
              return py::make_iterator(c.phmap_.begin(), c.phmap_.end());
            },
            py::keep_alive<0, 1>())
+      .def(py::pickle(
+          [](PHMap const &map) {  // __getstate__
+            return PHMap_items_array(map);
+          },
+          [](py::tuple t) {  // __setstate__
+            if (t.size() != 2) throw std::runtime_error("Invalid state!");
+            auto map = std::make_unique<PHMap>();
+            auto keys = t[0].cast<py::array_t<K>>();
+            auto vals = t[1].cast<py::array_t<V>>();
+            PHMap_set<K, V>(*map, keys, vals);
+            return map;
+          }))
+
       /**/;
 }
 

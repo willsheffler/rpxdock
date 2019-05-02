@@ -41,8 +41,24 @@ def test_bcc_neighbors_3():
             dis = np.linalg.norm(cart - com, axis=1)
             assert np.allclose(np.max(dis), np.sqrt(3) * rad * 10)
 
+
+def test_bcc_neighbors_3_exhalf():
+    for bcc in [
+        BCC3([10, 10, 10], [-50, -50, -50], [50, 50, 50]),
+        BCC3([11, 11, 11], [-55, -55, -55], [55, 55, 55]),
+    ]:
+        cen0 = np.array([[0.0, 0.0, 0.0]])
+        kcen = bcc.keys(cen0)
+        # print(kcen)
+        cen = bcc.vals(kcen)
+        allkeys = np.arange(len(bcc), dtype="u8")
+        allcens = bcc[allkeys]
+        # print(len(allcens))
+        diff = allcens - cen
+        d = np.linalg.norm(diff[:, :3], axis=1)
+
         for rad in range(1, 5):
-            nb = bcc.neighbors_3(kcen, rad, 1, sphere=0)
+            nb = bcc.neighbors_3(kcen, rad, extrahalf=1, sphere=0)
             cart = bcc[nb]
             # print(np.unique(cart[:, 0]))
             assert len(nb) == len(set(nb)) == (1 + 2 * rad) ** 3 + (2 * rad + 2) ** 3
@@ -73,29 +89,30 @@ def test_bcc_neighbors_3_sphere():
     ]:
         cen0 = np.array([[0.0, 0.0, 0.0]])
         kcen = bcc.keys(cen0)
-        # print(kcen)
         cen = bcc.vals(kcen)
         allkeys = np.arange(len(bcc), dtype="u8")
         allcens = bcc[allkeys]
-        # print(len(allcens))
         diff = allcens - cen
         d = np.linalg.norm(diff[:, :3], axis=1)
         ntrim = np.array([0, 8, 5 * 8 + 12, 23 * 8 + 3 * 12, 57 * 8 + 3 * 12])
-        radius = [
-            0,
-            14.142135623730951,
-            24.49489742783178,
-            34.64101615137755,
-            44.721359549995796,
-        ]
+        radius = [14.142135623730, 24.494897427831, 34.641016151377, 44.721359549995]
 
         for rad in range(1, 5):
-            nbns = bcc.neighbors_3(kcen, rad, 0, sphere=0).astype("i8")
-            nb = bcc.neighbors_3(kcen, rad, 0, sphere=1).astype("i8")
+            nbns = bcc.neighbors_3(kcen, rad, extrahalf=0, sphere=0).astype("i8")
+            nb = bcc.neighbors_3(kcen, rad, extrahalf=0, sphere=1).astype("i8")
             cart = bcc[nb.astype("u8")]
+
+            # from sicdock.io.io import dump_pdb_from_points
+
             # cart2 = bcc[nbns.astype("u8")]
-            # print(np.diff(nb))
-            # print(cart)
+            # nbnse = bcc.neighbors_3(kcen, rad, extrahalf=1, sphere=0)
+            # nbe = bcc.neighbors_3(kcen, rad, extrahalf=1, sphere=1)
+            # carte = bcc[nbe]
+            # cart2e = bcc[nbnse]
+            # dump_pdb_from_points("bcc_%i.pdb" % rad, cart2)
+            # dump_pdb_from_points("bcc_%i_sph.pdb" % rad, cart)
+            # dump_pdb_from_points("bcc_%iex.pdb" % rad, cart2e)
+            # dump_pdb_from_points("bcc_%iex_sph.pdb" % rad, carte)
 
             assert np.all(np.diff(nb) > 0)
             wnb = set(nb)
@@ -119,10 +136,25 @@ def test_bcc_neighbors_3_sphere():
             dis = np.linalg.norm(cart - com, axis=1)
             # print(rad * 10, np.max(dis), np.sqrt(2) * rad * 10)
             assert rad * 10 < np.max(dis) < np.sqrt(2) * rad * 10 + 0.01
-            assert np.allclose(radius[rad], np.max(dis))
+            assert np.allclose(radius[rad - 1], np.max(dis))
+
+
+def test_bcc_neighbors_3_exhalf_sphere():
+
+    for bcc in [
+        BCC3([10, 10, 10], [-50, -50, -50], [50, 50, 50]),
+        BCC3([11, 11, 11], [-55, -55, -55], [55, 55, 55]),
+    ]:
+        cen0 = np.array([[0.0, 0.0, 0.0]])
+        kcen = bcc.keys(cen0)
+        cen = bcc.vals(kcen)
+        allkeys = np.arange(len(bcc), dtype="u8")
+        allcens = bcc[allkeys]
+        diff = allcens - cen
+        d = np.linalg.norm(diff[:, :3], axis=1)
 
         ntrim = np.array([0, 4 * 8, 11 * 8, 36 * 8 + 3 * 12, 79 * 8 + 3 * 12])
-        radius = [0, 17.320508075688775, 30.0, 38.40572873934304, 50.0]
+        radius = [17.320508075688775, 30.0, 38.40572873934304, 50.0]
         for rad in range(1, 5):
             nbns = bcc.neighbors_3(kcen, rad, extrahalf=1, sphere=0).astype("i8")
             nb = bcc.neighbors_3(kcen, rad, extrahalf=1, sphere=1).astype("i8")
@@ -153,7 +185,7 @@ def test_bcc_neighbors_3_sphere():
             dis = np.linalg.norm(cart - com, axis=1)
             # print(rad * 10, np.max(dis), np.sqrt(2) * rad * 10)
             assert rad * 10 + 5 < np.max(dis) < np.sqrt(2) * (rad * 10 + 5.01)
-            assert np.allclose(radius[rad], np.max(dis))
+            assert np.allclose(radius[rad - 1], np.max(dis))
 
 
 def test_bcc_neighbors_6_3():
@@ -497,11 +529,6 @@ def test_bcc_neighbors_6_3_oddlast3_sphere_extrahalf():
             diff = np.diff(nb.astype("i8"))
             assert np.all(diff > 0)
 
-            from sicdock.io.io import dump_pdb_from_points
-
-            dump_pdb_from_points("bcc.pdb", cart2)
-            dump_pdb_from_points("bcc_sph.pdb", cart)
-
             assert len(nbns) == w ** 3 + (w + 1) ** 3 * 8
             assert len(nb) == w ** 3 + (w + 1) ** 3 * 8 - ntrim[rad]
 
@@ -535,10 +562,11 @@ def test_bcc_neighbors_6_3_oddlast3_sphere_extrahalf():
 
 if __name__ == "__main__":
     # test_bcc_neighbors_3()
-    # test_bcc_neighbors_3_sphere()
+    test_bcc_neighbors_3_sphere()
+    test_bcc_neighbors_3_exhalf_sphere()
     # test_bcc_neighbors_6_3()
     # test_bcc_neighbors_6_3_extrahalf()
     # test_bcc_neighbors_6_3_oddlast3()
     # test_bcc_neighbors_6_3_oddlast3_extrahalf()
-    test_bcc_neighbors_6_3_oddlast3_sphere()
-    test_bcc_neighbors_6_3_oddlast3_sphere_extrahalf()
+    # test_bcc_neighbors_6_3_oddlast3_sphere()
+    # test_bcc_neighbors_6_3_oddlast3_sphere_extrahalf()

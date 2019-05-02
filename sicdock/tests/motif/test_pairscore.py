@@ -1,14 +1,24 @@
-import time
+import time, _pickle
 from sicdock.motif.pairdat import *
 from sicdock.motif.pairscore import *
 
 
 def test_create_res_pair_score(respairdat, tmpdir):
     rps = create_res_pair_score(respairdat, min_ssep=10)
-    rps.dump(str(tmpdir))
-    rps2 = load_respairscore(str(tmpdir))
+    print(rps)
+
+
+def test_res_pair_score_pickle(respairscore, tmpdir):
+    rps = respairscore
+    with open(tmpdir + "/foo", "wb") as out:
+        _pickle.dump(rps, out)
+    with open(tmpdir + "/foo", "rb") as inp:
+        rps2 = _pickle.load(inp)
     assert np.all(rps.rotid == rps2.rotid)
     assert np.all(rps.pdb == rps2.pdb)
+    assert np.all(rps.stub == rps2.stub)
+    assert rps.score_map == rps2.score_map
+    assert rps.range_map == rps2.range_map
 
 
 def test_pair_score(respairscore):
@@ -66,20 +76,92 @@ def test_bin_get_all_data(respairscore):
     print(f"perf perrot: {int(totsize / t):,} perkey: {int(len(binrots) / t):,}")
 
 
-if __name__ == "__main__":
-    import _pickle
-    import tempfile
-
-    # # f = "/home/sheffler/debug/sicdock/datafiles/respairdat_si30_rotamers.pickle"
+def make_score_files_moveme():
+    # f = "/home/sheffler/debug/sicdock/respairdat_si30.pickle"
     # # f2 = "/home/sheffler/debug/sicdock/datafiles/respairdat_si30_rotamers"
     # f = "sicdock/data/respairdat10_plus_xmap_rots.pickle"
     # f2 = "sicdock/data/respairscore10"
-    f = "sicdock/data/respairdat10.pickle"
+    # f = "sicdock/data/respairdat10.pickle"
+    f = "/home/sheffler/debug/derp_learning/pdb_res_pair_data_si30.pickle"
+    f1 = "/home/sheffler/debug/sicdock/pdb_res_pair_data_si30_rots.pickle"
+    f2 = "/home/sheffler/debug/sicdock/pdb_res_pair_data_si30_pairscore.pickle"
     with open(f, "rb") as inp:
         rp = ResPairData(_pickle.load(inp))
-    test_create_res_pair_score(rp, tempfile.mkdtemp())
+    rp.data["stub"] = ["resid", "hrow", ""], bb_stubs(rp.n, rp.ca, rp.c)
+    xbin = XBin(1.0, 20)
+    add_xbin_to_respairdat(rp, xbin, min_ssep=10)
+    rotspace = get_rotamer_space()
+    add_rots_to_respairdat(rp, rotspace)
+    with open(f1, "wb") as out:
+        _pickle.dump(rp.data, out)
+    rps = create_res_pair_score(rp, min_ssep=10)
+    with open(f2, "wb") as out:
+        _pickle.dump(rps, out)
 
-    # rps = load_respairscore(f2)
-    # test_pair_score(rps)
-    # test_bin_get_all_data(rps)
-    # test_bin_score(rps)
+
+def terrible_sanity_check():
+    f = "/home/sheffler/debug/sicdock/pdb_res_pair_data_si30_pairscore.pickle"
+    with open(f, "rb") as inp:
+        rps = _pickle.load(inp)
+
+    f2 = "/home/sheffler/debug/sicdock/pdb_res_pair_data_si30_pairscore/resdata.pickle"
+    with open(f2, "rb") as inp:
+        rd = _pickle.load(inp)
+
+    assert rps.stub.shape == rd.stub.shape
+    assert rps.xbin.cart_resl == rd.xbin.cart_resl
+    assert rps.keys.shape == rd.keys.shape
+    assert len(rps.score_map) == len(rd.keys)
+    assert len(rps.range_map) == len(rd.keys)
+    assert rps.respair.shape == rd.respair.shape
+    assert rps.aaid.shape == rd.aaid.shape
+    assert rps.ssid.shape == rd.ssid.shape
+    assert rps.rotid.shape == rd.rotid.shape
+    assert rps.stub.shape == rd.stub.shape
+    assert rps.pdb.shape == rd.pdb.shape
+    assert rps.resno.shape == rd.resno.shape
+    for i in range(len(rps.rotchi)):
+        assert list(rps.rotchi[i]) == list(rd.rotchi[i])
+    assert rps.rotlbl == rd.rotlbl
+    assert rps.id2aa.shape == rd.id2aa.shape
+    assert rps.id2ss.shape == rd.id2ss.shape
+
+    f = "/home/sheffler/debug/sicdock/pdb_res_pair_data_si30_pairscore.pickle"
+    with open(f, "rb") as inp:
+        rps = _pickle.load(inp)
+
+    # f2 = "/home/sheffler/debug/sicdock/pdb_res_pair_data_si30_pairscore/resdata.pickle"
+    # with open(f2, "rb") as inp:
+    # rd = _pickle.load(inp)
+
+    print(len(rps.score_map) / 1000000)
+    k, v = rps.score_map.items_array()
+
+    from time import perf_counter
+    from sicdock.phmap import PHMap_u8f8
+
+    t = perf_counter()
+    x = rps.score_map[k]
+    t = perf_counter() - t
+    assert np.all(x == v)
+    print(t)
+    t = perf_counter()
+    p = PHMap_u8f8()
+    p[k] = v
+    t = perf_counter() - t
+    assert np.all(x == v)
+    print(t)
+
+
+# if __name__ == "__main__":
+
+# make_score_files_moveme()
+# import tempfile
+# with open(f, "rb") as inp:
+# rp = ResPairData(_pickle.load(inp))
+# test_create_res_pair_score(rp, tempfile.mkdtemp())
+
+# rps = load_respairscore(f2)
+# test_pair_score(rps)
+# test_bin_get_all_data(rps)
+# test_bin_score(rps)

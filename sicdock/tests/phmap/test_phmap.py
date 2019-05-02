@@ -1,4 +1,4 @@
-import os
+import os, _pickle
 import numpy as np
 from sicdock import phmap
 
@@ -28,6 +28,7 @@ def test_phmap_contains():
     phm = phmap.PHMap_u8u8()
     k = np.random.randint(0, 2 ** 32, N, dtype="u8")
     k = np.unique(k)
+    N = len(k)
     v = np.random.randint(0, 2 ** 32, len(k), dtype="u8")
     phm[k] = v
     # v[123] = 77
@@ -73,9 +74,11 @@ def test_phmap_dump_load(tmpdir):
     shuf = np.argsort(np.random.rand(N))
     assert np.all(phm[k[shuf]] == v[shuf])
 
-    phm.dump(os.path.join(tmpdir, "foo"))
+    with open(os.path.join(tmpdir, "foo"), "wb") as out:
+        _pickle.dump(phm, out)
     phm2 = phmap.PHMap_u8u8()
-    phm2.load(os.path.join(tmpdir, "foo"))
+    with open(os.path.join(tmpdir, "foo"), "rb") as inp:
+        phm2 = _pickle.load(inp)
 
     assert len(phm2) == len(phm)
     assert np.all(phm2[k] == v)
@@ -108,12 +111,53 @@ def test_phmap_items_array():
     assert np.all(phm[k] == v)
 
 
+def test_phmap_eq():
+    phm = phmap.PHMap_u8u8()
+    phm[[1, 2, 3]] = [4, 5, 6]
+
+    phm2 = phmap.PHMap_u8u8()
+    phm2[[1, 2, 3]] = [4, 5, 6]
+    assert phm == phm2
+
+    phm2 = phmap.PHMap_u8u8()
+    phm2[[1, 2, 4]] = [4, 5, 6]
+    assert phm != phm2
+
+    phm2 = phmap.PHMap_u8u8()
+    phm2[[1, 2, 3]] = [4, 5, 0]
+    assert phm != phm2
+
+    phm2 = phmap.PHMap_u8u8()
+    phm2[[1, 2]] = [4, 5]
+    assert phm != phm2
+
+    phm = phmap.PHMap_u8f8()
+    phm[[1, 2, 3]] = [4, 5, 6]
+
+    phm2 = phmap.PHMap_u8f8()
+    phm2[[1, 2, 3]] = [4, 5, 6]
+    assert phm == phm2
+
+    phm2 = phmap.PHMap_u8f8()
+    phm2[[1, 2, 4]] = [4, 5, 6]
+    assert phm != phm2
+
+    phm2 = phmap.PHMap_u8f8()
+    phm2[[1, 2, 3]] = [4, 5, 0]
+    assert phm != phm2
+
+    phm2 = phmap.PHMap_u8f8()
+    phm2[[1, 2]] = [4, 5]
+    assert phm != phm2
+
+
 if __name__ == "__main__":
     import tempfile
 
-    test_phmap()
-    test_phmap_items()
-    test_phmap_contains()
-    test_phmap_dump_load(tempfile.mkdtemp())
-    test_phmap_cpp_roundtrip()
-    test_phmap_items_array()
+    # test_phmap()
+    # test_phmap_items()
+    # test_phmap_contains()
+    # test_phmap_dump_load(tempfile.mkdtemp())
+    # test_phmap_cpp_roundtrip()
+    # test_phmap_items_array()
+    test_phmap_eq()

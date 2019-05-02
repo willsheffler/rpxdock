@@ -2,7 +2,6 @@ from sicdock.rosetta import get_pose_cached
 import pytest, os, sys, _pickle
 from os.path import join, dirname, abspath, exists
 from sicdock.motif.pairdat import ResPairData
-from sicdock.motif.pairscore import load_respairscore
 
 # addoption doesn't work for me
 # def pytest_addoption(parser):
@@ -65,5 +64,5 @@ def respairdat(datadir):
 
 @pytest.fixture(scope="session")
 def respairscore(datadir):
-    f = join(datadir, "respairscore10")
-    return load_respairscore(f)
+    with open(join(datadir, "pairscore10.pickle"), "rb") as inp:
+        return _pickle.load(inp)

@@ -11,7 +11,7 @@ from sicdock.geom.rotation import angle_of_3x3
 xident_f4 = np.eye(4).astype("f4")
 
 
-def test_smear_midpoints():
+def test_smear():
     for r in range(1, 6):
         w = 2 * r + 1
         cart_resl = 1.0
@@ -40,7 +40,7 @@ def test_smear_midpoints():
         assert np.allclose(np.unique(ori_dist), [0.0, 1.24466863])
 
 
-def test_smear_midpoints_alldims():
+def test_smear_oddori():
     for r in range(1, 6):
         w = 2 * r + 1
         cart_resl = 1.0
@@ -68,6 +68,91 @@ def test_smear_midpoints_alldims():
         assert sorted(Counter(x[:, 0, 3]).values()) == counts
         assert sorted(Counter(x[:, 1, 3]).values()) == counts
         assert sorted(Counter(x[:, 2, 3]).values()) == counts
+        ori_dist = angle_of_3x3(x[:, :3, :3])
+        assert np.allclose(np.unique(ori_dist), [0.0, 1.24466863])
+
+
+def test_smear_oddori_sphere():
+    counts = [
+        [5, 5, 9, 32, 32],
+        [9, 9, 21, 21, 21, 96, 96, 128, 128],
+        [9, 9, 25, 25, 37, 37, 37, 128, 128, 256, 256, 256, 256],
+        [13, 13, 37, 37, 49, 49, 61, 61, 69, 192, 192, 352, 352, 416, 416, 480, 480],
+        [21, 21, 45, 45, 69, 69, 89, 89, 97, 97, 97, 256, 256]
+        + [416, 416, 608, 608, 704, 704, 704, 704],
+    ]
+
+    for r in range(1, 6):
+        w = 2 * r + 1
+        cart_resl = 1.0
+        xb = XBin(cart_resl, 9e9)
+        gr = xb.grid6
+        pm = PHMap_u8f8()
+        cen = xident_f4
+        kcen = xb.key_of(xident_f4)
+        bcen = xb.bincen_of(kcen)
+        assert np.allclose(cen, bcen, atol=1e-4)
+        phm = PHMap_u8f8()
+        phm[xb.key_of(bcen)] = 1.0
+        smeared = smear(xb, phm, radius=r, extrahalf=0, oddlast3=1, sphere=1)
+        assert isinstance(smeared, PHMap_u8f8)
+        assert len(smeared) == [83, 529, 1459, 3269, 6115][r - 1]
+
+        k, v = smeared.items_array()
+        x = xb.bincen_of(k)
+        cart_dis = np.linalg.norm(bcen[0, :3, 3] - x[:, :3, 3], axis=1)
+        d = 0.57787751
+        uvals = np.arange(-2 * r, 2 * r + 0.001) * d
+        assert np.allclose(np.unique(x[:, 0, 3]), uvals, atol=1e-4)
+        assert np.allclose(np.unique(x[:, 1, 3]), uvals, atol=1e-4)
+        assert np.allclose(np.unique(x[:, 2, 3]), uvals, atol=1e-4)
+        assert sorted(Counter(x[:, 0, 3]).values()) == counts[r - 1]
+        assert sorted(Counter(x[:, 1, 3]).values()) == counts[r - 1]
+        assert sorted(Counter(x[:, 2, 3]).values()) == counts[r - 1]
+        ori_dist = angle_of_3x3(x[:, :3, :3])
+        assert np.allclose(np.unique(ori_dist), [0.0, 1.24466863])
+
+
+def test_smear_exhalf_oddori_sphere():
+    counts = [
+        [5, 5, 9, 32, 32],
+        [9, 9, 21, 21, 21, 96, 96, 128, 128],
+        [9, 9, 25, 25, 37, 37, 37, 128, 128, 256, 256, 256, 256],
+        [13, 13, 37, 37, 49, 49, 61, 61, 69, 192, 192, 352, 352, 416, 416, 480, 480],
+        [21, 21, 45, 45, 69, 69, 89, 89, 97, 97, 97, 256, 256]
+        + [416, 416, 608, 608, 704, 704, 704, 704],
+    ]
+
+    for r in range(1, 6):
+        w = 2 * r + 1
+        cart_resl = 1.0
+        xb = XBin(cart_resl, 9e9)
+        gr = xb.grid6
+        pm = PHMap_u8f8()
+        cen = xident_f4
+        kcen = xb.key_of(xident_f4)
+        bcen = xb.bincen_of(kcen)
+        assert np.allclose(cen, bcen, atol=1e-4)
+        phm = PHMap_u8f8()
+        phm[xb.key_of(bcen)] = 1.0
+        smeared = smear(xb, phm, radius=r, extrahalf=1, oddlast3=1, sphere=1)
+        smeared2 = smear(xb, phm, radius=r, extrahalf=1, oddlast3=1, sphere=0)
+        print(len(smeared) / len(smeared2))
+        continue
+        assert isinstance(smeared, PHMap_u8f8)
+        assert len(smeared) == [83, 529, 1459, 3269, 6115][r - 1]
+
+        k, v = smeared.items_array()
+        x = xb.bincen_of(k)
+        cart_dis = np.linalg.norm(bcen[0, :3, 3] - x[:, :3, 3], axis=1)
+        d = 0.57787751
+        uvals = np.arange(-2 * r, 2 * r + 0.001) * d
+        assert np.allclose(np.unique(x[:, 0, 3]), uvals, atol=1e-4)
+        assert np.allclose(np.unique(x[:, 1, 3]), uvals, atol=1e-4)
+        assert np.allclose(np.unique(x[:, 2, 3]), uvals, atol=1e-4)
+        assert sorted(Counter(x[:, 0, 3]).values()) == counts[r - 1]
+        assert sorted(Counter(x[:, 1, 3]).values()) == counts[r - 1]
+        assert sorted(Counter(x[:, 2, 3]).values()) == counts[r - 1]
         ori_dist = angle_of_3x3(x[:, :3, :3])
         assert np.allclose(np.unique(ori_dist), [0.0, 1.24466863])
 
@@ -157,6 +242,8 @@ def smear_bench():
 
 
 if __name__ == "__main__":
-    test_smear_midpoints()
-    test_smear_midpoints_alldims()
+    test_smear()
+    test_smear_oddori()
+    test_smear_oddori_sphere()
+    test_smear_exhalf_oddori_sphere()
     test_smear_bounding()
