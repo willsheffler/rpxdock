@@ -560,13 +560,46 @@ def test_bcc_neighbors_6_3_oddlast3_sphere_extrahalf():
             # assert np.allclose(radius[rad], np.max(dis))
 
 
+def test_bcc_neighbor_radous():
+    # no bounts checking
+    bcc = BCC6([10, 10, 10, 10, 10, 10], [-1, -1, -1, -1, -1, -1], [1, 1, 1, 1, 1, 1])
+    kcen = bcc.keys(np.zeros(6).reshape(1, 6))
+    cen = bcc.vals(kcen)
+    for r, e, s, c in [
+        (1, 0, 10, 12 + 1),
+        (1, 1, 17, 27 + 1),
+        (2, 0, 26, 48 + 1),
+        (2, 1, 37, 75 + 1),
+        (3, 0, 50, 108 + 1),
+        (3, 1, 65, 147 + 1),
+        (4, 0, 82, 192 + 1),
+        (4, 1, 101, 243 + 1),
+        (5, 0, 122, 300 + 1),
+        (5, 1, 145, 363 + 1),
+        (6, 0, 170, 432 + 1),
+        (6, 1, 197, 507 + 1),
+    ]:
+        s0 = bcc.neighbor_sphere_radius_square_cut(radius=r, extrahalf=e)
+        c0 = bcc.neighbor_radius_square_cut(radius=r, extrahalf=e)
+        assert s0 == s
+        assert c0 == c
+        ks, ds = bcc.neighbors_6_3_dist(kcen, r, extrahalf=e, oddlast3=1, sphere=1)
+        kc, dc = bcc.neighbors_6_3_dist(kcen, r, extrahalf=e, oddlast3=1, sphere=0)
+        print(s, np.max(ds))
+        if r > 1:
+            assert s * 0.9 < np.max(ds)
+        assert np.max(ds) < s
+        assert c * 0.9 < np.max(dc) < c
+
+
 if __name__ == "__main__":
     # test_bcc_neighbors_3()
-    test_bcc_neighbors_3_sphere()
-    test_bcc_neighbors_3_exhalf_sphere()
+    # test_bcc_neighbors_3_sphere()
+    # test_bcc_neighbors_3_exhalf_sphere()
     # test_bcc_neighbors_6_3()
     # test_bcc_neighbors_6_3_extrahalf()
     # test_bcc_neighbors_6_3_oddlast3()
     # test_bcc_neighbors_6_3_oddlast3_extrahalf()
     # test_bcc_neighbors_6_3_oddlast3_sphere()
     # test_bcc_neighbors_6_3_oddlast3_sphere_extrahalf()
+    test_bcc_neighbor_radous()

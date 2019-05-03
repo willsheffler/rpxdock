@@ -59,6 +59,17 @@ VectorX<K> key_of(XBin<F, K> const &binner, py::array_t<F> _xforms) {
   }
   return out;
 }
+template <typename F, typename K>
+
+VectorX<K> ori_cell_of(XBin<F, K> const &binner, py::array_t<F> _xforms) {
+  MapVectorXform<F> xforms = xform_py_to_eigen(_xforms);
+  VectorX<K> out(xforms.size());
+  for (int i = 0; i < xforms.size(); ++i) {
+    K k = binner.cell_index(xforms[i]);
+    out[i] = k;
+  }
+  return out;
+}
 
 template <typename I, typename F, typename K>
 py::array_t<K> kop_impl(XBin<F, K> const &xb, py::array_t<I> p,
@@ -241,6 +252,7 @@ void bind_xbin(py::module m, std::string name) {
           .def("__getitem__", &key_of<F, K>)
           .def("__getitem__", &_bincen_of<F, K>)
           .def("key_of", &key_of<F, K>, "key of xform", "xform"_c)
+          .def("ori_cell_of", &ori_cell_of<F, K>, "key of xform", "xform"_c)
           .def("bincen_of", &_bincen_of<F, K>)
           .def("xform_to_F6", &xform_to_F6<F, K>)
           .def("F6_to_xform", &F6_to_xform<F, K>)

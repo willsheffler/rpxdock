@@ -126,6 +126,13 @@ struct BCC {
     return get_index(value);
   }
 
+  int neighbor_sphere_radius_square_cut(int rad, bool exhalf) const noexcept {
+    return (sqr(2 * rad + exhalf) + sqr(2 * (rad + 1) + exhalf)) / 2;
+  }
+  int neighbor_radius_square_cut(int rad, bool exhalf) const noexcept {
+    return 3 * sqr(2 * rad + exhalf) + 1;
+  }
+
   template <typename Iiter>
   std::enable_if_t<DIM == 6> neighbors_6_3(I index, Iiter &iter, int rad,
                                            bool exhalf, bool oddlast3,
@@ -135,8 +142,9 @@ struct BCC {
     In idx;
     int lb = -rad - (exhalf && !odd);
     int ub = +rad + (exhalf && odd);
-    int rcut = (sqr(2 * rad + exhalf) + sqr(2 * (rad + 1) + exhalf)) / 2;
-    // if (sphere) std::cout << "SPHCUT " << rad << " " << rcut << std::endl;
+    int rcut = neighbor_sphere_radius_square_cut(rad, exhalf);
+    // if (sphere) std::cout << "SPHCUT " << rad << " " << rcut <<
+    // std::endl;
     int eh = odd ? -1 : 0;
     int oh = odd ? 0 : 1;
     bool oddex = (odd != exhalf);
@@ -197,7 +205,7 @@ struct BCC {
     In idx;
     int lb = -rad - (exhalf && !odd);
     int ub = +rad + (exhalf && odd);
-    int rcut = (sqr(2 * rad + exhalf) + sqr(2 * (rad + 1) + exhalf)) / 2;
+    int rcut = neighbor_sphere_radius_square_cut(rad, exhalf);
     // if (sphere) std::cout << "SPHCUT " << rad << " " << rcut <<
     // std::endl;
     int eh = odd ? -1 : 0;

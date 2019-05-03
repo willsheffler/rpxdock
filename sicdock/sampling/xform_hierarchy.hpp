@@ -83,15 +83,18 @@ struct OriHier {
   I onside_;
   F recip_nside_;
   I ori_ncell_;
+  F ori_resl_;
   OriHier(F ori_resl) {
     onside_ = ori_get_nside_for_rot_resl_deg(ori_resl);
     recip_nside_ = 1.0 / (F)onside_;
     ori_ncell_ = 24 * onside_ * onside_ * onside_;
+    ori_resl_ = ori_get_covrad_data()[onside_ - 1];
   }
   OriHier(int nside) {
     onside_ = nside;
     recip_nside_ = 1.0 / (F)onside_;
     ori_ncell_ = 24 * onside_ * onside_ * onside_;
+    ori_resl_ = ori_get_covrad_data()[onside_ - 1];
   }
   I size(I resl) const { return ori_ncell_ * ONE << (ORI_DIM * resl); }
   I ori_nside() const { return onside_; }
@@ -213,7 +216,11 @@ struct XformHier : public OriHier<F, I>, public CartHier<3, F, I> {
       : OriHier<F, I>(ori_resl),
         CartHier<CART_DIM, F, I>(cartlb, cartub, cartbs) {
     ncell_ = this->cart_ncell_ * this->ori_ncell_;
-    // std::cout << "cart_ncell " << this->cart_ncell_ << std::endl;
+  }
+  XformHier(F3 cartlb, F3 cartub, I3 cartbs, int ori_nside)
+      : OriHier<F, I>(ori_nside),
+        CartHier<CART_DIM, F, I>(cartlb, cartub, cartbs) {
+    ncell_ = this->cart_ncell_ * this->ori_ncell_;
   }
 
   I size(I resl) const { return ncell_ * ONE << (FULL_DIM * resl); }

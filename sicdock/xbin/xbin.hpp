@@ -140,6 +140,7 @@ struct XformHash_bt24_BCC6 {
   bool bad_grid_key(K k) const { return 0 < (k >> GRID_KEY_BITS); }
   bool bad_cell_index(K k) const { return k > 23; }
   K cell_index(K key) const { return key >> GRID_KEY_BITS; }
+  K cell_index(Xform x) const { return get_key(x) >> GRID_KEY_BITS; }
   K grid_key(K key) const { return (key << 9) >> 9; }
   K combine_cell_grid_index(K cell_index, K grid_index) const {
     return cell_index << GRID_KEY_BITS | grid_index;

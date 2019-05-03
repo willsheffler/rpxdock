@@ -114,5 +114,5 @@ if __name__ == "__main__":
     # print(4096 / 2.9, 1000000 / 38.3)
     # test_bvh_bvh_isect7()
     # test_bvh_isect7()
-    # test_bvh_mindist7()
-    test_bvh_mindist4()
+    test_bvh_mindist7()
+    # test_bvh_mindist4()

@@ -19,60 +19,46 @@ using phmap::PHMap;
 template <typename F, typename K, typename V>
 struct PHMapUpdateMax {
   typename PHMap<K, V>::Map& map;
-  XBin<F, K>& xbin;
+  XBin<F, K> const& xbin;
   K cell_index;
   V val0;
   K key0;
-  PHMapUpdateMax(PHMap<K, V>& m, XBin<F, K>& b, K c, V v, K k0)
-      : map(m.phmap_), xbin(b), cell_index(c), val0(v), key0(k0) {}
-  PHMapUpdateMax<F, K, V>& operator++(int) { return *this; }
-  PHMapUpdateMax<F, K, V>& operator*() { return *this; }
-  void operator=(std::pair<K, K> key_rad) {
+  VectorX<V> const& kernel;
+  PHMapUpdateMax(PHMap<K, V>& m, XBin<F, K>& b, K c, V v, K k0, VectorX<V>& ker)
+      : map(m.phmap_), xbin(b), cell_index(c), val0(v), key0(k0), kernel(ker) {}
+  PHMapUpdateMax<F, K, V>& operator++(int) noexcept { return *this; }
+  PHMapUpdateMax<F, K, V>& operator*() noexcept { return *this; }
+  void operator=(std::pair<K, K> key_rad) noexcept {
     K bcc_key = key_rad.first;
-    K rad = key_rad.second;
+    K radius = key_rad.second;
     K key = xbin.combine_cell_grid_index(cell_index, bcc_key);
-
-    // if (xbin.bad_grid_key(bcc_key)) {
-    //   std::cout << "BAD GRID KEY" << std::endl;
-    // }
-    // if (xbin.cell_index(key) != cell_index) {
-    //   std::cout << "BAD CELL INDEX " << cell_index << " "
-    //             << xbin.cell_index(key) << std::endl;
-    // }
-
-    // if (key == key0) {
-    //   std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<
-    //   std::endl; std::cout << "KEY0 " << (map.find(key) != map.end()) << " "
-    //   << &map
-    //             << std::endl;
-    //   std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<
-    //   std::endl;
-    // }
-
-    auto [it, inserted] = map.emplace(key, val0);
+    V val_feather = val0 * kernel[radius];
+    auto [it, inserted] = map.emplace(key, val_feather);
     if (!inserted) {
-      F val = std::max(it->second, val0);
+      F val = std::max(it->second, val_feather);
       it->second = val;
-      // std::cout << "modified " << bcc_key << " " << key << " " << val
-      // << std::endl;
-    } else {
-      // std::cout << "emplaced " << bcc_key << " " << key << " " << val0
-      // << std::endl;
     }
   }
 };
 
 template <typename F, typename K, typename V>
 std::unique_ptr<PHMap<K, V>> smear(XBin<F, K>& xbin, PHMap<K, V>& phmap,
-                                   int radius = 1, bool extrahalf = false,
-                                   bool odd_last3 = true, bool sphere = true) {
+                                   int radius = 1, bool exhalf = false,
+                                   bool oddlast3 = true, bool sphere = true,
+                                   VectorX<V> kernel = VectorX<V>()) {
+  int r = xbin.grid().neighbor_radius_square_cut(radius, exhalf);
+  if (sphere) r = xbin.grid().neighbor_sphere_radius_square_cut(radius, exhalf);
+  if (kernel.size() == 0) {
+    kernel = VectorX<V>(r);
+    kernel.fill(1);
+  }
   auto out = std::make_unique<PHMap<K, V>>();
   // std::cout << "MAP LOC " << &out->phmap_ << std::endl;
   for (auto [key, val] : phmap.phmap_) {
     K bcc_key = xbin.grid_key(key);
     K cell_key = xbin.cell_index(key);
-    auto updater = PHMapUpdateMax(*out, xbin, cell_key, val, key);
-    xbin.grid().neighbors_6_3(bcc_key, updater, radius, extrahalf, odd_last3,
+    auto updater = PHMapUpdateMax(*out, xbin, cell_key, val, key, kernel);
+    xbin.grid().neighbors_6_3(bcc_key, updater, radius, exhalf, oddlast3,
                               sphere);
   }
   // std::cout << "smear out size " << out->size() << std::endl;

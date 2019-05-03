@@ -7,6 +7,7 @@ from sicdock.bvh.bvh_nd import *
 import homog as hm
 from scipy.spatial.distance import cdist
 from sicdock.geom.rotation import angle_of_3x3
+from sicdock.geom import xform_dist2_split
 
 
 def urange(*args):
@@ -59,7 +60,7 @@ def test_xform_hierarchy_product_zorder():
     for ang in [999, 30, 20, 10, 5]:
         ho = OriHier(ang)
         hx = XformHier([0] * 3, [1] * 3, [1] * 3, ang)
-        assert hx.ori_nside() == ho.ori_nside()
+        assert hx.ori_nside == ho.ori_nside
         Nmax = 1_000
         for resl in range(8):
             n0 = ho.size(resl)
@@ -253,7 +254,7 @@ def test_ori_hier_1cell():
 
 
 def analyze_ori_hier(nside, resl, nsamp):
-    ohier = OriHier_nside(nside)
+    ohier = create_OriHier_nside(nside)
     w, hori = ohier.get_ori(resl, urange(ohier.size(resl)))
     assert np.allclose(np.linalg.det(hori), 1)
     hquat = hm.quat.rot_to_quat(hori)
@@ -293,22 +294,22 @@ def analyze_ori_hier(nside, resl, nsamp):
 
 
 def test_ori_hier_angresl():
-    assert OriHier(93).ori_nside() == 1
-    assert OriHier(92).ori_nside() == 2
-    assert OriHier(66).ori_nside() == 3
-    assert OriHier(47).ori_nside() == 4
-    assert OriHier(37).ori_nside() == 5
-    assert OriHier(30).ori_nside() == 6
-    assert OriHier(26).ori_nside() == 7
-    assert OriHier(22).ori_nside() == 8
-    assert OriHier(19).ori_nside() == 9
-    assert OriHier(17).ori_nside() == 10
-    assert OriHier(15).ori_nside() == 11
-    assert OriHier(14).ori_nside() == 12
-    assert OriHier(13).ori_nside() == 13
-    assert OriHier(12).ori_nside() == 14
-    assert OriHier(11).ori_nside() == 15
-    assert OriHier(10).ori_nside() == 16
+    assert OriHier(93).ori_nside == 1
+    assert OriHier(92).ori_nside == 2
+    assert OriHier(66).ori_nside == 3
+    assert OriHier(47).ori_nside == 4
+    assert OriHier(37).ori_nside == 5
+    assert OriHier(30).ori_nside == 6
+    assert OriHier(26).ori_nside == 7
+    assert OriHier(22).ori_nside == 8
+    assert OriHier(19).ori_nside == 9
+    assert OriHier(17).ori_nside == 10
+    assert OriHier(15).ori_nside == 11
+    assert OriHier(14).ori_nside == 12
+    assert OriHier(13).ori_nside == 13
+    assert OriHier(12).ori_nside == 14
+    assert OriHier(11).ori_nside == 15
+    assert OriHier(10).ori_nside == 16
 
 
 def test_ori_hier_rand_nside():
@@ -373,6 +374,59 @@ def test_avg_dist():
         assert mx / me < 3
 
 
+def crappy_xform_hierarchy_resl_sanity_check():
+    extent = 24
+    extentz = 24
+    rg = 32
+    resl = 16
+    cart_fudge_factor = 1.2
+    ori_fudge_factor = 2.2
+
+    cart_resl = resl / np.sqrt(2) * cart_fudge_factor
+    ori_resl = resl / np.sqrt(2) / rg * 180 / np.pi * ori_fudge_factor
+    ncart = np.ceil(2 * extent / cart_resl)
+    extent = cart_resl * 2
+    extentz = cart_resl * 2
+
+    ub = np.array([extent, extent, extentz])
+    lb = -ub
+    ns = np.ceil((ub - lb) / cart_resl)
+    print("resoultions", resl, ncart, ori_resl, ns)
+    xh = XformHier_f4(lb, ub, ns, ori_resl)
+    ori_resl = xh.ori_resl
+    for i in range(5):
+        print(
+            f"XHier {i} {xh.size(i):20,}",
+            f"cart_resl {cart_resl/cart_fudge_factor*0.5**i:6.3f}",
+            f"ori_resl {ori_resl/ori_fudge_factor*0.5**i:6.3f}",
+        )
+    print("====================== resl for scoring =============================")
+    for i in range(5):
+        print(
+            f"XHier {i} {xh.size(i):20,}",
+            f"cart_resl {1+cart_resl/cart_fudge_factor*0.5**i:6.3f}",
+            f"ori_resl {15+ori_resl/ori_fudge_factor*0.5**i:6.3f}",
+        )
+
+    # strict_maxmindis2 = cart_resl ** 2 + (ori_resl / 180 * np.pi * rg) ** 2
+    # print("strict max max min dis", np.sqrt(strict_maxmindis2))
+
+    return
+
+    x0 = xh.get_xforms(0, np.arange(xh.size(0), dtype="u8"))[1]
+    xs = hm.rand_xform(10000, cart_sd=8)
+    d2cart, d2ori = xform_dist2_split(x0, xs, rg)
+    mind2cart = np.min(d2cart, axis=0)
+    mind2ori = np.min(d2ori, axis=0)
+    mind2 = np.min(d2cart + d2ori, axis=0)
+    print("max min xform dis", np.sqrt(np.max(mind2)))
+    print("max min cart dis ", np.sqrt(np.max(mind2cart)))
+    print("max min ori dis  ", np.sqrt(np.max(mind2ori)))
+    print("mean xform dis", np.sqrt(np.mean(mind2)))
+    print("mean cart dis ", np.sqrt(np.mean(mind2cart)))
+    print("mean ori dis  ", np.sqrt(np.mean(mind2ori)))
+
+
 if __name__ == "__main__":
     # test_zorder()
     # test_cart_hier1()
@@ -382,9 +436,12 @@ if __name__ == "__main__":
     # test_xform_hierarchy_get_xforms()
     # test_xform_hierarchy_get_xforms_bs()
     # test_xform_hierarchy_expand_top_N()
-    test_ori_hier_all2()
-    test_ori_hier_1cell()
+    # test_ori_hier_all2()
+    # test_ori_hier_1cell()
     # test_ori_hier_rand()
     # test_ori_hier_rand_nside()
     # test_avg_dist()
     # test_ori_hier_angresl()
+    # crappy_xform_hierarchy_resl_sanity_check()
+    test_xform_hierarchy_product_zorder()
+    test_ori_hier_angresl()

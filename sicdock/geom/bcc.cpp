@@ -46,6 +46,20 @@ py::array_t<K> BCC_neighbors_6_3(BCC<6, F, K>& bcc, K index, int radius,
 }
 
 template <typename F, typename K>
+py::tuple BCC_neighbors_6_3_dist(BCC<6, F, K>& bcc, K index, int radius,
+                                 bool extrahalf, bool oddlast3, bool sphere) {
+  std::vector<std::pair<K, K>> tmp;
+  MyIter<K> iter(tmp);
+  bcc.neighbors_6_3(index, iter, radius, extrahalf, oddlast3, sphere);
+  VectorX<K> kout(tmp.size()), dout(tmp.size());
+  for (int i = 0; i < tmp.size(); ++i) {
+    kout[i] = tmp[i].first;
+    dout[i] = tmp[i].second;
+  }
+  return py::make_tuple(kout, dout);
+}
+
+template <typename F, typename K>
 py::array_t<K> BCC_neighbors_3(BCC<3, F, K>& bcc, K index, int radius,
                                bool extrahalf, bool sphere) {
   std::vector<std::pair<K, K>> tmp;
@@ -55,6 +69,19 @@ py::array_t<K> BCC_neighbors_3(BCC<3, F, K>& bcc, K index, int radius,
   K* kptr = (K*)out.request().ptr;
   for (int i = 0; i < tmp.size(); ++i) kptr[i] = tmp[i].first;
   return out;
+}
+template <typename F, typename K>
+py::tuple BCC_neighbors_3_dist(BCC<3, F, K>& bcc, K index, int radius,
+                               bool extrahalf, bool sphere) {
+  std::vector<std::pair<K, K>> tmp;
+  MyIter<K> iter(tmp);
+  bcc.neighbors_3(index, iter, radius, extrahalf, sphere);
+  VectorX<K> kout(tmp.size()), dout(tmp.size());
+  for (int i = 0; i < tmp.size(); ++i) {
+    kout[i] = tmp[i].first;
+    dout[i] = tmp[i].second;
+  }
+  return py::make_tuple(kout, dout);
 }
 
 template <int DIM, typename F, typename K>
@@ -87,15 +114,27 @@ void bind_bcc(py::module m, std::string name) {
   cls.def_property_readonly("upper", &BCC::upper);
   cls.def_property_readonly("width", &BCC::width);
   cls.def_property_readonly("nside", &BCC::nside);
+  cls.def("neighbor_sphere_radius_square_cut",
+          &BCC::neighbor_sphere_radius_square_cut, "radius"_a,
+          "extrahalf"_a = false);
+  cls.def("neighbor_radius_square_cut", &BCC::neighbor_radius_square_cut,
+          "radius"_a, "extrahalf"_a = false);
   if constexpr (DIM == 6)
     cls.def("neighbors_6_3", &BCC_neighbors_6_3<F, K>,
             "get indices of neighboring cells, last3 dims only +-1", "index"_a,
             "radius"_a = 1, "extrahalf"_a = false, "oddlast3"_a = true,
             "sphere"_a = true);
+  cls.def("neighbors_6_3_dist", &BCC_neighbors_6_3_dist<F, K>,
+          "get indices of neighboring cells, last3 dims only +-1", "index"_a,
+          "radius"_a = 1, "extrahalf"_a = false, "oddlast3"_a = true,
+          "sphere"_a = true);
   if constexpr (DIM == 3)
     cls.def("neighbors_3", &BCC_neighbors_3<F, K>,
             "get indices of neighboring cells", "index"_a, "radius"_a = 1,
             "extrahalf"_a = false, "sphere"_a = true);
+  cls.def("neighbors_3_dist", &BCC_neighbors_3_dist<F, K>,
+          "get indices of neighboring cells", "index"_a, "radius"_a = 1,
+          "extrahalf"_a = false, "sphere"_a = true);
 }
 
 PYBIND11_MODULE(bcc, m) {

@@ -41,6 +41,7 @@ _override = {
     "bcc.hpp": ["sicdock/tests/geom/test_bcc.py"],
     "bcc.cpp": ["sicdock/tests/geom/test_bcc.py"],
     "pybind_types.hpp": ["sicdock/tests/util/test_pybind_types.py"],
+    "xform_dist.cpp": ["sicdock/tests/geom/test_geom.py"],
 }
 _post = defaultdict(lambda: "")
 

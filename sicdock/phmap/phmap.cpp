@@ -134,6 +134,17 @@ py::tuple PHMap_items_array(PHMap<K, V> const &phmap) {
   }
   return py::make_tuple(keys, vals);
 }
+template <typename K, typename V>
+py::array_t<K> PHMap_keys(PHMap<K, V> const &phmap) {
+  py::array_t<K> keys(phmap.size());
+  K *kptr = (K *)keys.request().ptr;
+  int i = 0;
+  for (auto [k, v] : phmap.phmap_) {
+    kptr[i] = k;
+    ++i;
+  }
+  return keys;
+}
 
 template <typename K, typename V>
 bool PHMap_eq(PHMap<K, V> const &a, PHMap<K, V> const &b) {
@@ -159,6 +170,7 @@ void bind_phmap(const py::module &m, std::string name) {
       .def("__delitem__", &PHMap_del<K, V>)
       .def("has", &PHMap_has<K, V>)
       .def("__contains__", &PHMap_contains<K, V>)
+      .def("keys", &PHMap_keys<K, V>)
       .def("items_array", &PHMap_items_array<K, V>)
       .def("__eq__", &PHMap_eq<K, V>)
       .def("items",

@@ -149,14 +149,19 @@ void bind_OriHier(auto m, std::string name) {
   py::class_<OriHier<F, I>>(m, name.c_str())
       .def(py::init<F>(), "ori_resl"_a)
       .def("size", &OriHier<F, I>::size)
-      .def("ori_nside", &OriHier<F, I>::ori_nside)
+      .def_readonly("ori_nside", &OriHier<F, I>::onside_)
       .def("get_ori", &get_ori<F, I>)
       /**/;
 }
 
 template <typename F, typename I>
 OriHier<F, I> OriHier_nside(int nside) {
-  return OriHier(nside);
+  return OriHier<F, I>(nside);
+}
+
+template <typename F, typename I>
+XformHier<F, I> XformHier_nside(V3<F> lb, V3<F> ub, V3<I> ncart, int nside) {
+  return XformHier<F, I>(lb, ub, ncart, nside);
 }
 
 template <typename F, typename I>
@@ -165,7 +170,8 @@ void bind_XformHier(auto m, std::string name) {
       .def(py::init<V3<F>, V3<F>, V3<I>, F>(), "lb"_a, "ub"_a, "bs"_a,
            "ori_resl"_a)
       .def("size", &XformHier<F, I>::size)
-      .def("ori_nside", &XformHier<F, I>::ori_nside)
+      .def_readonly("ori_nside", &XformHier<F, I>::onside_)
+      .def_readonly("ori_resl", &XformHier<F, I>::ori_resl_)
       .def("get_xforms", &get_xforms<F, I>)
       .def("expand_top_N",
            (py::tuple(*)(XformHier<F, I>, int, int, py::array_t<ScoreIndex>)) &
@@ -214,9 +220,14 @@ PYBIND11_MODULE(xform_hierarchy, m) {
   bind_CartHier<6, double, uint64_t>(m, "CartHier6D");
 
   bind_OriHier<double, uint64_t>(m, "OriHier");
-  m.def("OriHier_nside", &OriHier_nside<double, uint64_t>);
+  m.def("create_OriHier_nside", &OriHier_nside<double, uint64_t>, "nside"_a);
 
   bind_XformHier<double, uint64_t>(m, "XformHier");
+  m.def("create_XformHier_nside", &XformHier_nside<double, uint64_t>, "lb"_a,
+        "ub"_a, "bs"_a, "nside"_a);
+  bind_XformHier<float, uint64_t>(m, "XformHier_f4");
+  m.def("create_XformHier_4f_nside", &XformHier_nside<float, uint64_t>, "lb"_a,
+        "ub"_a, "bs"_a, "nside"_a);
 
   m.def("zorder3coeffs", &zorder2coeffs<uint64_t, 3>);
   m.def("coeffs3zorder", &coeffs2zorder<uint64_t, 3>);
