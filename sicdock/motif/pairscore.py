@@ -1,10 +1,17 @@
 import os, _pickle
 import numpy as np
+from sicdock.util import Bunch
 from cppimport import import_hook
 import sicdock.motif._motif as cpp
 from sicdock.phmap import PHMap_u8u8, PHMap_u8f8
-from sicdock.motif.motif import bb_stubs, add_xbin_to_respairdat, add_rots_to_respairdat
-from sicdock.xbin import XBin
+
+from sicdock.motif.motif import (
+    bb_stubs,
+    add_xbin_to_respairdat,
+    add_rots_to_respairdat,
+    get_pair_keys,
+)
+from sicdock.xbin import Xbin
 from sicdock.rotamer import get_rotamer_space, assign_rotamers
 
 
@@ -19,11 +26,49 @@ from sicdock.rotamer import get_rotamer_space, assign_rotamers
 #     return rps
 
 
+class Xmap:
+    def __init__(self, xbin, phmap, attrs={}, rehash_bincens=False):
+        self.xbin = xbin
+        self.phmap = phmap
+        self.attr = Bunch(attrs)
+        if rehash_bincens:
+            k, v = self.phmap.items_array()
+            self.phmap[xbin.key_of(xbin.bincen_of(k))] = v
+
+    def __len__(self):
+        return len(self.phmap)
+
+    def __eq__(self, other):
+        return self.xbin == other.xbin and self.phmap == other.phmap
+
+    def key_of(self, x_or_k):
+        if x_or_k.dtype == np.uint64:
+            return x_or_k
+        else:
+            return self.xbin.key_of(x_or_k)
+
+    def __getitem__(self, x_or_k):
+        return self.phmap[self.key_of(x_or_k)]
+
+    def has(self, x_or_k):
+        return self.phmap.has(self.key_of(x_or_k))
+
+    def __contains__(self, x_or_k):
+        return self.phmap.__contains__(self.key_of(x_or_k))
+
+    def keys(self, n=-1):
+        return self.phmap.keys(n)
+
+    def xforms(self, n=-1):
+        return self.xbin.bincen_of(self.phmap.keys(n))
+
+
 class ResPairScore:
-    def __init__(self, xbin, keys, score_map, range_map, res1, res2, rp):
+    def __init__(self, xbin, keys, score_map, range_map, res1, res2, rotspace, rp):
         assert np.all(score_map.has(keys))
         assert np.all(range_map.has(keys))
         self.xbin = xbin
+        self.rotspace = rotspace
         self.keys = keys
         self.score_map = score_map
         self.range_map = range_map
@@ -38,6 +83,20 @@ class ResPairScore:
         self.rotlbl = rp.rotlbl
         self.id2aa = rp.id2aa.data
         self.id2ss = rp.id2ss.data
+        self.hier_maps = []
+        self.hier_resls = np.array([])
+        self.attr = Bunch()
+
+    def add_hier_score(self, resl, scoremap):
+        self.hier_resls = np.append(self.hier_resls, resl)
+        self.hier_maps.append(scoremap)
+
+    def hier_score(self, resl):
+        w = np.which(self.hier_resls)[0]
+        if np.abs(1 - resl / self.hier_resls[w]) > 0.1:
+            return None
+        print(w)
+        return self.hier_maps[w]
 
     def bin_score(self, keys):
         score = np.zeros(len(keys))
@@ -80,34 +139,54 @@ class ResPairScore:
         ub = np.right_shift(np.left_shift(r), 32)
         return self.respair[lb:ub]
 
+    def __str__(self):
+        return (
+            f"ResPairScore: npdb {len(self.pdb):,} nres {len(self.aaid):,} "
+            + f"npair {len(self.keys):,}\n   base Xbin: "
+            + f"cart_resl {self.xbin.cart_resl:5.2f} "
+            + f"ori_resl {self.xbin.ori_resl:6.2f}"
+            + f" max_cart {self.xbin.max_cart:7.2f} \n        Xmap: "
+            + f"score_map {len(self.score_map):,} "
+            + f"range_map {len(self.range_map):,}"
+        )
 
-def create_res_pair_score(
-    rp, path=None, min_ssep=10, maxsize=None, cart_resl=1, ori_resl=20, cart_bound=128
-):
-    xbin = XBin(cart_resl, ori_resl, cart_bound)
-    if "stub" not in rp.data:
-        rp.data["stub"] = ["resid", "hrow", ""], bb_stubs(rp.n, rp.ca, rp.c)
-    if "kij" not in rp.data:
-        add_xbin_to_respairdat(rp, xbin, min_ssep)
-    if "rotid" not in rp.data:
-        rotspace = get_rotamer_space()
-        add_rots_to_respairdat(rp, rotspace)
-    N = maxsize
-    keys0 = np.concatenate([rp.kij.data[:N], rp.kji.data[:N]])
+
+def create_res_pair_score_map(rp, xbin, min_bin_score, **kw):
+    kij, kji = get_pair_keys(rp, xbin, **kw)
+    keys0 = np.concatenate([kij, kji])
     order, binkey, binrange = cpp.jagged_bin(keys0)
     assert len(binkey) == len(binrange)
-    epair = np.concatenate([rp.p_etot.data[:N], rp.p_etot.data[:N]])[order]
+    epair = np.concatenate([rp.p_etot.data, rp.p_etot.data])[order]
     ebin = cpp.logsum_bins(binrange, -epair)
+
     assert len(ebin) == len(binkey)
-    mask = ebin > 0.1
+    mask = ebin > min_bin_score
+    # print(
+    # np.sum(mask), "nbin/nkey", len(binkey) / len(keys0), "mean ebin", np.mean(ebin)
+    # )
     pair_score = PHMap_u8f8()
     pair_score[binkey[mask]] = ebin[mask]
+    xmap = Xmap(xbin, pair_score, rehash_bincens=True)
+    xmap.attr.min_bin_score = min_bin_score
+    xmap.attr.min_pair_score = kw["min_pair_score"]
+    xmap.attr.use_ss_key = kw["use_ss_key"]
+    xmap.attr.kw = kw
+    return xmap, order, binkey[mask], binrange[mask]
+
+
+def create_res_pair_score(rp, xbin, **kw):
+    rotspace = get_rotamer_space()
+    if "stub" not in rp.data:
+        rp.data["stub"] = ["resid", "hrow", ""], bb_stubs(rp.n, rp.ca, rp.c)
+    # if "kij" not in rp.data:
+    # add_xbin_to_respairdat(rp, xbin, kw["min_ssep"])
+    if "rotid" not in rp.data:
+        add_rots_to_respairdat(rp, rotspace)
+    pair_score, order, binkey, binrange = create_res_pair_score_map(rp, xbin, **kw)
     # pair_score.dump("/home/sheffler/debug/sicdock/datafiles/pair_score.bin")
     pair_range = PHMap_u8u8()
-    pair_range[binkey[mask]] = binrange[mask]
-    res1 = np.concatenate([rp.p_resi.data[:N], rp.p_resj.data[:N]])[order]
-    res2 = np.concatenate([rp.p_resj.data[:N], rp.p_resi.data[:N]])[order]
-    rps = ResPairScore(xbin, binkey[mask], pair_score, pair_range, res1, res2, rp)
-    if path is not None:
-        rps.dump(path)
+    pair_range[binkey] = binrange
+    res1 = np.concatenate([rp.p_resi.data, rp.p_resj.data])[order]
+    res2 = np.concatenate([rp.p_resj.data, rp.p_resi.data])[order]
+    rps = ResPairScore(xbin, binkey, pair_score, pair_range, res1, res2, rotspace, rp)
     return rps

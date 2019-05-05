@@ -13,18 +13,18 @@ using std::cout;
 using std::endl;
 
 template <typename F, typename K>
-using XBin = XformHash_bt24_BCC6<X3<F>, K>;
+using Xbin = XformHash_bt24_BCC6<X3<F>, K>;
 using phmap::PHMap;
 
 template <typename F, typename K, typename V>
 struct PHMapUpdateMax {
   typename PHMap<K, V>::Map& map;
-  XBin<F, K> const& xbin;
+  Xbin<F, K> const& xbin;
   K cell_index;
   V val0;
   K key0;
   VectorX<V> const& kernel;
-  PHMapUpdateMax(PHMap<K, V>& m, XBin<F, K>& b, K c, V v, K k0, VectorX<V>& ker)
+  PHMapUpdateMax(PHMap<K, V>& m, Xbin<F, K>& b, K c, V v, K k0, VectorX<V>& ker)
       : map(m.phmap_), xbin(b), cell_index(c), val0(v), key0(k0), kernel(ker) {}
   PHMapUpdateMax<F, K, V>& operator++(int) noexcept { return *this; }
   PHMapUpdateMax<F, K, V>& operator*() noexcept { return *this; }
@@ -42,7 +42,7 @@ struct PHMapUpdateMax {
 };
 
 template <typename F, typename K, typename V>
-std::unique_ptr<PHMap<K, V>> smear(XBin<F, K>& xbin, PHMap<K, V>& phmap,
+std::unique_ptr<PHMap<K, V>> smear(Xbin<F, K>& xbin, PHMap<K, V>& phmap,
                                    int radius = 1, bool exhalf = false,
                                    bool oddlast3 = true, bool sphere = true,
                                    VectorX<V> kernel = VectorX<V>()) {

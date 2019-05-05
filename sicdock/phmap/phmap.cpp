@@ -121,27 +121,32 @@ bool PHMap_contains(PHMap<K, V> &phmap, py::array_t<K> keys) {
 }
 
 template <typename K, typename V>
-py::tuple PHMap_items_array(PHMap<K, V> const &phmap) {
-  py::array_t<K> keys(phmap.size());
-  py::array_t<V> vals(phmap.size());
+py::tuple PHMap_items_array(PHMap<K, V> const &phmap, int n = -1) {
+  if (n < 0) n = phmap.size();
+  n = std::min<int>(n, phmap.size());
+
+  py::array_t<K> keys(n);
+  py::array_t<V> vals(n);
   K *kptr = (K *)keys.request().ptr;
   V *vptr = (V *)vals.request().ptr;
   int i = 0;
   for (auto [k, v] : phmap.phmap_) {
     kptr[i] = k;
     vptr[i] = v;
-    ++i;
+    if (++i == n) break;
   }
   return py::make_tuple(keys, vals);
 }
 template <typename K, typename V>
-py::array_t<K> PHMap_keys(PHMap<K, V> const &phmap) {
-  py::array_t<K> keys(phmap.size());
+py::array_t<K> PHMap_keys(PHMap<K, V> const &phmap, int nkey = -1) {
+  if (nkey < 0) nkey = phmap.size();
+  nkey = std::min<int>(nkey, phmap.size());
+  py::array_t<K> keys(nkey);
   K *kptr = (K *)keys.request().ptr;
   int i = 0;
   for (auto [k, v] : phmap.phmap_) {
     kptr[i] = k;
-    ++i;
+    if (++i == nkey) break;
   }
   return keys;
 }
@@ -170,8 +175,8 @@ void bind_phmap(const py::module &m, std::string name) {
       .def("__delitem__", &PHMap_del<K, V>)
       .def("has", &PHMap_has<K, V>)
       .def("__contains__", &PHMap_contains<K, V>)
-      .def("keys", &PHMap_keys<K, V>)
-      .def("items_array", &PHMap_items_array<K, V>)
+      .def("keys", &PHMap_keys<K, V>, "num"_a = -1)
+      .def("items_array", &PHMap_items_array<K, V>, "num"_a = -1)
       .def("__eq__", &PHMap_eq<K, V>)
       .def("items",
            [](PHMap const &c) {

@@ -2,6 +2,7 @@ from sicdock.rosetta import get_pose_cached
 import pytest, os, sys, _pickle
 from os.path import join, dirname, abspath, exists
 from sicdock.motif.pairdat import ResPairData
+import sicdock
 
 # addoption doesn't work for me
 # def pytest_addoption(parser):
@@ -66,3 +67,18 @@ def respairdat(datadir):
 def respairscore(datadir):
     with open(join(datadir, "pairscore10.pickle"), "rb") as inp:
         return _pickle.load(inp)
+
+
+@pytest.fixture(scope="session")
+def hscore(datadir):
+    pref = datadir + "/hscore/"
+    return sicdock.motif.hierscore.HierScore(
+        [
+            pref + "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_base.pickle",
+            pref + "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier0_Kflat_1_0.pickle",
+            pref + "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier1_Kflat_1_0.pickle",
+            pref + "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier2_Kflat_1_0.pickle",
+            pref + "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier3_Kflat_1_0.pickle",
+            pref + "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier4_Kflat_1_0.pickle",
+        ]
+    )

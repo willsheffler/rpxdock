@@ -4,6 +4,7 @@
 
 // inspired by code from here: http://www.marcusbannerman.co.uk/dynamo
 // see "Converting to and from Dilated Integers"(doi:10.1109/TC.2007.70814)
+// maybe redo with modern code?
 
 #pragma once
 

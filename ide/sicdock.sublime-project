@@ -1,0 +1,42 @@
+{
+	"build_systems":
+	[
+		{
+			"name": "util_runtests.py",
+			"shell_cmd": "cd $folder; PYTHONPATH=. python ide/runtests.py $file &> sublime_build.log"
+		},
+		{
+			"name": "ping localhost:8080/8081",
+			"shell_cmd": "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080')\"; python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8081')\" "
+		},
+		{
+			"name": "generate_motif_scores",
+			"shell_cmd" : "cd $folder; PYTHONPATH=. python sicdock/app/genrate_motif_scores.py TEST &> sublime_build.log"
+		}
+
+
+	],
+	"folders":
+	[
+		{
+			"folder_exclude_patterns":
+			[
+				".cache",
+				".tox",
+				"build",
+				"dist",
+				"*.egg-info",
+				"__pycache__",
+				"_build",
+				"sicdock/extern/Eigen",
+				".*",
+			],
+			"file_exclude_patterns":
+			[
+				"*~",
+				".*",
+			],
+			"path": "../"
+		}
+	]
+}

@@ -1,10 +1,19 @@
 import time, _pickle
 from sicdock.motif.pairdat import *
 from sicdock.motif.pairscore import *
+from sicdock.xbin import Xbin
 
 
 def test_create_res_pair_score(respairdat, tmpdir):
-    rps = create_res_pair_score(respairdat, min_ssep=10)
+    xbin = Xbin(1, 15)
+    rps = create_res_pair_score(
+        respairdat,
+        xbin,
+        min_bin_score=2,
+        min_pair_score=1,
+        min_ssep=10,
+        use_ss_key=True,
+    )
     print(rps)
 
 
@@ -82,13 +91,13 @@ def make_score_files_moveme():
     # f = "sicdock/data/respairdat10_plus_xmap_rots.pickle"
     # f2 = "sicdock/data/respairscore10"
     # f = "sicdock/data/respairdat10.pickle"
-    f = "/home/sheffler/debug/derp_learning/pdb_res_pair_data_si30.pickle"
-    f1 = "/home/sheffler/debug/sicdock/pdb_res_pair_data_si30_rots.pickle"
-    f2 = "/home/sheffler/debug/sicdock/pdb_res_pair_data_si30_pairscore.pickle"
+    f = "/home/sheffler/debug/derp_learning/pdb_res_pair_data_si30_10.pickle"
+    f1 = "sicdock/data/respairdat10_plus_xmap_rots.pickle"
+    f2 = "sicdock/data/pairscore10.pickle"
     with open(f, "rb") as inp:
         rp = ResPairData(_pickle.load(inp))
     rp.data["stub"] = ["resid", "hrow", ""], bb_stubs(rp.n, rp.ca, rp.c)
-    xbin = XBin(1.0, 20)
+    xbin = Xbin(1.0, 20)
     add_xbin_to_respairdat(rp, xbin, min_ssep=10)
     rotspace = get_rotamer_space()
     add_rots_to_respairdat(rp, rotspace)
@@ -153,15 +162,16 @@ def terrible_sanity_check():
     print(t)
 
 
-# if __name__ == "__main__":
+if 0:  # __name__ == "__main__":
 
-# make_score_files_moveme()
-# import tempfile
-# with open(f, "rb") as inp:
-# rp = ResPairData(_pickle.load(inp))
-# test_create_res_pair_score(rp, tempfile.mkdtemp())
+    make_score_files_moveme()
 
-# rps = load_respairscore(f2)
-# test_pair_score(rps)
-# test_bin_get_all_data(rps)
-# test_bin_score(rps)
+    # import tempfile
+    # with open(f, "rb") as inp:
+    # rp = ResPairData(_pickle.load(inp))
+    # test_create_res_pair_score(rp, tempfile.mkdtemp())
+
+    # rps = load_respairscore(f2)
+    # test_pair_score(rps)
+    # test_bin_get_all_data(rps)
+    # test_bin_score(rps)

@@ -18,6 +18,7 @@ using namespace util;
 template <typename _Xform, typename _K = uint64_t>
 struct XformHash_bt24_BCC6 {
   const _K GRID_KEY_BITS = 55;
+  const _K EMPTY_BITS = 4;
   using Xform = _Xform;
   using K = _K;
   typedef typename Xform::Scalar F;
@@ -27,27 +28,26 @@ struct XformHash_bt24_BCC6 {
   typedef Eigen::Array<K, 6, 1> I6;
 
   Grid grid6_;
-  F cart_resl_ = -1, ori_resl_ = -1, cart_bound_ = -1;
-  F orig_cart_resl_;
+  F cart_side_ = -1, ori_resl_ = -1, cart_bound_ = -1;
+  F cart_resl_;
   int ori_nside_ = -1;
 
   F cart_resl() const { return cart_resl_; }
   F ori_resl() const { return ori_resl_; }
-  F cart_bound() const { return cart_bound_; }
+  F max_cart() const { return cart_bound_; }
   int ori_nside() const { return ori_nside_; }
   auto grid() const { return grid6_; }
   static std::string name() { return "XformHash_bt24_BCC6"; }
 
   XformHash_bt24_BCC6() {}
   template <typename Float>
-  XformHash_bt24_BCC6(Float cart_resl, Float ori_resl,
-                      Float cart_bound = 512.0) {
-    this->cart_bound_ = cart_bound;
-    init(cart_resl, ori_resl, cart_bound);
+  XformHash_bt24_BCC6(Float cart_resl, Float ori_resl, Float max_cart = 512.0) {
+    this->cart_bound_ = max_cart;
+    init(cart_resl, ori_resl, max_cart);
   }
-  XformHash_bt24_BCC6(F cart_resl, int ori_nside, F cart_bound) {
+  XformHash_bt24_BCC6(F cart_resl, int ori_nside, F max_cart) {
     ori_resl_ = get_ori_resl(ori_nside);
-    init2(cart_resl, ori_nside, cart_bound);
+    init2(cart_resl, ori_nside, max_cart);
   }
   int get_ori_nside() {
     int ori_nside = 1;
@@ -56,30 +56,30 @@ struct XformHash_bt24_BCC6 {
     return ori_nside;
   }
   F get_ori_resl(int nside) { return covrad_[nside - 1]; }
-  void init(F cart_resl, F ori_resl, F cart_bound = 512.0) {
-    this->cart_bound_ = cart_bound;
+  void init(F cart_resl, F ori_resl, F max_cart = 512.0) {
+    this->cart_bound_ = max_cart;
     this->ori_resl_ = ori_resl;
-    init2(cart_resl, get_ori_nside(), cart_bound);
+    init2(cart_resl, get_ori_nside(), max_cart);
   }
-  void init2(F cart_resl, int ori_nside, F cart_bound) {
-    orig_cart_resl_ = cart_resl;
-    cart_resl_ = cart_resl / (sqrt(3.0) / 2.0);
-    cart_bound_ = cart_bound;
+  void init2(F cart_resl, int ori_nside, F max_cart) {
+    cart_resl_ = cart_resl;
+    cart_side_ = cart_resl / (sqrt(3.0) / 2.0);
+    cart_bound_ = max_cart;
     ori_nside_ = ori_nside;
     F6 lb, ub;
-    I6 nside = get_bounds(cart_resl_, ori_nside_, cart_bound_, lb, ub);
+    I6 nside = get_bounds(cart_side_, ori_nside_, cart_bound_, lb, ub);
     grid6_.init(nside, lb, ub);
   }
-  I6 get_bounds(F cart_resl, int ori_nside, float cart_bound, F6 &lb, F6 &ub) {
+  I6 get_bounds(F cart_resl, int ori_nside, float max_cart, F6 &lb, F6 &ub) {
     I6 nside;
-    if (2 * (int)(cart_bound / cart_resl) > 8192) {
+    if (2 * (int)(max_cart / cart_resl) > 8192) {
       throw std::out_of_range("can have at most 8192 cart cells!");
     }
-    nside[0] = nside[1] = nside[2] = 1 + 2.0 * cart_bound / cart_resl;
+    nside[0] = nside[1] = nside[2] = 1 + 2.0 * max_cart / cart_resl;
     nside[3] = nside[4] = nside[5] = ori_nside + 2;
     // shift to make 0,0,0 center of cell
-    lb[0] = lb[1] = lb[2] = -cart_bound - cart_resl / 2;
-    ub[0] = ub[1] = ub[2] = cart_bound + cart_resl / 2;
+    lb[0] = lb[1] = lb[2] = -max_cart - cart_resl / 2;
+    ub[0] = ub[1] = ub[2] = max_cart + cart_resl / 2;
     lb[3] = lb[4] = lb[5] = -1.0 / ori_nside;
     ub[3] = ub[4] = ub[5] = 1.0 + 1.0 / ori_nside;
     return nside;
@@ -147,7 +147,7 @@ struct XformHash_bt24_BCC6 {
   }
 
   Xform get_center(K key) const {
-    K cell_index = key >> GRID_KEY_BITS;
+    K cell_index = (key << EMPTY_BITS) >> (GRID_KEY_BITS + 4);
     auto tmp = grid6_[key & (((K)1 << GRID_KEY_BITS) - (K)1)];
     F6 params6;
     for (int i = 0; i < 6; ++i) params6[i] = tmp[i];

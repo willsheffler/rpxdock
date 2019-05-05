@@ -2,7 +2,7 @@ import _pickle
 from time import perf_counter
 import numpy as np
 from cppimport import import_hook
-from sicdock.xbin import xbin_test, XBin_double, XBin_float, create_XBin_nside
+from sicdock.xbin import xbin_test, Xbin_double, Xbin_float, create_Xbin_nside_double
 from sicdock.geom.rotation import angle_of_3x3
 from sicdock.geom import bcc
 
@@ -25,16 +25,16 @@ def test_xbin_cpp():
 
 
 def test_create_binner():
-    binner = XBin_double(1.0, 15.0, 256.0)
-    binner2 = XBin_float(1.0, 15.0, 256.0)
+    binner = Xbin_double(1.0, 15.0, 256.0)
+    binner2 = Xbin_float(1.0, 15.0, 256.0)
     assert binner
     assert binner2
 
 
 def test_key_of():
     N = 1_000_00
-    xb = XBin_double(0.3, 5.0, 256.0)
-    xbf = XBin_float(0.3, 5.0, 256.0)
+    xb = Xbin_double(0.3, 5.0, 256.0)
+    xbf = Xbin_float(0.3, 5.0, 256.0)
     tgen = perf_counter()
     x = hm.rand_xform(N)
     xfloat = hm.rand_xform(N).astype("f4")
@@ -62,7 +62,7 @@ def test_key_of():
 
 
 def test_key_of_pairs():
-    xb = XBin_double(1, 20)
+    xb = Xbin_double(1, 20)
     N = 10_000
     N1, N2 = 100, 1000
     x1 = hm.rand_xform(N1)
@@ -77,7 +77,7 @@ def test_key_of_pairs():
     k2 = xb.key_of(np.linalg.inv(px1) @ px2)
     assert np.all(k1 == k2)
 
-    k3 = xb.key_of_pairs2(i1, i2, x1, x2)
+    k3 = xb.key_of_selected_pairs(i1, i2, x1, x2)
     assert np.all(k1 == k3)
 
 
@@ -87,7 +87,7 @@ def test_xbin_covrad(niter=20, nsamp=5000):
         cart_resl = np.random.rand() * 10 + 0.125
         ori_resl = np.random.rand() * 50 + 2.6
         xforms = hm.rand_xform(nsamp)
-        xb = XBin_double(cart_resl, ori_resl, 512)
+        xb = Xbin_double(cart_resl, ori_resl, 512)
         ori_resl = xb.ori_resl
         idx = xb.key_of(xforms)
         cen = xb.bincen_of(idx)
@@ -111,7 +111,7 @@ def test_xbin_covrad_ori():
     nsamp = 10_000
     for ori_nside in range(1, 20):
         cart_resl = 1
-        xb = create_XBin_nside(cart_resl, ori_nside, 512)
+        xb = create_Xbin_nside_double(cart_resl, ori_nside, 512)
         ori_resl = xb.ori_resl
         assert ori_nside == xb.ori_nside
         xforms = hm.rand_xform(nsamp)
@@ -127,27 +127,27 @@ def test_xbin_covrad_ori():
         assert ori_resl * 0.8 < maxhole
 
 
-def test_key_of_pairs2_ss():
-    xb = XBin_float()
+def test_sskey_of_selected_pairs():
+    xb = Xbin_float()
     N = 10_000
     N1, N2 = 100, 1000
-    x1 = hm.rand_xform(N1).astype('f4')
-    x2 = hm.rand_xform(N2).astype('f4')
+    x1 = hm.rand_xform(N1).astype("f4")
+    x2 = hm.rand_xform(N2).astype("f4")
     ss1 = np.random.randint(0, 3, N1)
     ss2 = np.random.randint(0, 3, N2)
     i1 = np.random.randint(0, N1, N)
     i2 = np.random.randint(0, N2, N)
     # p = np.stack([i1, i2], axis=1)
-    k1 = xb.key_of_pairs2(i1, i2, x1, x2)
+    k1 = xb.key_of_selected_pairs(i1, i2, x1, x2)
 
-    kss = xb.key_of_pairs2_ss(i1, i2, ss1, ss2, x1, x2)
+    kss = xb.sskey_of_selected_pairs(i1, i2, ss1, ss2, x1, x2)
     assert np.all(k1 == np.right_shift(np.left_shift(kss, 4), 4))
     assert np.all(ss1[i1] == np.right_shift(np.left_shift(kss, 0), 62))
     assert np.all(ss2[i2] == np.right_shift(np.left_shift(kss, 2), 62))
 
 
 def test_pickle(tmpdir):
-    xb = XBin_double(1, 2, 3)
+    xb = Xbin_double(1, 2, 3)
     with open(tmpdir + "/foo", "wb") as out:
         _pickle.dump(xb, out)
 
@@ -156,25 +156,21 @@ def test_pickle(tmpdir):
 
     assert xb.cart_resl == xb2.cart_resl
     assert xb.ori_nside == xb2.ori_nside
-    assert xb.cart_bound == xb2.cart_bound
-
-
-def test_xbin_grid():
-    xb = create_XBin_nside(1, 1, 512)
-    bcc = xb.grid6
-    print(bcc)
+    assert xb.max_cart == xb2.max_cart
+    x = hm.rand_xform(1000, cart_sd=10)
+    assert np.all(xb[x] == xb2[x])
 
 
 if __name__ == "__main__":
     # test_xbin_cpp()
     # test_create_binner()
-    test_key_of()
+    # test_key_of()
     # test_key_of_pairs()
     # test_xbin_covrad()
-    # test_xbin_covrad_ori()
-    # test_key_of_pairs2_ss()
+    test_xbin_covrad_ori()
+    # test_sskey_of_selected_pairs()
     # test_xbin_grid()
 
-    # import tempfile
+    import tempfile
 
-    # test_pickle(tempfile.mkdtemp())
+    test_pickle(tempfile.mkdtemp())

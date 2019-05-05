@@ -39,7 +39,8 @@ def get_plotter(*args, **kw):
 def scatter(*args, title="", show=True, **kw):
     subplot, fig, plotter = get_plotter(*args, **kw)
     plotter.scatter(*args, **kw)
-    plotter.set_title(title, fontsize=24)
+    if subplot:
+        plotter.set_title(title, fontsize=24)
     if not subplot and show:
         plotter.show()
 

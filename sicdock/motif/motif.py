@@ -36,8 +36,9 @@ def bb_stubs(n, ca=None, c=None):
     return stub
 
 
-def get_pair_keys(rp, xbin, min_ssep=10):
+def get_pair_keys(rp, xbin, min_pair_score, min_ssep, use_ss_key, **kw):
     mask = (rp.p_resj - rp.p_resi).data >= min_ssep
+    mask = np.logical_and(mask, -rp.p_etot.data >= min_pair_score)
     resi = rp.p_resi.data[mask]
     resj = rp.p_resj.data[mask]
     ss = rp.ssid.data
@@ -47,19 +48,23 @@ def get_pair_keys(rp, xbin, min_ssep=10):
     kij = np.zeros(len(rp.p_resi), dtype="u8")
     kji = np.zeros(len(rp.p_resi), dtype="u8")
     assert resi.dtype == ss.dtype
-    kij[mask] = xbin.key_of_pairs2_ss(resi, resj, ss, ss, stub, stub)
-    kji[mask] = xbin.key_of_pairs2_ss(resj, resi, ss, ss, stub, stub)
+    if use_ss_key:
+        kij[mask] = xbin.sskey_of_selected_pairs(resi, resj, ss, stub)
+        kji[mask] = xbin.sskey_of_selected_pairs(resj, resi, ss, stub)
+    else:
+        kij[mask] = xbin.key_of_selected_pairs(resi, resj, stub)
+        kji[mask] = xbin.key_of_selected_pairs(resj, resi, stub)
     return kij, kji
 
 
-def add_xbin_to_respairdat(rp, xbin, min_ssep):
-    kij, kji = get_pair_keys(rp, xbin, min_ssep=10)
+def add_xbin_to_respairdat(rp, xbin, **kw):
+    kij, kji = get_pair_keys(rp, xbin, **kw)
     rp.data["kij"] = ["pairid"], kij
     rp.data["kji"] = ["pairid"], kji
     rp.attrs["xbin_type"] = "wtihss"
 
 
-def add_rots_to_respairdat(rp, rotspace):
+def add_rots_to_respairdat(rp, rotspace, **kw):
     rotids, rotlbl, rotchi = assign_rotamers(rp, rotspace)
     rp.data["rotid"] = ["resid"], rotids
     rp.data.attrs["rotlbl"] = rotlbl
@@ -87,11 +92,3 @@ def remove_redundant_pdbs(pdbs, sequence_identity=30):
         goodids = set(l.strip() for l in inp.readlines())
         assert all(len(g) == 4 for g in goodids)
     return np.array([i for i, p in enumerate(pdbs) if p[:4].upper() in goodids])
-
-
-if 0:  # __name__ == "__main__":
-    from sicdock.motif._loadhack import respairdat
-
-    build_motif_table(respairdat)
-
-    # build_motif_table(None)

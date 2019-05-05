@@ -1,9 +1,11 @@
 from homog import hnormalized
 import numpy as np
+from sicdock.data import datadir
 
-tetrahedral_frames = np.load("sicdock/data/tetrahedral_frames.pickle")
-octahedral_frames = np.load("sicdock/data/octahedral_frames.pickle")
-icosahedral_frames = np.load("sicdock/data/icosahedral_frames.pickle")
+
+tetrahedral_frames = np.load(datadir + "/tetrahedral_frames.pickle")
+octahedral_frames = np.load(datadir + "/octahedral_frames.pickle")
+icosahedral_frames = np.load(datadir + "/icosahedral_frames.pickle")
 
 frames = dict(T=tetrahedral_frames, O=octahedral_frames, I=icosahedral_frames)
 

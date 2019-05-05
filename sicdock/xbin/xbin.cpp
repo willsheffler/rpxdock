@@ -34,10 +34,10 @@ namespace xbin {
 
 using namespace util;
 template <typename F, typename K>
-using XBin = XformHash_bt24_BCC6<X3<F>, K>;
+using Xbin = XformHash_bt24_BCC6<X3<F>, K>;
 
 template <typename F, typename K>
-py::array_t<F> _bincen_of(XBin<F, K> const &binner, VectorX<K> keys) {
+py::array_t<F> _bincen_of(Xbin<F, K> const &binner, VectorX<K> keys) {
   VectorX<X3<F>> out(keys.size());
   for (int i = 0; i < keys.size(); ++i) out[i] = binner.get_center(keys[i]);
   return xform_eigen_to_py(out);
@@ -50,7 +50,7 @@ py::array bincen_of(VectorX<K> keys, double rcart, double rori, double mxcart) {
 }
 
 template <typename F, typename K>
-VectorX<K> key_of(XBin<F, K> const &binner, py::array_t<F> _xforms) {
+VectorX<K> key_of(Xbin<F, K> const &binner, py::array_t<F> _xforms) {
   MapVectorXform<F> xforms = xform_py_to_eigen(_xforms);
   VectorX<K> out(xforms.size());
   for (int i = 0; i < xforms.size(); ++i) {
@@ -61,7 +61,7 @@ VectorX<K> key_of(XBin<F, K> const &binner, py::array_t<F> _xforms) {
 }
 template <typename F, typename K>
 
-VectorX<K> ori_cell_of(XBin<F, K> const &binner, py::array_t<F> _xforms) {
+VectorX<K> ori_cell_of(Xbin<F, K> const &binner, py::array_t<F> _xforms) {
   MapVectorXform<F> xforms = xform_py_to_eigen(_xforms);
   VectorX<K> out(xforms.size());
   for (int i = 0; i < xforms.size(); ++i) {
@@ -72,7 +72,7 @@ VectorX<K> ori_cell_of(XBin<F, K> const &binner, py::array_t<F> _xforms) {
 }
 
 template <typename I, typename F, typename K>
-py::array_t<K> kop_impl(XBin<F, K> const &xb, py::array_t<I> p,
+py::array_t<K> kop_impl(Xbin<F, K> const &xb, py::array_t<I> p,
                         py::array_t<F> x1, py::array_t<F> x2) {
   I *pp = (I *)p.request().ptr;
   X3<F> *px1 = (X3<F> *)x1.request().ptr;
@@ -89,7 +89,7 @@ py::array_t<K> kop_impl(XBin<F, K> const &xb, py::array_t<I> p,
 }
 
 template <typename K, typename F>
-py::array_t<K> key_of_pairs(XBin<F, K> const &xb, py::array xp, py::array x1,
+py::array_t<K> key_of_pairs(Xbin<F, K> const &xb, py::array xp, py::array x1,
                             py::array x2) {
   check_xform_array(x1);
   check_xform_array(x2);
@@ -116,7 +116,7 @@ py::array_t<K> key_of_pairs(XBin<F, K> const &xb, py::array xp, py::array x1,
 }
 
 template <typename I, typename F, typename K>
-py::array_t<K> kop2_impl(XBin<F, K> const &xb, py::array_t<I> i1,
+py::array_t<K> kop2_impl(Xbin<F, K> const &xb, py::array_t<I> i1,
                          py::array_t<I> i2, py::array_t<F> x1,
                          py::array_t<F> x2) {
   I *i1p = (I *)i1.request().ptr;
@@ -133,8 +133,8 @@ py::array_t<K> kop2_impl(XBin<F, K> const &xb, py::array_t<I> i1,
 }
 
 template <typename K, typename F>
-py::array_t<uint64_t> key_of_pairs2(XBin<F, K> const &xb, py::array i1,
-                                    py::array i2, py::array x1, py::array x2) {
+py::array_t<K> key_of_selected_pairs(Xbin<F, K> const &xb, py::array i1,
+                                     py::array i2, py::array x1, py::array x2) {
   check_xform_array(x1);
   check_xform_array(x2);
   pybind11::array::ensure(i1);
@@ -162,8 +162,14 @@ py::array_t<uint64_t> key_of_pairs2(XBin<F, K> const &xb, py::array i1,
   }
 }
 
+template <typename K, typename F>
+py::array_t<K> key_of_selected_pairs_same(Xbin<F, K> const &xb, py::array i1,
+                                          py::array i2, py::array x) {
+  return key_of_selected_pairs(xb, i1, i2, x, x);
+}
+
 template <typename I, typename F, typename K>
-py::array_t<K> kop2ss_impl(XBin<F, K> const &xb, py::array_t<I> i1,
+py::array_t<K> kop2ss_impl(Xbin<F, K> const &xb, py::array_t<I> i1,
                            py::array_t<I> i2, py::array_t<I> ss1,
                            py::array_t<I> ss2, py::array_t<F> x1,
                            py::array_t<F> x2) {
@@ -184,9 +190,10 @@ py::array_t<K> kop2ss_impl(XBin<F, K> const &xb, py::array_t<I> i1,
 }
 
 template <typename K, typename F>
-py::array_t<K> key_of_pairs2_ss(XBin<F, K> const &xb, py::array i1,
-                                py::array i2, py::array ss1, py::array ss2,
-                                py::array x1, py::array x2) {
+py::array_t<K> sskey_of_selected_pairs(Xbin<F, K> const &xb, py::array i1,
+                                       py::array i2, py::array ss1,
+                                       py::array ss2, py::array x1,
+                                       py::array x2) {
   check_xform_array(x1);
   check_xform_array(x2);
   pybind11::array::ensure(i1);
@@ -215,13 +222,14 @@ py::array_t<K> key_of_pairs2_ss(XBin<F, K> const &xb, py::array i1,
 }  // namespace xbin
 
 template <typename K, typename FX>
-py::array_t<K> key_of_pairs2_ss_same(XBin<FX, K> const &xb, py::array i1,
-                                     py::array i2, py::array ss, py::array x) {
-  return key_of_pairs2_ss(xb, i1, i2, ss, ss, x, x);
+py::array_t<K> sskey_of_selected_pairs_same(Xbin<FX, K> const &xb, py::array i1,
+                                            py::array i2, py::array ss,
+                                            py::array x) {
+  return sskey_of_selected_pairs(xb, i1, i2, ss, ss, x, x);
 }
 
 template <typename F, typename K>
-py::tuple xform_to_F6(XBin<F, K> const &xbin, py::array_t<F> _xform) {
+py::tuple xform_to_F6(Xbin<F, K> const &xbin, py::array_t<F> _xform) {
   auto xform = xform_py_to_eigen(_xform);
   RowMajorX<F> f6(xform.size(), 6);
   VectorX<K> cell(xform.size());
@@ -231,7 +239,7 @@ py::tuple xform_to_F6(XBin<F, K> const &xbin, py::array_t<F> _xform) {
 }
 
 template <typename F, typename K>
-py::array_t<F> F6_to_xform(XBin<F, K> const &xbin, RowMajorX<F> f6,
+py::array_t<F> F6_to_xform(Xbin<F, K> const &xbin, RowMajorX<F> f6,
                            VectorX<K> cell) {
   if (f6.cols() != 6) throw std::runtime_error("f6 must be shape(N,6)");
   if (f6.rows() != cell.size())
@@ -244,11 +252,11 @@ py::array_t<F> F6_to_xform(XBin<F, K> const &xbin, RowMajorX<F> f6,
 
 template <typename F, typename K>
 void bind_xbin(py::module m, std::string name) {
-  using THIS = XBin<F, K>;
+  using THIS = Xbin<F, K>;
   auto cls =
       py::class_<THIS>(m, name.c_str())
           .def(py::init<F, F, F>(), "cart_resl"_a = 1.0, "ori_resl"_a = 20.0,
-               "cart_bound"_a = 512.0)
+               "max_cart"_a = 512.0)
           .def("__getitem__", &key_of<F, K>)
           .def("__getitem__", &_bincen_of<F, K>)
           .def("key_of", &key_of<F, K>, "key of xform", "xform"_c)
@@ -259,19 +267,27 @@ void bind_xbin(py::module m, std::string name) {
           .def_readonly("grid6", &THIS::grid6_)
           .def_readonly("cart_resl", &THIS::cart_resl_)
           .def_readonly("ori_resl", &THIS::ori_resl_)
-          .def_readonly("cart_bound", &THIS::cart_bound_)
+          .def_readonly("max_cart", &THIS::cart_bound_)
           .def_readonly("ori_nside", &THIS::ori_nside_)
-          .def("key_of_pairs2_ss", &key_of_pairs2_ss<K, F>, "idx1"_c, "idx2"_c,
-               "ss1"_c, "ss2"_c, "xform1"_c, "xform2"_c)
-          .def("key_of_pairs2_ss", &key_of_pairs2_ss_same<K, F>, "idx1"_c,
-               "idx2"_c, "ss"_c, "xform"_c)
-          .def("key_of_pairs2", &key_of_pairs2<K, F>, "idx1"_c, "idx2"_c,
-               "xform1"_c, "xform2"_c)
+          .def("sskey_of_selected_pairs", &sskey_of_selected_pairs<K, F>,
+               "idx1"_c, "idx2"_c, "ss1"_c, "ss2"_c, "xform1"_c, "xform2"_c)
+          .def("sskey_of_selected_pairs", &sskey_of_selected_pairs_same<K, F>,
+               "idx1"_c, "idx2"_c, "ss"_c, "xform"_c)
+          .def("key_of_selected_pairs", &key_of_selected_pairs<K, F>, "idx1"_c,
+               "idx2"_c, "xform1"_c, "xform2"_c)
+          .def("key_of_selected_pairs", &key_of_selected_pairs_same<K, F>,
+               "idx1"_c, "idx2"_c, "xform"_c)
           .def("key_of_pairs", &key_of_pairs<K, F>, "pairs"_c, "xform1"_c,
                "xform2"_c)
+          .def("__eq__",
+               [](THIS const &a, THIS const &b) {
+                 return a.cart_resl_ == b.cart_resl_ &&
+                        a.ori_nside_ == b.ori_nside_ &&
+                        a.cart_bound_ == b.cart_bound_;
+               })
           .def(py::pickle(
               [](const THIS &xbin) {  // __getstate__
-                return py::make_tuple(xbin.orig_cart_resl_, xbin.ori_nside_,
+                return py::make_tuple(xbin.cart_resl_, xbin.ori_nside_,
                                       xbin.cart_bound_);
               },
               [](py::tuple t) {  // __setstate__
@@ -283,16 +299,16 @@ void bind_xbin(py::module m, std::string name) {
 }  // namespace xbin
 
 template <typename F, typename K>
-XBin<F, K> create_XBin_nside(F cart_resl, int nside, F cart_bound) {
-  return XformHash_bt24_BCC6<X3<F>, K>(cart_resl, nside, cart_bound);
+Xbin<F, K> create_Xbin_nside(F cart_resl, int nside, F max_cart) {
+  return XformHash_bt24_BCC6<X3<F>, K>(cart_resl, nside, max_cart);
 }
 
 PYBIND11_MODULE(xbin, m) {
   using K = uint64_t;
-  bind_xbin<double, K>(m, "XBin_double");
-  bind_xbin<float, K>(m, "XBin_float");
-  m.def("create_XBin_nside", &create_XBin_nside<double, K>);
-  m.def("create_XBin_nside_float", &create_XBin_nside<float, K>);
+  bind_xbin<double, K>(m, "Xbin_double");
+  bind_xbin<float, K>(m, "Xbin_float");
+  m.def("create_Xbin_nside_double", &create_Xbin_nside<double, K>);
+  m.def("create_Xbin_nside_float", &create_Xbin_nside<float, K>);
 }
 
 }  // namespace xbin

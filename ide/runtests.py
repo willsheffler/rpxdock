@@ -10,7 +10,11 @@ import re
 from time import perf_counter
 from collections import defaultdict
 
-_override = {
+_overrides = {
+    "genrate_motif_scores.py": "PYTHONPATH=. python sicdock/app/genrate_motif_scores.py TEST"
+}
+
+_file_mappings = {
     "rosetta.py": ["sicdock/tests/test_body.py"],
     "bvh_algo.hpp": ["sicdock/tests/bvh/test_bvh_nd.py"],
     "bvh.cpp": ["sicdock/tests/bvh/test_bvh.py"],
@@ -65,10 +69,15 @@ def dispatch(file, pytest_args="--duration=5"):
     """for the love of god... clean me up"""
     file = os.path.relpath(file)
     path, bname = os.path.split(file)
+
+    if bname in _overrides:
+        oride = _overrides[bname]
+        return oride, _post[bname]
+
     print("runtests.py dispatch", path, bname)
-    if bname in _override:
-        if len(_override[bname]) == 1:
-            file = _override[bname][0]
+    if bname in _file_mappings:
+        if len(_file_mappings[bname]) == 1:
+            file = _file_mappings[bname][0]
             path, bname = os.path.split(file)
         else:
             assert 0
@@ -86,18 +95,18 @@ def dispatch(file, pytest_args="--duration=5"):
     else:
         cmd = "pytest {pytest_args}".format(**vars())
 
-    post = ""
     return cmd, _post[bname]
 
 
 t = perf_counter()
+
 
 post = ""
 if len(sys.argv) is 1:
     cmd = "pytest"
 elif len(sys.argv) is 2:
     if sys.argv[1].endswith(__file__):
-        cmd = "pytest"
+        cmd = ""
     else:
         cmd, post = dispatch(sys.argv[1])
 else:
@@ -111,7 +120,10 @@ sys.stdout.flush()
 # if 1cmd.startswith('pytest '):
 os.putenv("NUMBA_OPT", "1")
 # os.putenv('NUMBA_DISABLE_JIT', '1')
+
+# print(cmd)
 os.system(cmd)
+
 print(f"{' main command done ':=^80}")
 os.system(post)
 t = perf_counter() - t

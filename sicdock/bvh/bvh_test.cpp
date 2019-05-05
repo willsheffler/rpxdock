@@ -47,21 +47,21 @@ using PtIdxF = PtIdx<F>;
 
 template <class F, int M, int O>
 void rand_xform(std::mt19937& rng, Eigen::Transform<F, 3, M, O>& x,
-                float cart_bound = 512.0f) {
+                float max_cart = 512.0f) {
   std::uniform_real_distribution<F> runif;
   std::normal_distribution<F> rnorm;
   Eigen::Quaternion<F> qrand(rnorm(rng), rnorm(rng), rnorm(rng), rnorm(rng));
   qrand.normalize();
   x.linear() = qrand.matrix();
-  x.translation() = V3<F>(runif(rng) * cart_bound - cart_bound / 2.0,
-                          runif(rng) * cart_bound - cart_bound / 2.0,
-                          runif(rng) * cart_bound - cart_bound / 2.0);
+  x.translation() = V3<F>(runif(rng) * max_cart - max_cart / 2.0,
+                          runif(rng) * max_cart - max_cart / 2.0,
+                          runif(rng) * max_cart - max_cart / 2.0);
 }
 
 template <class F>
-X3<F> rand_xform(F cart_bound = 512.0) {
+X3<F> rand_xform(F max_cart = 512.0) {
   X3<F> x;
-  rand_xform(global_rng(), x, cart_bound);
+  rand_xform(global_rng(), x, max_cart);
   return x;
 }
 

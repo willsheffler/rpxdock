@@ -3,7 +3,7 @@ from collections import Counter
 import numpy as np
 import homog as hm
 from sicdock.geom import BCC6
-from sicdock.xbin import XBin
+from sicdock.xbin import Xbin
 from sicdock.xbin.smear import smear
 from sicdock.phmap import PHMap_u8f8
 from sicdock.geom.rotation import angle_of_3x3
@@ -16,7 +16,7 @@ def test_smear_one():
     for r in range(1, 6):
         w = 2 * r + 1
         cart_resl = 1.0
-        xb = XBin(cart_resl, 9e9)
+        xb = Xbin(cart_resl, 9e9)
         gr = xb.grid6
         pm = PHMap_u8f8()
         cen = xident_f4
@@ -45,7 +45,7 @@ def test_smear_one_oddori():
     for r in range(1, 6):
         w = 2 * r + 1
         cart_resl = 1.0
-        xb = XBin(cart_resl, 9e9)
+        xb = Xbin(cart_resl, 9e9)
         gr = xb.grid6
         pm = PHMap_u8f8()
         cen = xident_f4
@@ -86,7 +86,7 @@ def test_smear_one_oddori_sphere():
     for r in range(1, 6):
         w = 2 * r + 1
         cart_resl = 1.0
-        xb = XBin(cart_resl, 9e9)
+        xb = Xbin(cart_resl, 9e9)
         gr = xb.grid6
         pm = PHMap_u8f8()
         cen = xident_f4
@@ -129,7 +129,7 @@ def test_smear_one_exhalf_oddori_sphere():
     for r in range(1, 6):
         w = 2 * r + 1
         cart_resl = 1.0
-        xb = XBin(cart_resl, 9e9)
+        xb = Xbin(cart_resl, 9e9)
         gr = xb.grid6
         pm = PHMap_u8f8()
         cen = xident_f4
@@ -166,7 +166,7 @@ def test_smear_two():
             w = 2 * r + 1
             cart_resl = 1.0
             ori_resl = 10
-            xb = XBin(cart_resl, ori_resl)
+            xb = Xbin(cart_resl, ori_resl)
             gr = xb.grid6
             phm, phm0, phm1 = PHMap_u8f8(), PHMap_u8f8(), PHMap_u8f8()
 
@@ -202,7 +202,7 @@ def test_smear_two():
 def test_smear_multiple():
     cart_resl = 1.0
     ori_resl = 10
-    xb = XBin(cart_resl, ori_resl)
+    xb = Xbin(cart_resl, ori_resl)
     gr = xb.grid6
 
     for rad in range(1, 6):
@@ -259,8 +259,8 @@ def test_smear_one_bounding():
     sorig = np.exp(np.random.rand(N1))
     cart_resl = 1.0
     ori_resl = 20
-    xb0 = XBin(cart_resl, ori_resl)
-    xb2 = XBin(cart_resl * 2, ori_resl * 1.5)
+    xb0 = Xbin(cart_resl, ori_resl)
+    xb2 = Xbin(cart_resl * 2, ori_resl * 1.5)
 
     pm0 = PHMap_u8f8()
     pm0[xb0.key_of(xorig)] = sorig
@@ -305,7 +305,7 @@ def smear_bench():
     sorig = np.exp(np.random.rand(N))
     cart_resl = 1.0
     ori_resl = 20
-    xb0 = XBin(cart_resl, ori_resl)
+    xb0 = Xbin(cart_resl, ori_resl)
 
     pm0 = PHMap_u8f8()
     pm0[xb0.key_of(xorig)] = sorig
@@ -361,7 +361,7 @@ def test_smear_one_kernel():
         # print("rad", rad, "exhalf", exhalf)
         w = 2 * rad + 1
         cart_resl = 1.0
-        xb = XBin(cart_resl, 9e9)
+        xb = Xbin(cart_resl, 9e9)
         gr = xb.grid6
         pm = PHMap_u8f8()
         cen = xident_f4

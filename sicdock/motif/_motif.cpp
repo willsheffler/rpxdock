@@ -98,7 +98,7 @@ py::tuple jagged_bin(py::array_t<Key> k) {
 
 PYBIND11_MODULE(_motif, m) {
   m.def("jagged_bin", &jagged_bin);
-  m.def("logsum_bins", &logsum_bins);
+  m.def("logsum_bins", &logsum_bins, "lbub"_a, "vals"_a);
 }
 
 }  // namespace motif

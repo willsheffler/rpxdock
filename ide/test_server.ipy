@@ -9,19 +9,100 @@ one way to do this is:
 python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080')"
 """
 
-import sys, os
+import sys, os, glob, types
 from time import perf_counter
 import http.server
 import socketserver
 from cppimport import import_hook
 from IPython.utils import io
-from importlib import reload
-# from sicdock.search import hierarchical, gridslide
-# from sicdock import dockspec, body
-# from sicdock.cluster import prune
-from sicdock.motif import motif, pairdat, _motif, pairscore
-# from sicdock.rotamer import richardson
+from importlib import reload, import_module
 
+
+allmodules = [
+'sicdock',
+# 'sicdock.app.genrate_motif_scores',
+'sicdock.body',
+'sicdock.bvh',
+'sicdock.bvh.bvh',
+'sicdock.bvh.bvh_nd',
+'sicdock.bvh.bvh_test',
+'sicdock.cluster',
+'sicdock.cluster.prune',
+'sicdock.conftest',
+'sicdock.data',
+'sicdock.dockspec',
+'sicdock.geom',
+'sicdock.geom.bcc',
+'sicdock.geom.miniball',
+# 'sicdock.geom.primitive_test',
+'sicdock.geom.rotation',
+'sicdock.geom.xform_dist',
+'sicdock.io',
+'sicdock.io.io',
+'sicdock.io.io_body',
+'sicdock.motif',
+'sicdock.motif._motif',
+'sicdock.motif.hierscore',
+'sicdock.motif.motif',
+'sicdock.motif._loadhack',
+'sicdock.motif.pairdat',
+'sicdock.motif.pairscore',
+'sicdock.phmap',
+'sicdock.phmap.phmap',
+'sicdock.rosetta',
+'sicdock.rotamer',
+'sicdock.rotamer.richardson',
+'sicdock.rotamer.rotamer',
+'sicdock.sampling',
+'sicdock.sampling._orientations',
+'sicdock.sampling._orientations_test',
+'sicdock.sampling.orientations',
+'sicdock.sampling.xform_hierarchy',
+'sicdock.sampling.xhier_util',
+'sicdock.search',
+'sicdock.search.gridslide',
+'sicdock.search.hierarchical',
+'sicdock.search.plug',
+'sicdock.sym',
+# 'sicdock.tests.bvh.test_bvh',
+# 'sicdock.tests.bvh.test_bvh_nd',
+# 'sicdock.tests.cluster.test_cluster',
+# 'sicdock.tests.geom.test_bcc',
+# 'sicdock.tests.geom.test_geom',
+# 'sicdock.tests.motif.test_hierscore',
+# 'sicdock.tests.motif.test_motif',
+# 'sicdock.tests.motif.test_pairscore',
+# 'sicdock.tests.phmap.test_phmap',
+# 'sicdock.tests.rotamer.test_richardson',
+# 'sicdock.tests.sampling.test_orientations',
+# 'sicdock.tests.sampling.test_xform_hierarchy',
+# 'sicdock.tests.search.test_gridslide',
+# 'sicdock.tests.search.test_hierarchical',
+# 'sicdock.tests.search.test_plug',
+# 'sicdock.tests.test_body',
+# 'sicdock.tests.test_dockspec',
+# 'sicdock.tests.test_sym',
+# 'sicdock.tests.util.test_pybind_types',
+# 'sicdock.tests.util.test_util',
+# 'sicdock.tests.xbin.test_smear',
+# 'sicdock.tests.xbin.test_xbin',
+'sicdock.util',
+'sicdock.util.bunch',
+# 'sicdock.util.dilated_int_test',
+'sicdock.util.plot',
+# 'sicdock.util.pybind_types_test',
+'sicdock.util.util',
+'sicdock.xbin',
+'sicdock.xbin.smear',
+'sicdock.xbin.xbin',
+'sicdock.xbin.xbin_test',
+]
+
+to_reload = []
+for m in allmodules:
+    exec('import %s' % m, globals(), locals())
+    if eval("isinstance(%s, types.ModuleType)" % m):
+        exec("to_reload.append(%s)" % m, globals(), locals())
 
 totest = sys.argv[1]
 outfile = 'sublime_build.log' if len(sys.argv) < 3 else sys.argv[2]
@@ -29,7 +110,7 @@ PORT = 8080 if len(sys.argv) < 4 else int(sys.argv[3])
 
 %load_ext autoreload
 %autoreload 2
-to_reload = [motif, _motif, pairscore, pairdat]
+
 
 count = 0
 
@@ -39,7 +120,8 @@ class TestHandler(http.server.BaseHTTPRequestHandler):
         count += 1
         with open(outfile, 'w') as out:
             out.write(f"running {totest} {count}")
-        for m in to_reload: reload(m)
+        for m in to_reload:
+            reload(m)
         print('running', count)
         with io.capture_output() as captured:
             os.system('rm -f *.pdb')

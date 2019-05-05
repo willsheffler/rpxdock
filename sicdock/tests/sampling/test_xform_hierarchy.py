@@ -2,7 +2,7 @@ from time import perf_counter
 import itertools as it
 import numpy as np
 from cppimport import import_hook
-from sicdock.sampling.xform_hierarchy import *
+from sicdock.sampling import *
 from sicdock.bvh.bvh_nd import *
 import homog as hm
 from scipy.spatial.distance import cdist
@@ -351,9 +351,24 @@ def test_ori_hier_rand():
         nhier, maxmindis, angle, overcover, tbvh = analyze_ori_hier(1, resl, N)
         assert angle < maxang[resl]
         print(
-            f"{resl} {nhier:7,} bvh: {int(N / tbvh):,} ",
+            f"{resl} {nhier:7,} bvhrate: {int(N / tbvh):9,} ",
             f"oc: {overcover:5.2f} ang: {angle:7.3f} dis: {maxmindis:7.4f}",
         )
+
+
+def slow_test_ori_hier_rand_nside4():
+    # import matplotlib.pyplot as plt
+    # plt.scatter(qdist, adist)
+    # plt.show()
+    maxang = np.array([20, 10, 5, 2.5, 1.25])
+    N = 10_000
+    for resl in range(4):
+        nhier, maxmindis, angle, overcover, tbvh = analyze_ori_hier(4, resl, N)
+        print(
+            f"{resl} {nhier:7,} bvhrate: {int(N / tbvh):9,} ",
+            f"oc: {overcover:5.2f} ang: {angle:7.3f} dis: {maxmindis:7.4f}",
+        )
+        assert maxang[resl] * 0.8 < angle < maxang[resl]
 
 
 def test_avg_dist():
@@ -375,47 +390,43 @@ def test_avg_dist():
 
 
 def crappy_xform_hierarchy_resl_sanity_check():
-    extent = 24
-    extentz = 24
-    rg = 32
-    resl = 16
-    cart_fudge_factor = 1.2
-    ori_fudge_factor = 2.2
+    base_sample_resl = np.sqrt(2) / 2
+    base_cart_resl = 0.5
+    base_ori_resl = 5.0
+    xbin_max_cart = 128.0
+    hierarchy_depth = 5
+    sampling_lever = 25
+    xhier_cart_fudge_factor = 1.5
+    xhier_ori_fudge_factor = 2.5
 
-    cart_resl = resl / np.sqrt(2) * cart_fudge_factor
-    ori_resl = resl / np.sqrt(2) / rg * 180 / np.pi * ori_fudge_factor
-    ncart = np.ceil(2 * extent / cart_resl)
-    extent = cart_resl * 2
-    extentz = cart_resl * 2
+    # xh.size 0 0.098304 M
+    # max min xform dis 15.758281
+    # max min cart dis  11.499426
+    # max min ori dis   12.107783
+    # mean xform dis 9.940624
+    # mean cart dis  6.931336
+    # mean ori dis   7.125488
 
-    ub = np.array([extent, extent, extentz])
+    hresl, (cart_resl, ori_resl), n100 = xform_hier_guess_sampling_covrads(**vars())
+    print(hresl[0], cart_resl, ori_resl)
+    cart_side = cart_resl * 2.0 / np.sqrt(3)
+    Ncell = 2
+    ub = np.ones(3) * Ncell * cart_side
     lb = -ub
-    ns = np.ceil((ub - lb) / cart_resl)
-    print("resoultions", resl, ncart, ori_resl, ns)
-    xh = XformHier_f4(lb, ub, ns, ori_resl)
-    ori_resl = xh.ori_resl
-    for i in range(5):
-        print(
-            f"XHier {i} {xh.size(i):20,}",
-            f"cart_resl {cart_resl/cart_fudge_factor*0.5**i:6.3f}",
-            f"ori_resl {ori_resl/ori_fudge_factor*0.5**i:6.3f}",
-        )
-    print("====================== resl for scoring =============================")
-    for i in range(5):
-        print(
-            f"XHier {i} {xh.size(i):20,}",
-            f"cart_resl {1+cart_resl/cart_fudge_factor*0.5**i:6.3f}",
-            f"ori_resl {15+ori_resl/ori_fudge_factor*0.5**i:6.3f}",
-        )
+    ns = [2 * Ncell] * 3
+    assert np.allclose((ub[0] - lb[0]) / cart_side, ns[0])
 
-    # strict_maxmindis2 = cart_resl ** 2 + (ori_resl / 180 * np.pi * rg) ** 2
-    # print("strict max max min dis", np.sqrt(strict_maxmindis2))
+    xh = sic.sampling.XformHier_f4(lb, ub, ns, ori_resl)
 
-    return
-
+    print("xh.size 0", xh.size(0) / 1e6, "M")
     x0 = xh.get_xforms(0, np.arange(xh.size(0), dtype="u8"))[1]
-    xs = hm.rand_xform(10000, cart_sd=8)
-    d2cart, d2ori = xform_dist2_split(x0, xs, rg)
+    N = 100
+    xs = hm.rand_xform(N)
+    xs[:, :3, 3] = 2 * (Ncell - 1) * cart_side * (np.random.rand(N, 3) - 0.5)
+
+    d2cart, d2ori = xform_dist2_split(x0, xs, sampling_lever)
+    d2ori = d2ori / sampling_lever * 180 / np.pi
+
     mind2cart = np.min(d2cart, axis=0)
     mind2ori = np.min(d2ori, axis=0)
     mind2 = np.min(d2cart + d2ori, axis=0)
@@ -439,9 +450,10 @@ if __name__ == "__main__":
     # test_ori_hier_all2()
     # test_ori_hier_1cell()
     # test_ori_hier_rand()
+    # slow_test_ori_hier_rand_nside4()
     # test_ori_hier_rand_nside()
     # test_avg_dist()
     # test_ori_hier_angresl()
-    # crappy_xform_hierarchy_resl_sanity_check()
-    test_xform_hierarchy_product_zorder()
-    test_ori_hier_angresl()
+    crappy_xform_hierarchy_resl_sanity_check()
+    # test_xform_hierarchy_product_zorder()
+    # test_ori_hier_angresl()

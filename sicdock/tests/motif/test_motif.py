@@ -1,13 +1,13 @@
 from sicdock.motif import *
-from sicdock.xbin import XBin
+from sicdock.xbin import Xbin
 import pytest
 
 
 def pair_key_ss_py(xbin, resi, resj, ss, stub):
     ssi = ss[resi]
     ssj = ss[resj]
-    kij = xbin.key_of_pairs2(resi, resj, stub, stub)
-    kji = xbin.key_of_pairs2(resj, resi, stub, stub)
+    kij = xbin.key_of_selected_pairs(resi, resj, stub, stub)
+    kji = xbin.key_of_selected_pairs(resj, resi, stub, stub)
     assert kij.dtype == np.uint64
     ssi = ssi.astype("u8")
     ssj = ssj.astype("u8")
@@ -24,7 +24,7 @@ def pair_key_ss_py(xbin, resi, resj, ss, stub):
     return kssij, kssji
 
 
-def get_pair_keys_py(rp, xbin, min_ssep=10):
+def get_pair_keys_ss_py(rp, xbin, min_ssep):
     mask = (rp.p_resj - rp.p_resi).data >= min_ssep
     resi = rp.p_resi.data[mask]
     resj = rp.p_resj.data[mask]
@@ -65,11 +65,11 @@ def test_jagged_bin_zero():
     assert np.all(kord[ub - 1] == binkey)
 
 
-def test_pair_key(respairdat):
-    xbin = XBin(1, 20)
+def test_pair_key_ss(respairdat):
+    xbin = Xbin(1, 20)
     rp = respairdat
-    kij, kji = get_pair_keys(rp, xbin, min_ssep=0)
-    kij2, kji2 = get_pair_keys_py(rp, xbin, min_ssep=0)
+    kij, kji = get_pair_keys(rp, xbin, min_pair_score=0, min_ssep=0, use_ss_key=True)
+    kij2, kji2 = get_pair_keys_ss_py(rp, xbin, min_ssep=0)
     assert np.all(kij == kij2)
     assert np.all(kji == kji2)
     ss = rp.ssid.data
@@ -81,6 +81,16 @@ def test_pair_key(respairdat):
     assert np.all(np.right_shift(np.left_shift(kji, 2), 62) == ss[resi])
 
 
+def test_pair_key(respairdat):
+    xbin = Xbin(1, 20)
+    rp = respairdat
+    kij, kji = get_pair_keys(rp, xbin, min_pair_score=0, min_ssep=0, use_ss_key=False)
+    kij2 = xbin.key_of_selected_pairs(rp.p_resi.data, rp.p_resj.data, rp.stub.data)
+    kji2 = xbin.key_of_selected_pairs(rp.p_resj.data, rp.p_resi.data, rp.stub.data)
+    assert np.all(kij == kij2)
+    assert np.all(kji == kji2)
+
+
 @pytest.mark.slow
 def test_respairdat_addrots(respairdat):
     rotspace = get_rotamer_space()
@@ -88,8 +98,10 @@ def test_respairdat_addrots(respairdat):
     m, s = check_rotamer_deviation(respairdat, rotspace, quiet=1)
     assert m < 20
     assert s < 20
-    xbin = XBin(cart_resl=1, ori_resl=20)
-    add_xbin_to_respairdat(respairdat, xbin, min_ssep=10)
+    xbin = Xbin(cart_resl=1, ori_resl=20)
+    add_xbin_to_respairdat(
+        respairdat, xbin, min_pair_score=0, min_ssep=10, use_ss_key=True
+    )
 
 
 def test_remove_redundant_pdbs():
