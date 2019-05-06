@@ -1,10 +1,10 @@
-import os, sys, time, _pickle
+import os, sys, time, _pickle, types
 from sicdock.motif import ResPairData
 
 
 class Cache(dict):
     def __call__(self, fun, *args, **kw):
-        key = repr((fun, args, kw))
+        key = fun.__name__, repr(args), repr(kw)
         try:
             val = self[key]
             print("HIT", key)
@@ -15,8 +15,10 @@ class Cache(dict):
         return val
 
 
+# print("CACHE RESET")
+# os.a_very_unique_name = Cache()
+
 if not hasattr(os, "a_very_unique_name"):
-    print("CACHE MISSING")
     os.a_very_unique_name = Cache()
 hackcache = os.a_very_unique_name
 

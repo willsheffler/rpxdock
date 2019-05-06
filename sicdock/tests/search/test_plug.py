@@ -14,8 +14,8 @@ def TMP_test_plug(plug, hole):
 def main():
     plug = HC(sicdock.body.Body, datadir + "/pdb/DHR14.pdb")
     hole = HC(sicdock.body.Body, datadir + "/pdb/hole_C3_i52_Z_asym.pdb", sym=3)
-    hscore_tables = HC(load_medium_hscore)
-    hscore = HierScore(hscore_tables)
+    hscore_tables = HC(load_big_hscore)
+    # hscore = HierScore(hscore_tables)
 
     TMP_test_plug(plug, hole)
 
@@ -65,6 +65,27 @@ def load_medium_hscore():
         "pdb_res_pair_data_si30_1000_rots_SS_p0.5_b1_hier2_Kflat_1_1.pickle",  # 1.7G
         "pdb_res_pair_data_si30_1000_rots_SS_p0.5_b1_hier3_Kflat_1_0.pickle",  # 688M
         "pdb_res_pair_data_si30_1000_rots_SS_p0.5_b1_hier4_Kflat_1_0.pickle",  # 819M
+    ]
+    files = []
+    for f in fnames:
+        file = "/home/sheffler/debug/sicdock/respairdat/hscore/" + f
+        print("=" * 80)
+        print("LOADING", file)
+        print("=" * 80)
+        files.append(load(file))
+    return files
+
+
+def load_small_hscore():
+    print("======================= LOADING MEDIUM H-SCORES =========================")
+
+    fnames = [
+        "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_base.pickle",
+        "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier0_Kflat_1_1.pickle",
+        "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier1_Kflat_1_1.pickle",
+        "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier2_Kflat_1_1.pickle",
+        "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier3_Kflat_1_1.pickle",
+        "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier4_Kflat_1_1.pickle",
     ]
     files = []
     for f in fnames:
