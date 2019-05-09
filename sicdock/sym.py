@@ -1,4 +1,4 @@
-from homog import hnormalized
+import homog as hm
 import numpy as np
 from sicdock.data import datadir
 
@@ -7,23 +7,36 @@ tetrahedral_frames = np.load(datadir + "/tetrahedral_frames.pickle")
 octahedral_frames = np.load(datadir + "/octahedral_frames.pickle")
 icosahedral_frames = np.load(datadir + "/icosahedral_frames.pickle")
 
+
+def symframes(sym):
+    if sym.startswith("T"):
+        return tetrahedral_frames
+    if sym.startswith("O"):
+        return octahedral_frames
+    if sym.startswith("I"):
+        return icosahedral_frames
+    if sym.startswith("C"):
+        n = int(sym[1:])
+        return list(hm.hrot([0, 0, 1], np.arange(n) / n * 360))
+
+
 frames = dict(T=tetrahedral_frames, O=octahedral_frames, I=icosahedral_frames)
 
 
 tetrahedral_axes = {
-    2: hnormalized([1, 0, 0]),
-    3: hnormalized([1, 1, 1]),
-    33: hnormalized([1, 1, -1]),
+    2: hm.hnormalized([1, 0, 0]),
+    3: hm.hnormalized([1, 1, 1]),
+    33: hm.hnormalized([1, 1, -1]),
 }  # other c3
 octahedral_axes = {
-    2: hnormalized([1, 1, 0]),
-    3: hnormalized([1, 1, 1]),
-    4: hnormalized([1, 0, 0]),
+    2: hm.hnormalized([1, 1, 0]),
+    3: hm.hnormalized([1, 1, 1]),
+    4: hm.hnormalized([1, 0, 0]),
 }
 icosahedral_axes = {
-    2: hnormalized([1, 0, 0]),
-    3: hnormalized([0.934172, 0.000000, 0.356822]),
-    5: hnormalized([0.850651, 0.525731, 0.000000]),
+    2: hm.hnormalized([1, 0, 0]),
+    3: hm.hnormalized([0.934172, 0.000000, 0.356822]),
+    5: hm.hnormalized([0.850651, 0.525731, 0.000000]),
 }
 axes = dict(T=tetrahedral_axes, O=octahedral_axes, I=icosahedral_axes)
 

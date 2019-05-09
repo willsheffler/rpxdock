@@ -24,7 +24,7 @@ _file_mappings = {
     "_orientations.hpp": ["sicdock/sampling/orientations.py"],
     "_orientations.cpp": ["sicdock/sampling/orientations.py"],
     "_orientations_test.cpp": ["sicdock/sampling/orientations.py"],
-    "cookie_cutter.cpp": ["sicdock/cluster/cluster.py"],
+    "cookie_cutter.cpp": ["sicdock/tests/cluster/test_cluster.py"],
     "xbin.hpp": ["sicdock/tests/xbin/test_xbin.py"],
     "xbin.cpp": ["sicdock/tests/xbin/test_xbin.py"],
     "xmap.cpp": ["sicdock/tests/xbin/test_xmap.py"],

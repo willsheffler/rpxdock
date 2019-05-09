@@ -19,6 +19,7 @@ setup_pybind11(cfg)
 #include "sicdock/util/assertions.hpp"
 #include "sicdock/util/global_rng.hpp"
 #include "sicdock/util/numeric.hpp"
+#include "sicdock/util/pybind_types.hpp"
 #include "sicdock/util/types.hpp"
 
 using namespace pybind11::literals;
@@ -58,6 +59,8 @@ using BVHd = BVH<double>;
 namespace sicdock {
 namespace bvh {
 
+using namespace sicdock::util;
+
 template <typename F>
 BVH<F> bvh_create(py::array_t<F> coords, py::array_t<bool> which) {
   py::buffer_info buf = coords.request();
@@ -71,6 +74,8 @@ BVH<F> bvh_create(py::array_t<F> coords, py::array_t<bool> which) {
   if (bufw.ndim != 1 || (bufw.size > 0 && bufw.size != buf.shape[0]))
     throw std::runtime_error("'which' shape must be (N,) matching coord shape");
   bool *ptrw = (bool *)bufw.ptr;
+
+  py::gil_scoped_release release;
 
   typedef std::vector<PtIdx<F>, aligned_allocator<PtIdx<F>>> Objs;
   Objs holder;
@@ -110,8 +115,10 @@ struct BVHMinDistOne {
 };
 template <typename F>
 py::tuple bvh_min_dist_one(BVH<F> &bvh, V3<F> pt) {
+  py::gil_scoped_release release;
   BVHMinDistOne<F> minimizer(pt);
   auto result = sicdock::bvh::BVMinimize(bvh, minimizer);
+  py::gil_scoped_acquire acquire;
   return py::make_tuple(result, minimizer.idx);
 }
 
@@ -153,9 +160,11 @@ py::tuple bvh_min_dist_fixed(BVH<F> &bvh1, BVH<F> &bvh2) {
 }
 template <typename F>
 py::tuple bvh_min_dist(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2) {
+  py::gil_scoped_release release;
   X3<F> x1(pos1), x2(pos2);
   BVHMinDistQuery<F> minimizer(x1.inverse() * x2);
   auto result = sicdock::bvh::BVMinimize(bvh1, bvh2, minimizer);
+  py::gil_scoped_acquire aquire;
   return py::make_tuple(result, minimizer.idx1, minimizer.idx2);
 }
 template <typename F>
@@ -225,6 +234,7 @@ bool naive_isect_fixed(BVH<F> &bvh1, BVH<F> &bvh2, F thresh) {
 }
 template <typename F>
 bool bvh_isect(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2, F mindist) {
+  py::gil_scoped_release release;
   X3<F> x1(pos1), x2(pos2);
   BVHIsectQuery<F> query(mindist, x1.inverse() * x2);
   sicdock::bvh::BVIntersect(bvh1, bvh2, query);
@@ -288,9 +298,11 @@ struct BVHIsectRange {
 template <typename F>
 py::tuple bvh_isect_range(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
                           F mindist) {
+  py::gil_scoped_release release;
   X3<F> x1(pos1), x2(pos2);
   BVHIsectRange<F> query(mindist, x1.inverse() * x2, bvh1.objs.size());
   sicdock::bvh::BVIntersect(bvh1, bvh2, query);
+  py::gil_scoped_acquire acquire;
   return py::make_tuple(query.lb, query.ub);
 }
 template <typename F>
@@ -358,6 +370,7 @@ struct BVMinAxis {
 template <typename F>
 F bvh_slide(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2, F rad,
             V3<F> dirn) {
+  py::gil_scoped_release release;
   X3<F> x1(pos1), x2(pos2);
   X3<F> x1inv = x1.inverse();
   X3<F> pos = x1inv * x2;
@@ -394,6 +407,7 @@ struct BVHCountPairs {
 template <typename F>
 int bvh_count_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
                     F maxdist) {
+  py::gil_scoped_release release;
   X3<F> x1(pos1), x2(pos2);
   X3<F> pos = x1.inverse() * x2;
   BVHCountPairs<F> query(maxdist, pos);
@@ -450,7 +464,7 @@ int bvh_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
   if (buf.strides[0] != 2 * sizeof(int32_t))
     throw std::runtime_error("out stride is not 2F");
   int32_t *ptr = (int32_t *)buf.ptr;
-
+  py::gil_scoped_release release;
   BVHCollectPairs<F> query(maxdist, pos, ptr, buf.shape[0]);
   sicdock::bvh::BVIntersect(bvh1, bvh2, query);
   if (query.overflow) return -1;
@@ -505,7 +519,7 @@ int naive_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
 template <typename F>
 int bvh_print(BVH<F> &bvh) {
   for (auto o : bvh.objs) {
-    std::cout << "BVH PT " << o.idx << " " << o.pos.transpose() << std::endl;
+    py::print("BVH PT ", o.idx, o.pos.transpose());
   }
 }
 
@@ -526,6 +540,7 @@ py::array_t<F> bvh_obj_centers(BVH<F> &b) {
 }
 template <typename F>
 V4<F> bvh_obj_com(BVH<F> &b) {
+  py::gil_scoped_release release;
   int n = b.objs.size();
   V4<F> com(0, 0, 0, 1);
   for (int i = 0; i < n; ++i) {
@@ -539,6 +554,7 @@ V4<F> bvh_obj_com(BVH<F> &b) {
 
 template <typename F>
 py::tuple BVH_get_state(BVH<F> const &bvh) {
+  py::gil_scoped_release release;
   VectorX<int> child(bvh.child.size());
   for (int i = 0; i < bvh.child.size(); ++i) child[i] = bvh.child[i];
   RowMajorX<F> sph(bvh.vols.size(), 4);
@@ -557,7 +573,7 @@ py::tuple BVH_get_state(BVH<F> const &bvh) {
   }
   VectorX<int> idx(bvh.objs.size());
   for (int i = 0; i < bvh.objs.size(); ++i) idx[i] = bvh.objs[i].idx;
-
+  py::gil_scoped_acquire acquire;
   return py::make_tuple(child, sph, lbub, pos, idx);
 }
 template <typename F>
@@ -568,7 +584,7 @@ std::unique_ptr<BVH<F>> bvh_set_state(py::tuple state) {
   auto lbub = state[2].cast<RowMajorX<int>>();
   auto pos = state[3].cast<RowMajorX<F>>();
   auto idx = state[4].cast<VectorX<int>>();
-
+  py::gil_scoped_release release;
   for (int i = 0; i < child.size(); ++i) {
     bvh->child.push_back(child[i]);
   }
@@ -638,8 +654,8 @@ PYBIND11_MODULE(bvh, m) {
   // "bvh1"_a, "bvh2"_a, "pos1"_a, "pos2"_a, "rad"_a, "dirn"_a);
 
   m.def("bvh_collect_pairs", &bvh_collect_pairs<double>);
-  m.def("bvh_count_pairs", &bvh_count_pairs<double>);
   m.def("naive_collect_pairs", &naive_collect_pairs<double>);
+  m.def("bvh_count_pairs", &bvh_count_pairs<double>);
 
   m.def("bvh_print", &bvh_print<double>);
 

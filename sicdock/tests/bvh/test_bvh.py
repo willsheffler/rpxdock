@@ -682,6 +682,55 @@ def test_bvh_pickle(tmpdir):
     assert rngb == rng
 
 
+def helper_test_bvh_gil_release(bvh1, bvh2, pos1, pos2):
+    # nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, buf)
+    # return buf[:nbvh]
+    return bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
+
+
+def test_bvh_threading_may_fail():
+    from concurrent.futures import ThreadPoolExecutor
+    from itertools import repeat
+
+    reps = 1
+    npos = 100
+
+    Npts = 100
+    xyz1 = 100 * (np.random.rand(Npts, 3) - [0.5, 0.5, 0.5])
+    xyz2 = 100 * (np.random.rand(Npts, 3) - [0.5, 0.5, 0.5])
+    bvh1 = bvh.bvh_create(xyz1)
+    bvh2 = bvh.bvh_create(xyz2)
+
+    tottmain, tottthread = 0, 0
+    exe = ThreadPoolExecutor(2)
+
+    for i in range(reps):
+
+        pos1 = hm.rand_xform(npos, cart_sd=0.5)
+        pos2 = hm.rand_xform(npos, cart_sd=0.5)
+
+        buf = np.empty((Npts, 2), dtype="i4")
+        t = perf_counter()
+        _ = [bvh.bvh_min_dist(bvh1, bvh2, p1, p2) for p1, p2 in zip(pos1, pos2)]
+        mindist = np.array(_)
+        tmain = perf_counter() - t
+        tottmain += tmain
+
+        t = perf_counter()
+        futures = exe.map(
+            helper_test_bvh_gil_release, repeat(bvh1), repeat(bvh2), pos1, pos2
+        )
+        mindist2 = np.array([f for f in futures])
+        tthread = perf_counter() - t
+        tottthread += tthread
+
+        assert np.allclose(mindist, mindist2)
+        print(tmain / tthread, ">= 1.1")
+        assert tmain / tthread > 1.1
+
+    print(tottmain / tottthread)
+
+
 if __name__ == "__main__":
     # from sicdock.body import Body
 
@@ -705,7 +754,7 @@ if __name__ == "__main__":
     # test_slide_collect_pairs()
     # test_bvh_accessors()
     # test_bvh_isect_range()
+    # import tempfile
+    # test_bvh_pickle(tempfile.mkdtemp())
 
-    import tempfile
-
-    test_bvh_pickle(tempfile.mkdtemp())
+    test_bvh_gil_release()

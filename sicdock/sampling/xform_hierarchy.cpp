@@ -14,6 +14,7 @@ setup_pybind11(cfg)
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <algorithm>
+#include <iostream>
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -23,6 +24,9 @@ namespace sampling {
 
 using namespace util;
 using namespace Eigen;
+
+using std::cout;
+using std::endl;
 
 template <int N, typename F, typename I>
 py::tuple get_trans(CartHier<N, F, I> ch, int resl,
@@ -69,14 +73,13 @@ py::tuple get_xforms(XformHier<F, I> xh, int resl,
   bool* iptr = (bool*)iout.request().ptr;
   X3<F>* xptr = (X3<F>*)xout.request().ptr;
   size_t nout = 0;
+  py::gil_scoped_release release;
   for (size_t i = 0; i < idx.size(); ++i) {
     iptr[i] = xh.get_value(resl, idx[i], xptr[nout]);
     if (iptr[i]) ++nout;
   }
-  py::tuple out(2);
-  out[0] = iout;
-  out[1] = xout[py::slice(0, nout, 1)];
-  return out;
+  py::gil_scoped_acquire acquire;
+  return py::make_tuple(iout, xout[py::slice(0, nout, 1)]);
 }
 
 struct ScoreIndex {
@@ -85,53 +88,60 @@ struct ScoreIndex {
 };
 
 template <typename F, typename I>
-py::tuple expand_top_N_impl(XformHier<F, I> xh, int N, int resl, int Nsi,
-                            std::pair<double, uint64_t>* siptr) {
-  N = std::min<int>(Nsi, N);
+py::tuple expand_top_N_impl(XformHier<F, I> xh, int N, int resl,
+                            std::vector<std::pair<double, I>> si) {
+  N = std::min<int>(si.size(), N);
   std::vector<size_t> xshape{N * 64, 4, 4};
   py::array_t<F> xout(xshape);
   X3<F>* xptr = (X3<F>*)xout.request().ptr;
   py::array_t<I> iout(N * 64);
   I* iptr = (I*)iout.request().ptr;
 
-  std::nth_element(siptr, siptr + N, siptr + Nsi,
-                   std::greater<std::pair<double, uint64_t>>());
+  py::gil_scoped_release release;
 
+  std::nth_element(si.begin(), si.begin() + N, si.end(),
+                   std::greater<std::pair<double, I>>());
   size_t nout = 0;
   for (size_t i = 0; i < N; ++i) {
-    I highbits = siptr[i].second << 6;
-    for (I lowbits = 0; lowbits < 64; ++lowbits) {
-      iptr[nout] = highbits | lowbits;
+    I parent = si[i].second;
+    I beg = xh.child_of_begin(parent);
+    I end = xh.child_of_end(parent);
+    for (I idx = beg; idx < end; ++idx) {
+      iptr[nout] = idx;
       bool valid = xh.get_value(resl + 1, iptr[nout], xptr[nout]);
       if (valid) ++nout;
     }
   }
-  py::tuple out(2);
-  out[0] = iout[py::slice(0, nout, 1)];
-  out[1] = xout[py::slice(0, nout, 1)];
-  return out;
-}  // namespace sampling
-
-template <typename F, typename I>
-py::tuple expand_top_N(XformHier<F, I> xh, int N, int resl,
-                       py::array_t<ScoreIndex> score_idx) {
-  std::pair<double, uint64_t>* siptr =
-      (std::pair<double, uint64_t>*)score_idx.request().ptr;
-  return expand_top_N_impl(xh, N, resl, score_idx.size(), siptr);
+  py::gil_scoped_acquire acquire;
+  return py::make_tuple(iout[py::slice(0, nout, 1)],
+                        xout[py::slice(0, nout, 1)]);
 }
 
 template <typename F, typename I>
-py::tuple expand_top_N(XformHier<F, I> xh, int N, int resl,
-                       py::array_t<F> score, py::array_t<I> index) {
-  F* sptr = (F*)score.request().ptr;
-  I* iptr = (I*)index.request().ptr;
-  std::vector<std::pair<double, uint64_t>> si(score.size());
-  for (size_t i = 0; i < score.size(); ++i) {
-    si[i].first = sptr[i];
-    si[i].second = iptr[i];
-  }
-  std::pair<double, uint64_t>* siptr = &si[0];
-  return expand_top_N_impl(xh, N, resl, si.size(), siptr);
+py::tuple expand_top_N_pairs(XformHier<F, I> xh, int N, int resl,
+                             py::array_t<ScoreIndex> score_idx,
+                             double null_val) {
+  py::gil_scoped_release release;
+  // sketchy
+  std::pair<double, I>* siptr = (std::pair<double, I>*)score_idx.request().ptr;
+  std::vector<std::pair<double, I>> si;
+  for (size_t i = 0; i < score_idx.shape()[0]; ++i)
+    if (siptr[i].first != null_val) si.push_back(siptr[i]);
+  py::gil_scoped_acquire acquire;
+  return expand_top_N_impl(xh, N, resl, si);
+}
+
+template <typename F, typename I>
+py::tuple expand_top_N_separate(XformHier<F, I> xh, int N, int resl,
+                                VectorX<double> score, VectorX<I> index,
+                                double null_val) {
+  py::gil_scoped_release release;
+  std::vector<std::pair<double, I>> si;
+  for (size_t i = 0; i < score.size(); ++i)
+    if (score[i] != null_val) si.push_back(std::make_pair(score[i], index[i]));
+  std::pair<double, I>* siptr = &si[0];
+  py::gil_scoped_acquire acquire;
+  return expand_top_N_impl(xh, N, resl, si);
 }
 
 template <int N, typename F, typename I>
@@ -172,14 +182,23 @@ void bind_XformHier(auto m, std::string name) {
       .def("size", &XformHier<F, I>::size)
       .def_readonly("ori_nside", &XformHier<F, I>::onside_)
       .def_readonly("ori_resl", &XformHier<F, I>::ori_resl_)
+      .def_readonly("cart_lb", &XformHier<F, I>::cart_lb_)
+      .def_readonly("cart_ub", &XformHier<F, I>::cart_ub_)
+      .def_readonly("cart_bs", &XformHier<F, I>::cart_bs_)
+      .def_readonly("cart_cell_width", &XformHier<F, I>::cart_cell_width_)
+      .def_readonly("cart_ncell", &XformHier<F, I>::cart_ncell_)
+      .def_readonly("ori_ncell", &XformHier<F, I>::ori_ncell_)
+      .def_readonly("ncell", &XformHier<F, I>::ncell_)
+      .def("cell_index_of", py::vectorize(&XformHier<F, I>::cell_index_of))
+      .def("hier_index_of", py::vectorize(&XformHier<F, I>::hier_index_of))
+      .def("parent_of", py::vectorize(&XformHier<F, I>::parent_of))
+      .def("child_of_begin", py::vectorize(&XformHier<F, I>::child_of_begin))
+      .def("child_of_end", py::vectorize(&XformHier<F, I>::child_of_end))
       .def("get_xforms", &get_xforms<F, I>)
-      .def("expand_top_N",
-           (py::tuple(*)(XformHier<F, I>, int, int, py::array_t<ScoreIndex>)) &
-               expand_top_N<F, I>)
-      .def("expand_top_N", (py::tuple(*)(XformHier<F, I>, int, int,
-                                         py::array_t<F>, py::array_t<I>)) &
-                               expand_top_N<F, I>)
-
+      .def("expand_top_N", expand_top_N_pairs<F, I>, "nkeep"_a, "resl"_a,
+           "score_idx"_a, "null_val"_a = 0)
+      .def("expand_top_N", expand_top_N_separate<F, I>, "nkeep"_a, "resl"_a,
+           "score"_a, "index"_a, "null_val"_a = 0)
       /**/;
 }
 

@@ -103,7 +103,7 @@ bool miniball_test(int n = 1000, int d = 7, bool on_boundary = false) {
 
 PYBIND11_MODULE(miniball, m) {
   m.def("miniball_test", &miniball_test);
-  m.def("miniball", &miniball);
+  m.def("miniball", &miniball, py::call_guard<py::gil_scoped_release>());
 }
 
 }  // namespace miniball_test

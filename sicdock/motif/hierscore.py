@@ -10,19 +10,43 @@ from sicdock.motif import Xmap, ResPairScore
 
 
 class HierScore:
-    def __init__(self, files):
-        print("HSCORE INIT", type(files[0]))
-        if isinstance(files[0], ResPairScore):
-            self.rps = files[0]
-            self.hier = list(files[1:])
-        else:
+    def __init__(self, files, maxdis=8):
+        if isinstance(files[0], str):
+            if "_noSS_" in files[0]:
+                assert all("_noSS_" in f for f in files)
+                self.use_ss = False
+            else:
+                assert all("_SS_" in f for f in files)
+                self.use_ss = True
             assert "base" in files[0]
             self.base = load(files[0])
             self.hier = [load(f) for f in files[1:]]
             self.resl = list(h.attr.cart_extent for h in self.hier)
+        else:
+            self.base = files[0]
+            self.hier = list(files[1:])
+            self.use_ss = self.base.attr.opts.use_ss_key
+            assert all(self.use_ss == h.attr.cli_args.use_ss_key for h in self.hier)
+        self.maxdis = [maxdis + h.attr.cart_extent for h in self.hier]
 
-    def score(self, iresl, x_or_k):
-        return self.hier[iresl][x_or_k]
+    def score(self, iresl, body1, body2, contact_weight=0.1):
+        pairs = body1.contact_pairs(body2, self.maxdis[iresl])
+        xbin = self.hier[iresl].xbin
+        phmap = self.hier[iresl].phmap
+        if self.use_ss:
+            pair_score = xbin.ssmap_of_selected_pairs(
+                phmap, pairs, body1.ssid, body2.ssid, body1.stub, body2.stub
+            )
+        else:
+            pair_score = xbin.map_of_selected_pairs(
+                phmap, pairs, body1.stub, body2.stub
+            )
+        # pair_score = pair_score[pair_score > 0]
+        # print(len(pair_score), np.quantile(pair_score, [0, 0.5, 0.9, 1]))
+        return np.sum(pair_score) + contact_weight * len(pair_score)
+
+    def iresls(self):
+        return [i for i in range(len(self.hier))]
 
     def score_all(self, x):
         return np.stack([h[x] for h in self.hier])

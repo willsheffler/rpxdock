@@ -53,7 +53,7 @@ def find_connected_1xCyclic_slide(
         d = body.slide_to(body2, dirn)
         if d < 9e8:
             nhit += 1
-            npair0 = body.cen_pair_count(body2, contact_dis)
+            npair0 = body.contact_count(body2, contact_dis)
             if npair0 >= min_contacts:
                 npair[nresult] = npair0
                 pos[nresult] = body.pos
@@ -71,7 +71,7 @@ def _check_1body_contacts(body, pos, x_to_neighbor_olig, contact_dis):
         body.move_to(pos)
         body_b.move_to(x_to_neighbor_olig @ pos)
         if not body.intersects(body_b):
-            npair[i] = body.cen_pair_count(body_b, contact_dis)
+            npair[i] = body.contact_count(body_b, contact_dis)
     return npair
 
 
@@ -98,7 +98,7 @@ def find_connected_2xCyclic_slide(
         d = body1.slide_to(body2, dirn)
         if d < 9e8:
             nhit += 1
-            npair0 = body1.cen_pair_count(body2, contact_dis)
+            npair0 = body1.contact_count(body2, contact_dis)
             if npair0 >= min_contacts:
                 npair[nresult] = npair0
                 pos1[nresult] = body1.pos
@@ -134,7 +134,7 @@ def find_connected_monomer_to_cyclic_slide(
         d = body.slide_to(body2, dirn)
         if d < 9e8:
             nhit += 1
-            npair0 = body.cen_pair_count(body2, contact_dis)
+            npair0 = body.contact_count(body2, contact_dis)
             if npair0 >= min_contacts:
                 npair[nresult] = npair0
                 pos[nresult] = body.pos

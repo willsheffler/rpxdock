@@ -8,6 +8,20 @@ from sicdock.motif.pairdat import ResPairData
 from sicdock.data import pdbdir
 
 
+# [ 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19]
+# ['A' 'C' 'D' 'E' 'F' 'G' 'H' 'I' 'K' 'L' 'M' 'N' 'P' 'Q' 'R' 'S' 'T' 'V' 'W' 'Y']
+# [0 1 2]
+# ['E' 'H' 'L']
+
+
+def ss_to_ssid(ss):
+    ssid = np.zeros(ss.shape, dtype="u8")
+    ssid[ss == "E"] = 0
+    ssid[ss == "H"] = 1
+    ssid[ss == "L"] = 2
+    return ssid
+
+
 def bb_stubs(n, ca=None, c=None):
     if ca is None:
         assert n.ndim == 3
@@ -49,11 +63,11 @@ def get_pair_keys(rp, xbin, min_pair_score, min_ssep, use_ss_key, **kw):
     kji = np.zeros(len(rp.p_resi), dtype="u8")
     assert resi.dtype == ss.dtype
     if use_ss_key:
-        kij[mask] = xbin.sskey_of_selected_pairs(resi, resj, ss, stub)
-        kji[mask] = xbin.sskey_of_selected_pairs(resj, resi, ss, stub)
+        kij[mask] = xbin.sskey_of_selected_pairs(resi, resj, ss, ss, stub, stub)
+        kji[mask] = xbin.sskey_of_selected_pairs(resj, resi, ss, ss, stub, stub)
     else:
-        kij[mask] = xbin.key_of_selected_pairs(resi, resj, stub)
-        kji[mask] = xbin.key_of_selected_pairs(resj, resi, stub)
+        kij[mask] = xbin.key_of_selected_pairs(resi, resj, stub, stub)
+        kji[mask] = xbin.key_of_selected_pairs(resj, resi, stub, stub)
     return kij, kji
 
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include "sicdock/util/dilated_int.hpp"
 #include "sicdock/util/numeric.hpp"
 #include "sicdock/util/types.hpp"
@@ -188,7 +189,7 @@ struct OriHier {
   static I ori_get_nside_for_rot_resl_deg(F rot_resl_deg) {
     static F const* covrad = ori_get_covrad_data();
     I nside = 0;
-    while (covrad[nside] > rot_resl_deg && nside < 23) {
+    while (covrad[nside] > rot_resl_deg - 0.1 && nside < 23) {
       // std::cout << nside << " " << covrad[nside] << std::endl;
       ++nside;
     }
@@ -225,11 +226,19 @@ struct XformHier : public OriHier<F, I>, public CartHier<3, F, I> {
 
   I size(I resl) const { return ncell_ * ONE << (FULL_DIM * resl); }
 
+  I cell_index_of(I resl, I index) const { return index >> (FULL_DIM * resl); }
+  I hier_index_of(I resl, I index) const {
+    return index & ((ONE << (FULL_DIM * resl)) - 1);
+  }
+  I parent_of(I index) const { return index >> 6; }
+  I child_of_begin(I index) const { return index << 6; }
+  I child_of_end(I index) const { return (index + 1) << 6; }
+
   bool get_value(I resl, I index, X& xform) const {
     assert(resl <= MAX_RESL_ONE_CELL);  // not rigerous check if Ncells > 1
     if (index >= size(resl)) return false;
-    I cell_index = index >> (FULL_DIM * resl);
-    I hier_index = index & ((ONE << (FULL_DIM * resl)) - 1);
+    I cell_index = cell_index_of(resl, index);
+    I hier_index = hier_index_of(resl, index);
     F scale = 1.0 / F(ONE << resl);
     F6 params;
     for (size_t i = 0; i < FULL_DIM; ++i) {

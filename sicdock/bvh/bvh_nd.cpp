@@ -100,6 +100,7 @@ struct BVBVIsectND {
 };
 template <typename F, int DIM>
 bool bvh_bvh_isect(BVH<F, DIM>& bvh1, BVH<F, DIM>& bvh2, F thresh) {
+  py::gil_scoped_release release;
   BVBVIsectND<F, DIM> query(thresh);
   sicdock::bvh::BVIntersect(bvh1, bvh2, query);
   return query.result;
@@ -137,6 +138,7 @@ struct BVMinDistND {
 };
 template <typename F, int DIM>
 py::tuple bvh_mindist(BVH<F, DIM>& bvh, RefRowMajorXd pts) {
+  py::gil_scoped_release release;
   VectorXd outm(pts.rows());
   VectorXi outi(pts.rows());
   // double ncmp = 0;
@@ -147,6 +149,7 @@ py::tuple bvh_mindist(BVH<F, DIM>& bvh, RefRowMajorXd pts) {
     // ncmp += query.ncmp;
   }
   // std::cout << "bvh ncmp " << ncmp / pts.rows() << std::endl;
+  py::gil_scoped_acquire acquire;
   return py::make_tuple(outm, outi);
 }
 template <typename F, int DIM>
@@ -191,6 +194,7 @@ struct BVIsectND {
 };
 template <typename F, int DIM>
 VectorXi bvh_isect(BVH<F, DIM>& bvh, RefRowMajorXd pts, F mindist) {
+  py::gil_scoped_release release;
   VectorXi out(pts.rows());
   for (int i = 0; i < pts.rows(); ++i) {
     BVIsectND<F, DIM> query(pts.row(i), mindist);
@@ -220,6 +224,7 @@ template <typename F, int DIM>
 BVH<F, DIM> create_bvh_nd(RefRowMajorXd pts) {
   if (pts.cols() != DIM)
     throw std::runtime_error("input must be shape (N,DIM)");
+  py::gil_scoped_release release;
   using Pt = Matrix<F, DIM, 1>;
   using Pi = PtIdxND<Pt>;
   using BVH = BVH<F, DIM>;
@@ -236,6 +241,7 @@ template <typename F, int DIM>
 BVH<F, DIM> create_bvh_quatplus(RefRowMajorXd pts) {
   if (pts.cols() != DIM)
     throw std::runtime_error("quat input must be shape (N,4)");
+  py::gil_scoped_release release;
   using Pt = Matrix<F, DIM, 1>;
   using Pi = PtIdxND<Pt>;
   using BVH = BVH<F, DIM>;
@@ -253,6 +259,7 @@ BVH<F, DIM> create_bvh_quatplus(RefRowMajorXd pts) {
 
 template <typename BVH>
 Matrix<typename BVH::F, Dynamic, BVH::DIM> bvh_obj_centers(BVH& b) {
+  py::gil_scoped_release release;
   int n = b.objs.size();
   Matrix<typename BVH::F, Dynamic, BVH::DIM> out(n, BVH::DIM);
   for (int i = 0; i < n; ++i)
@@ -261,6 +268,7 @@ Matrix<typename BVH::F, Dynamic, BVH::DIM> bvh_obj_centers(BVH& b) {
 }
 template <typename BVH>
 Matrix<typename BVH::F, BVH::DIM, 1> bvh_obj_com(BVH& b) {
+  py::gil_scoped_release release;
   typename BVH::Object::Pt com;
   com.fill(0);
   int n = b.objs.size();

@@ -23,7 +23,8 @@ namespace py = pybind11;
 PYBIND11_MODULE(_orientations, m) {
   m.def("read_karney_orientations", &read_karney_orientations, R"pbdoc(
         docstring in sampling/orientations.pybind.cpp
-    )pbdoc");
+    )pbdoc",
+        py::call_guard<py::gil_scoped_release>());
 }
 }  // namespace orientations
 }  // namespace sampling

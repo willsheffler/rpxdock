@@ -17,6 +17,7 @@ setup_pybind11(cfg)
 #include <limits>
 
 #include "sicdock/util/Timer.hpp"
+#include "sicdock/util/types.hpp"
 
 using namespace pybind11::literals;
 using namespace Eigen;
@@ -26,49 +27,46 @@ namespace py = pybind11;
 namespace sicdock {
 namespace motif {
 
+using namespace util;
 using std::cout;
 using std::endl;
 
 typedef uint64_t Key;
 
-py::array_t<double> logsum_bins(py::array_t<uint64_t> lbub,
-                                py::array_t<double> vals) {
-  uint64_t* plbub = (uint64_t*)lbub.request().ptr;
-  double* pvals = (double*)vals.request().ptr;
-  py::array_t<double> out(lbub.size());
-  double* pout = (double*)out.request().ptr;
+VectorX<double> logsum_bins(VectorX<uint64_t> lbub, VectorX<double> vals) {
+  py::gil_scoped_release release;
+  VectorX<double> out(lbub.size());
   for (int i = 0; i < lbub.size(); ++i) {
-    int ub = plbub[i] >> 32;
-    int lb = (plbub[i] << 32) >> 32;
+    int ub = lbub[i] >> 32;
+    int lb = (lbub[i] << 32) >> 32;
     double sum = 0;
     for (int j = lb; j < ub; ++j) {
-      sum += std::exp(pvals[j]);
+      sum += std::exp(vals[j]);
     }
-    pout[i] = std::log(sum);
+    out[i] = std::log(sum);
   }
   return out;
 }
 
-py::tuple jagged_bin(py::array_t<Key> k) {
-  Key* pk = (Key*)k.request().ptr;
+py::tuple jagged_bin(VectorX<Key> keys0) {
+  py::gil_scoped_release release;
 
   std::vector<std::pair<Key, Key>> pairs;
-  pairs.reserve(k.size());
-  for (int i = 0; i < k.size(); ++i) {
-    if (pk[i] != 0) {
-      pairs.push_back(std::make_pair(pk[i], i));
+  pairs.reserve(keys0.size());
+  for (int i = 0; i < keys0.size(); ++i) {
+    if (keys0[i] != 0) {
+      pairs.push_back(std::make_pair(keys0[i], i));
     }
   }
   sort(pairs.begin(), pairs.end());
 
   std::vector<Key> uniqkeys;
   std::vector<uint64_t> breaks;
-  py::array_t<uint64_t> order(pairs.size());
-  uint64_t* porder = (uint64_t*)order.request().ptr;
+  VectorX<uint64_t> order(pairs.size());
   Key prev = std::numeric_limits<Key>::max();
 
   for (int i = 0; i < pairs.size(); ++i) {
-    porder[i] = pairs[i].second;
+    order[i] = pairs[i].second;
     Key cur = pairs[i].first;
     if (cur != prev) {
       breaks.push_back(i);
@@ -79,21 +77,17 @@ py::tuple jagged_bin(py::array_t<Key> k) {
   breaks.push_back(pairs.size());
   assert(breaks.size() == uniqkeys.size() + 1);
 
-  py::array_t<uint64_t> ranges(uniqkeys.size());
-  uint64_t* pranges = (uint64_t*)ranges.request().ptr;
-  py::array_t<Key> keys(uniqkeys.size());
-  uint64_t* pkeys = (uint64_t*)keys.request().ptr;
+  VectorX<uint64_t> ranges(uniqkeys.size());
+  VectorX<Key> keys(uniqkeys.size());
   for (int i = 0; i < uniqkeys.size(); ++i) {
-    pkeys[i] = uniqkeys[i];
+    keys[i] = uniqkeys[i];
     uint64_t lb = breaks[i], ub = breaks[i + 1];
-    pranges[i] = ub << 32 | lb;
+    ranges[i] = ub << 32 | lb;
   }
 
-  py::tuple out(3);
-  out[0] = order;
-  out[1] = keys;
-  out[2] = ranges;
-  return out;
+  py::gil_scoped_acquire acquire;
+
+  return py::make_tuple(order, keys, ranges);
 }
 
 PYBIND11_MODULE(_motif, m) {

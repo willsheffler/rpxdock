@@ -58,7 +58,7 @@ def test_2xCyclic_hier(
         for i, norig in enumerate(npair0):
             body1.move_to(pos1[i])
             body2.move_to(pos2[i])
-            n = body1.cen_pair_count(body2, contact_dis)
+            n = body1.contact_count(body2, contact_dis)
             assert n == norig
 
         omax = np.argsort(-npair0)

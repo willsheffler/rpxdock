@@ -6,18 +6,14 @@ from sicdock.data import datadir
 from sicdock.util import load, Bunch
 
 
-def TMP_test_plug(plug, hole):
-    print("foo")
-    make_plugs(None, None)
-
-
 def main():
-    plug = HC(sicdock.body.Body, datadir + "/pdb/DHR14.pdb")
-    hole = HC(sicdock.body.Body, datadir + "/pdb/hole_C3_i52_Z_asym.pdb", sym=3)
-    hscore_tables = HC(load_big_hscore)
-    # hscore = HierScore(hscore_tables)
+    # plug = sicdock.body.Body(datadir + "/pdb/DHR14.pdb")
+    plug = HC(sicdock.body.Body, datadir + "/pdb/DHR14.pdb", n=4)
+    hole = HC(sicdock.body.Body, datadir + "/pdb/hole_C3_i52_Z_asym.pdb", sym=3, n=2)
+    hscore_tables = HC(load_medium_hscore)
+    hscore = HierScore(hscore_tables)
 
-    TMP_test_plug(plug, hole)
+    make_plugs(plug, hole, hscore)
 
 
 def load_big_hscore():
@@ -77,7 +73,7 @@ def load_medium_hscore():
 
 
 def load_small_hscore():
-    print("======================= LOADING MEDIUM H-SCORES =========================")
+    print("======================= LOADING SMALL H-SCORES =========================")
 
     fnames = [
         "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_base.pickle",

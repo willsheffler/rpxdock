@@ -14,6 +14,7 @@ from sicdock.bvh import (
     bvh_print,
     bvh_count_pairs,
 )
+from sicdock.util.numeric import pca_eig
 from sicdock import motif
 
 _CLASH_RADIUS = 1.75
@@ -27,6 +28,7 @@ class Body:
                 self.pose = ros.get_pose_cached(pdb)
             else:
                 self.pose = ros.pose_from_file(pdb)
+                ros.assign_secstruct(self.pose)
         else:
             self.pose = pdb
 
@@ -36,6 +38,7 @@ class Body:
         self.nfold = int(sym[1:])
         self.seq = np.array(list(self.pose.sequence()))
         self.ss = np.array(list(self.pose.secstruct()))
+        self.ssid = motif.ss_to_ssid(self.ss)
         self.coord = ros.get_bb_coords(self.pose)
         self.chain = np.repeat(0, self.seq.shape[0])
         self.resno = np.arange(len(self.seq))
@@ -66,10 +69,17 @@ class Body:
             if ss in which_ss:
                 which_cen |= self.ss == ss
         which_cen &= ~np.isin(self.seq, ["G", "C", "P"])
+        self.which_cen = which_cen
         self.bvh_cen = bvh_create(self.allcen[:, :3], which_cen)
         self.cen = self.allcen[which_cen]
         self.pos = np.eye(4)
         self.pair_buf = np.empty((10000, 2), dtype="i4")
+        self.pcavals, self.pcavecs = pca_eig(self.cen)
+
+        if self.sym != "C1":
+            self.asym_body = Body(pdb, "C1", which_ss, posecache, **kw)
+        else:
+            self.asym_body = self
 
     def com(self):
         return self.pos @ self.bvh_bb.com()
@@ -83,6 +93,11 @@ class Body:
 
     def rg_xy(self):
         d = self.cen[:, :2] - self.com()[:2]
+        rg = np.sqrt(np.sum(d ** 2) / len(d))
+        return rg
+
+    def rg_z(self):
+        d = self.cen[:, 2] - self.com()[2]
         rg = np.sqrt(np.sum(d ** 2) / len(d))
         return rg
 
@@ -100,6 +115,12 @@ class Body:
     def move_to_center(self):
         self.pos[:3, 3] = 0
         return self
+
+    def long_axis(self):
+        return self.pos @ self.pcavecs[0]
+
+    def long_axis_z_angle(self):
+        return np.arccos(abs(self.long_axis()[2])) * 180 / np.pi
 
     def slide_to(self, other, dirn, radius=_CLASH_RADIUS):
         dirn = np.array(dirn, dtype=np.float64)
@@ -142,7 +163,7 @@ class Body:
         cen = self.stub[:n, :, 3]
         return (self.pos @ cen[..., None]).squeeze()
 
-    def cen_pairs(self, other, maxdis, buf=None):
+    def contact_pairs(self, other, maxdis, buf=None):
         if not buf:
             buf = self.pair_buf
         n = bvh_collect_pairs(
@@ -150,7 +171,7 @@ class Body:
         )
         return buf[:n]
 
-    def cen_pair_count(self, other, maxdis):
+    def contact_count(self, other, maxdis):
         return bvh_count_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis)
 
     def dump_pdb(self, fname, asym=False):

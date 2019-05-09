@@ -34,6 +34,7 @@ template <typename F>
 py::tuple xform_dist2_split(py::array_t<F> a, py::array_t<F> b, F lever) {
   auto xa = xform_py_to_eigen(a);
   auto xb = xform_py_to_eigen(b);
+  py::gil_scoped_release release;
   RowMajorX<F> outcart(xa.size(), xb.size());
   RowMajorX<F> outori(xa.size(), xb.size());
   for (int i = 0; i < xa.size(); ++i) {
@@ -46,6 +47,7 @@ py::tuple xform_dist2_split(py::array_t<F> a, py::array_t<F> b, F lever) {
       outori(i, j) = d2ori * lever * lever;
     }
   }
+  py::gil_scoped_acquire acquire;
   return py::make_tuple(outcart, outori);
 }
 

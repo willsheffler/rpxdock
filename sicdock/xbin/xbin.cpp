@@ -13,6 +13,7 @@ setup_pybind11(cfg)
 #include <iostream>
 #include <string>
 
+#include "sicdock/phmap/phmap.hpp"
 #include "sicdock/util/Timer.hpp"
 #include "sicdock/util/assertions.hpp"
 #include "sicdock/util/global_rng.hpp"
@@ -32,14 +33,18 @@ namespace py = pybind11;
 namespace sicdock {
 namespace xbin {
 
+using namespace phmap;
+
 using namespace util;
 template <typename F, typename K>
 using Xbin = XformHash_bt24_BCC6<X3<F>, K>;
 
 template <typename F, typename K>
 py::array_t<F> _bincen_of(Xbin<F, K> const &binner, VectorX<K> keys) {
+  py::gil_scoped_release release;
   VectorX<X3<F>> out(keys.size());
   for (int i = 0; i < keys.size(); ++i) out[i] = binner.get_center(keys[i]);
+  py::gil_scoped_acquire acquire;
   return xform_eigen_to_py(out);
 }
 
@@ -52,6 +57,7 @@ py::array bincen_of(VectorX<K> keys, double rcart, double rori, double mxcart) {
 template <typename F, typename K>
 VectorX<K> key_of(Xbin<F, K> const &binner, py::array_t<F> _xforms) {
   MapVectorXform<F> xforms = xform_py_to_eigen(_xforms);
+  py::gil_scoped_release release;
   VectorX<K> out(xforms.size());
   for (int i = 0; i < xforms.size(); ++i) {
     K k = binner.get_key(xforms[i]);
@@ -60,9 +66,9 @@ VectorX<K> key_of(Xbin<F, K> const &binner, py::array_t<F> _xforms) {
   return out;
 }
 template <typename F, typename K>
-
 VectorX<K> ori_cell_of(Xbin<F, K> const &binner, py::array_t<F> _xforms) {
   MapVectorXform<F> xforms = xform_py_to_eigen(_xforms);
+  py::gil_scoped_release release;
   VectorX<K> out(xforms.size());
   for (int i = 0; i < xforms.size(); ++i) {
     K k = binner.cell_index(xforms[i]);
@@ -72,25 +78,25 @@ VectorX<K> ori_cell_of(Xbin<F, K> const &binner, py::array_t<F> _xforms) {
 }
 
 template <typename I, typename F, typename K>
-py::array_t<K> kop_impl(Xbin<F, K> const &xb, py::array_t<I> p,
-                        py::array_t<F> x1, py::array_t<F> x2) {
+VectorX<K> kop_impl(Xbin<F, K> const &xb, py::array_t<I> p, py::array_t<F> x1,
+                    py::array_t<F> x2) {
   I *pp = (I *)p.request().ptr;
   X3<F> *px1 = (X3<F> *)x1.request().ptr;
   X3<F> *px2 = (X3<F> *)x2.request().ptr;
-  py::array_t<K> keys(p.shape()[0]);
-  K *out = (K *)keys.request().ptr;
+  py::gil_scoped_release release;
+  VectorX<K> keys(p.shape()[0]);
   for (int ip = 0; ip < keys.size(); ++ip) {
     I i1 = pp[2 * ip + 0];
     I i2 = pp[2 * ip + 1];
-    out[ip] = xb.get_key(px1[i1].inverse() * (px2[i2]));
+    keys[ip] = xb.get_key(px1[i1].inverse() * (px2[i2]));
   }
 
   return keys;
 }
 
 template <typename K, typename F>
-py::array_t<K> key_of_pairs(Xbin<F, K> const &xb, py::array xp, py::array x1,
-                            py::array x2) {
+VectorX<K> key_of_pairs(Xbin<F, K> const &xb, py::array xp, py::array x1,
+                        py::array x2) {
   check_xform_array(x1);
   check_xform_array(x2);
   pybind11::array::ensure(xp);
@@ -116,25 +122,24 @@ py::array_t<K> key_of_pairs(Xbin<F, K> const &xb, py::array xp, py::array x1,
 }
 
 template <typename I, typename F, typename K>
-py::array_t<K> kop2_impl(Xbin<F, K> const &xb, py::array_t<I> i1,
-                         py::array_t<I> i2, py::array_t<F> x1,
-                         py::array_t<F> x2) {
+VectorX<K> kop2_impl(Xbin<F, K> const &xb, py::array_t<I> i1, py::array_t<I> i2,
+                     py::array_t<F> x1, py::array_t<F> x2) {
   I *i1p = (I *)i1.request().ptr;
   I *i2p = (I *)i2.request().ptr;
   X3<F> *px1 = (X3<F> *)x1.request().ptr;
   X3<F> *px2 = (X3<F> *)x2.request().ptr;
-  py::array_t<K> keys(i1.shape()[0]);
-  K *out = (K *)keys.request().ptr;
+  py::gil_scoped_release release;
+  VectorX<K> keys(i1.shape()[0]);
   for (int i = 0; i < keys.size(); ++i) {
-    out[i] = xb.get_key(px1[i1p[i]].inverse() * (px2[i2p[i]]));
+    keys[i] = xb.get_key(px1[i1p[i]].inverse() * (px2[i2p[i]]));
   }
 
   return keys;
 }
 
 template <typename K, typename F>
-py::array_t<K> key_of_selected_pairs(Xbin<F, K> const &xb, py::array i1,
-                                     py::array i2, py::array x1, py::array x2) {
+VectorX<K> key_of_selected_pairs(Xbin<F, K> const &xb, py::array i1,
+                                 py::array i2, py::array x1, py::array x2) {
   check_xform_array(x1);
   check_xform_array(x2);
   pybind11::array::ensure(i1);
@@ -163,37 +168,84 @@ py::array_t<K> key_of_selected_pairs(Xbin<F, K> const &xb, py::array i1,
 }
 
 template <typename K, typename F>
-py::array_t<K> key_of_selected_pairs_same(Xbin<F, K> const &xb, py::array i1,
-                                          py::array i2, py::array x) {
+VectorX<K> key_of_selected_pairs_same(Xbin<F, K> const &xb, py::array i1,
+                                      py::array i2, py::array x) {
   return key_of_selected_pairs(xb, i1, i2, x, x);
 }
 
+//////////////////////////// N,2 idx array key lookup
+///////////////////////////////////////
+
 template <typename I, typename F, typename K>
-py::array_t<K> kop2ss_impl(Xbin<F, K> const &xb, py::array_t<I> i1,
-                           py::array_t<I> i2, py::array_t<I> ss1,
-                           py::array_t<I> ss2, py::array_t<F> x1,
-                           py::array_t<F> x2) {
+VectorX<K> kop2_onearray_impl(Xbin<F, K> const &xb, py::array_t<I> _idx,
+                              py::array_t<F> x1, py::array_t<F> x2) {
+  auto idx = py::cast<RowMajorX<I>>(_idx);
+  X3<F> *px1 = (X3<F> *)x1.request().ptr;
+  X3<F> *px2 = (X3<F> *)x2.request().ptr;
+  py::gil_scoped_release release;
+  VectorX<K> keys(idx.rows());
+  for (int i = 0; i < keys.size(); ++i) {
+    keys[i] = xb.get_key(px1[idx(i, 0)].inverse() * (px2[idx(i, 1)]));
+  }
+  return keys;
+}
+
+template <typename K, typename F>
+VectorX<K> key_of_selected_pairs_onearray(Xbin<F, K> const &xb, py::array idx,
+                                          py::array x1, py::array x2) {
+  check_xform_array(x1);
+  check_xform_array(x2);
+  pybind11::array::ensure(idx);
+  size_t sp = idx.itemsize();
+
+  if (!idx) throw std::runtime_error("bad array");
+  if (idx.ndim() != 2 || idx.shape()[1] != 2)
+    throw std::runtime_error("index must be shape (N,2)");
+  if (x1.dtype() != x2.dtype())
+    throw std::runtime_error("xform arrays must have same dtype");
+  if (py::isinstance<py::array_t<int64_t>>(idx)) {
+    return kop2_onearray_impl<int64_t, F, K>(xb, idx, x1, x2);
+  } else if (py::isinstance<py::array_t<int32_t>>(idx)) {
+    return kop2_onearray_impl<int32_t, F, K>(xb, idx, x1, x2);
+  } else if (py::isinstance<py::array_t<uint64_t>>(idx)) {
+    return kop2_onearray_impl<uint64_t, F, K>(xb, idx, x1, x2);
+  } else if (py::isinstance<py::array_t<uint32_t>>(idx)) {
+    return kop2_onearray_impl<uint32_t, F, K>(xb, idx, x1, x2);
+  } else {
+    throw std::runtime_error("array dtype must be matching f4 or f8");
+  }
+}
+
+template <typename K, typename F>
+VectorX<K> key_of_selected_pairs_onearray_same(Xbin<F, K> const &xb,
+                                               py::array idx, py::array x) {
+  return key_of_selected_pairs(xb, idx, x, x);
+}
+
+template <typename I, typename F, typename K>
+VectorX<K> kop2ss_impl(Xbin<F, K> const &xb, py::array_t<I> i1,
+                       py::array_t<I> i2, py::array_t<I> ss1,
+                       py::array_t<I> ss2, py::array_t<F> x1,
+                       py::array_t<F> x2) {
   I *i1p = (I *)i1.request().ptr;
   I *i2p = (I *)i2.request().ptr;
   I *ss1p = (I *)ss1.request().ptr;
   I *ss2p = (I *)ss2.request().ptr;
   X3<F> *x1p = (X3<F> *)x1.request().ptr;
   X3<F> *x2p = (X3<F> *)x2.request().ptr;
-  py::array_t<K> keys(i1.shape()[0]);
-  K *out = (K *)keys.request().ptr;
+  py::gil_scoped_release release;
+  VectorX<K> keys(i1.shape()[0]);
   for (int i = 0; i < keys.size(); ++i) {
     K k = xb.get_key(x1p[i1p[i]].inverse() * (x2p[i2p[i]]));
-    out[i] = k | ((K)ss1p[i1p[i]] << 62) | ((K)ss2p[i2p[i]] << 60);
+    keys[i] = k | ((K)ss1p[i1p[i]] << 62) | ((K)ss2p[i2p[i]] << 60);
   }
-
   return keys;
 }
 
 template <typename K, typename F>
-py::array_t<K> sskey_of_selected_pairs(Xbin<F, K> const &xb, py::array i1,
-                                       py::array i2, py::array ss1,
-                                       py::array ss2, py::array x1,
-                                       py::array x2) {
+VectorX<K> sskey_of_selected_pairs(Xbin<F, K> const &xb, py::array i1,
+                                   py::array i2, py::array ss1, py::array ss2,
+                                   py::array x1, py::array x2) {
   check_xform_array(x1);
   check_xform_array(x2);
   pybind11::array::ensure(i1);
@@ -219,22 +271,199 @@ py::array_t<K> sskey_of_selected_pairs(Xbin<F, K> const &xb, py::array i1,
   } else {
     throw std::runtime_error("array dtype must be matching f4 or f8");
   }
-}  // namespace xbin
+}
 
 template <typename K, typename FX>
-py::array_t<K> sskey_of_selected_pairs_same(Xbin<FX, K> const &xb, py::array i1,
-                                            py::array i2, py::array ss,
-                                            py::array x) {
+VectorX<K> sskey_of_selected_pairs_same(Xbin<FX, K> const &xb, py::array i1,
+                                        py::array i2, py::array ss,
+                                        py::array x) {
   return sskey_of_selected_pairs(xb, i1, i2, ss, ss, x, x);
 }
+
+template <typename I, typename F, typename K>
+VectorX<K> kop3ss_impl(Xbin<F, K> const &xb, py::array_t<I> idx,
+                       py::array_t<I> ss1, py::array_t<I> ss2,
+                       py::array_t<F> x1, py::array_t<F> x2) {
+  I *idxp = (I *)idx.request().ptr;
+  I *ss1p = (I *)ss1.request().ptr;
+  I *ss2p = (I *)ss2.request().ptr;
+  X3<F> *x1p = (X3<F> *)x1.request().ptr;
+  X3<F> *x2p = (X3<F> *)x2.request().ptr;
+  py::gil_scoped_release release;
+  VectorX<K> keys(idx.shape()[0]);
+  for (int i = 0; i < keys.size(); ++i) {
+    K k = xb.get_key(x1p[idxp[2 * i]].inverse() * (x2p[idxp[2 * i + 1]]));
+    k |= ((K)ss1p[idxp[2 * i]] << 62) | ((K)ss2p[idxp[2 * i + 1]] << 60);
+    keys[i] = k;
+  }
+  return keys;
+}
+
+template <typename K, typename F>
+VectorX<K> sskey_of_selected_pairs_onearray(Xbin<F, K> const &xb, py::array idx,
+                                            py::array ss1, py::array ss2,
+                                            py::array x1, py::array x2) {
+  check_xform_array(x1);
+  check_xform_array(x2);
+  pybind11::array::ensure(idx);
+  size_t sp = idx.itemsize();
+
+  if (!idx) throw std::runtime_error("bad array");
+  if (idx.ndim() != 2 || idx.shape()[1] != 2)
+    throw std::runtime_error("index must be shape (N,2)");
+  if (x1.dtype() != x2.dtype())
+    throw std::runtime_error("xform arrays must have same dtype");
+  if (py::isinstance<py::array_t<int64_t>>(idx)) {
+    return kop3ss_impl<int64_t, F, K>(xb, idx, ss1, ss2, x1, x2);
+  } else if (py::isinstance<py::array_t<int32_t>>(idx)) {
+    return kop3ss_impl<int32_t, F, K>(xb, idx, ss1, ss2, x1, x2);
+  } else if (py::isinstance<py::array_t<uint64_t>>(idx)) {
+    return kop3ss_impl<uint64_t, F, K>(xb, idx, ss1, ss2, x1, x2);
+  } else if (py::isinstance<py::array_t<uint32_t>>(idx)) {
+    return kop3ss_impl<uint32_t, F, K>(xb, idx, ss1, ss2, x1, x2);
+  } else {
+    throw std::runtime_error("array dtype must be matching f4 or f8");
+  }
+}
+
+template <typename K, typename FX>
+VectorX<K> sskey_of_selected_pairs_onearray_same(Xbin<FX, K> const &xb,
+                                                 py::array idx, py::array ss,
+                                                 py::array x) {
+  return sskey_of_selected_pairs_onearray(xb, idx, ss, ss, x, x);
+}
+
+///////////////////////// with ss / maps //////////////////////////
+
+template <typename I, typename F, typename K, typename V>
+VectorX<V> mapkop3ss_impl(Xbin<F, K> const &xb, PHMap<K, V> const &map,
+                          py::array_t<I> idx, py::array_t<I> ss1,
+                          py::array_t<I> ss2, py::array_t<F> x1,
+                          py::array_t<F> x2, V v0) {
+  I *idxp = (I *)idx.request().ptr;
+  I *ss1p = (I *)ss1.request().ptr;
+  I *ss2p = (I *)ss2.request().ptr;
+  X3<F> *x1p = (X3<F> *)x1.request().ptr;
+  X3<F> *x2p = (X3<F> *)x2.request().ptr;
+  py::gil_scoped_release release;
+  VectorX<V> vals(idx.shape()[0]);
+  for (int i = 0; i < vals.size(); ++i) {
+    K k = xb.get_key(x1p[idxp[2 * i]].inverse() * (x2p[idxp[2 * i + 1]]));
+    k = k | ((K)ss1p[idxp[2 * i]] << 62) | ((K)ss2p[idxp[2 * i + 1]] << 60);
+    auto it = map.phmap_.find(k);
+    if (it == map.phmap_.end())
+      vals[i] = v0;
+    else
+      vals[i] = it->second;
+  }
+  return vals;
+}
+
+template <typename K, typename F, typename V>
+VectorX<V> ssmap_of_selected_pairs_onearray(Xbin<F, K> const &xb,
+                                            PHMap<K, V> const &map,
+                                            py::array idx, py::array ss1,
+                                            py::array ss2, py::array x1,
+                                            py::array x2, V v0) {
+  check_xform_array(x1);
+  check_xform_array(x2);
+  pybind11::array::ensure(idx);
+  size_t sp = idx.itemsize();
+
+  if (!idx) throw std::runtime_error("bad array");
+  if (idx.ndim() != 2 || idx.shape()[1] != 2)
+    throw std::runtime_error("index must be shape (N,2) and same length");
+  if (x1.dtype() != x2.dtype())
+    throw std::runtime_error("xform arrays must have same dtype");
+  if (py::isinstance<py::array_t<int64_t>>(idx)) {
+    return mapkop3ss_impl<int64_t, F, K>(xb, map, idx, ss1, ss2, x1, x2, v0);
+  } else if (py::isinstance<py::array_t<int32_t>>(idx)) {
+    return mapkop3ss_impl<int32_t, F, K>(xb, map, idx, ss1, ss2, x1, x2, v0);
+  } else if (py::isinstance<py::array_t<uint64_t>>(idx)) {
+    return mapkop3ss_impl<uint64_t, F, K>(xb, map, idx, ss1, ss2, x1, x2, v0);
+  } else if (py::isinstance<py::array_t<uint32_t>>(idx)) {
+    return mapkop3ss_impl<uint32_t, F, K>(xb, map, idx, ss1, ss2, x1, x2, v0);
+  } else {
+    throw std::runtime_error("array dtype must be matching f4 or f8");
+  }
+}
+
+template <typename K, typename F, typename V>
+VectorX<V> ssmap_of_selected_pairs_onearray_same(Xbin<F, K> const &xb,
+                                                 PHMap<K, V> const &map,
+                                                 py::array idx, py::array ss,
+                                                 py::array x, V v0) {
+  return ssmap_of_selected_pairs_onearray(xb, map, idx, ss, ss, x, x, v0);
+}
+
+/////////////////////////// map no ss //////////////////////////////////
+
+template <typename I, typename F, typename K, typename V>
+VectorX<V> mapkop3_impl(Xbin<F, K> const &xb, PHMap<K, V> const &map,
+                        py::array_t<I> idx, py::array_t<F> x1,
+                        py::array_t<F> x2, V v0) {
+  I *idxp = (I *)idx.request().ptr;
+  X3<F> *x1p = (X3<F> *)x1.request().ptr;
+  X3<F> *x2p = (X3<F> *)x2.request().ptr;
+  py::gil_scoped_release release;
+  VectorX<V> vals(idx.shape()[0]);
+  for (int i = 0; i < vals.size(); ++i) {
+    K k = xb.get_key(x1p[idxp[2 * i]].inverse() * (x2p[idxp[2 * i + 1]]));
+    auto it = map.phmap_.find(k);
+    if (it == map.phmap_.end())
+      vals[i] = v0;
+    else
+      vals[i] = it->second;
+  }
+  return vals;
+}
+
+template <typename K, typename F, typename V>
+VectorX<V> map_of_selected_pairs_onearray(Xbin<F, K> const &xb,
+                                          PHMap<K, V> const &map, py::array idx,
+                                          py::array x1, py::array x2, V v0) {
+  check_xform_array(x1);
+  check_xform_array(x2);
+  pybind11::array::ensure(idx);
+  size_t sp = idx.itemsize();
+
+  if (!idx) throw std::runtime_error("bad array");
+  if (idx.ndim() != 2 || idx.shape()[1] != 2)
+    throw std::runtime_error("index must be shape (N,2) and same length");
+  if (x1.dtype() != x2.dtype())
+    throw std::runtime_error("xform arrays must have same dtype");
+  if (py::isinstance<py::array_t<int64_t>>(idx)) {
+    return mapkop3_impl<int64_t, F, K>(xb, map, idx, x1, x2, v0);
+  } else if (py::isinstance<py::array_t<int32_t>>(idx)) {
+    return mapkop3_impl<int32_t, F, K>(xb, map, idx, x1, x2, v0);
+  } else if (py::isinstance<py::array_t<uint64_t>>(idx)) {
+    return mapkop3_impl<uint64_t, F, K>(xb, map, idx, x1, x2, v0);
+  } else if (py::isinstance<py::array_t<uint32_t>>(idx)) {
+    return mapkop3_impl<uint32_t, F, K>(xb, map, idx, x1, x2, v0);
+  } else {
+    throw std::runtime_error("array dtype must be matching f4 or f8");
+  }
+}
+
+template <typename K, typename F, typename V>
+VectorX<V> map_of_selected_pairs_onearray_same(Xbin<F, K> const &xb,
+                                               PHMap<K, V> const &map,
+                                               py::array idx, py::array x,
+                                               V v0) {
+  return map_of_selected_pairs_onearray(xb, map, idx, x, x, v0);
+}
+
+//////////////////////////////////////////////////////////////////////////////
 
 template <typename F, typename K>
 py::tuple xform_to_F6(Xbin<F, K> const &xbin, py::array_t<F> _xform) {
   auto xform = xform_py_to_eigen(_xform);
+  py::gil_scoped_release release;
   RowMajorX<F> f6(xform.size(), 6);
   VectorX<K> cell(xform.size());
   for (int i = 0; i < xform.size(); ++i)
     f6.row(i) = xbin.xform_to_F6(xform[i], cell[i]);
+  py::gil_scoped_acquire acquire;
   return py::make_tuple(f6, cell);
 }
 
@@ -244,9 +473,11 @@ py::array_t<F> F6_to_xform(Xbin<F, K> const &xbin, RowMajorX<F> f6,
   if (f6.cols() != 6) throw std::runtime_error("f6 must be shape(N,6)");
   if (f6.rows() != cell.size())
     throw std::runtime_error("f6 and cell must have same length");
+  py::gil_scoped_release release;
   VectorX<X3<F>> out(cell.size());
   for (int i = 0; i < cell.size(); ++i)
     out[i] = xbin.F6_to_xform(f6.row(i), cell[i]);
+  py::gil_scoped_acquire acquire;
   return xform_eigen_to_py(out);
 }
 
@@ -271,12 +502,18 @@ void bind_xbin(py::module m, std::string name) {
           .def_readonly("ori_nside", &THIS::ori_nside_)
           .def("sskey_of_selected_pairs", &sskey_of_selected_pairs<K, F>,
                "idx1"_c, "idx2"_c, "ss1"_c, "ss2"_c, "xform1"_c, "xform2"_c)
+          .def("sskey_of_selected_pairs",
+               &sskey_of_selected_pairs_onearray<K, F>, "idx"_c, "ss1"_c,
+               "ss2"_c, "xform1"_c, "xform2"_c)
           .def("sskey_of_selected_pairs", &sskey_of_selected_pairs_same<K, F>,
                "idx1"_c, "idx2"_c, "ss"_c, "xform"_c)
+          .def("sskey_of_selected_pairs",
+               &sskey_of_selected_pairs_onearray_same<K, F>, "idx"_c, "ss"_c,
+               "xform"_c)
           .def("key_of_selected_pairs", &key_of_selected_pairs<K, F>, "idx1"_c,
                "idx2"_c, "xform1"_c, "xform2"_c)
-          .def("key_of_selected_pairs", &key_of_selected_pairs_same<K, F>,
-               "idx1"_c, "idx2"_c, "xform"_c)
+          .def("key_of_selected_pairs", &key_of_selected_pairs_onearray<K, F>,
+               "idx"_c, "xform1"_c, "xform2"_c)
           .def("key_of_pairs", &key_of_pairs<K, F>, "pairs"_c, "xform1"_c,
                "xform2"_c)
           .def("__eq__",
@@ -294,6 +531,19 @@ void bind_xbin(py::module m, std::string name) {
                 if (t.size() != 3) throw std::runtime_error("Invalid state!");
                 return THIS(t[0].cast<F>(), t[1].cast<int>(), t[2].cast<F>());
               }))
+          .def("map_of_selected_pairs",
+               &map_of_selected_pairs_onearray<K, F, double>, "map"_a, "idx"_c,
+               "xform1"_c, "xform2"_c, "default"_a = 0)
+          .def("map_of_selected_pairs",
+               &map_of_selected_pairs_onearray_same<K, F, double>, "map"_a,
+               "idx"_c, "xform"_c, "default"_a = 0)
+          .def("ssmap_of_selected_pairs",
+               &ssmap_of_selected_pairs_onearray<K, F, double>, "map"_a,
+               "idx"_c, "ss1"_c, "ss2"_c, "xform1"_c, "xform2"_c,
+               "default"_a = 0)
+          .def("ssmap_of_selected_pairs",
+               &ssmap_of_selected_pairs_onearray_same<K, F, double>, "map"_a,
+               "idx"_c, "ss"_c, "xform"_c, "default"_a = 0)
 
       /**/;
 }  // namespace xbin

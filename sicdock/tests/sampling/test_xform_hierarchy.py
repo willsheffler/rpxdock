@@ -8,6 +8,7 @@ import homog as hm
 from scipy.spatial.distance import cdist
 from sicdock.geom.rotation import angle_of_3x3
 from sicdock.geom import xform_dist2_split
+from sicdock.geom.xform_dist import *
 
 
 def urange(*args):
@@ -16,6 +17,30 @@ def urange(*args):
 
 def urandint(*args):
     return np.random.randint(*args, dtype="u8")
+
+
+def test_accessors():
+    xh = XformHier([0] * 3, [1] * 3, [2] * 3, 30)
+
+    print("ori_nside      ", xh.ori_nside)
+    print("ori_resl       ", xh.ori_resl)
+    print("cart_lb        ", xh.cart_lb)
+    print("cart_ub        ", xh.cart_ub)
+    print("cart_bs        ", xh.cart_bs)
+    print("cart_cell_width", xh.cart_cell_width)
+    print("cart_ncell     ", xh.cart_ncell)
+    print("ori_ncell      ", xh.ori_ncell)
+    print("ncell          ", xh.ncell)
+
+    assert 6 == xh.ori_nside
+    assert 26.018 == xh.ori_resl
+    assert np.all(0 == xh.cart_lb)
+    assert np.all(1 == xh.cart_ub)
+    assert np.all(2 == xh.cart_bs)
+    assert np.all(0.5 == xh.cart_cell_width)
+    assert 8 == xh.cart_ncell
+    assert 5184 == xh.ori_ncell
+    assert 41472 == xh.ncell
 
 
 def test_cart_hier1():
@@ -172,20 +197,42 @@ def test_xform_hierarchy_expand_top_N():
     scoreindex = np.empty(10, dtype=[("score", "f8"), ("index", "u8")])
     scoreindex["index"] = np.arange(10)
     scoreindex["score"] = np.arange(10)
-    idx1, xform1 = xh.expand_top_N(3, 0, scoreindex)
+    idx1, xform1 = xh.expand_top_N(3, 0, scoreindex, null_val=-123456789)
 
     score = np.arange(10).astype("f8")
     index = np.arange(10).astype("u8")
-    idx2, xform2 = xh.expand_top_N(3, 0, score, index)
+    idx2, xform2 = xh.expand_top_N(3, 0, score, index, null_val=-123456789)
 
     assert np.all(idx1 == idx2)
     assert np.allclose(xform1, xform2)
 
     idx1.sort()
     assert np.all(idx1 == np.arange(7 * 64, 10 * 64))
-    idx2, xform2 = xh.expand_top_N(3, 0, -score, index)
+    idx2, xform2 = xh.expand_top_N(3, 0, -score, index, null_val=-123456789)
     idx2.sort()
     assert np.all(idx2 == np.arange(3 * 64))
+
+    idx0 = np.array([10829082304220, 2934384902], dtype="u8")
+    mask, x0 = xh.get_xforms(5, idx0)
+    print(x0)
+    scores = np.array([100, 0])
+    idx1, x1 = xh.expand_top_N(1, 5, scores, idx0, null_val=-123456789)
+    da, _ = xform_dist2_split(x0[0], x1, 1)
+    db, _ = xform_dist2_split(x0[1], x1, 1)
+    assert np.max(da) < np.min(db)
+
+
+def test_xform_hierarchy_expand_top_N_nullval():
+    xh = XformHier(lb=[0, 0, 0], ub=[2, 2, 2], bs=[2, 2, 2], ori_resl=30.0)
+    scoreindex = np.empty(10, dtype=[("score", "f8"), ("index", "u8")])
+    scoreindex["index"] = np.arange(10)
+    scoreindex["score"] = np.zeros(10)
+    idx1, xform1 = xh.expand_top_N(3, 0, scoreindex)
+    assert len(idx1) == 0
+    scoreindex["score"][7] = 1
+    idx1, xform1 = xh.expand_top_N(3, 0, scoreindex)
+    assert len(idx1) == 64
+    assert np.all(np.right_shift(idx1, 6) == 7)
 
 
 def test_zorder():
@@ -438,6 +485,23 @@ def crappy_xform_hierarchy_resl_sanity_check():
     print("mean ori dis  ", np.sqrt(np.mean(mind2ori)))
 
 
+def test_xform_hierarchy_plug_bug():
+    xh = XformHier_f4([-18, -18, -6], [18, 18, 6.0], [3, 3, 1], 30.643)
+    x0 = xh.get_xforms(0, np.array([26561], dtype="u8"))[1]
+    x1 = xh.get_xforms(1, np.array([1699904], dtype="u8"))[1]
+    print(x0)
+    print(x1)
+
+
+#     [[ 1.         -0.          0.         12.        ]
+#  [ 0.         -0.32251728  0.9465637  12.        ]
+#  [-0.         -0.9465637  -0.32251728  0.        ]
+#  [ 0.          0.          0.          1.        ]]
+# [[  0.89194673   0.3375754    0.30078876 -16.5       ]
+#  [ -0.44858906   0.74392855   0.4953163  -16.5       ]
+#  [ -0.05655876  -0.5767263    0.8149772   -4.5       ]
+#  [  0.           0.           0.           1.        ]]
+
 if __name__ == "__main__":
     # test_zorder()
     # test_cart_hier1()
@@ -447,6 +511,7 @@ if __name__ == "__main__":
     # test_xform_hierarchy_get_xforms()
     # test_xform_hierarchy_get_xforms_bs()
     # test_xform_hierarchy_expand_top_N()
+    # test_xform_hierarchy_expand_top_N_nullval()
     # test_ori_hier_all2()
     # test_ori_hier_1cell()
     # test_ori_hier_rand()
@@ -454,6 +519,8 @@ if __name__ == "__main__":
     # test_ori_hier_rand_nside()
     # test_avg_dist()
     # test_ori_hier_angresl()
-    crappy_xform_hierarchy_resl_sanity_check()
+    # crappy_xform_hierarchy_resl_sanity_check()
     # test_xform_hierarchy_product_zorder()
     # test_ori_hier_angresl()
+    # test_accessors()
+    test_xform_hierarchy_plug_bug()

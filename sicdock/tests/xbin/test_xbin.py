@@ -5,6 +5,7 @@ from cppimport import import_hook
 from sicdock.xbin import xbin_test, Xbin_double, Xbin_float, create_Xbin_nside_double
 from sicdock.geom.rotation import angle_of_3x3
 from sicdock.geom import bcc
+from sicdock import phmap
 
 import homog as hm
 
@@ -145,6 +146,61 @@ def test_sskey_of_selected_pairs():
     assert np.all(ss1[i1] == np.right_shift(np.left_shift(kss, 0), 62))
     assert np.all(ss2[i2] == np.right_shift(np.left_shift(kss, 2), 62))
 
+    idx = np.stack([i1, i2], axis=1)
+    kss2 = xb.sskey_of_selected_pairs(idx, ss1, ss2, x1, x2)
+    assert np.all(kss == kss2)
+
+
+def test_ssmap_of_selected_pairs():
+    phm = phmap.PHMap_u8f8()
+    xb = Xbin_float()
+    N = 10_000
+    N1, N2 = 100, 1000
+    x1 = hm.rand_xform(N1).astype("f4")
+    x2 = hm.rand_xform(N2).astype("f4")
+    ss1 = np.random.randint(0, 3, N1)
+    ss2 = np.random.randint(0, 3, N2)
+    i1 = np.random.randint(0, N1, N)
+    i2 = np.random.randint(0, N2, N)
+    idx = np.stack([i1, i2], axis=1)
+
+    keys = xb.sskey_of_selected_pairs(idx, ss1, ss2, x1, x2)
+
+    vals = xb.ssmap_of_selected_pairs(phm, idx, ss1, ss2, x1, x2, 0)
+    assert np.all(vals == 0)
+
+    vals = xb.ssmap_of_selected_pairs(phm, idx, ss1, ss2, x1, x2, 7)
+    assert np.all(vals == 7)
+
+    vals0 = np.random.rand(len(keys))
+    phm[keys] = vals0
+    vals = xb.ssmap_of_selected_pairs(phm, idx, ss1, ss2, x1, x2, 0)
+    assert np.all(vals == phm[keys])
+
+
+def test_map_of_selected_pairs():
+    phm = phmap.PHMap_u8f8()
+    xb = Xbin_float()
+    N = 10_000
+    N1, N2 = 100, 1000
+    x1 = hm.rand_xform(N1).astype("f4")
+    x2 = hm.rand_xform(N2).astype("f4")
+    i1 = np.random.randint(0, N1, N)
+    i2 = np.random.randint(0, N2, N)
+    idx = np.stack([i1, i2], axis=1)
+
+    vals = xb.map_of_selected_pairs(phm, idx, x1, x2, 0)
+    assert np.all(vals == 0)
+
+    vals = xb.map_of_selected_pairs(phm, idx, x1, x2, 7)
+    assert np.all(vals == 7)
+
+    keys = xb.key_of_selected_pairs(idx, x1, x2)
+    vals0 = np.random.rand(len(keys))
+    phm[keys] = vals0
+    vals = xb.map_of_selected_pairs(phm, idx, x1, x2, 0)
+    assert np.all(vals == phm[keys])
+
 
 def test_pickle(tmpdir):
     xb = Xbin_double(1, 2, 3)
@@ -162,14 +218,15 @@ def test_pickle(tmpdir):
 
 
 if __name__ == "__main__":
-    # test_xbin_cpp()
-    # test_create_binner()
-    # test_key_of()
-    # test_key_of_pairs()
-    # test_xbin_covrad()
+    test_xbin_cpp()
+    test_create_binner()
+    test_key_of()
+    test_key_of_pairs()
+    test_xbin_covrad()
     test_xbin_covrad_ori()
-    # test_sskey_of_selected_pairs()
-    # test_xbin_grid()
+    test_sskey_of_selected_pairs()
+    test_ssmap_of_selected_pairs()
+    test_map_of_selected_pairs()
 
     import tempfile
 

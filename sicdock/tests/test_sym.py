@@ -23,6 +23,14 @@ def test_sym():
             assert np.allclose(hm.hdot(a, x @ a), mx)
 
 
+def test_symframes():
+    assert len(sym.symframes("Tarst")) == 12
+    assert len(sym.symframes("Oarst")) == 24
+    assert len(sym.symframes("Iarst")) == 60
+    assert len(sym.symframes("C4")) == 4
+
+
 # for ide, bypass pytest
 if __name__ == "__main__":
     test_sym()
+    test_symframes()

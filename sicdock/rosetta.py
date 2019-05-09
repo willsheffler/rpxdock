@@ -10,12 +10,16 @@ from pyrosetta.rosetta.core.scoring.dssp import Dssp
 init("-beta -mute all")
 
 
+def assign_secstruct(pose):
+    Dssp(pose).insert_ss_into_pose(pose)
+
+
 def get_pose_cached(fname, pdbdir="."):
     path = os.path.join(pdbdir, fname)
     ppath = path + ".pickle"
     if not os.path.exists(ppath):
         pose = pose_from_file(path)
-        Dssp(pose).insert_ss_into_pose(pose)
+        assign_secstruct(pose)
         with open(ppath, "wb") as out:
             _pickle.dump(pose, out)
             return pose

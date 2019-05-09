@@ -3,16 +3,21 @@ from sicdock.motif import ResPairData
 
 
 class Cache(dict):
-    def __call__(self, fun, *args, **kw):
+    def __call__(self, fun, *args, force_reload=False, **kw):
         key = fun.__name__, repr(args), repr(kw)
         try:
+            assert not force_reload
             val = self[key]
-            print("HIT", key)
-        except KeyError:
-            print("MISS", key)
+            # print("HIT", key)
+        except (KeyError, AssertionError):
+            print("LOADHACK CACHE MISS", key)
             val = fun(*args, **kw)
             self[key] = val
         return val
+
+    def remove(self, fun, *args, force_reload=False, **kw):
+        key = fun.__name__, repr(args), repr(kw)
+        del self[key]
 
 
 # print("CACHE RESET")

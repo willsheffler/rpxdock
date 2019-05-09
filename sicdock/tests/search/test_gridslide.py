@@ -45,7 +45,7 @@ def test_1xCyclic(
         for i, norig in enumerate(npair):
             body.move_to(pos[i])
             body2.move_to(pos2[i])
-            n = body.cen_pair_count(body2, contact_dis)
+            n = body.contact_count(body2, contact_dis)
             assert n == norig
 
         omax = np.argsort(-npair)
@@ -122,7 +122,7 @@ def test_2xCyclic(
         for i, norig in enumerate(npair):
             body1.move_to(pos1[i])
             body2.move_to(pos2[i])
-            n = body1.cen_pair_count(body2, contact_dis)
+            n = body1.contact_count(body2, contact_dis)
             assert n == norig
 
         omax = np.argsort(-npair)  # order by 1b contact
@@ -159,7 +159,7 @@ def test_monomer_to_cyclic(
         for i, norig in enumerate(npair):
             body.move_to(pos[i])
             body2.move_to(pos2[i])
-            n = body.cen_pair_count(body2, contact_dis)
+            n = body.contact_count(body2, contact_dis)
             assert n == norig
 
         omax = np.argsort(-npair)

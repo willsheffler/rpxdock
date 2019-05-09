@@ -14,6 +14,7 @@ setup_pybind11(cfg)
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+#include "sicdock/util/types.hpp"
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -34,20 +35,21 @@ struct MyIter {
 };
 
 template <typename F, typename K>
-py::array_t<K> BCC_neighbors_6_3(BCC<6, F, K>& bcc, K index, int radius,
-                                 bool extrahalf, bool oddlast3, bool sphere) {
+VectorX<K> BCC_neighbors_6_3(BCC<6, F, K>& bcc, K index, int radius,
+                             bool extrahalf, bool oddlast3, bool sphere) {
+  py::gil_scoped_release release;
   std::vector<std::pair<K, K>> tmp;
   MyIter<K> iter(tmp);
   bcc.neighbors_6_3(index, iter, radius, extrahalf, oddlast3, sphere);
-  py::array_t<K> out(tmp.size());
-  K* kptr = (K*)out.request().ptr;
-  for (int i = 0; i < tmp.size(); ++i) kptr[i] = tmp[i].first;
+  VectorX<K> out(tmp.size());
+  for (int i = 0; i < tmp.size(); ++i) out[i] = tmp[i].first;
   return out;
 }
 
 template <typename F, typename K>
 py::tuple BCC_neighbors_6_3_dist(BCC<6, F, K>& bcc, K index, int radius,
                                  bool extrahalf, bool oddlast3, bool sphere) {
+  py::gil_scoped_release release;
   std::vector<std::pair<K, K>> tmp;
   MyIter<K> iter(tmp);
   bcc.neighbors_6_3(index, iter, radius, extrahalf, oddlast3, sphere);
@@ -56,23 +58,25 @@ py::tuple BCC_neighbors_6_3_dist(BCC<6, F, K>& bcc, K index, int radius,
     kout[i] = tmp[i].first;
     dout[i] = tmp[i].second;
   }
+  py::gil_scoped_acquire acquire;
   return py::make_tuple(kout, dout);
 }
 
 template <typename F, typename K>
-py::array_t<K> BCC_neighbors_3(BCC<3, F, K>& bcc, K index, int radius,
-                               bool extrahalf, bool sphere) {
+VectorX<K> BCC_neighbors_3(BCC<3, F, K>& bcc, K index, int radius,
+                           bool extrahalf, bool sphere) {
+  py::gil_scoped_release release;
   std::vector<std::pair<K, K>> tmp;
   MyIter<K> iter(tmp);
   bcc.neighbors_3(index, iter, radius, extrahalf, sphere);
-  py::array_t<K> out(tmp.size());
-  K* kptr = (K*)out.request().ptr;
-  for (int i = 0; i < tmp.size(); ++i) kptr[i] = tmp[i].first;
+  VectorX<K> out(tmp.size());
+  for (int i = 0; i < tmp.size(); ++i) out[i] = tmp[i].first;
   return out;
 }
 template <typename F, typename K>
 py::tuple BCC_neighbors_3_dist(BCC<3, F, K>& bcc, K index, int radius,
                                bool extrahalf, bool sphere) {
+  py::gil_scoped_release release;
   std::vector<std::pair<K, K>> tmp;
   MyIter<K> iter(tmp);
   bcc.neighbors_3(index, iter, radius, extrahalf, sphere);
@@ -81,11 +85,13 @@ py::tuple BCC_neighbors_3_dist(BCC<3, F, K>& bcc, K index, int radius,
     kout[i] = tmp[i].first;
     dout[i] = tmp[i].second;
   }
+  py::gil_scoped_acquire acquire;
   return py::make_tuple(kout, dout);
 }
 
 template <int DIM, typename F, typename K>
 RowMajorX<F> BCC_getvals(BCC<DIM, F, K>& bcc, RefVectorX<K> keys) {
+  py::gil_scoped_release release;
   RowMajorX<F> out(keys.size(), DIM);
   for (int i = 0; i < keys.rows(); ++i) out.row(i) = bcc[keys[i]];
   return out;
@@ -93,6 +99,7 @@ RowMajorX<F> BCC_getvals(BCC<DIM, F, K>& bcc, RefVectorX<K> keys) {
 
 template <int DIM, typename F, typename K>
 VectorX<K> BCC_getkeys(BCC<DIM, F, K>& bcc, RefRowMajorX<F> vals) {
+  py::gil_scoped_release release;
   VectorX<K> out(vals.rows());
   for (int i = 0; i < vals.rows(); ++i) out[i] = bcc[vals.row(i)];
   return out;

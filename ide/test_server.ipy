@@ -122,9 +122,11 @@ class TestHandler(http.server.BaseHTTPRequestHandler):
             out.write(f"running {totest} {count}")
         for m in to_reload:
             reload(m)
+        for m in to_reload:
+            reload(m)
         print('running', count)
         with io.capture_output() as captured:
-            os.system('rm -f *.pdb')
+            os.system('rm -f test_*.pdb')
             print(sys.argv[0])
             print('test:', totest)
             print('runcount:', count)

@@ -24,7 +24,8 @@ template <typename F, typename K, typename V>
 void bind_smear(py::module &m, std::string name) {
   m.def("smear", &smear<F, K, V>, "smear out xmap into neighbor cells",
         "xbin"_a, "phmap"_a, "radius"_a = 1, "extrahalf"_a = false,
-        "oddlast3"_a = true, "sphere"_a = true, "kernel"_a = VectorX<V>());
+        "oddlast3"_a = true, "sphere"_a = true, "kernel"_a = VectorX<V>(),
+        py::call_guard<py::gil_scoped_release>());
 }
 
 PYBIND11_MODULE(smear, m) {

@@ -39,8 +39,8 @@ def test_phmap_contains():
     assert len(phm.has(k)) == len(k)
     assert k in phm
     assert not [np.min(k) - 1, np.max(k) + 1] in phm
-    assert not np.min(k) - 1 in phm
-    assert not np.max(k) + 1 in phm
+    assert not int(np.min(k) - 1) in phm
+    assert not int(np.max(k) + 1) in phm
 
 
 def test_phmap_items():
@@ -154,10 +154,10 @@ def test_phmap_eq():
 if __name__ == "__main__":
     import tempfile
 
-    # test_phmap()
-    # test_phmap_items()
-    # test_phmap_contains()
-    # test_phmap_dump_load(tempfile.mkdtemp())
-    # test_phmap_cpp_roundtrip()
-    # test_phmap_items_array()
+    test_phmap()
+    test_phmap_items()
+    test_phmap_contains()
+    test_phmap_dump_load(tempfile.mkdtemp())
+    test_phmap_cpp_roundtrip()
+    test_phmap_items_array()
     test_phmap_eq()
