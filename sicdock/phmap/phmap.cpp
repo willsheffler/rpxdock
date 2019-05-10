@@ -4,6 +4,7 @@ cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['phmap.hpp']
 
+cfg['parallel'] = False
 setup_pybind11(cfg)
 %>
 */
@@ -21,7 +22,6 @@ using namespace pybind11::literals;
 
 namespace sicdock {
 namespace phmap {
-
 using namespace util;
 
 template <typename K, typename V>
@@ -33,31 +33,19 @@ void test_mod_phmap_inplace(PHMap<K, V> &phmap) {
 }
 
 template <typename K, typename V>
-VectorX<V> PHMap_get(PHMap<K, V> const &phmap, VectorX<K> keys, V default_val) {
+Vx<V> PHMap_get(PHMap<K, V> const &phmap, RefVx<K> keys) {
   py::gil_scoped_release release;
-  VectorX<V> out(keys.size());
-  for (size_t idx = 0; idx < keys.size(); idx++) {
-    auto search = phmap.phmap_.find(keys[idx]);
-    if (search != phmap.phmap_.end()) {
-      out[idx] = search->second;
-    } else {
-      out[idx] = default_val;
-    }
-  }
+  Vx<V> out(keys.size());
+  for (size_t i = 0; i < keys.size(); i++) out[i] = phmap.get_default(keys[i]);
   return out;
 }
 template <typename K, typename V>
-V PHMap_get_single(PHMap<K, V> const &phmap, K key, V default_val) {
-  auto search = phmap.phmap_.find(key);
-  if (search != phmap.phmap_.end()) {
-    return search->second;
-  } else {
-    return default_val;
-  }
+V PHMap_get_single(PHMap<K, V> const &phmap, K key) {
+  return phmap.get_default(key);
 }
 
 template <typename K, typename V>
-void PHMap_set(PHMap<K, V> &phmap, VectorX<K> keys, VectorX<V> vals) {
+void PHMap_set(PHMap<K, V> &phmap, RefVx<K> keys, RefVx<V> vals) {
   if (keys.size() != vals.size())
     throw std::runtime_error("Size of first dimension must match.");
   py::gil_scoped_release release;
@@ -65,7 +53,7 @@ void PHMap_set(PHMap<K, V> &phmap, VectorX<K> keys, VectorX<V> vals) {
     phmap.phmap_.insert_or_assign(keys[idx], vals[idx]);
 }
 template <typename K, typename V>
-void PHMap_set_single(PHMap<K, V> &phmap, VectorX<K> keys, V val) {
+void PHMap_set_single(PHMap<K, V> &phmap, RefVx<K> keys, V val) {
   py::gil_scoped_release release;
   for (size_t idx = 0; idx < keys.size(); idx++)
     phmap.phmap_.insert_or_assign(keys[idx], val);
@@ -76,35 +64,25 @@ void PHMap_set_single_single(PHMap<K, V> &phmap, K key, V val) {
 }
 
 template <typename K, typename V>
-void PHMap_del(PHMap<K, V> &phmap, VectorX<K> keys) {
+void PHMap_del(PHMap<K, V> &phmap, RefVx<K> keys) {
   py::gil_scoped_release release;
   for (size_t idx = 0; idx < keys.size(); idx++) phmap.phmap_.erase(keys[idx]);
 }
 
 template <typename K, typename V>
-VectorX<bool> PHMap_has(PHMap<K, V> &phmap, VectorX<K> keys) {
+Vx<bool> PHMap_has(PHMap<K, V> &phmap, RefVx<K> keys) {
   py::gil_scoped_release release;
-  VectorX<bool> out(keys.size());
-  for (size_t idx = 0; idx < keys.size(); idx++) {
-    auto search = phmap.phmap_.find(keys[idx]);
-    if (search != phmap.phmap_.end()) {
-      out[idx] = true;
-    } else {
-      out[idx] = false;
-    }
-  }
+  Vx<bool> out(keys.size());
+  for (size_t i = 0; i < keys.size(); i++) out[i] = phmap.has(keys[i]);
+
   return out;
 }
 
 template <typename K, typename V>
-bool PHMap_contains(PHMap<K, V> &phmap, VectorX<K> keys) {
+bool PHMap_contains(PHMap<K, V> &phmap, Vx<K> keys) {
   py::gil_scoped_release release;
-  for (size_t idx = 0; idx < keys.size(); idx++) {
-    auto search = phmap.phmap_.find(keys[idx]);
-    if (search == phmap.phmap_.end()) {
-      return false;
-    }
-  }
+  for (size_t i = 0; i < keys.size(); i++)
+    if (!phmap.has(keys[i])) return false;
   return true;
 }
 template <typename K, typename V>
@@ -115,27 +93,30 @@ bool PHMap_contains_single(PHMap<K, V> &phmap, K key) {
 
 template <typename K, typename V>
 py::tuple PHMap_items_array(PHMap<K, V> const &phmap, int n = -1) {
-  py::gil_scoped_release release;
-  if (n < 0) n = phmap.size();
-  n = std::min<int>(n, phmap.size());
+  auto keys = std::make_unique<Vx<K>>();
+  auto vals = std::make_unique<Vx<V>>();
+  {
+    py::gil_scoped_release release;
+    if (n < 0) n = phmap.size();
+    n = std::min<int>(n, phmap.size());
 
-  VectorX<K> keys(n);
-  VectorX<V> vals(n);
-  int i = 0;
-  for (auto [k, v] : phmap.phmap_) {
-    keys[i] = k;
-    vals[i] = v;
-    if (++i == n) break;
+    keys->resize(n);
+    vals->resize(n);
+    int i = 0;
+    for (auto [k, v] : phmap.phmap_) {
+      (*keys)[i] = k;
+      (*vals)[i] = v;
+      if (++i == n) break;
+    }
   }
-  py::gil_scoped_acquire acquire;
-  return py::make_tuple(keys, vals);
+  return py::make_tuple(*keys, *vals);
 }
 template <typename K, typename V>
-VectorX<K> PHMap_keys(PHMap<K, V> const &phmap, int nkey = -1) {
+Vx<K> PHMap_keys(PHMap<K, V> const &phmap, int nkey = -1) {
   py::gil_scoped_release release;
   if (nkey < 0) nkey = phmap.size();
   nkey = std::min<int>(nkey, phmap.size());
-  VectorX<K> keys(nkey);
+  Vx<K> keys(nkey);
   int i = 0;
   for (auto [k, v] : phmap.phmap_) {
     keys[i] = k;
@@ -148,6 +129,7 @@ template <typename K, typename V>
 bool PHMap_eq(PHMap<K, V> const &a, PHMap<K, V> const &b) {
   py::gil_scoped_release release;
   if (a.size() != b.size()) return false;
+  if (a.default_ != b.default_) return false;
   for (auto [k, v] : a.phmap_) {
     auto it = b.phmap_.find(k);
     if (it == b.phmap_.end()) return false;
@@ -158,15 +140,13 @@ bool PHMap_eq(PHMap<K, V> const &a, PHMap<K, V> const &b) {
 
 template <typename K, typename V>
 void bind_phmap(const py::module &m, std::string name) {
-  using PHMap = PHMap<K, V>;
+  using THIS = PHMap<K, V>;
 
-  py::class_<PHMap>(m, name.c_str())
+  py::class_<THIS>(m, name.c_str())
       .def(py::init<>())
-      .def("__len__", &PHMap::size)
-      .def("__getitem__", &PHMap_get<K, V>, "getitem", "keys"_a,
-           "default"_a = 0)
-      .def("__getitem__", &PHMap_get_single<K, V>, "getitem", "key"_a,
-           "default"_a = 0)
+      .def("__len__", &THIS::size)
+      .def("__getitem__", &PHMap_get<K, V>, "getitem", "keys"_a)
+      .def("__getitem__", &PHMap_get_single<K, V>, "getitem", "key"_a)
       .def("__setitem__", &PHMap_set<K, V>, "keys"_a, "vals"_a)
       .def("__setitem__", &PHMap_set_single<K, V>, "keys"_a, "val"_a)
       .def("__setitem__", &PHMap_set_single_single<K, V>, "key"_a, "val"_a)
@@ -177,21 +157,26 @@ void bind_phmap(const py::module &m, std::string name) {
       .def("keys", &PHMap_keys<K, V>, "num"_a = -1)
       .def("items_array", &PHMap_items_array<K, V>, "num"_a = -1)
       .def("__eq__", &PHMap_eq<K, V>)
+      .def_readwrite("default", &THIS::default_)
       .def("items",
-           [](PHMap const &c) {
+           [](THIS const &c) {
              return py::make_iterator(c.phmap_.begin(), c.phmap_.end());
            },
            py::keep_alive<0, 1>())
       .def(py::pickle(
-          [](PHMap const &map) {  // __getstate__
-            return PHMap_items_array(map);
+          [](THIS const &map) {  // __getstate__
+            py::tuple tup = PHMap_items_array(map);
+            auto keys = tup[0].cast<Vx<K>>();
+            auto vals = tup[1].cast<Vx<V>>();
+            return py::make_tuple(keys, vals, map.default_);
           },
           [](py::tuple t) {  // __setstate__
-            if (t.size() != 2) throw std::runtime_error("Invalid state!");
-
-            auto keys = t[0].cast<VectorX<K>>();
-            auto vals = t[1].cast<VectorX<V>>();
-            auto map = std::make_unique<PHMap>();
+            if (t.size() != 2 && t.size() != 3)
+              throw std::runtime_error("Invalid state!");
+            V v0 = (t.size() == 3) ? t[2].cast<V>() : 0;
+            auto map = std::make_unique<THIS>(v0);
+            auto keys = t[0].cast<Vx<K>>();
+            auto vals = t[1].cast<Vx<V>>();
             PHMap_set<K, V>(*map, keys, vals);
             return map;
           }))

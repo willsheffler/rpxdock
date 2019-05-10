@@ -5,6 +5,7 @@ cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['../util/dilated_int.hpp', '../util/numeric.hpp',
 'xform_hierarchy.hpp']
 
+cfg['parallel'] = False
 setup_pybind11(cfg)
 %>
 */
@@ -73,12 +74,13 @@ py::tuple get_xforms(XformHier<F, I> xh, int resl,
   bool* iptr = (bool*)iout.request().ptr;
   X3<F>* xptr = (X3<F>*)xout.request().ptr;
   size_t nout = 0;
-  py::gil_scoped_release release;
-  for (size_t i = 0; i < idx.size(); ++i) {
-    iptr[i] = xh.get_value(resl, idx[i], xptr[nout]);
-    if (iptr[i]) ++nout;
+  {
+    py::gil_scoped_release release;
+    for (size_t i = 0; i < idx.size(); ++i) {
+      iptr[i] = xh.get_value(resl, idx[i], xptr[nout]);
+      if (iptr[i]) ++nout;
+    }
   }
-  py::gil_scoped_acquire acquire;
   return py::make_tuple(iout, xout[py::slice(0, nout, 1)]);
 }
 
@@ -97,22 +99,24 @@ py::tuple expand_top_N_impl(XformHier<F, I> xh, int N, int resl,
   py::array_t<I> iout(N * 64);
   I* iptr = (I*)iout.request().ptr;
 
-  py::gil_scoped_release release;
-
-  std::nth_element(si.begin(), si.begin() + N, si.end(),
-                   std::greater<std::pair<double, I>>());
   size_t nout = 0;
-  for (size_t i = 0; i < N; ++i) {
-    I parent = si[i].second;
-    I beg = xh.child_of_begin(parent);
-    I end = xh.child_of_end(parent);
-    for (I idx = beg; idx < end; ++idx) {
-      iptr[nout] = idx;
-      bool valid = xh.get_value(resl + 1, iptr[nout], xptr[nout]);
-      if (valid) ++nout;
+  {
+    py::gil_scoped_release release;
+
+    std::nth_element(si.begin(), si.begin() + N, si.end(),
+                     std::greater<std::pair<double, I>>());
+    for (size_t i = 0; i < N; ++i) {
+      I parent = si[i].second;
+      I beg = xh.child_of_begin(parent);
+      I end = xh.child_of_end(parent);
+      for (I idx = beg; idx < end; ++idx) {
+        iptr[nout] = idx;
+        bool valid = xh.get_value(resl + 1, iptr[nout], xptr[nout]);
+        if (valid) ++nout;
+      }
     }
   }
-  py::gil_scoped_acquire acquire;
+
   return py::make_tuple(iout[py::slice(0, nout, 1)],
                         xout[py::slice(0, nout, 1)]);
 }
@@ -121,26 +125,29 @@ template <typename F, typename I>
 py::tuple expand_top_N_pairs(XformHier<F, I> xh, int N, int resl,
                              py::array_t<ScoreIndex> score_idx,
                              double null_val) {
-  py::gil_scoped_release release;
-  // sketchy
+  // sketchy... should be checking strides etc
   std::pair<double, I>* siptr = (std::pair<double, I>*)score_idx.request().ptr;
   std::vector<std::pair<double, I>> si;
-  for (size_t i = 0; i < score_idx.shape()[0]; ++i)
-    if (siptr[i].first != null_val) si.push_back(siptr[i]);
-  py::gil_scoped_acquire acquire;
+  {
+    py::gil_scoped_release release;
+    for (size_t i = 0; i < score_idx.shape()[0]; ++i)
+      if (siptr[i].first != null_val) si.push_back(siptr[i]);
+  }
   return expand_top_N_impl(xh, N, resl, si);
 }
 
 template <typename F, typename I>
 py::tuple expand_top_N_separate(XformHier<F, I> xh, int N, int resl,
-                                VectorX<double> score, VectorX<I> index,
+                                Vx<double> score, Vx<I> index,
                                 double null_val) {
-  py::gil_scoped_release release;
   std::vector<std::pair<double, I>> si;
-  for (size_t i = 0; i < score.size(); ++i)
-    if (score[i] != null_val) si.push_back(std::make_pair(score[i], index[i]));
-  std::pair<double, I>* siptr = &si[0];
-  py::gil_scoped_acquire acquire;
+  {
+    py::gil_scoped_release release;
+    for (size_t i = 0; i < score.size(); ++i)
+      if (score[i] != null_val)
+        si.push_back(std::make_pair(score[i], index[i]));
+    std::pair<double, I>* siptr = &si[0];
+  }
   return expand_top_N_impl(xh, N, resl, si);
 }
 
@@ -152,6 +159,7 @@ void bind_CartHier(auto m, std::string name) {
       .def(py::init<Fn, Fn, In>(), "lb"_a, "ub"_a, "bs"_a)
       .def("size", &CartHier<N, F, I>::size)
       .def("get_trans", &get_trans<N, F, I>)
+      .def("sanity_check", &CartHier<N, F, I>::sanity_check)
       /**/;
 }
 template <typename F, typename I>
@@ -189,6 +197,7 @@ void bind_XformHier(auto m, std::string name) {
       .def_readonly("cart_ncell", &XformHier<F, I>::cart_ncell_)
       .def_readonly("ori_ncell", &XformHier<F, I>::ori_ncell_)
       .def_readonly("ncell", &XformHier<F, I>::ncell_)
+      .def("sanity_check", &XformHier<F, I>::sanity_check)
       .def("cell_index_of", py::vectorize(&XformHier<F, I>::cell_index_of))
       .def("hier_index_of", py::vectorize(&XformHier<F, I>::hier_index_of))
       .def("parent_of", py::vectorize(&XformHier<F, I>::parent_of))

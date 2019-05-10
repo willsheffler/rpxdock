@@ -40,7 +40,19 @@ struct CartHier {
           (this->cart_ub_[i] - this->cart_lb_[i]) / (F)this->cart_bs_[i];
       assert(this->cart_ub_[i] > this->cart_lb_[i]);
     }
+    sanity_check();
   }
+  bool sanity_check() const {
+    for (int i = 0; i < CART_DIM; ++i) {
+      for (int j = 1 + 1; j < CART_DIM; ++j) {
+        float r = fabs(cart_cell_width_[i] - cart_cell_width_[j]) /
+                  fabs(cart_cell_width_[i] + cart_cell_width_[j]);
+        if (r > 0.1) return false;
+      }
+    }
+    return true;
+  }
+
   I size(I resl) const { return cart_ncell_ * ONE << (CART_DIM * resl); }
 
   bool get_value(I resl, I index, Fn& trans) const {
@@ -222,6 +234,12 @@ struct XformHier : public OriHier<F, I>, public CartHier<3, F, I> {
       : OriHier<F, I>(ori_nside),
         CartHier<CART_DIM, F, I>(cartlb, cartub, cartbs) {
     ncell_ = this->cart_ncell_ * this->ori_ncell_;
+  }
+
+  bool sanity_check() const {
+    bool pass = true;
+    pass &= CartHier<3, F, I>::sanity_check();
+    return pass;
   }
 
   I size(I resl) const { return ncell_ * ONE << (FULL_DIM * resl); }

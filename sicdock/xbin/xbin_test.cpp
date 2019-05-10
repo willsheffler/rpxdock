@@ -5,6 +5,7 @@ cfg['compiler_args'] = ['-std=c++17', '-w']
 cfg['dependencies'] = ['xbin.hpp', '../util/assertions.hpp',
 '../util/global_rng.hpp']
 
+cfg['parallel'] = False
 setup_pybind11(cfg)
 %>
 */

@@ -3,8 +3,10 @@
 cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w', '-O1']
 cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
-'../util/global_rng.hpp', 'bvh.hpp', 'bvh_algo.hpp', '../util/numeric.hpp']
+'../util/global_rng.hpp', 'bvh.hpp', 'bvh_algo.hpp', '../util/numeric.hpp',
+'../util/pybind_types.hpp']
 
+cfg['parallel'] = False
 setup_pybind11(cfg)
 %>
 */
@@ -115,11 +117,15 @@ struct BVHMinDistOne {
 };
 template <typename F>
 py::tuple bvh_min_dist_one(BVH<F> &bvh, V3<F> pt) {
-  py::gil_scoped_release release;
-  BVHMinDistOne<F> minimizer(pt);
-  auto result = sicdock::bvh::BVMinimize(bvh, minimizer);
-  py::gil_scoped_acquire acquire;
-  return py::make_tuple(result, minimizer.idx);
+  int idx;
+  F result;
+  {
+    py::gil_scoped_release release;
+    BVHMinDistOne<F> minimizer(pt);
+    result = sicdock::bvh::BVMinimize(bvh, minimizer);
+    idx = minimizer.idx;
+  }
+  return py::make_tuple(result, idx);
 }
 
 template <typename F>
@@ -160,12 +166,41 @@ py::tuple bvh_min_dist_fixed(BVH<F> &bvh1, BVH<F> &bvh2) {
 }
 template <typename F>
 py::tuple bvh_min_dist(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2) {
-  py::gil_scoped_release release;
-  X3<F> x1(pos1), x2(pos2);
-  BVHMinDistQuery<F> minimizer(x1.inverse() * x2);
-  auto result = sicdock::bvh::BVMinimize(bvh1, bvh2, minimizer);
-  py::gil_scoped_acquire aquire;
-  return py::make_tuple(result, minimizer.idx1, minimizer.idx2);
+  int idx1, idx2;
+  F result;
+  {
+    py::gil_scoped_release release;
+    X3<F> x1(pos1), x2(pos2);
+    BVHMinDistQuery<F> minimizer(x1.inverse() * x2);
+    result = sicdock::bvh::BVMinimize(bvh1, bvh2, minimizer);
+    idx1 = minimizer.idx1;
+    idx2 = minimizer.idx2;
+  }
+  return py::make_tuple(result, idx1, idx2);
+}
+template <typename F>
+py::tuple bvh_min_dist_vec(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
+                           py::array_t<F> pos2) {
+  auto x1 = xform_py_to_eigen(pos1);
+  auto x2 = xform_py_to_eigen(pos2);
+  if (x1.size() != x2.size())
+    throw std::runtime_error("pos1 and pos2 must have same length");
+  auto mindis = std::make_unique<Vx<F>>();
+  auto idx1 = std::make_unique<Vx<int>>();
+  auto idx2 = std::make_unique<Vx<int>>();
+  {
+    py::gil_scoped_release release;
+    mindis->resize(x1.size());
+    idx1->resize(x1.size());
+    idx2->resize(x1.size());
+    for (size_t i = 0; i < x1.size(); ++i) {
+      BVHMinDistQuery<F> minimizer(x1[i].inverse() * x2[i]);
+      (*mindis)[i] = sicdock::bvh::BVMinimize(bvh1, bvh2, minimizer);
+      (*idx1)[i] = minimizer.idx1;
+      (*idx2)[i] = minimizer.idx2;
+    }
+  }
+  return py::make_tuple(*mindis, *idx1, *idx2);
 }
 template <typename F>
 F naive_min_dist_fixed(BVH<F> &bvh1, BVH<F> &bvh2) {
@@ -241,6 +276,25 @@ bool bvh_isect(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2, F mindist) {
   return query.result;
 }
 template <typename F>
+Vx<bool> bvh_isect_vec(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
+                       py::array_t<F> pos2, F mindist) {
+  auto x1 = xform_py_to_eigen(pos1);
+  auto x2 = xform_py_to_eigen(pos2);
+  if (x1.size() != x2.size() && x1.size() != 1 && x2.size() != 1)
+    throw std::runtime_error("pos1 and pos2 must have same length");
+  py::gil_scoped_release release;
+  size_t n = std::max(x1.size(), x2.size());
+  Vx<bool> out(n);
+  for (size_t i = 0; i < n; ++i) {
+    size_t i1 = x1.size() == 1 ? 0 : i;
+    size_t i2 = x2.size() == 1 ? 0 : i;
+    BVHIsectQuery<F> query(mindist, x1[i1].inverse() * x2[i2]);
+    sicdock::bvh::BVIntersect(bvh1, bvh2, query);
+    out[i] = query.result;
+  }
+  return out;
+}
+template <typename F>
 bool naive_isect(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
                  F mindist) {
   X3<F> x1(pos1), x2(pos2);
@@ -298,13 +352,40 @@ struct BVHIsectRange {
 template <typename F>
 py::tuple bvh_isect_range(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
                           F mindist) {
-  py::gil_scoped_release release;
-  X3<F> x1(pos1), x2(pos2);
-  BVHIsectRange<F> query(mindist, x1.inverse() * x2, bvh1.objs.size());
-  sicdock::bvh::BVIntersect(bvh1, bvh2, query);
-  py::gil_scoped_acquire acquire;
-  return py::make_tuple(query.lb, query.ub);
+  int lb, ub;
+  {
+    py::gil_scoped_release release;
+    X3<F> x1(pos1), x2(pos2);
+    BVHIsectRange<F> query(mindist, x1.inverse() * x2, bvh1.objs.size());
+    sicdock::bvh::BVIntersect(bvh1, bvh2, query);
+    lb = query.lb;
+    ub = query.ub;
+  }
+  return py::make_tuple(lb, ub);
 }
+template <typename F>
+py::tuple bvh_isect_range_vec(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
+                              py::array_t<F> pos2, F mindist) {
+  auto x1 = xform_py_to_eigen(pos1);
+  auto x2 = xform_py_to_eigen(pos2);
+  if (x1.size() != x2.size())
+    throw std::runtime_error("pos1 and pos2 must have same len");
+  auto lb = std::make_unique<Vx<int>>();
+  auto ub = std::make_unique<Vx<int>>();
+  {
+    py::gil_scoped_release release;
+    lb->resize(x1.size());
+    ub->resize(x1.size());
+    for (size_t i = 0; i < x1.size(); ++i) {
+      BVHIsectRange<F> query(mindist, x1[i].inverse() * x2[i],
+                             bvh1.objs.size());
+      sicdock::bvh::BVIntersect(bvh1, bvh2, query);
+      (*lb)[i] = query.lb;
+      (*ub)[i] = query.ub;
+    }
+  }
+  return py::make_tuple(*lb, *ub);
+}  // namespace bvh
 template <typename F>
 py::tuple naive_isect_range(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
                             F mindist) {
@@ -379,6 +460,24 @@ F bvh_slide(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2, F rad,
   F result = sicdock::bvh::BVMinimize(bvh1, bvh2, query);
   return result;
 }
+template <typename F>
+Vx<F> bvh_slide_vec(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
+                    py::array_t<F> pos2, F rad, V3<F> dirn) {
+  auto x1 = xform_py_to_eigen(pos1);
+  auto x2 = xform_py_to_eigen(pos2);
+  if (x1.size() != x2.size())
+    throw std::runtime_error("pos1 and pos2 must have same len");
+  py::gil_scoped_release release;
+  Vx<F> slides(x1.size());
+  for (size_t i = 0; i < x1.size(); ++i) {
+    X3<F> x1inv = x1[i].inverse();
+    X3<F> pos = x1inv * x2[i];
+    V3<F> local_dir = x1inv.rotation() * dirn;
+    BVMinAxis<F> query(local_dir, pos, rad);
+    slides[i] = sicdock::bvh::BVMinimize(bvh1, bvh2, query);
+  }
+  return slides;
+}
 
 template <typename F>
 struct BVHCountPairs {
@@ -413,6 +512,26 @@ int bvh_count_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
   BVHCountPairs<F> query(maxdist, pos);
   sicdock::bvh::BVIntersect(bvh1, bvh2, query);
   return query.nout;
+}
+template <typename F>
+Vx<int> bvh_count_pairs_vec(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
+                            py::array_t<F> pos2, F maxdist) {
+  auto x1 = xform_py_to_eigen(pos1);
+  auto x2 = xform_py_to_eigen(pos2);
+  if (x1.size() != x2.size() && x1.size() != 1 && x2.size() != 1)
+    throw std::runtime_error("pos1 and pos2 must have same length");
+  py::gil_scoped_release release;
+  size_t n = std::max(x1.size(), x2.size());
+  Vx<int> npair(n);
+  for (size_t i = 0; i < x1.size(); ++i) {
+    size_t i1 = x1.size() == 1 ? 0 : i;
+    size_t i2 = x2.size() == 1 ? 0 : i;
+    X3<F> pos = x1[i1].inverse() * x2[i2];
+    BVHCountPairs<F> query(maxdist, pos);
+    sicdock::bvh::BVIntersect(bvh1, bvh2, query);
+    npair[i] = query.nout;
+  }
+  return npair;
 }
 template <typename F>
 struct BVHCollectPairs {
@@ -452,23 +571,28 @@ struct BVHCollectPairs {
 };
 
 template <typename F>
-int bvh_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
-                      F maxdist, py::array_t<int32_t> out) {
+py::tuple bvh_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
+                            F maxdist, py::array_t<int32_t> out) {
   X3<F> x1(pos1), x2(pos2);
   X3<F> pos = x1.inverse() * x2;
 
   py::buffer_info buf = out.request();
-  int nbuf = buf.shape[0], nout = 0;
+  int nbuf = buf.shape[0];
   if (buf.ndim != 2 || buf.shape[1] != 2)
     throw std::runtime_error("Shape must be (N, 2)");
   if (buf.strides[0] != 2 * sizeof(int32_t))
     throw std::runtime_error("out stride is not 2F");
   int32_t *ptr = (int32_t *)buf.ptr;
-  py::gil_scoped_release release;
-  BVHCollectPairs<F> query(maxdist, pos, ptr, buf.shape[0]);
-  sicdock::bvh::BVIntersect(bvh1, bvh2, query);
-  if (query.overflow) return -1;
-  return query.nout;
+  int nout;
+  bool overflow;
+  {
+    py::gil_scoped_release release;
+    BVHCollectPairs<F> query(maxdist, pos, ptr, nbuf);
+    sicdock::bvh::BVIntersect(bvh1, bvh2, query);
+    nout = query.nout;
+    overflow = query.overflow;
+  }
+  return py::make_tuple(out[py::slice(0, nout, 1)], overflow);
 }
 
 template <typename F>
@@ -516,6 +640,69 @@ int naive_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
 
   return nout;
 }
+
+template <typename F>
+struct BVHCollectPairsVec {
+  using Scalar = F;
+  using Xform = X3<F>;
+  F maxdis = 0.0, maxdis2 = 0.0;
+  Xform bXa = Xform::Identity();
+  std::vector<int32_t> &out;
+  BVHCollectPairsVec(F r, Xform x, std::vector<int32_t> &o)
+      : maxdis(r), bXa(x), out(o), maxdis2(r * r) {}
+  bool intersectVolumeVolume(Sphere<F> v1, Sphere<F> v2) {
+    return v1.signdis(bXa * v2) < maxdis;
+  }
+  bool intersectVolumeObject(Sphere<F> v, PtIdx<F> o) {
+    return v.signdis(bXa * o.pos) < maxdis;
+  }
+  bool intersectObjectVolume(PtIdx<F> o, Sphere<F> v) {
+    return (bXa * v).signdis(o.pos) < maxdis;
+  }
+  bool intersectObjectObject(PtIdx<F> o1, PtIdx<F> o2) {
+    bool isect = (o1.pos - bXa * o2.pos).squaredNorm() < maxdis2;
+    if (isect) {
+      out.push_back(o1.idx);
+      out.push_back(o2.idx);
+    }
+    return false;
+  }
+};
+
+template <typename F>
+py::tuple bvh_collect_pairs_vec(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
+                                py::array_t<F> pos2, F maxdist) {
+  auto x1 = xform_py_to_eigen(pos1);
+  auto x2 = xform_py_to_eigen(pos2);
+  if (x1.size() != x2.size() && x1.size() != 1 && x2.size() != 1)
+    throw std::runtime_error("pos1 and pos2 must have same len");
+
+  auto lbub = std::make_unique<Matrix<int, Dynamic, 2, RowMajor>>();
+  auto out = std::make_unique<Mx<int32_t>>();
+  {
+    py::gil_scoped_release release;
+    size_t n = std::max(x1.size(), x2.size());
+    lbub->resize(n, 2);
+    std::vector<int32_t> pairs;
+    pairs.reserve(10 * n);
+    for (size_t i = 0; i < n; ++i) {
+      size_t i1 = x1.size() == 1 ? 0 : i;
+      size_t i2 = x2.size() == 1 ? 0 : i;
+      X3<F> pos = x1[i1].inverse() * x2[i2];
+      BVHCollectPairsVec<F> query(maxdist, pos, pairs);
+      (*lbub)(i, 0) = pairs.size() / 2;
+      sicdock::bvh::BVIntersect(bvh1, bvh2, query);
+      (*lbub)(i, 1) = pairs.size() / 2;
+    }
+    out->resize(pairs.size() / 2, 2);
+    for (size_t i = 0; i < pairs.size() / 2; ++i) {
+      (*out)(i, 0) = pairs[2 * i + 0];
+      (*out)(i, 1) = pairs[2 * i + 1];
+    }
+  }
+  return py::make_tuple(*out, *lbub);
+}
+
 template <typename F>
 int bvh_print(BVH<F> &bvh) {
   for (auto o : bvh.objs) {
@@ -554,37 +741,35 @@ V4<F> bvh_obj_com(BVH<F> &b) {
 
 template <typename F>
 py::tuple BVH_get_state(BVH<F> const &bvh) {
-  py::gil_scoped_release release;
-  VectorX<int> child(bvh.child.size());
+  Vx<int> child(bvh.child.size());
   for (int i = 0; i < bvh.child.size(); ++i) child[i] = bvh.child[i];
-  RowMajorX<F> sph(bvh.vols.size(), 4);
+  Mx<F> sph(bvh.vols.size(), 4);
   for (int i = 0; i < bvh.vols.size(); ++i) {
     for (int j = 0; j < 3; ++j) sph(i, j) = bvh.vols[i].cen[j];
     sph(i, 3) = bvh.vols[i].rad;
   }
-  RowMajorX<int> lbub(bvh.vols.size(), 2);
+  Mx<int> lbub(bvh.vols.size(), 2);
   for (int i = 0; i < bvh.vols.size(); ++i) {
     lbub(i, 0) = bvh.vols[i].lb;
     lbub(i, 1) = bvh.vols[i].ub;
   }
-  RowMajorX<F> pos(bvh.objs.size(), 3);
+  Mx<F> pos(bvh.objs.size(), 3);
   for (int i = 0; i < bvh.objs.size(); ++i) {
     for (int j = 0; j < 3; ++j) pos(i, j) = bvh.objs[i].pos[j];
   }
-  VectorX<int> idx(bvh.objs.size());
+  Vx<int> idx(bvh.objs.size());
   for (int i = 0; i < bvh.objs.size(); ++i) idx[i] = bvh.objs[i].idx;
-  py::gil_scoped_acquire acquire;
   return py::make_tuple(child, sph, lbub, pos, idx);
 }
 template <typename F>
 std::unique_ptr<BVH<F>> bvh_set_state(py::tuple state) {
   auto bvh = std::make_unique<BVH<F>>();
-  auto child = state[0].cast<VectorX<int>>();
-  auto sph = state[1].cast<RowMajorX<F>>();
-  auto lbub = state[2].cast<RowMajorX<int>>();
-  auto pos = state[3].cast<RowMajorX<F>>();
-  auto idx = state[4].cast<VectorX<int>>();
-  py::gil_scoped_release release;
+  auto child = state[0].cast<Vx<int>>();
+  auto sph = state[1].cast<Mx<F>>();
+  auto lbub = state[2].cast<Mx<int>>();
+  auto pos = state[3].cast<Mx<F>>();
+  auto idx = state[4].cast<Vx<int>>();
+
   for (int i = 0; i < child.size(); ++i) {
     bvh->child.push_back(child[i]);
   }
@@ -629,6 +814,8 @@ PYBIND11_MODULE(bvh, m) {
 
   m.def("bvh_min_dist", &bvh_min_dist<double>, "min pair distance", "bvh1"_a,
         "bvh2"_a, "pos1"_a, "pos2"_a);
+  m.def("bvh_min_dist_vec", &bvh_min_dist_vec<double>, "min pair distance",
+        "bvh1"_a, "bvh2"_a, "pos1"_a, "pos2"_a);
   // m.def("bvh_min_dist_32bit", &bvh_min_dist<float>, "intersction test",
   // "bvh1"_a, "bvh2"_a, "pos1"_a, "pos2"_a);
   m.def("bvh_min_dist_fixed", &bvh_min_dist_fixed<double>);
@@ -637,6 +824,8 @@ PYBIND11_MODULE(bvh, m) {
 
   m.def("bvh_isect", &bvh_isect<double>, "intersction test", "bvh1"_a, "bvh2"_a,
         "pos1"_a, "pos2"_a, "mindist"_a);
+  m.def("bvh_isect_vec", &bvh_isect_vec<double>, "intersction test", "bvh1"_a,
+        "bvh2"_a, "pos1"_a, "pos2"_a, "mindist"_a);
   // m.def("bvh_isect_32bit", &bvh_isect<float>, "intersction test", "bvh1"_a,
   // "bvh2"_a, "pos1"_a, "pos2"_a, "mindist"_a);
   m.def("bvh_isect_fixed", &bvh_isect_fixed<double>);
@@ -645,17 +834,23 @@ PYBIND11_MODULE(bvh, m) {
 
   m.def("bvh_isect_range", &bvh_isect_range<double>, "intersction test",
         "bvh1"_a, "bvh2"_a, "pos1"_a, "pos2"_a, "mindist"_a);
+  m.def("bvh_isect_range_vec", &bvh_isect_range_vec<double>, "intersction test",
+        "bvh1"_a, "bvh2"_a, "pos1"_a, "pos2"_a, "mindist"_a);
   m.def("naive_isect_range", &naive_isect_range<double>);
 
   m.def("bvh_slide", &bvh_slide<double>, "slide into contact", "bvh1"_a,
+        "bvh2"_a, "pos1"_a, "pos2"_a, "rad"_a, "dirn"_a);
+  m.def("bvh_slide_vec", &bvh_slide_vec<double>, "slide into contact", "bvh1"_a,
         "bvh2"_a, "pos1"_a, "pos2"_a, "rad"_a, "dirn"_a);
 
   // m.def("bvh_slide_32bit", &bvh_slide<float>, "slide into contact",
   // "bvh1"_a, "bvh2"_a, "pos1"_a, "pos2"_a, "rad"_a, "dirn"_a);
 
   m.def("bvh_collect_pairs", &bvh_collect_pairs<double>);
+  m.def("bvh_collect_pairs_vec", &bvh_collect_pairs_vec<double>);
   m.def("naive_collect_pairs", &naive_collect_pairs<double>);
   m.def("bvh_count_pairs", &bvh_count_pairs<double>);
+  m.def("bvh_count_pairs_vec", &bvh_count_pairs_vec<double>);
 
   m.def("bvh_print", &bvh_print<double>);
 

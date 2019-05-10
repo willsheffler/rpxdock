@@ -1,19 +1,34 @@
+import _pickle
 import sicdock
 from sicdock.motif import HierScore
 from sicdock.motif._loadhack import hackcache as HC
 from sicdock.search.plug import make_plugs
 from sicdock.data import datadir
 from sicdock.util import load, Bunch
+from sicdock.body import Body
 
 
 def main():
-    # plug = sicdock.body.Body(datadir + "/pdb/DHR14.pdb")
-    plug = HC(sicdock.body.Body, datadir + "/pdb/DHR14.pdb", n=4)
-    hole = HC(sicdock.body.Body, datadir + "/pdb/hole_C3_i52_Z_asym.pdb", sym=3, n=2)
-    hscore_tables = HC(load_medium_hscore)
-    hscore = HierScore(hscore_tables)
 
-    make_plugs(plug, hole, hscore)
+    quick = False
+    if quick:
+        try:
+            with open("/home/sheffler/debug/sicdock/hole.pickle", "rb") as inp:
+                plug, hole = _pickle.load(inp)
+        except:
+            plug = sicdock.body.Body(datadir + "/pdb/DHR14.pdb")
+            hole = sicdock.body.Body(datadir + "/pdb/hole_C3_tiny.pdb", sym=3)
+            with open("/home/sheffler/debug/sicdock/hole.pickle", "wb") as out:
+                _pickle.dump([plug, hole], out)
+        hscore = HierScore(load_small_hscore())
+        make_plugs(plug, hole, hscore)
+    else:
+        plug = HC(Body, datadir + "/pdb/DHR14.pdb", n=0)
+        hole = HC(Body, "/home/sheffler/scaffolds/holes/C3_i52_Z_asym.pdb", sym=3, n=1)
+        # hscore_tables = HC(load_big_hscore)
+        hscore_tables = HC(load_medium_hscore)
+        hscore = HierScore(hscore_tables)
+        make_plugs(plug, hole, hscore)
 
 
 def load_big_hscore():
@@ -72,7 +87,7 @@ def load_medium_hscore():
     return files
 
 
-def load_small_hscore():
+def load_small_noss_hscore():
     print("======================= LOADING SMALL H-SCORES =========================")
 
     fnames = [
@@ -86,9 +101,24 @@ def load_small_hscore():
     files = []
     for f in fnames:
         file = "/home/sheffler/debug/sicdock/respairdat/hscore/" + f
-        print("=" * 80)
-        print("LOADING", file)
-        print("=" * 80)
+        files.append(load(file))
+    return files
+
+
+def load_small_hscore():
+    print("======================= LOADING SMALL SS H-SCORES =========================")
+
+    fnames = [
+        "pdb_res_pair_data_si30_10_rots_SS_p0.5_b1_base.pickle",
+        "pdb_res_pair_data_si30_10_rots_SS_p0.5_b1_hier0_Kflat_1_0.pickle",
+        "pdb_res_pair_data_si30_10_rots_SS_p0.5_b1_hier1_Kflat_1_0.pickle",
+        "pdb_res_pair_data_si30_10_rots_SS_p0.5_b1_hier2_Kflat_1_0.pickle",
+        "pdb_res_pair_data_si30_10_rots_SS_p0.5_b1_hier3_Kflat_1_0.pickle",
+        "pdb_res_pair_data_si30_10_rots_SS_p0.5_b1_hier4_Kflat_1_0.pickle",
+    ]
+    files = []
+    for f in fnames:
+        file = "/home/sheffler/debug/sicdock/hscore_small_ss/" + f
         files.append(load(file))
     return files
 

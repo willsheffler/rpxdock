@@ -5,6 +5,7 @@ cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
 '../util/global_rng.hpp', 'bvh.hpp', 'bvh_algo.hpp', '../util/numeric.hpp']
 
+cfg['parallel'] = False
 setup_pybind11(cfg)
 %>
 */
@@ -137,25 +138,29 @@ struct BVMinDistND {
   }
 };
 template <typename F, int DIM>
-py::tuple bvh_mindist(BVH<F, DIM>& bvh, RefRowMajorXd pts) {
-  py::gil_scoped_release release;
-  VectorXd outm(pts.rows());
-  VectorXi outi(pts.rows());
-  // double ncmp = 0;
-  for (int i = 0; i < pts.rows(); ++i) {
-    BVMinDistND<F, DIM> query(pts.row(i));
-    outm[i] = sicdock::bvh::BVMinimize(bvh, query);
-    outi[i] = query.imin;
-    // ncmp += query.ncmp;
+py::tuple bvh_mindist(BVH<F, DIM>& bvh, RefMxd pts) {
+  auto outm = std::make_unique<Vxd>();
+  auto outi = std::make_unique<Vxi>();
+
+  {
+    py::gil_scoped_release release;
+    outm->resize(pts.rows());
+    outi->resize(pts.rows());
+    // double ncmp = 0;
+    for (int i = 0; i < pts.rows(); ++i) {
+      BVMinDistND<F, DIM> query(pts.row(i));
+      (*outm)[i] = sicdock::bvh::BVMinimize(bvh, query);
+      (*outi)[i] = query.imin;
+      // ncmp += query.ncmp;
+    }
+    // std::cout << "bvh ncmp " << ncmp / pts.rows() << std::endl;
   }
-  // std::cout << "bvh ncmp " << ncmp / pts.rows() << std::endl;
-  py::gil_scoped_acquire acquire;
-  return py::make_tuple(outm, outi);
+  return py::make_tuple(*outm, *outi);
 }
 template <typename F, int DIM>
-py::tuple bvh_mindist_naive(BVH<F, DIM>& bvh, RefRowMajorXd pts) {
-  VectorXd outm(pts.rows());
-  VectorXi outi(pts.rows());
+py::tuple bvh_mindist_naive(BVH<F, DIM>& bvh, RefMxd pts) {
+  Vxd outm(pts.rows());
+  Vxi outi(pts.rows());
   // int64_t ncmp = 0;
   for (int i = 0; i < pts.rows(); ++i) {
     Matrix<F, DIM, 1> pt = pts.row(i);
@@ -193,9 +198,9 @@ struct BVIsectND {
   }
 };
 template <typename F, int DIM>
-VectorXi bvh_isect(BVH<F, DIM>& bvh, RefRowMajorXd pts, F mindist) {
+Vxi bvh_isect(BVH<F, DIM>& bvh, RefMxd pts, F mindist) {
   py::gil_scoped_release release;
-  VectorXi out(pts.rows());
+  Vxi out(pts.rows());
   for (int i = 0; i < pts.rows(); ++i) {
     BVIsectND<F, DIM> query(pts.row(i), mindist);
     sicdock::bvh::BVIntersect(bvh, query);
@@ -204,8 +209,8 @@ VectorXi bvh_isect(BVH<F, DIM>& bvh, RefRowMajorXd pts, F mindist) {
   return out;
 }
 template <typename F, int DIM>
-VectorXi bvh_isect_naive(BVH<F, DIM>& bvh, RefRowMajorXd pts, F mindist) {
-  VectorXi out(pts.rows());
+Vxi bvh_isect_naive(BVH<F, DIM>& bvh, RefMxd pts, F mindist) {
+  Vxi out(pts.rows());
   out.fill(-1);
   for (int i = 0; i < pts.rows(); ++i) {
     Matrix<F, DIM, 1> pt = pts.row(i);
@@ -221,7 +226,7 @@ VectorXi bvh_isect_naive(BVH<F, DIM>& bvh, RefRowMajorXd pts, F mindist) {
 }
 
 template <typename F, int DIM>
-BVH<F, DIM> create_bvh_nd(RefRowMajorXd pts) {
+BVH<F, DIM> create_bvh_nd(RefMxd pts) {
   if (pts.cols() != DIM)
     throw std::runtime_error("input must be shape (N,DIM)");
   py::gil_scoped_release release;
@@ -238,7 +243,7 @@ BVH<F, DIM> create_bvh_nd(RefRowMajorXd pts) {
   return BVH(objs.begin(), objs.end());
 }
 template <typename F, int DIM>
-BVH<F, DIM> create_bvh_quatplus(RefRowMajorXd pts) {
+BVH<F, DIM> create_bvh_quatplus(RefMxd pts) {
   if (pts.cols() != DIM)
     throw std::runtime_error("quat input must be shape (N,4)");
   py::gil_scoped_release release;

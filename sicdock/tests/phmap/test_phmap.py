@@ -3,6 +3,14 @@ import numpy as np
 from sicdock import phmap
 
 
+def ua(a):
+    return np.array(a, dtype="u8")
+
+
+def fa(a):
+    return np.array(a, dtype="f8")
+
+
 def test_phmap():
     N = 10000
     phm = phmap.PHMap_u8u8()
@@ -90,7 +98,7 @@ def test_phmap_cpp_roundtrip():
     phm = phmap.PHMap_u8u8()
     k = np.random.randint(0, 100, N, dtype="u8")
     k = np.unique(k)
-    phm[k] = np.arange(len(k))
+    phm[k] = np.arange(len(k), dtype="u8")
 
     v = phm[k]
     assert 12345 not in phm
@@ -104,7 +112,7 @@ def test_phmap_cpp_roundtrip():
 
 def test_phmap_items_array():
     phm = phmap.PHMap_u8u8()
-    phm[[1, 2, 3]] = [4, 5, 6]
+    phm[ua([1, 2, 3])] = ua([4, 5, 6])
     k, v = phm.items_array()
     assert set(k) == set([1, 2, 3])
     assert set(v) == set([4, 5, 6])
@@ -113,41 +121,41 @@ def test_phmap_items_array():
 
 def test_phmap_eq():
     phm = phmap.PHMap_u8u8()
-    phm[[1, 2, 3]] = [4, 5, 6]
+    phm[ua([1, 2, 3])] = ua([4, 5, 6])
 
     phm2 = phmap.PHMap_u8u8()
-    phm2[[1, 2, 3]] = [4, 5, 6]
+    phm2[ua([1, 2, 3])] = ua([4, 5, 6])
     assert phm == phm2
 
     phm2 = phmap.PHMap_u8u8()
-    phm2[[1, 2, 4]] = [4, 5, 6]
+    phm2[ua([1, 2, 4])] = ua([4, 5, 6])
     assert phm != phm2
 
     phm2 = phmap.PHMap_u8u8()
-    phm2[[1, 2, 3]] = [4, 5, 0]
+    phm2[ua([1, 2, 3])] = ua([4, 5, 0])
     assert phm != phm2
 
     phm2 = phmap.PHMap_u8u8()
-    phm2[[1, 2]] = [4, 5]
+    phm2[ua([1, 2])] = ua([4, 5])
     assert phm != phm2
 
     phm = phmap.PHMap_u8f8()
-    phm[[1, 2, 3]] = [4, 5, 6]
+    phm[ua([1, 2, 3])] = fa([4, 5, 6])
 
     phm2 = phmap.PHMap_u8f8()
-    phm2[[1, 2, 3]] = [4, 5, 6]
+    phm2[ua([1, 2, 3])] = fa([4, 5, 6])
     assert phm == phm2
 
     phm2 = phmap.PHMap_u8f8()
-    phm2[[1, 2, 4]] = [4, 5, 6]
+    phm2[ua([1, 2, 4])] = fa([4, 5, 6])
     assert phm != phm2
 
     phm2 = phmap.PHMap_u8f8()
-    phm2[[1, 2, 3]] = [4, 5, 0]
+    phm2[ua([1, 2, 3])] = fa([4, 5, 0])
     assert phm != phm2
 
     phm2 = phmap.PHMap_u8f8()
-    phm2[[1, 2]] = [4, 5]
+    phm2[ua([1, 2])] = fa([4, 5])
     assert phm != phm2
 
 

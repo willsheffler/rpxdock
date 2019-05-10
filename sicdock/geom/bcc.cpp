@@ -5,6 +5,7 @@ cfg['compiler_args'] = ['-std=c++17', '-w', '-O1']
 cfg['dependencies'] = ['bcc.hpp']
 
 
+cfg['parallel'] = False
 setup_pybind11(cfg)
 %>
 */
@@ -35,13 +36,13 @@ struct MyIter {
 };
 
 template <typename F, typename K>
-VectorX<K> BCC_neighbors_6_3(BCC<6, F, K>& bcc, K index, int radius,
-                             bool extrahalf, bool oddlast3, bool sphere) {
+Vx<K> BCC_neighbors_6_3(BCC<6, F, K>& bcc, K index, int radius, bool extrahalf,
+                        bool oddlast3, bool sphere) {
   py::gil_scoped_release release;
   std::vector<std::pair<K, K>> tmp;
   MyIter<K> iter(tmp);
   bcc.neighbors_6_3(index, iter, radius, extrahalf, oddlast3, sphere);
-  VectorX<K> out(tmp.size());
+  Vx<K> out(tmp.size());
   for (int i = 0; i < tmp.size(); ++i) out[i] = tmp[i].first;
   return out;
 }
@@ -49,58 +50,66 @@ VectorX<K> BCC_neighbors_6_3(BCC<6, F, K>& bcc, K index, int radius,
 template <typename F, typename K>
 py::tuple BCC_neighbors_6_3_dist(BCC<6, F, K>& bcc, K index, int radius,
                                  bool extrahalf, bool oddlast3, bool sphere) {
-  py::gil_scoped_release release;
-  std::vector<std::pair<K, K>> tmp;
-  MyIter<K> iter(tmp);
-  bcc.neighbors_6_3(index, iter, radius, extrahalf, oddlast3, sphere);
-  VectorX<K> kout(tmp.size()), dout(tmp.size());
-  for (int i = 0; i < tmp.size(); ++i) {
-    kout[i] = tmp[i].first;
-    dout[i] = tmp[i].second;
+  auto kout = std::make_unique<Vx<K>>();
+  auto dout = std::make_unique<Vx<K>>();
+  {
+    py::gil_scoped_release release;
+    std::vector<std::pair<K, K>> tmp;
+    MyIter<K> iter(tmp);
+    bcc.neighbors_6_3(index, iter, radius, extrahalf, oddlast3, sphere);
+    kout->resize(tmp.size());
+    dout->resize(tmp.size());
+    for (int i = 0; i < tmp.size(); ++i) {
+      (*kout)[i] = tmp[i].first;
+      (*dout)[i] = tmp[i].second;
+    }
   }
-  py::gil_scoped_acquire acquire;
-  return py::make_tuple(kout, dout);
+  return py::make_tuple(*kout, *dout);
 }
 
 template <typename F, typename K>
-VectorX<K> BCC_neighbors_3(BCC<3, F, K>& bcc, K index, int radius,
-                           bool extrahalf, bool sphere) {
+Vx<K> BCC_neighbors_3(BCC<3, F, K>& bcc, K index, int radius, bool extrahalf,
+                      bool sphere) {
   py::gil_scoped_release release;
   std::vector<std::pair<K, K>> tmp;
   MyIter<K> iter(tmp);
   bcc.neighbors_3(index, iter, radius, extrahalf, sphere);
-  VectorX<K> out(tmp.size());
+  Vx<K> out(tmp.size());
   for (int i = 0; i < tmp.size(); ++i) out[i] = tmp[i].first;
   return out;
 }
 template <typename F, typename K>
 py::tuple BCC_neighbors_3_dist(BCC<3, F, K>& bcc, K index, int radius,
                                bool extrahalf, bool sphere) {
-  py::gil_scoped_release release;
-  std::vector<std::pair<K, K>> tmp;
-  MyIter<K> iter(tmp);
-  bcc.neighbors_3(index, iter, radius, extrahalf, sphere);
-  VectorX<K> kout(tmp.size()), dout(tmp.size());
-  for (int i = 0; i < tmp.size(); ++i) {
-    kout[i] = tmp[i].first;
-    dout[i] = tmp[i].second;
+  auto kout = std::make_unique<Vx<K>>();
+  auto dout = std::make_unique<Vx<K>>();
+  {
+    py::gil_scoped_release release;
+    std::vector<std::pair<K, K>> tmp;
+    MyIter<K> iter(tmp);
+    bcc.neighbors_3(index, iter, radius, extrahalf, sphere);
+    kout->resize(tmp.size());
+    dout->resize(tmp.size());
+    for (int i = 0; i < tmp.size(); ++i) {
+      (*kout)[i] = tmp[i].first;
+      (*dout)[i] = tmp[i].second;
+    }
   }
-  py::gil_scoped_acquire acquire;
-  return py::make_tuple(kout, dout);
+  return py::make_tuple(*kout, *dout);
 }
 
 template <int DIM, typename F, typename K>
-RowMajorX<F> BCC_getvals(BCC<DIM, F, K>& bcc, RefVectorX<K> keys) {
+Mx<F> BCC_getvals(BCC<DIM, F, K>& bcc, RefVx<K> keys) {
   py::gil_scoped_release release;
-  RowMajorX<F> out(keys.size(), DIM);
+  Mx<F> out(keys.size(), DIM);
   for (int i = 0; i < keys.rows(); ++i) out.row(i) = bcc[keys[i]];
   return out;
 }
 
 template <int DIM, typename F, typename K>
-VectorX<K> BCC_getkeys(BCC<DIM, F, K>& bcc, RefRowMajorX<F> vals) {
+Vx<K> BCC_getkeys(BCC<DIM, F, K>& bcc, RefMx<F> vals) {
   py::gil_scoped_release release;
-  VectorX<K> out(vals.rows());
+  Vx<K> out(vals.rows());
   for (int i = 0; i < vals.rows(); ++i) out[i] = bcc[vals.row(i)];
   return out;
 }

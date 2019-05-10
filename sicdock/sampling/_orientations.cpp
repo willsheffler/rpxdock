@@ -4,6 +4,7 @@ cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['_orientations.hpp']
 
+cfg['parallel'] = False
 setup_pybind11(cfg)
 %>
 */

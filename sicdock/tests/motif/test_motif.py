@@ -1,13 +1,13 @@
 from sicdock.motif import *
-from sicdock.xbin import Xbin
+from sicdock.xbin import Xbin, xbin_util as xu
 import pytest
 
 
 def pair_key_ss_py(xbin, resi, resj, ss, stub):
     ssi = ss[resi]
     ssj = ss[resj]
-    kij = xbin.key_of_selected_pairs(resi, resj, stub, stub)
-    kji = xbin.key_of_selected_pairs(resj, resi, stub, stub)
+    kij = xu.key_of_selected_pairs(xbin, resi, resj, stub, stub)
+    kji = xu.key_of_selected_pairs(xbin, resj, resi, stub, stub)
     assert kij.dtype == np.uint64
     ssi = ssi.astype("u8")
     ssj = ssj.astype("u8")
@@ -85,11 +85,11 @@ def test_pair_key(respairdat):
     xbin = Xbin(1, 20)
     rp = respairdat
     kij, kji = get_pair_keys(rp, xbin, min_pair_score=0, min_ssep=0, use_ss_key=False)
-    kij2 = xbin.key_of_selected_pairs(
-        rp.p_resi.data, rp.p_resj.data, rp.stub.data, rp.stub.data
+    kij2 = xu.key_of_selected_pairs(
+        xbin, rp.p_resi.data, rp.p_resj.data, rp.stub.data, rp.stub.data
     )
-    kji2 = xbin.key_of_selected_pairs(
-        rp.p_resj.data, rp.p_resi.data, rp.stub.data, rp.stub.data
+    kji2 = xu.key_of_selected_pairs(
+        xbin, rp.p_resj.data, rp.p_resi.data, rp.stub.data, rp.stub.data
     )
     assert np.all(kij == kij2)
     assert np.all(kji == kji2)

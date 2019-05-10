@@ -4,6 +4,7 @@ cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = []
 
+cfg['parallel'] = False
 setup_pybind11(cfg)
 %>
 */
@@ -33,9 +34,9 @@ using std::endl;
 
 typedef uint64_t Key;
 
-VectorX<double> logsum_bins(VectorX<uint64_t> lbub, VectorX<double> vals) {
+Vx<double> logsum_bins(Vx<uint64_t> lbub, Vx<double> vals) {
   py::gil_scoped_release release;
-  VectorX<double> out(lbub.size());
+  Vx<double> out(lbub.size());
   for (int i = 0; i < lbub.size(); ++i) {
     int ub = lbub[i] >> 32;
     int lb = (lbub[i] << 32) >> 32;
@@ -48,8 +49,9 @@ VectorX<double> logsum_bins(VectorX<uint64_t> lbub, VectorX<double> vals) {
   return out;
 }
 
-py::tuple jagged_bin(VectorX<Key> keys0) {
-  py::gil_scoped_release release;
+py::tuple jagged_bin(Vx<Key> keys0) {
+  // {
+  // py::gil_scoped_release release;
 
   std::vector<std::pair<Key, Key>> pairs;
   pairs.reserve(keys0.size());
@@ -62,7 +64,7 @@ py::tuple jagged_bin(VectorX<Key> keys0) {
 
   std::vector<Key> uniqkeys;
   std::vector<uint64_t> breaks;
-  VectorX<uint64_t> order(pairs.size());
+  Vx<uint64_t> order(pairs.size());
   Key prev = std::numeric_limits<Key>::max();
 
   for (int i = 0; i < pairs.size(); ++i) {
@@ -77,15 +79,14 @@ py::tuple jagged_bin(VectorX<Key> keys0) {
   breaks.push_back(pairs.size());
   assert(breaks.size() == uniqkeys.size() + 1);
 
-  VectorX<uint64_t> ranges(uniqkeys.size());
-  VectorX<Key> keys(uniqkeys.size());
+  Vx<uint64_t> ranges(uniqkeys.size());
+  Vx<Key> keys(uniqkeys.size());
   for (int i = 0; i < uniqkeys.size(); ++i) {
     keys[i] = uniqkeys[i];
     uint64_t lb = breaks[i], ub = breaks[i + 1];
     ranges[i] = ub << 32 | lb;
   }
-
-  py::gil_scoped_acquire acquire;
+  // }
 
   return py::make_tuple(order, keys, ranges);
 }

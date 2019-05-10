@@ -4,6 +4,7 @@ cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w']
 cfg['dependencies'] = ['pybind_types.hpp']
 
+cfg['parallel'] = False
 setup_pybind11(cfg)
 %>
 */
@@ -17,7 +18,7 @@ namespace util {
 
 template <typename F>
 py::array_t<F> test_xform_round_trip(py::array_t<F> a) {
-  MapVectorXform<F> e = xform_py_to_eigen(a);
+  MapVxX3<F> e = xform_py_to_eigen(a);
   if (e.size() > 7) {
     e[3].translation()[1] += 1;
     e[7].linear()(1, 2) = 9;

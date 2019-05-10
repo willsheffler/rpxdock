@@ -48,6 +48,7 @@ class Body:
             nfold = int(sym[1:])
             self.seq = np.array(list(nfold * self.pose.sequence()))
             self.ss = np.array(list(nfold * self.pose.secstruct()))
+            self.ssid = motif.ss_to_ssid(self.ss)
             self.chain = np.repeat(range(nfold), n)
             self.resno = np.tile(range(n), nfold)
             newcoord = np.empty((nfold * n,) + self.coord.shape[1:])
@@ -72,7 +73,7 @@ class Body:
         self.which_cen = which_cen
         self.bvh_cen = bvh_create(self.allcen[:, :3], which_cen)
         self.cen = self.allcen[which_cen]
-        self.pos = np.eye(4)
+        self.pos = np.eye(4, dtype="f4")
         self.pair_buf = np.empty((10000, 2), dtype="i4")
         self.pcavals, self.pcavecs = pca_eig(self.cen)
 
@@ -166,10 +167,11 @@ class Body:
     def contact_pairs(self, other, maxdis, buf=None):
         if not buf:
             buf = self.pair_buf
-        n = bvh_collect_pairs(
+        p, o = bvh_collect_pairs(
             self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis, buf
         )
-        return buf[:n]
+        assert not o
+        return p
 
     def contact_count(self, other, maxdis):
         return bvh_count_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis)
@@ -198,7 +200,7 @@ class Body:
 
     def copy(self):
         b = copy.copy(self)
-        b.pos = np.eye(4)  # mutable state can't be same ref as orig
+        b.pos = np.eye(4, dtype="f4")  # mutable state can't be same ref as orig
         assert b.pos is not self.pos
         assert b.coord is self.coord
         return b

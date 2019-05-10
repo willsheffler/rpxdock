@@ -65,7 +65,7 @@ def test_bin_score(respairscore):
 def test_bin_get_all_data(respairscore):
     # on real system: perf perrot: 434,667 perkey: 141,453
 
-    assert not respairscore.range_map.has([0])
+    assert not 0 in respairscore.range_map
     keys = np.zeros(len(respairscore.keys) * 2, dtype="u8")
     keys[: len(respairscore.keys)] = respairscore.keys
     np.random.shuffle(keys)

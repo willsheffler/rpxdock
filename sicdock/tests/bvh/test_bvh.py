@@ -66,23 +66,22 @@ def test_bvh_isect():
     tcre = perf_counter() - tcre
 
     N = 10
+    pos1 = hm.rand_xform(N, cart_sd=0.7)
+    pos2 = hm.rand_xform(N, cart_sd=0.7)
+    clash = list()
     for i in range(N):
-
-        pos1 = hm.rand_xform(cart_sd=0.7)
-        pos2 = hm.rand_xform(cart_sd=0.7)
-
         tbvh = perf_counter()
         clash1 = bvh.bvh_isect(
-            bvh1=bvh1, bvh2=bvh2, pos1=pos1, pos2=pos2, mindist=mindist
+            bvh1=bvh1, bvh2=bvh2, pos1=pos1[i], pos2=pos2[i], mindist=mindist
         )
         tbvh = perf_counter() - tbvh
 
         tn = perf_counter()
-        clash2 = bvh.naive_isect(bvh1, bvh2, pos1, pos2, mindist)
+        clash2 = bvh.naive_isect(bvh1, bvh2, pos1[i], pos2[i], mindist)
         tn = perf_counter() - tn
 
         assert clash1 == clash2
-
+        clash.append(clash1)
         # print(f"{i:3} clash {clash1:1} {tn / tbvh:8.2f}, {tn:1.6f}, {tbvh:1.6f}")
 
         totbvh += tbvh
@@ -92,6 +91,16 @@ def test_bvh_isect():
         f"iscet {N:,} iter bvh: {int(N/totbvh):,}/s fastnaive {int(N/totnaive):,}/s",
         f"ratio {int(totnaive/totbvh):,}x",
     )
+
+    clashvec = bvh.bvh_isect_vec(bvh1, bvh2, pos1, pos2, mindist)
+    print(clashvec.shape, pos1.shape, pos2.shape)
+
+    assert clashvec[1] == bvh.bvh_isect_vec(bvh1, bvh2, pos1[1], pos2[1], mindist)
+
+    bvh.bvh_isect_vec(bvh1, bvh2, pos1, pos2[1], mindist)
+    bvh.bvh_isect_vec(bvh1, bvh2, pos1[1], pos2, mindist)
+
+    assert np.all(clashvec == clash)
 
 
 def test_bvh_min_cpp():
@@ -141,20 +150,24 @@ def test_bvh_min_dist():
     # print()
     totbvh, totnaive = 0, 0
     N = 10
+    pos1 = hm.rand_xform(N, cart_sd=1)
+    pos2 = hm.rand_xform(N, cart_sd=1)
+    dis = list()
     for i in range(N):
-        pos1 = hm.rand_xform(cart_sd=1)
-        pos2 = hm.rand_xform(cart_sd=1)
 
         tbvh = perf_counter()
-        d, i1, i2 = bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
+        d, i1, i2 = bvh.bvh_min_dist(bvh1, bvh2, pos1[i], pos2[i])
         tbvh = perf_counter() - tbvh
-        dtest = np.linalg.norm(pos1 @ hm.hpoint(xyz1[i1]) - pos2 @ hm.hpoint(xyz2[i2]))
+        dtest = np.linalg.norm(
+            pos1[i] @ hm.hpoint(xyz1[i1]) - pos2[i] @ hm.hpoint(xyz2[i2])
+        )
         assert np.allclose(d, dtest, atol=1e-6)
 
         tn = perf_counter()
-        dn = bvh.naive_min_dist(bvh1, bvh2, pos1, pos2)
+        dn = bvh.naive_min_dist(bvh1, bvh2, pos1[i], pos2[i])
         tn = perf_counter() - tn
         assert np.allclose(dn, d, atol=1e-6)
+        dis.append((d, i1, i2))
 
         # print(
         # f"tnaivecpp {tn:1.6f} tbvh {tbvh:1.6f} tcpp/tbvh {tn/tbvh:8.1f}",
@@ -163,6 +176,12 @@ def test_bvh_min_dist():
         # )
         totnaive += tn
         totbvh += tbvh
+
+    d, i1, i2 = bvh.bvh_min_dist_vec(bvh1, bvh2, pos1, pos2)
+    for a, b, c, x in zip(d, i1, i2, dis):
+        assert a == x[0]
+        assert b == x[1]
+        assert c == x[2]
 
     print(
         "total times",
@@ -321,30 +340,30 @@ def test_bvh_slide_whole():
         # bvh1f = bvh.bvh_create_32bit(xyz1)
         # bvh2f = bvh.bvh_create_32bit(xyz2)
         # tcre = perf_counter() - tcre
+        pos1 = hm.rand_xform(N2, cart_sd=0.5)
+        pos2 = hm.rand_xform(N2, cart_sd=0.5)
+        dirn = np.random.randn(3)
+        dirn /= np.linalg.norm(dirn)
+        radius = 0.001 + np.random.rand() / 10
+        slides = list()
         for i in range(N2):
-            dirn = np.random.randn(3)
-            dirn /= np.linalg.norm(dirn)
-            radius = 0.001 + np.random.rand() / 10
-            pos1 = hm.rand_xform(cart_sd=0.5)
-            pos2 = hm.rand_xform(cart_sd=0.5)
-
             tbvh = perf_counter()
-            dslide = bvh.bvh_slide(bvh1, bvh2, pos1, pos2, radius, dirn)
+            dslide = bvh.bvh_slide(bvh1, bvh2, pos1[i], pos2[i], radius, dirn)
             tbvh = perf_counter() - tbvh
             tbvhf = perf_counter()
-            # dslide = bvh.bvh_slide_32bit(bvh1f, bvh2f, pos1, pos2, radius, dirn)
+            # dslide = bvh.bvh_slide_32bit(bvh1f, bvh2f, pos1[i], pos2[i], radius, dirn)
             tbvhf = perf_counter() - tbvhf
-
+            slides.append(dslide)
             if dslide > 9e8:
                 tn = perf_counter()
-                dn, i, j = bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
+                dn, i, j = bvh.bvh_min_dist(bvh1, bvh2, pos1[i], pos2[i])
                 tn = perf_counter() - tn
                 assert dn > 2 * radius
                 nmiss += 1
             else:
-                pos1 = hm.htrans(dirn * dslide) @ pos1
+                tmp = hm.htrans(dirn * dslide) @ pos1[i]
                 tn = perf_counter()
-                dn, i, j = bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
+                dn, i, j = bvh.bvh_min_dist(bvh1, bvh2, tmp, pos2[i])
                 tn = perf_counter() - tn
                 if not np.allclose(dn, 2 * radius, atol=1e-6):
                     print(dn, 2 * radius)
@@ -359,6 +378,8 @@ def test_bvh_slide_whole():
             totmin += tn
             totbvh += tbvh
             totbvhf += tbvhf
+        slides2 = bvh.bvh_slide_vec(bvh1, bvh2, pos1, pos2, radius, dirn)
+        assert np.allclose(slides, slides2)
     N = N1 * N2
     print(
         f"slide test {N:,} iter bvhslide double: {int(N/totbvh):,}/s bvhmin {int(N/totmin):,}/s",
@@ -378,24 +399,28 @@ def test_collect_pairs_simple():
 
     pos1 = np.eye(4)
     pos2 = np.eye(4)
-    nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    pbvh, o = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
     nnai = bvh.naive_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufnai)
-    assert nbvh == 2 and nnai == 2
-    assert np.all(bufbvh[:nbvh] == [[0, 0], [1, 1]])
+    assert not o
+    print(pbvh.shape)
+    assert len(pbvh) == 2 and nnai == 2
+    assert np.all(pbvh == [[0, 0], [1, 1]])
     assert np.all(bufnai[:nnai] == [[0, 0], [1, 1]])
 
     pos1 = hm.htrans([0, 2, 0])
-    nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    pbvh, o = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
     nnai = bvh.naive_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufnai)
-    assert nbvh == 1 and nnai == 1
-    assert np.all(bufbvh[:nbvh] == [[0, 1]])
+    assert not o
+    assert len(pbvh) == 1 and nnai == 1
+    assert np.all(pbvh == [[0, 1]])
     assert np.all(bufnai[:nnai] == [[0, 1]])
 
     pos1 = hm.htrans([0, -2, 0])
-    nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    pbvh, o = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
     nnai = bvh.naive_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufnai)
-    assert nbvh == 1 and nnai == 1
-    assert np.all(bufbvh[:nbvh] == [[1, 0]])
+    assert not o
+    assert len(pbvh) == 1 and nnai == 1
+    assert np.all(pbvh == [[1, 0]])
     assert np.all(bufnai[:nnai] == [[1, 0]])
 
 
@@ -416,29 +441,32 @@ def test_collect_pairs_simple_selection():
 
     pos1 = np.eye(4)
     pos2 = np.eye(4)
-    nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    pbvh, o = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    assert not o
     nnai = bvh.naive_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufnai)
-    assert nbvh == 2 and nnai == 2
-    assert np.all(bufbvh[:nbvh] == [[0, 1], [2, 3]])
+    assert len(pbvh) == 2 and nnai == 2
+    assert np.all(pbvh == [[0, 1], [2, 3]])
     assert np.all(bufnai[:nnai] == [[0, 1], [2, 3]])
 
     pos1 = hm.htrans([0, 2, 0])
-    nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    pbvh, o = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    assert not o
     nnai = bvh.naive_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufnai)
-    assert nbvh == 1 and nnai == 1
-    assert np.all(bufbvh[:nbvh] == [[0, 3]])
+    assert len(pbvh) == 1 and nnai == 1
+    assert np.all(pbvh == [[0, 3]])
     assert np.all(bufnai[:nnai] == [[0, 3]])
 
     pos1 = hm.htrans([0, -2, 0])
-    nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    pbvh, o = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+    assert not o
     nnai = bvh.naive_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufnai)
-    assert nbvh == 1 and nnai == 1
-    assert np.all(bufbvh[:nbvh] == [[2, 1]])
+    assert len(pbvh) == 1 and nnai == 1
+    assert np.all(pbvh == [[2, 1]])
     assert np.all(bufnai[:nnai] == [[2, 1]])
 
 
 def test_collect_pairs():
-    N1, N2 = 2, 10
+    N1, N2 = 2, 100
     N = N1 * N2
     Npts = 1000
     totbvh, totbvhf, totmin = 0, 0, 0
@@ -450,49 +478,76 @@ def test_collect_pairs():
         xyz2 = np.random.rand(Npts, 3) - [0.5, 0.5, 0.5]
         bvh1 = bvh.bvh_create(xyz1)
         bvh2 = bvh.bvh_create(xyz2)
-        for i in range(N2):
-            mindist = 0.002 + np.random.rand() / 10
-            while 1:
-                pos1 = hm.rand_xform(cart_sd=0.5)
-                pos2 = hm.rand_xform(cart_sd=0.5)
-                d = np.linalg.norm(pos1[:, 3] - pos2[:, 3])
-                if 0.8 < d < 1.3:
-                    break
 
+        pos1, pos2 = list(), list()
+        while 1:
+            x1 = hm.rand_xform(cart_sd=0.5)
+            x2 = hm.rand_xform(cart_sd=0.5)
+            d = np.linalg.norm(x1[:, 3] - x2[:, 3])
+            if 0.8 < d < 1.3:
+                pos1.append(x1)
+                pos2.append(x2)
+                if len(pos1) == N2:
+                    break
+        pos1 = np.stack(pos1)
+        pos2 = np.stack(pos2)
+        pairs = list()
+        mindist = 0.002 + np.random.rand() / 10
+        for i in range(N2):
             tbvh = perf_counter()
-            nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufbvh)
+            pbvh, o = bvh.bvh_collect_pairs(
+                bvh1, bvh2, pos1[i], pos2[i], mindist, bufbvh
+            )
             tbvh = perf_counter() - tbvh
+            assert not o
 
             tnai = perf_counter()
-            nnai = bvh.naive_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, bufnai)
+            nnai = bvh.naive_collect_pairs(
+                bvh1, bvh2, pos1[i], pos2[i], mindist, bufnai
+            )
             tnai = perf_counter() - tnai
 
             tct = perf_counter()
-            nct = bvh.bvh_count_pairs(bvh1, bvh2, pos1, pos2, mindist)
+            nct = bvh.bvh_count_pairs(bvh1, bvh2, pos1[i], pos2[i], mindist)
             tct = perf_counter() - tct
             ntot += nct
 
-            assert nct == nbvh
+            assert nct == len(pbvh)
             totnai += 1
+
+            pairs.append(pbvh.copy())
 
             totbvh += tbvh
             totnai += tnai
             totct += tct
 
-            assert nbvh == nnai
-            if nbvh == 0:
+            assert len(pbvh) == nnai
+            if len(pbvh) == 0:
                 continue
 
-            o = np.lexsort((bufbvh[:nbvh, 1], bufbvh[:nbvh, 0]))
-            bufbvh[:nbvh] = bufbvh[:nbvh][o]
+            o = np.lexsort((pbvh[:, 1], pbvh[:, 0]))
+            pbvh[:] = pbvh[:][o]
             o = np.lexsort((bufnai[:nnai, 1], bufnai[:nnai, 0]))
             bufnai[:nnai] = bufnai[:nnai][o]
-            assert np.all(bufbvh[:nbvh] == bufnai[:nnai])
+            assert np.all(pbvh == bufnai[:nnai])
 
-            pair1 = pos1 @ hm.hpoint(xyz1[bufbvh[:nbvh, 0]])[..., None]
-            pair2 = pos2 @ hm.hpoint(xyz2[bufbvh[:nbvh, 1]])[..., None]
+            pair1 = pos1[i] @ hm.hpoint(xyz1[pbvh[:, 0]])[..., None]
+            pair2 = pos2[i] @ hm.hpoint(xyz2[pbvh[:, 1]])[..., None]
             dpair = np.linalg.norm(pair2 - pair1, axis=1)
             assert np.max(dpair) <= mindist
+
+        pcount = bvh.bvh_count_pairs_vec(bvh1, bvh2, pos1, pos2, mindist)
+        assert np.all(pcount == [len(x) for x in pairs])
+
+        pairs2, lbub = bvh.bvh_collect_pairs_vec(bvh1, bvh2, pos1, pos2, mindist)
+        for i, p in enumerate(pairs):
+            lb, ub = lbub[i]
+            assert np.all(pairs2[lb:ub] == pairs[i])
+
+        x, y = bvh.bvh_collect_pairs_vec(bvh1, bvh2, pos1[:3], pos2[0], mindist)
+        assert len(y) == 3
+        x, y = bvh.bvh_collect_pairs_vec(bvh1, bvh2, pos1[0], pos2[:5], mindist)
+        assert len(y) == 5
 
     print(
         f"collect test {N:,} iter bvh {int(N/totbvh):,}/s naive {int(N/totnai):,}/s ratio {totnai/totbvh:7.2f} count-only {int(N/totct):,}/s avg cnt {ntot/N}"
@@ -549,14 +604,15 @@ def test_slide_collect_pairs():
                 assert np.allclose(dn, 2 * radius, atol=1e-6)
 
                 tcol = perf_counter()
-                npair = bvh.bvh_collect_pairs(
+                pair, o = bvh.bvh_collect_pairs(
                     bvhcol1, bvhcol2, pos1, pos2, pairdis, buf
                 )
-                if npair > 0:
+                assert not o
+                if len(pair) > 0:
                     tcol = perf_counter() - tcol
                     totcol += tcol
-                    pair1 = pos1 @ hm.hpoint(xyzcol1[buf[:npair, 0]])[..., None]
-                    pair2 = pos2 @ hm.hpoint(xyzcol2[buf[:npair, 1]])[..., None]
+                    pair1 = pos1 @ hm.hpoint(xyzcol1[pair[:, 0]])[..., None]
+                    pair2 = pos2 @ hm.hpoint(xyzcol2[pair[:, 1]])[..., None]
                     dpair = np.linalg.norm(pair2 - pair1, axis=1)
                     assert np.max(dpair) <= pairdis
 
@@ -604,32 +660,34 @@ def test_bvh_isect_range(body=None, cart_sd=0.3, N2=10, mindist=0.02):
             bvh2 = bvh.bvh_create(xyz2)
             tcre = perf_counter() - tcre
 
+        pos1 = hm.rand_xform(N2, cart_sd=cart_sd)
+        pos2 = hm.rand_xform(N2, cart_sd=cart_sd)
+        ranges = list()
         for i in range(N2):
-
-            pos1 = hm.rand_xform(cart_sd=cart_sd)
-            pos2 = hm.rand_xform(cart_sd=cart_sd)
 
             tbvh0 = perf_counter()
             c = bvh.bvh_isect(
-                bvh1=bvh1, bvh2=bvh2, pos1=pos1, pos2=pos2, mindist=mindist
+                bvh1=bvh1, bvh2=bvh2, pos1=pos1[i], pos2=pos2[i], mindist=mindist
             )
             tbvh0 = perf_counter() - tbvh0
 
-            if not c:
-                continue
-            nhit += 1
+            # if not c:
+            # continue
+            if c:
+                nhit += 1
 
             tbvh = perf_counter()
             range1 = bvh.bvh_isect_range(
-                bvh1=bvh1, bvh2=bvh2, pos1=pos1, pos2=pos2, mindist=mindist
+                bvh1=bvh1, bvh2=bvh2, pos1=pos1[i], pos2=pos2[i], mindist=mindist
             )
             tbvh = perf_counter() - tbvh
 
             tn = perf_counter()
-            range2 = bvh.naive_isect_range(bvh1, bvh2, pos1, pos2, mindist)
+            range2 = bvh.naive_isect_range(bvh1, bvh2, pos1[i], pos2[i], mindist)
             assert range1 == range2
             tn = perf_counter() - tn
 
+            ranges.append(range1)
             # print(f"{str(range1):=^80}")
             # body.move_to(pos1).dump_pdb("test1.pdb")
             # body.move_to(pos2).dump_pdb("test2.pdb")
@@ -640,6 +698,10 @@ def test_bvh_isect_range(body=None, cart_sd=0.3, N2=10, mindist=0.02):
             totbvh += tbvh
             totnaive += tn
             totbvh0 += tbvh0
+        lb, ub = bvh.bvh_isect_range_vec(bvh1, bvh2, pos1, pos2, mindist)
+        ranges = np.array(ranges)
+        assert np.all(lb == ranges[:, 0])
+        assert np.all(ub == ranges[:, 1])
 
     print(
         f"iscet {nhit:,} hit of {N:,} iter bvh: {int(nhit/totbvh):,}/s fastnaive {int(nhit/totnaive):,}/s",
@@ -682,32 +744,79 @@ def test_bvh_pickle(tmpdir):
     assert rngb == rng
 
 
-def helper_test_bvh_gil_release(bvh1, bvh2, pos1, pos2):
-    # nbvh = bvh.bvh_collect_pairs(bvh1, bvh2, pos1, pos2, mindist, buf)
-    # return buf[:nbvh]
-    return bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
+def test_bvh_threading_isect_may_fail():
+    from concurrent.futures import ThreadPoolExecutor
+    from itertools import repeat
+
+    reps = 1
+    npos = 1000
+
+    Npts = 1000
+    xyz1 = np.random.rand(Npts, 3) - [0.5, 0.5, 0.5]
+    xyz2 = np.random.rand(Npts, 3) - [0.5, 0.5, 0.5]
+    bvh1 = bvh.bvh_create(xyz1)
+    bvh2 = bvh.bvh_create(xyz2)
+    mindist = 0.1
+
+    tottmain, tottthread = 0, 0
+    nt = 2
+    exe = ThreadPoolExecutor(nt)
+
+    for i in range(reps):
+
+        pos1 = hm.rand_xform(npos, cart_sd=0.5)
+        pos2 = hm.rand_xform(npos, cart_sd=0.5)
+
+        buf = np.empty((Npts, 2), dtype="i4")
+        t = perf_counter()
+        _ = [bvh.bvh_isect(bvh1, bvh2, p1, p2, mindist) for p1, p2 in zip(pos1, pos2)]
+        isect = np.array(_)
+        tmain = perf_counter() - t
+        tottmain += tmain
+
+        t = perf_counter()
+        futures = exe.map(
+            bvh.bvh_isect_vec,
+            repeat(bvh1),
+            repeat(bvh2),
+            np.split(pos1, nt),
+            np.split(pos2, nt),
+            repeat(mindist),
+        )
+        isect2 = np.concatenate([f for f in futures])
+        tthread = perf_counter() - t
+        tottthread += tthread
+
+        print("fisect", np.sum(isect2) / len(isect2))
+
+        assert np.allclose(isect, isect2)
+        # print("bvh_isect", i, tmain / tthread, ">= 1.1")
+        # assert tmain / tthread > 1.1
+
+    print("bvh_isect", tottmain / tottthread)
 
 
-def test_bvh_threading_may_fail():
+def test_bvh_threading_mindist_may_fail():
     from concurrent.futures import ThreadPoolExecutor
     from itertools import repeat
 
     reps = 1
     npos = 100
 
-    Npts = 100
-    xyz1 = 100 * (np.random.rand(Npts, 3) - [0.5, 0.5, 0.5])
-    xyz2 = 100 * (np.random.rand(Npts, 3) - [0.5, 0.5, 0.5])
+    Npts = 1000
+    xyz1 = np.random.rand(Npts, 3) - [0.5, 0.5, 0.5]
+    xyz2 = np.random.rand(Npts, 3) - [0.5, 0.5, 0.5]
     bvh1 = bvh.bvh_create(xyz1)
     bvh2 = bvh.bvh_create(xyz2)
 
     tottmain, tottthread = 0, 0
-    exe = ThreadPoolExecutor(2)
+    nt = 2
+    exe = ThreadPoolExecutor(nt)
 
     for i in range(reps):
 
-        pos1 = hm.rand_xform(npos, cart_sd=0.5)
-        pos2 = hm.rand_xform(npos, cart_sd=0.5)
+        pos1 = hm.rand_xform(npos, cart_sd=0.7)
+        pos2 = hm.rand_xform(npos, cart_sd=0.7)
 
         buf = np.empty((Npts, 2), dtype="i4")
         t = perf_counter()
@@ -718,17 +827,21 @@ def test_bvh_threading_may_fail():
 
         t = perf_counter()
         futures = exe.map(
-            helper_test_bvh_gil_release, repeat(bvh1), repeat(bvh2), pos1, pos2
+            bvh.bvh_min_dist_vec,
+            repeat(bvh1),
+            repeat(bvh2),
+            np.split(pos1, nt),
+            np.split(pos2, nt),
         )
-        mindist2 = np.array([f for f in futures])
+        mindist2 = np.concatenate([f for f in futures], axis=1).T
         tthread = perf_counter() - t
         tottthread += tthread
 
         assert np.allclose(mindist, mindist2)
-        print(tmain / tthread, ">= 1.1")
+        # print("bvh_min_dist", i, tmain / tthread, ">= 1.1")
         assert tmain / tthread > 1.1
 
-    print(tottmain / tottthread)
+    print("bvh_min_dist", tottmain / tottthread)
 
 
 if __name__ == "__main__":
@@ -750,11 +863,12 @@ if __name__ == "__main__":
     # test_bvh_slide_whole()
     # test_collect_pairs_simple()
     # test_collect_pairs_simple_selection()
-    # test_collect_pairs()
+    test_collect_pairs()
     # test_slide_collect_pairs()
     # test_bvh_accessors()
     # test_bvh_isect_range()
     # import tempfile
     # test_bvh_pickle(tempfile.mkdtemp())
 
-    test_bvh_gil_release()
+    # test_bvh_threading_mindist_may_fail()
+    # test_bvh_threading_isect_may_fail()

@@ -5,9 +5,10 @@
 // cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
 // '../util/global_rng.hpp', 'bvh.hpp', 'bvh_algo.hpp', '../util/numeric.hpp']
 //
-// setup_pybind11(cfg)
-// %>
-// */
+// cfg['parallel'] = False
+setup_pybind11(cfg)
+    // %>
+    // */
 
 /*
 
@@ -182,7 +183,7 @@ py::tuple naive_min_one_quat(BVH<F, 4>& bvh, M3<F> rot) {
 }
 
 template <typename F, int DIM>
-BVH<F, DIM> create_bvh_quatplus(RefRowMajorXd pts) {
+BVH<F, DIM> create_bvh_quatplus(RefMxd pts) {
   using Pt = Matrix<F, DIM, 1>;
   using Pi = PtIdxND<Pt>;
   using BVH = BVH<F, DIM>;
@@ -199,7 +200,7 @@ BVH<F, DIM> create_bvh_quatplus(RefRowMajorXd pts) {
 }
 
 template <typename F>
-BVH<F, 4> create_bvh_quat(RefRowMajorXd pts) {
+BVH<F, 4> create_bvh_quat(RefMxd pts) {
   if (pts.cols() == 4) {
     return create_bvh_quatplus<F, 4>(pts);
   } else if (pts.cols() != 9) {

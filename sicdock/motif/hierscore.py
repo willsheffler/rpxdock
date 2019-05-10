@@ -1,12 +1,15 @@
-import os, _pickle
+import os, _pickle, threading
+from itertools import repeat
 import numpy as np
 import sicdock as sic
 from sicdock.rotamer import get_rotamer_space
 from sicdock.util import Bunch
 from sicdock.sampling import xform_hier_guess_sampling_covrads
 from sicdock.xbin import smear
+from sicdock.xbin import xbin_util as xu
 from sicdock.util import load, dump
 from sicdock.motif import Xmap, ResPairScore
+from sicdock.bvh import bvh_collect_pairs, bvh_collect_pairs_vec, bvh_count_pairs_vec
 
 
 class HierScore:
@@ -28,22 +31,26 @@ class HierScore:
             self.use_ss = self.base.attr.opts.use_ss_key
             assert all(self.use_ss == h.attr.cli_args.use_ss_key for h in self.hier)
         self.maxdis = [maxdis + h.attr.cart_extent for h in self.hier]
+        self.tl = threading.local()
 
-    def score(self, iresl, body1, body2, contact_weight=0.1):
-        pairs = body1.contact_pairs(body2, self.maxdis[iresl])
+    def score(self, iresl, body1, body2, wcontact=0.1):
+        return self.scorepos(iresl, body1, body2, body1.pos, body2.pos, wcontact)
+
+    def scorepos(self, iresl, body1, body2, pos1, pos2, wcontact=0.1):
+        pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
+        pairs, lbub = bvh_collect_pairs_vec(
+            body1.bvh_cen, body2.bvh_cen, pos1, pos2, self.maxdis[iresl]
+        )
         xbin = self.hier[iresl].xbin
         phmap = self.hier[iresl].phmap
-        if self.use_ss:
-            pair_score = xbin.ssmap_of_selected_pairs(
-                phmap, pairs, body1.ssid, body2.ssid, body1.stub, body2.stub
-            )
-        else:
-            pair_score = xbin.map_of_selected_pairs(
-                phmap, pairs, body1.stub, body2.stub
-            )
-        # pair_score = pair_score[pair_score > 0]
-        # print(len(pair_score), np.quantile(pair_score, [0, 0.5, 0.9, 1]))
-        return np.sum(pair_score) + contact_weight * len(pair_score)
+        ssstub = body1.ssid, body2.ssid, body1.stub, body2.stub
+        ssstub = ssstub if self.use_ss else ssstub[2:]
+        fun = xu.ssmap_pairs_multipos if self.use_ss else xu.map_pairs_multipos
+        pscore = fun(xbin, phmap, pairs, *ssstub, lbub, pos1, pos2)
+        scores = np.zeros(max(len(pos1), len(pos2)))
+        for i, (lb, ub) in enumerate(lbub):
+            scores[i] = 1 * np.sum(pscore[lb:ub]) + wcontact * (ub - lb)
+        return scores
 
     def iresls(self):
         return [i for i in range(len(self.hier))]

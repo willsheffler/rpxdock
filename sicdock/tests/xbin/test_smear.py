@@ -175,7 +175,7 @@ def test_smear_two():
             p[1, :3, :3] = hm.rot(np.random.randn(3), ori_resl / 2, degrees=True)
 
             k = xb.key_of(p)
-            phm[k] = [1, 1]
+            phm[k] = np.array([1, 1], dtype="f8")
             smeared = smear(xb, phm, radius=r, extrahalf=1, oddlast3=1, sphere=1)
             allk, allv = smeared.items_array()
 
@@ -418,6 +418,6 @@ if __name__ == "__main__":
     # test_smear_one_oddori_sphere()
     # test_smear_one_exhalf_oddori_sphere()
     # test_smear_one_bounding()
-    # test_smear_two()
-    test_smear_multiple()
+    test_smear_two()
+    # test_smear_multiple()
     # test_smear_one_kernel()

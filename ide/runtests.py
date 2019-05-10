@@ -27,6 +27,7 @@ _file_mappings = {
     "cookie_cutter.cpp": ["sicdock/tests/cluster/test_cluster.py"],
     "xbin.hpp": ["sicdock/tests/xbin/test_xbin.py"],
     "xbin.cpp": ["sicdock/tests/xbin/test_xbin.py"],
+    "xbin_util.cpp": ["sicdock/tests/xbin/test_xbin_util.py"],
     "xmap.cpp": ["sicdock/tests/xbin/test_xmap.py"],
     "phmap.cpp": ["sicdock/tests/phmap/test_phmap.py"],
     "phmap.hpp": ["sicdock/tests/phmap/test_phmap.py"],
@@ -46,6 +47,7 @@ _file_mappings = {
     "bcc.cpp": ["sicdock/tests/geom/test_bcc.py"],
     "pybind_types.hpp": ["sicdock/tests/util/test_pybind_types.py"],
     "xform_dist.cpp": ["sicdock/tests/geom/test_geom.py"],
+    "hierscore.py": ["sicdock/tests/search/test_plug.py"],
 }
 _post = defaultdict(lambda: "")
 

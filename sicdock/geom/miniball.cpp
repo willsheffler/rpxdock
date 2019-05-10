@@ -5,6 +5,7 @@ cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['../extern/miniball/Seb.h',
 '../extern/miniball/Seb-inl.h', '../util/Timer.hpp']
 
+cfg['parallel'] = False
 setup_pybind11(cfg)
 %>
 */
@@ -77,7 +78,7 @@ bool miniball_test(int n = 1000, int d = 7, bool on_boundary = false) {
   cout << "=====================================================" << endl;
   using MiniballHack =
       Seb::Smallest_enclosing_ball<F, double *, EigenPointAccessor>;
-  RowMajorXd ecrd(n, d);
+  Mxd ecrd(n, d);
   EigenPointAccessor pa(ecrd);
   for (int i = 0; i < n; ++i)
     for (int j = 0; j < d; ++j) pa[i][j] = S[i][j];

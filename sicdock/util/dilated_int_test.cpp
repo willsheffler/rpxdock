@@ -4,6 +4,7 @@ cfg['include_dirs'] = ['../..']
 cfg['compiler_args'] = ['-std=c++17', '-w']
 cfg['dependencies'] = ['dilated_int.hpp']
 
+cfg['parallel'] = False
 setup_pybind11(cfg)
 %>
 */

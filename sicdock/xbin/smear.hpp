@@ -23,8 +23,8 @@ struct PHMapUpdateMax {
   K cell_index;
   V val0;
   K key0;
-  VectorX<V> const& kernel;
-  PHMapUpdateMax(PHMap<K, V>& m, Xbin<F, K>& b, K c, V v, K k0, VectorX<V>& ker)
+  Vx<V> const& kernel;
+  PHMapUpdateMax(PHMap<K, V>& m, Xbin<F, K>& b, K c, V v, K k0, Vx<V>& ker)
       : map(m.phmap_), xbin(b), cell_index(c), val0(v), key0(k0), kernel(ker) {}
   PHMapUpdateMax<F, K, V>& operator++(int) noexcept { return *this; }
   PHMapUpdateMax<F, K, V>& operator*() noexcept { return *this; }
@@ -45,11 +45,11 @@ template <typename F, typename K, typename V>
 std::unique_ptr<PHMap<K, V>> smear(Xbin<F, K>& xbin, PHMap<K, V>& phmap,
                                    int radius = 1, bool exhalf = false,
                                    bool oddlast3 = true, bool sphere = true,
-                                   VectorX<V> kernel = VectorX<V>()) {
+                                   Vx<V> kernel = Vx<V>()) {
   int r = xbin.grid().neighbor_radius_square_cut(radius, exhalf);
   if (sphere) r = xbin.grid().neighbor_sphere_radius_square_cut(radius, exhalf);
   if (kernel.size() == 0) {
-    kernel = VectorX<V>(r);
+    kernel = Vx<V>(r);
     kernel.fill(1);
   }
   auto out = std::make_unique<PHMap<K, V>>();

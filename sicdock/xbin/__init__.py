@@ -1,5 +1,6 @@
 from cppimport import import_hook
 from sicdock.xbin.xbin import *
+from sicdock.xbin.xbin_util import *
 from sicdock.xbin.smear import *
 import sicdock.geom.bcc
 

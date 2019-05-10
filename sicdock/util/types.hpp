@@ -32,25 +32,24 @@ using M4f = M4<float>;
 using M4d = M4<double>;
 
 template <typename F>
-using RowMajorX =
-    Eigen::Matrix<F, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+using Mx = Eigen::Matrix<F, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 template <typename F>
-using RefRowMajorX = Eigen::Ref<RowMajorX<F>>;
+using RefMx = Eigen::Ref<Mx<F>>;
 
 template <typename F>
-using VectorX = Eigen::Matrix<F, Eigen::Dynamic, 1>;
+using Vx = Eigen::Matrix<F, Eigen::Dynamic, 1>;
 template <typename F>
-using RefVectorX = Eigen::Ref<VectorX<F>>;
+using RefVx = Eigen::Ref<Vx<F>>;
 
-using RowMajorXd = RowMajorX<double>;
-using RefRowMajorXd = RefRowMajorX<double>;
-using VectorXd = VectorX<double>;
-using RefVectorXd = RefVectorX<double>;
-using VectorXi = VectorX<int>;
-using RefVectorXi = RefVectorX<int>;
+using Mxd = Mx<double>;
+using RefMxd = RefMx<double>;
+using Vxd = Vx<double>;
+using RefVxd = RefVx<double>;
+using Vxi = Vx<int>;
+using RefVxi = RefVx<int>;
 
 template <typename F>
-using MapVectorXform = Eigen::Map<VectorX<X3<F>>>;
+using MapVxX3 = Eigen::Map<Vx<X3<F>>>;
 
 template <class F>
 F epsilon2() {
@@ -59,3 +58,16 @@ F epsilon2() {
 
 }  // namespace util
 }  // namespace sicdock
+
+namespace Eigen {
+
+template <typename V>
+V *begin(sicdock::util::Vx<V> v) {
+  return v.data();
+}
+template <typename V>
+V *end(sicdock::util::Vx<V> v) {
+  return v.data() + v.size();
+}
+
+}  // namespace Eigen

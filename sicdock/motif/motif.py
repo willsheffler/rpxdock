@@ -2,6 +2,7 @@ import os, sys, time, _pickle
 from cppimport import import_hook
 import numpy as np
 
+from sicdock.xbin import xbin_util as xu
 from sicdock.rotamer import get_rotamer_space, assign_rotamers, check_rotamer_deviation
 from sicdock.motif import _motif as cpp
 from sicdock.motif.pairdat import ResPairData
@@ -22,7 +23,7 @@ def ss_to_ssid(ss):
     return ssid
 
 
-def bb_stubs(n, ca=None, c=None):
+def bb_stubs(n, ca=None, c=None, dtype="f4"):
     if ca is None:
         assert n.ndim == 3
         assert n.shape[1] >= 3  # n, ca, c
@@ -32,7 +33,7 @@ def bb_stubs(n, ca=None, c=None):
 
     assert len(n) == len(ca) == len(c)
     assert n.ndim == ca.ndim == c.ndim == 2
-    stub = np.zeros((len(n), 4, 4))
+    stub = np.zeros((len(n), 4, 4), dtype=dtype)
     stub[:, 3, 3] = 1
     e1 = n[:, :3] - ca[:, :3]
     e1 /= np.linalg.norm(e1, axis=1)[:, None]
@@ -63,11 +64,11 @@ def get_pair_keys(rp, xbin, min_pair_score, min_ssep, use_ss_key, **kw):
     kji = np.zeros(len(rp.p_resi), dtype="u8")
     assert resi.dtype == ss.dtype
     if use_ss_key:
-        kij[mask] = xbin.sskey_of_selected_pairs(resi, resj, ss, ss, stub, stub)
-        kji[mask] = xbin.sskey_of_selected_pairs(resj, resi, ss, ss, stub, stub)
+        kij[mask] = xu.sskey_of_selected_pairs(xbin, resi, resj, ss, ss, stub, stub)
+        kji[mask] = xu.sskey_of_selected_pairs(xbin, resj, resi, ss, ss, stub, stub)
     else:
-        kij[mask] = xbin.key_of_selected_pairs(resi, resj, stub, stub)
-        kji[mask] = xbin.key_of_selected_pairs(resj, resi, stub, stub)
+        kij[mask] = xu.key_of_selected_pairs(xbin, resi, resj, stub, stub)
+        kji[mask] = xu.key_of_selected_pairs(xbin, resj, resi, stub, stub)
     return kij, kji
 
 

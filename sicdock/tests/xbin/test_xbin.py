@@ -1,11 +1,10 @@
 import _pickle
 from time import perf_counter
 import numpy as np
-from cppimport import import_hook
 from sicdock.xbin import xbin_test, Xbin_double, Xbin_float, create_Xbin_nside_double
 from sicdock.geom.rotation import angle_of_3x3
 from sicdock.geom import bcc
-from sicdock import phmap
+
 
 import homog as hm
 
@@ -33,7 +32,7 @@ def test_create_binner():
 
 
 def test_key_of():
-    N = 1_000_00
+    N = 100_000
     xb = Xbin_double(0.3, 5.0, 256.0)
     xbf = Xbin_float(0.3, 5.0, 256.0)
     tgen = perf_counter()
@@ -60,26 +59,6 @@ def test_key_of():
         f"performance keys: {int(N/t):,} kfloat: {int(N/tf):,} cens: {int(N/tc):,}",
         f"cover {N/uniq} tgen: {int(N/tgen):,}",
     )
-
-
-def test_key_of_pairs():
-    xb = Xbin_double(1, 20)
-    N = 10_000
-    N1, N2 = 100, 1000
-    x1 = hm.rand_xform(N1)
-    x2 = hm.rand_xform(N2)
-    i1 = np.random.randint(0, N1, N)
-    i2 = np.random.randint(0, N2, N)
-    p = np.stack([i1, i2], axis=1)
-    k1 = xb.key_of_pairs(p, x1, x2)
-
-    px1 = x1[p[:, 0]]
-    px2 = x2[p[:, 1]]
-    k2 = xb.key_of(np.linalg.inv(px1) @ px2)
-    assert np.all(k1 == k2)
-
-    k3 = xb.key_of_selected_pairs(i1, i2, x1, x2)
-    assert np.all(k1 == k3)
 
 
 def test_xbin_covrad(niter=20, nsamp=5000):
@@ -109,7 +88,7 @@ def test_xbin_covrad(niter=20, nsamp=5000):
 
 
 def test_xbin_covrad_ori():
-    nsamp = 10_000
+    nsamp = 10000
     for ori_nside in range(1, 20):
         cart_resl = 1
         xb = create_Xbin_nside_double(cart_resl, ori_nside, 512)
@@ -128,80 +107,6 @@ def test_xbin_covrad_ori():
         assert ori_resl * 0.8 < maxhole
 
 
-def test_sskey_of_selected_pairs():
-    xb = Xbin_float()
-    N = 10_000
-    N1, N2 = 100, 1000
-    x1 = hm.rand_xform(N1).astype("f4")
-    x2 = hm.rand_xform(N2).astype("f4")
-    ss1 = np.random.randint(0, 3, N1)
-    ss2 = np.random.randint(0, 3, N2)
-    i1 = np.random.randint(0, N1, N)
-    i2 = np.random.randint(0, N2, N)
-    # p = np.stack([i1, i2], axis=1)
-    k1 = xb.key_of_selected_pairs(i1, i2, x1, x2)
-
-    kss = xb.sskey_of_selected_pairs(i1, i2, ss1, ss2, x1, x2)
-    assert np.all(k1 == np.right_shift(np.left_shift(kss, 4), 4))
-    assert np.all(ss1[i1] == np.right_shift(np.left_shift(kss, 0), 62))
-    assert np.all(ss2[i2] == np.right_shift(np.left_shift(kss, 2), 62))
-
-    idx = np.stack([i1, i2], axis=1)
-    kss2 = xb.sskey_of_selected_pairs(idx, ss1, ss2, x1, x2)
-    assert np.all(kss == kss2)
-
-
-def test_ssmap_of_selected_pairs():
-    phm = phmap.PHMap_u8f8()
-    xb = Xbin_float()
-    N = 10_000
-    N1, N2 = 100, 1000
-    x1 = hm.rand_xform(N1).astype("f4")
-    x2 = hm.rand_xform(N2).astype("f4")
-    ss1 = np.random.randint(0, 3, N1)
-    ss2 = np.random.randint(0, 3, N2)
-    i1 = np.random.randint(0, N1, N)
-    i2 = np.random.randint(0, N2, N)
-    idx = np.stack([i1, i2], axis=1)
-
-    keys = xb.sskey_of_selected_pairs(idx, ss1, ss2, x1, x2)
-
-    vals = xb.ssmap_of_selected_pairs(phm, idx, ss1, ss2, x1, x2, 0)
-    assert np.all(vals == 0)
-
-    vals = xb.ssmap_of_selected_pairs(phm, idx, ss1, ss2, x1, x2, 7)
-    assert np.all(vals == 7)
-
-    vals0 = np.random.rand(len(keys))
-    phm[keys] = vals0
-    vals = xb.ssmap_of_selected_pairs(phm, idx, ss1, ss2, x1, x2, 0)
-    assert np.all(vals == phm[keys])
-
-
-def test_map_of_selected_pairs():
-    phm = phmap.PHMap_u8f8()
-    xb = Xbin_float()
-    N = 10_000
-    N1, N2 = 100, 1000
-    x1 = hm.rand_xform(N1).astype("f4")
-    x2 = hm.rand_xform(N2).astype("f4")
-    i1 = np.random.randint(0, N1, N)
-    i2 = np.random.randint(0, N2, N)
-    idx = np.stack([i1, i2], axis=1)
-
-    vals = xb.map_of_selected_pairs(phm, idx, x1, x2, 0)
-    assert np.all(vals == 0)
-
-    vals = xb.map_of_selected_pairs(phm, idx, x1, x2, 7)
-    assert np.all(vals == 7)
-
-    keys = xb.key_of_selected_pairs(idx, x1, x2)
-    vals0 = np.random.rand(len(keys))
-    phm[keys] = vals0
-    vals = xb.map_of_selected_pairs(phm, idx, x1, x2, 0)
-    assert np.all(vals == phm[keys])
-
-
 def test_pickle(tmpdir):
     xb = Xbin_double(1, 2, 3)
     with open(tmpdir + "/foo", "wb") as out:
@@ -218,16 +123,11 @@ def test_pickle(tmpdir):
 
 
 if __name__ == "__main__":
-    test_xbin_cpp()
-    test_create_binner()
-    test_key_of()
-    test_key_of_pairs()
-    test_xbin_covrad()
-    test_xbin_covrad_ori()
-    test_sskey_of_selected_pairs()
-    test_ssmap_of_selected_pairs()
-    test_map_of_selected_pairs()
-
     import tempfile
 
+    test_xbin_cpp()
+    test_key_of()
+    test_create_binner()
+    test_xbin_covrad()
+    test_xbin_covrad_ori()
     test_pickle(tempfile.mkdtemp())

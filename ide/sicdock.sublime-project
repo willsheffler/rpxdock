@@ -3,7 +3,7 @@
 	[
 		{
 			"name": "util_runtests.py",
-			"shell_cmd": "cd $folder; PYTHONPATH=. python ide/runtests.py $file &> sublime_build.log"
+			"shell_cmd": "cd $folder; CC='ccache gcc' PYTHONPATH=. python ide/runtests.py $file &> sublime_build.log"
 		},
 		{
 			"name": "ping localhost:8080/8081",
@@ -11,7 +11,7 @@
 		},
 		{
 			"name": "generate_motif_scores",
-			"shell_cmd" : "cd $folder; PYTHONPATH=. python sicdock/app/genrate_motif_scores.py TEST &> sublime_build.log"
+			"shell_cmd" : "cd $folder; CC='ccache gcc' PYTHONPATH=. python sicdock/app/genrate_motif_scores.py TEST &> sublime_build.log"
 		}
 
 
