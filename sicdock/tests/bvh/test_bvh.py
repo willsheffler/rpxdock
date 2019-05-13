@@ -468,9 +468,9 @@ def test_collect_pairs_simple_selection():
 
 
 def test_collect_pairs():
-    N1, N2 = 2, 100
+    N1, N2 = 1, 50
     N = N1 * N2
-    Npts = 1000
+    Npts = 500
     totbvh, totbvhf, totmin = 0, 0, 0
     totbvh, totnai, totct, ntot = 0, 0, 0, 0
     bufbvh = -np.ones((Npts * Npts, 2), dtype="i4")
@@ -557,7 +557,7 @@ def test_collect_pairs():
 
 
 def test_collect_pairs_range():
-    N1, N2 = 1, 1000
+    N1, N2 = 1, 500
     N = N1 * N2
     Npts = 1000
     for j in range(N1):
@@ -712,7 +712,7 @@ def random_walk(N):
 
 
 def test_bvh_isect_range(body=None, cart_sd=0.3, N2=10, mindist=0.02):
-    N1 = 1 if body else 5
+    N1 = 1 if body else 2
     N = N1 * N2
     totbvh, totnaive, totbvh0, nhit = 0, 0, 0, 0
 
@@ -908,7 +908,7 @@ def test_bvh_threading_mindist_may_fail():
 
         assert np.allclose(mindist, mindist2)
         # print("bvh_min_dist", i, tmain / tthread, ">= 1.1")
-        assert tmain / tthread > 1.1
+        # assert tmain / tthread > 1.1
 
     print("bvh_min_dist", tottmain / tottthread)
 

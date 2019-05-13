@@ -6,7 +6,9 @@ dependencies:
  - python>=3.7
  - pyrosetta=2018.52
  - numpy
- # - numba >= 0.43
+ - matplotlib
+# - numba >= 0.43
+ - xarray=0.11.3
  - pytest
  - pytest-faulthandler
  - sphinx_rtd_theme
@@ -21,5 +23,4 @@ dependencies:
    - homog >= 0.1.10
    - xbin >= 0.1.5
    - cppimport
-   - git+https://github.com/atom-moyer/getpy.git
-
+   
