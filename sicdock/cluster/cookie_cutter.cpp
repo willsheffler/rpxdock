@@ -54,6 +54,7 @@ Vx<int> cookie_cutter(Ref<RowMatrixX<F>> pts, F thresh) {
 
 PYBIND11_MODULE(cookie_cutter, m) {
   m.def("cookie_cutter", &cookie_cutter<double>);
+  m.def("cookie_cutter", &cookie_cutter<float>);
 }
 
 }  // namespace cookie_cutter

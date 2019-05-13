@@ -1,11 +1,14 @@
 #pragma once
 
 #include <Eigen/Geometry>
+#include <limits>
 
 namespace sicdock {
 namespace util {
 
 // RowMajor to match numpy
+template <class F>
+using V2 = Eigen::Matrix<F, 2, 1>;
 template <class F>
 using V3 = Eigen::Matrix<F, 3, 1>;  // todo: should use aligned vector3?
 template <class F>
@@ -50,6 +53,9 @@ using RefVxi = RefVx<int>;
 
 template <typename F>
 using MapVxX3 = Eigen::Map<Vx<X3<F>>>;
+
+template <typename T>
+using NL = std::numeric_limits<T>;
 
 template <class F>
 F epsilon2() {

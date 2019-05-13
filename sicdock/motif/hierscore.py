@@ -8,8 +8,8 @@ from sicdock.sampling import xform_hier_guess_sampling_covrads
 from sicdock.xbin import smear
 from sicdock.xbin import xbin_util as xu
 from sicdock.util import load, dump
-from sicdock.motif import Xmap, ResPairScore
-from sicdock.bvh import bvh_collect_pairs, bvh_collect_pairs_vec, bvh_count_pairs_vec
+from sicdock.motif import Xmap, ResPairScore, marginal_max_score
+from sicdock.bvh import bvh_collect_pairs_range_vec, bvh_collect_pairs_vec
 
 
 class HierScore:
@@ -33,23 +33,42 @@ class HierScore:
         self.maxdis = [maxdis + h.attr.cart_extent for h in self.hier]
         self.tl = threading.local()
 
-    def score(self, iresl, body1, body2, wcontact=0.1):
+    def score(self, iresl, body1, body2, wcontact=0):
         return self.scorepos(iresl, body1, body2, body1.pos, body2.pos, wcontact)
 
-    def scorepos(self, iresl, body1, body2, pos1, pos2, wcontact=0.1):
+    def scorepos(self, iresl, body1, body2, pos1, pos2, wts, bounds=None):
         pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
-        pairs, lbub = bvh_collect_pairs_vec(
-            body1.bvh_cen, body2.bvh_cen, pos1, pos2, self.maxdis[iresl]
+        if not bounds:
+            bounds = ([-2e9], [2e9], [-2e9], [2e9])
+        if len(bounds) is 2:
+            bounds += ([-2e9], [2e9])
+
+        pairs, lbub = bvh_collect_pairs_range_vec(
+            body1.bvh_cen, body2.bvh_cen, pos1, pos2, self.maxdis[iresl], *bounds
         )
+        # pairs, lbub = bvh_collect_pairs_vec(
+        #     body1.bvh_cen, body2.bvh_cen, pos1, pos2, self.maxdis[iresl]
+        # )
+
         xbin = self.hier[iresl].xbin
         phmap = self.hier[iresl].phmap
         ssstub = body1.ssid, body2.ssid, body1.stub, body2.stub
         ssstub = ssstub if self.use_ss else ssstub[2:]
         fun = xu.ssmap_pairs_multipos if self.use_ss else xu.map_pairs_multipos
+
         pscore = fun(xbin, phmap, pairs, *ssstub, lbub, pos1, pos2)
+
+        lbub1, lbub2, idx1, idx2, res1, res2 = marginal_max_score(lbub, pairs, pscore)
+
         scores = np.zeros(max(len(pos1), len(pos2)))
         for i, (lb, ub) in enumerate(lbub):
-            scores[i] = 1 * np.sum(pscore[lb:ub]) + wcontact * (ub - lb)
+            side1 = np.sum(res1[lbub1[i, 0] : lbub1[i, 1]])
+            side2 = np.sum(res2[lbub2[i, 0] : lbub2[i, 1]])
+            mscore = side1 + side2
+            # mscore = np.sum(pscore[lb:ub])
+            # mscore = np.log(np.sum(np.exp(pscore[lb:ub])))
+            scores[i] = wts.rpx * mscore + wts.ncontact * (ub - lb)
+
         return scores
 
     def iresls(self):

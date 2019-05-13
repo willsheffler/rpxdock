@@ -1,14 +1,16 @@
 import _pickle
 from time import perf_counter
 import numpy as np
-from cppimport import import_hook
 
-# import cppimport
-
-# cppimport.set_quiet(False)
-
+# from cppimport import import_hook
+#
+# # import cppimport
+#
+# # cppimport.set_quiet(False)
+#
 from sicdock.bvh import bvh_test
 from sicdock.bvh import bvh
+
 import homog as hm
 
 
@@ -554,6 +556,73 @@ def test_collect_pairs():
     )
 
 
+def test_collect_pairs_range():
+    N1, N2 = 1, 1000
+    N = N1 * N2
+    Npts = 1000
+    for j in range(N1):
+        xyz1 = np.random.rand(Npts, 3) - [0.5, 0.5, 0.5]
+        xyz2 = np.random.rand(Npts, 3) - [0.5, 0.5, 0.5]
+        bvh1 = bvh.bvh_create(xyz1)
+        bvh2 = bvh.bvh_create(xyz2)
+        pos1, pos2 = list(), list()
+        while 1:
+            x1 = hm.rand_xform(cart_sd=0.5)
+            x2 = hm.rand_xform(cart_sd=0.5)
+            d = np.linalg.norm(x1[:, 3] - x2[:, 3])
+            if 0.8 < d < 1.3:
+                pos1.append(x1)
+                pos2.append(x2)
+                if len(pos1) == N2:
+                    break
+        pos1 = np.stack(pos1)
+        pos2 = np.stack(pos2)
+        pairs = list()
+        mindist = 0.002 + np.random.rand() / 10
+
+        pairs, lbub = bvh.bvh_collect_pairs_vec(bvh1, bvh2, pos1, pos2, mindist)
+        rpairs, rlbub = bvh.bvh_collect_pairs_range_vec(bvh1, bvh2, pos1, pos2, mindist)
+        assert np.all(lbub == rlbub)
+        assert np.all(pairs == rpairs)
+
+        rpairs, rlbub = bvh.bvh_collect_pairs_range_vec(
+            bvh1, bvh2, pos1, pos2, mindist, [250], [750]
+        )
+        assert len(rlbub) == len(pos1)
+        assert np.all(rpairs[:, 0] >= 250)
+        assert np.all(rpairs[:, 0] <= 750)
+        filt_pairs = pairs[np.logical_and(pairs[:, 0] >= 250, pairs[:, 0] <= 750)]
+        assert np.all(filt_pairs == rpairs)  # sketchy???
+        assert np.all(np.unique(filt_pairs) == np.unique(rpairs))
+
+        rpairs, rlbub = bvh.bvh_collect_pairs_range_vec(
+            bvh1, bvh2, pos1, pos2, mindist, [600], [1000], [100], [400]
+        )
+        assert len(rlbub) == len(pos1)
+        assert np.all(rpairs[:, 0] >= 600)
+        assert np.all(rpairs[:, 0] <= 1000)
+        assert np.all(rpairs[:, 1] >= 100)
+        assert np.all(rpairs[:, 1] <= 400)
+        filt_pairs = pairs[
+            (pairs[:, 0] >= 600)
+            * (pairs[:, 0] <= 1000)
+            * (pairs[:, 1] >= 100)
+            * (pairs[:, 1] <= 400)
+        ]
+        assert np.all(filt_pairs == rpairs)  # sketchy???
+        assert np.all(np.unique(filt_pairs) == np.unique(rpairs))
+
+        # t = perf_counter()
+        # rpairs, rlbub = bvh.bvh_collect_pairs_range_vec(
+        #     bvh1, bvh2, pos1, pos2, mindist, [200, 700], [400, 900]
+        # )
+        # trange = perf_counter() - t
+        # t = perf_counter()
+        # pairs, lbub = bvh.bvh_collect_pairs_vec(bvh1, bvh2, pos1, pos2, mindist)
+        # tall = perf_counter() - t
+        # print(trange / tall)
+
+
 def test_slide_collect_pairs():
 
     # timings wtih -Ofast
@@ -677,7 +746,7 @@ def test_bvh_isect_range(body=None, cart_sd=0.3, N2=10, mindist=0.02):
                 nhit += 1
 
             tbvh = perf_counter()
-            range1 = bvh.bvh_isect_range(
+            range1 = bvh.isect_range_single(
                 bvh1=bvh1, bvh2=bvh2, pos1=pos1[i], pos2=pos2[i], mindist=mindist
             )
             tbvh = perf_counter() - tbvh
@@ -698,7 +767,7 @@ def test_bvh_isect_range(body=None, cart_sd=0.3, N2=10, mindist=0.02):
             totbvh += tbvh
             totnaive += tn
             totbvh0 += tbvh0
-        lb, ub = bvh.bvh_isect_range_vec(bvh1, bvh2, pos1, pos2, mindist)
+        lb, ub = bvh.isect_range(bvh1, bvh2, pos1, pos2, mindist)
         ranges = np.array(ranges)
         assert np.all(lb == ranges[:, 0])
         assert np.all(ub == ranges[:, 1])
@@ -718,7 +787,7 @@ def test_bvh_pickle(tmpdir):
     pos2 = hm.rand_xform(cart_sd=1)
     tbvh = perf_counter()
     d, i1, i2 = bvh.bvh_min_dist(bvh1, bvh2, pos1, pos2)
-    rng = bvh.bvh_isect_range(bvh1, bvh2, pos1, pos2, mindist=d + 0.01)
+    rng = bvh.isect_range_single(bvh1, bvh2, pos1, pos2, mindist=d + 0.01)
 
     with open(tmpdir + "/1", "wb") as out:
         _pickle.dump(bvh1, out)
@@ -740,7 +809,7 @@ def test_bvh_pickle(tmpdir):
     assert np.allclose(d, db)
     assert i1 == i1b
     assert i2 == i2b
-    rngb = bvh.bvh_isect_range(bvh1b, bvh2b, pos1, pos2, mindist=d + 0.01)
+    rngb = bvh.isect_range_single(bvh1b, bvh2b, pos1, pos2, mindist=d + 0.01)
     assert rngb == rng
 
 
@@ -863,10 +932,11 @@ if __name__ == "__main__":
     # test_bvh_slide_whole()
     # test_collect_pairs_simple()
     # test_collect_pairs_simple_selection()
-    test_collect_pairs()
+    # test_collect_pairs()
+    # test_collect_pairs_range()
     # test_slide_collect_pairs()
     # test_bvh_accessors()
-    # test_bvh_isect_range()
+    test_bvh_isect_range()
     # import tempfile
     # test_bvh_pickle(tempfile.mkdtemp())
 

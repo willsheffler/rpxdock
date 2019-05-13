@@ -16,7 +16,7 @@ class Bunch(dict):
             try:
                 return self[k]
             except KeyError:
-                raise AttributeError(k)
+                return None
 
     def __setattr__(self, k, v):
         try:
@@ -42,21 +42,39 @@ class Bunch(dict):
         else:
             object.__delattr__(self, k)
 
+    def copy(self):
+        return Bunch.from_dict(super().copy())
+
     def toDict(self):
         return unbunchify(self)
+
+    def with_(self, **kw):
+        b = self.copy()
+        for k, v in kw.items():
+            if v is None:
+                b.__delattr__(k)
+            else:
+                b.__setattr__(k, v)
+        return b
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
 
     def __repr__(self):
         args = ", ".join(["%s=%r" % (key, self[key]) for key in self.keys()])
         return "%s(%s)" % (self.__class__.__name__, args)
 
     @staticmethod
-    def fromDict(d):
+    def from_dict(d):
         return bunchify(d)
 
 
 def bunchify(x):
     if isinstance(x, dict):
-        return Bunch((k, bunchify(v)) for k, v in iteritems(x))
+        return Bunch((k, bunchify(v)) for k, v in x.items())
     elif isinstance(x, (list, tuple)):
         return type(x)(bunchify(v) for v in x)
     else:
@@ -65,7 +83,7 @@ def bunchify(x):
 
 def unbunchify(x):
     if isinstance(x, dict):
-        return dict((k, unbunchify(v)) for k, v in iteritems(x))
+        return dict((k, unbunchify(v)) for k, v in x.items())
     elif isinstance(x, (list, tuple)):
         return type(x)(unbunchify(v) for v in x)
     else:

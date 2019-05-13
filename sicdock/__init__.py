@@ -28,10 +28,12 @@ from sicdock import sampling
 from sicdock import search
 from sicdock import sym
 from sicdock import util
+
 from sicdock import xbin
 
 from sicdock.xbin import Xbin
 from sicdock.motif import ResPairData
 from sicdock.motif import ResPairScore
+from sicdock.util import Bunch
 
 rootdir = os.path.dirname(__file__)

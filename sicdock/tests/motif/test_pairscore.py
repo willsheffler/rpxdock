@@ -1,7 +1,8 @@
-import time, _pickle
+import time
 from sicdock.motif.pairdat import *
 from sicdock.motif.pairscore import *
 from sicdock.xbin import Xbin
+import _pickle
 
 
 def test_create_res_pair_score(respairdat, tmpdir):

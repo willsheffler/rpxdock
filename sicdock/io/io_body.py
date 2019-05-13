@@ -15,6 +15,7 @@ def make_pdb_from_bodies(
     include_cen=True,
     only_atoms=None,
     chain_letters=all_pymol_chains,
+    resbounds=[],
 ):
     allatomnames = "N CA C O CB CEN".split()
     if not only_atoms and not include_cen:
@@ -34,14 +35,19 @@ def make_pdb_from_bodies(
     ia = startatm
     max_resno = np.repeat(int(-9e9), len(chain_letters))
     for xsym in symframes:
-        for body in bodies:
+        for ibody, body in enumerate(bodies):
             com = xsym @ body.pos[:, 3]
             if not keep(com):
                 continue
             crd = xsym @ body.positioned_coord(asym=not use_body_sym)[..., None]
             cen = xsym @ body.positioned_cen(asym=not use_body_sym)[..., None]
             nchain = len(np.unique(body.chain[: len(crd)]))
+            reslb, resub = -9e9, 9e9
+            if len(resbounds) > ibody:
+                reslb, resub = resbounds[ibody][0], resbounds[ibody][1]
             for i in range(len(crd)):
+                if not reslb <= i <= resub:
+                    continue
                 ic = body.chain[i] + startchain
                 c = ic % len(chain_letters)
                 aa = body.seq[i]

@@ -125,6 +125,10 @@ class TestHandler(http.server.BaseHTTPRequestHandler):
         for m in to_reload:
             reload(m)
         print('running', count)
+        tmp = sys.stdout, sys.stderr
+        # with open(outfile, 'w') as out:
+            # sys.stdout = out
+            # sys.stderr = out
         with io.capture_output() as captured:
             os.system('rm -f test_*.pdb')
             print(sys.argv[0])
@@ -140,7 +144,7 @@ class TestHandler(http.server.BaseHTTPRequestHandler):
         s = s.replace('', '').replace('[0m','')
         with open(outfile, 'w') as out:
             out.write(s)
-
+        # sys.stdout, sys.stderr = tmp
 
         self.send_response(200)
         self.send_header("Content-type", "text/html")
