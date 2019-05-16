@@ -46,9 +46,9 @@ class HierScore:
         pairs, lbub = bvh_collect_pairs_range_vec(
             body1.bvh_cen, body2.bvh_cen, pos1, pos2, self.maxdis[iresl], *bounds
         )
-        # pairs, lbub = bvh_collect_pairs_vec(
-        #     body1.bvh_cen, body2.bvh_cen, pos1, pos2, self.maxdis[iresl]
-        # )
+
+        if wts.rpx == 0:
+            return wts.ncontact * (lbub[:, 1] - lbub[:, 0])
 
         xbin = self.hier[iresl].xbin
         phmap = self.hier[iresl].phmap

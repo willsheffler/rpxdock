@@ -33,12 +33,20 @@ def get_plotter(*args, **kw):
         pos += 1
         return True, fig, plotter
     else:
-        return False, plt.figure(figsize=figsize0), plt
+        if "figsize" not in kw:
+            kw["figsize"] = figsize0
+        return False, plt.figure(**kw), plt
 
 
-def scatter(*args, title="", show=True, **kw):
-    subplot, fig, plotter = get_plotter(*args, **kw)
+def scatter(
+    *args, title="", show=True, xscale="linear", lines=False, figsize=figsize0, **kw
+):
+    subplot, fig, plotter = get_plotter(*args, figsize=figsize, **kw)
     plotter.scatter(*args, **kw)
+    if lines:
+        plt.plot(*args, **kw)
+
+    plotter.xscale(xscale)
     if subplot:
         plotter.set_title(title, fontsize=24)
     if not subplot and show:

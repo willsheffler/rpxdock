@@ -1,7 +1,7 @@
 /*cppimport
 <%
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w', '-O1']
+cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['../geom/bcc.hpp','../util/assertions.hpp',
 '../util/global_rng.hpp', 'xbin.hpp', '../util/numeric.hpp',
 '../util/pybind_types.hpp']

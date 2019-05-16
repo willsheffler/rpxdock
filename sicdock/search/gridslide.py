@@ -70,7 +70,7 @@ def _check_1body_contacts(body, pos, x_to_neighbor_olig, contact_dis):
     for i, pos in enumerate(pos):
         body.move_to(pos)
         body_b.move_to(x_to_neighbor_olig @ pos)
-        if not body.intersects(body_b):
+        if not body.intersect(body_b):
             npair[i] = body.contact_count(body_b, contact_dis)
     return npair
 

@@ -30,6 +30,7 @@ from sicdock import sym
 from sicdock import util
 
 from sicdock import xbin
+from sicdock import options
 
 from sicdock.xbin import Xbin
 from sicdock.motif import ResPairData

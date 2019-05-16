@@ -4,16 +4,7 @@ import numpy as np
 import homog as hm
 
 import sicdock.rosetta as ros
-from sicdock.bvh import (
-    bvh_create,
-    bvh_slide,
-    bvh_collect_pairs,
-    bvh_isect,
-    naive_min_dist,
-    bvh_min_dist,
-    bvh_print,
-    bvh_count_pairs,
-)
+from sicdock import bvh
 from sicdock.util.numeric import pca_eig
 from sicdock import motif
 
@@ -64,7 +55,7 @@ class Body:
 
         self.nres = len(self.coord)
         self.stub = motif.bb_stubs(self.coord)
-        self.bvh_bb = bvh_create(self.coord[..., :3].reshape(-1, 3))
+        self.bvh_bb = bvh.bvh_create(self.coord[..., :3].reshape(-1, 3))
         self.allcen = self.stub[:, :, 3]
         which_cen = np.repeat(False, len(self.ss))
         for ss in "EHL":
@@ -72,7 +63,7 @@ class Body:
                 which_cen |= self.ss == ss
         which_cen &= ~np.isin(self.seq, ["G", "C", "P"])
         self.which_cen = which_cen
-        self.bvh_cen = bvh_create(self.allcen[:, :3], which_cen)
+        self.bvh_cen = bvh.bvh_create(self.allcen[:, :3], which_cen)
         self.cen = self.allcen[which_cen]
         self.pos = np.eye(4, dtype="f4")
         self.pair_buf = np.empty((10000, 2), dtype="i4")
@@ -127,34 +118,37 @@ class Body:
     def slide_to(self, other, dirn, radius=_CLASH_RADIUS):
         dirn = np.array(dirn, dtype=np.float64)
         dirn /= np.linalg.norm(dirn)
-        delta = bvh_slide(self.bvh_bb, other.bvh_bb, self.pos, other.pos, radius, dirn)
+        delta = bvh.bvh_slide(
+            self.bvh_bb, other.bvh_bb, self.pos, other.pos, radius, dirn
+        )
         if delta < 9e8:
             self.pos[:3, 3] += delta * dirn
-
-            # print(self.coord.shape, other.coord.shape)
-            # u = self.positioned_coord().reshape(-1, 1, 4)
-            # v = other.positioned_coord().reshape(1, -1, 4)
-            # mind = np.linalg.norm(u - v, axis=2)
-            # d1 = bvh_min_dist(self.bvh_bb, other.bvh_bb, self.pos, other.pos)
-            # d2 = naive_min_dist(self.bvh_bb, other.bvh_bb, self.pos, other.pos)
-            # print("slide_to sanity check mindis", np.min(mind), d1)
-            # d, i, j = d1
-            # print("mindis", d, d2)
-            # p1 = self.coord[..., :3].reshape(-1, 3)[i]
-            # p2 = other.coord[..., :3].reshape(-1, 3)[j]
-            # p1 = self.pos @ self.coord.reshape(-1, 4)[i]
-            # p2 = other.pos @ other.coord.reshape(-1, 4)[j]
-            # print(p1, p2, np.linalg.norm(p1 - p2))
-        # else:
-        # print("MISS")
-
         return delta
 
-    def intersects(self, other, mindis=2 * _CLASH_RADIUS):
-        return bvh_isect(self.bvh_bb, other.bvh_bb, self.pos, other.pos, mindis)
+    def intersect_range(
+        self,
+        other,
+        mindis=2 * _CLASH_RADIUS,
+        max_trim=100,
+        self_pos=None,
+        other_pos=None,
+    ):
+        self_pos = self.pos if self_pos is None else self_pos
+        other_pos = other.pos if other_pos is None else other_pos
+        return bvh.isect_range(
+            self.bvh_bb, other.bvh_bb, self_pos, other_pos, mindis, max_trim
+        )
+
+    def intersect(self, other, mindis=2 * _CLASH_RADIUS, self_pos=None, other_pos=None):
+        self_pos = self.pos if self_pos is None else self_pos
+        other_pos = other.pos if other_pos is None else other_pos
+        return bvh.bvh_isect_vec(self.bvh_bb, other.bvh_bb, self_pos, other_pos, mindis)
+
+    def clash_ok(self, *args, **kw):
+        return np.logical_not(self.intersect(*args, **kw))
 
     def distance_to(self, other):
-        return bvh_min_dist(self.bvh_bb, other.bvh_bb, self.pos, other.pos)
+        return bvh.bvh_min_dist(self.bvh_bb, other.bvh_bb, self.pos, other.pos)
 
     def positioned_coord(self, asym=False):
         n = len(self.coord) // self.nfold if asym else len(self.coord)
@@ -168,14 +162,16 @@ class Body:
     def contact_pairs(self, other, maxdis, buf=None):
         if not buf:
             buf = self.pair_buf
-        p, o = bvh_collect_pairs(
+        p, o = bvh.bvh_collect_pairs(
             self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis, buf
         )
         assert not o
         return p
 
     def contact_count(self, other, maxdis):
-        return bvh_count_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis)
+        return bvh.bvh_count_pairs(
+            self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis
+        )
 
     def dump_pdb(self, fname, asym=False):
         from sicdock.io import pdb_format_atom

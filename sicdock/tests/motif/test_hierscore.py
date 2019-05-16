@@ -60,7 +60,7 @@ def test_hierscore(hscore, N=1000):
         scoresx = hier[xforms]
         recov = np.sum(scoresx > 0) / np.sum(scores > 0)
         print(i, "self recov", np.sum(scoresx > 0) / np.sum(scores > 0))
-        assert recov > 0.99
+        assert recov > 0.95
 
     avg_ptrb_olap, avg_ptrb_bfrac = list(), list()
     for i, hier in enumerate(hscore.hier):
