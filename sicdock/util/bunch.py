@@ -48,9 +48,12 @@ class Bunch(dict):
     def toDict(self):
         return unbunchify(self)
 
-    def sub(self, __BUNCH_SUB_ITEMS__=None, **kw):
-        if len(kw) is 0 and isinstance(__BUNCH_SUB_ITEMS__, dict):
-            kw = __BUNCH_SUB_ITEMS__
+    def sub(self, __BUNCH_SUB_ITEMS=None, **kw):
+        if len(kw) is 0:
+            if isinstance(__BUNCH_SUB_ITEMS, dict):
+                kw = __BUNCH_SUB_ITEMS
+            else:
+                kw = vars(__BUNCH_SUB_ITEMS)
         b = self.copy()
         for k, v in kw.items():
             b.__setattr__(k, v)

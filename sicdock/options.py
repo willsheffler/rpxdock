@@ -4,7 +4,8 @@ import numpy as np
 
 def defaults():
     return Bunch(
-        nworker=cpu_count(),
+        nprocess=cpu_count(),
+        nthread=cpu_count(),
         max_trim=100,
         nout=10,
         nresl=5,

@@ -136,7 +136,7 @@ class TestHandler(http.server.BaseHTTPRequestHandler):
             print('runcount:', count)
             print(f'{" test results ":=^80}')
             t = perf_counter()
-            %run $totest
+            %run $totest server_test
             print('exe time', perf_counter()-t)
         s = captured.stdout
         s = s.replace('[0;31m','').replace('[1;32m','').replace('[0;32m','')

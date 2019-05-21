@@ -34,7 +34,7 @@ class Body:
         self.chain = np.repeat(0, self.seq.shape[0])
         self.resno = np.arange(len(self.seq))
 
-        if sym and sym[0] == "C":
+        if sym and sym[0] == "C" and int(sym[1:]):
             n = self.coord.shape[0]
             nfold = int(sym[1:])
             self.seq = np.array(list(nfold * self.pose.sequence()))
@@ -49,6 +49,8 @@ class Body:
                 self.pos = hm.hrot([0, 0, 1], 360.0 * i / nfold)
                 newcoord[i * n :][:n] = self.positioned_coord()
             self.coord = newcoord
+        else:
+            raise ValueError("unknown symmetry: " + sym)
         assert len(self.seq) == len(self.coord)
         assert len(self.ss) == len(self.coord)
         assert len(self.chain) == len(self.coord)
