@@ -45,7 +45,6 @@ def load_file(f):
 
 
 def multiprocess_test(cli_args):
-
     args = sicdock.options.defaults()
     args.nout = 1
     args.nresl = 5
@@ -345,7 +344,7 @@ if __name__ == "__main__":
     parser.add_argument("--nthread", type=int)
     parser.add_argument("--nprocess", type=int)
     parser.add_argument("--beam_size", type=int, default=10000)
-    parser.add_argument("--reduced_sampling", default=True)
+    parser.add_argument("--reduced_sampling", action="store_true")
     parser.add_argument("--plugs", nargs="+")
     parser.add_argument("--holes", nargs="+")
     parser.add_argument("--hscore_files", nargs="+")
