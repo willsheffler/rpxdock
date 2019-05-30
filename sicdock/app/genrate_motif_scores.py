@@ -1,99 +1,82 @@
 import sys, os, argparse, _pickle
 import numpy as np
+import sicdock
 from sicdock.util import Bunch
-from sicdock import ResPairData, motif
-
+from sicdock.motif import ResPairData, make_and_dump_hier_score_tables
 
 def parsearg(s):
-    print(type(s))
-    if isinstance(s, list):
-        s = ",".join("(%s)" % a for a in s)
-    return eval(s)
-
+   if isinstance(s, list):
+      s = ",".join("(%s)" % a for a in s)
+   arg = eval(s)
+   print(type(arg))
+   print(arg)
+   if isinstance(arg, tuple) and len(arg) == 2 and isinstance(arg[0], int):
+      arg = [arg]
+   return arg
 
 def get_opts():
-    parser = argparse.ArgumentParser()
-    paa = parser.add_argument
-    paa(
-        "respairdat_file",
-        type=str,
-        help="ResPairData file containing Xarray Dataset with pdb, residue, and pair info",
-    )
-    paa(
-        "--out_prefix",
-        nargs="?",
-        default="auto",
-        type=str,
-        help="output file prefix. will output pickles for a base ResPairScore plus --hierarchy_depth hier XMaps",
-    )
-    paa(
-        "--base_sample_resl",
-        default=np.sqrt(2) / 2,
-        type=float,
-        help="final sampling resolution",
-    )
-    paa(
-        "--base_cart_resl",
-        default=0.7,
-        type=float,
-        help="Xbin base translational resolution",
-    )
-    paa(
-        "--base_ori_resl",
-        default=10.0,
-        type=float,
-        help="Xbin base orientational resoltution",
-    )
-    paa("--xbin_max_cart", default=128.0, type=float, help="Xbin max traslation")
-    paa("--min_ssep", default=10, type=int, help="min seq sep")
-    paa(
-        "--hierarchy_depth",
-        default=5,
-        type=int,
-        help="number of hierarchical tables to make",
-    )
-    paa("--sampling_lever", default=25, type=float)
-    paa("--xhier_cart_fudge_factor", default=1.5, type=float)
-    paa("--xhier_ori_fudge_factor", default=2.5, type=float)
-    paa("--min_bin_score", default=1.0, type=float)
-    paa("--min_pair_score", default=0.5, type=float)
-    paa(
-        "--smear_params",
-        default=["3,0", "2,0", "1,1", "1,0", "1,0"],
-        type=str,
-        nargs="*",
-    )
-    # paa("--smear_params", default=[(2, 0)])
-    paa("--use_ss_key", default=True, type=bool)
-    paa("--smear_kernel", default="flat", type=str)
-    paa("--only_do_hier", default=-1, type=int)
-    args = parser.parse_args()
-    args.smear_params = parsearg(args.smear_params)
-    return Bunch(vars(args))
-
+   parser = sicdock.options.default_cli_parser()
+   paa = parser.add_argument
+   H = "ResPairData file containing Xarray Dataset with pdb, residue, and pair info"
+   paa("respairdat_file", type=str, help=H)
+   H = "final sampling resolution"
+   paa("--base_sample_resl", default=np.sqrt(2) / 2, type=float, help=H)
+   H = "Xbin base translational resolution"
+   paa("--base_cart_resl", default=0.7, type=float, help=H)
+   H = "Xbin base orientational resoltution"
+   paa("--base_ori_resl", default=10.0, type=float, help=H)
+   paa("--xbin_max_cart", default=128.0, type=float, help="Xbin max traslation")
+   paa("--min_ssep", default=10, type=int, help="min seq sep")
+   H = "number of hierarchical tables to make"
+   paa("--hierarchy_depth", default=5, type=int, help=H)
+   paa("--sampling_lever", default=25, type=float)
+   paa("--xhier_cart_fudge_factor", default=1.5, type=float)
+   paa("--xhier_ori_fudge_factor", default=2.5, type=float)
+   paa("--min_bin_score", default=1.0, type=float)
+   paa("--min_pair_score", default=0.5, type=float)
+   paa("--smear_params", default=["2,1", "1,1", "1,1", "1,0", "1,0"], type=str, nargs="*")
+   # paa("--smear_params", default=[(2, 0)])
+   paa("--smear_kernel", default="flat", type=str)
+   paa("--only_do_hier", default=-1, type=int)
+   paa("--allowed_aas", default="ANYAA", type=str)
+   paa("--allowed_ss", default='EHL', type=str)
+   paa("--use_ss_key", default=False, action='store_true')
+   args = parser.parse_args()
+   args.smear_params = parsearg(args.smear_params)
+   args.allowed_aas = args.allowed_aas.upper()
+   args.allowed_ss = args.allowed_ss.upper()
+   return Bunch(args)
 
 def main():
-    o = get_opts()
+   args = get_opts()
 
-    if o.respairdat_file == "TEST":
-        o.respairdat_file = "/home/sheffler/debug/sicdock/respairdat/pdb_res_pair_data_si30_10_rots.pickle"
-    if o.out_prefix == "auto":
-        # dname = os.path.dirname(o.respairdat_file) + '/hscore'
-        dname = "./"
-        bname = os.path.basename(o.respairdat_file.replace(".pickle", ""))
-        o.out_prefix = dname + "/" + bname
-    if not os.path.exists(os.path.dirname(o.out_prefix)):
-        os.mkdir(os.path.dirname(o.out_prefix))
+   if args.respairdat_file == "TEST":
+      args.respairdat_file = "/home/sheffler/debug/sicdock/respairdat/pdb_res_pair_data_si30_10_rots.pickle"
+   if args.out_prefix == "auto":
+      # dname = os.path.dirname(args.respairdat_file) + '/hscore'
+      dname = "./"
+      bname = os.path.basename(args.respairdat_file.replace(".pickle", ""))
+      args.out_prefix = dname + "/" + bname + '_'
+   if not os.path.exists(os.path.dirname(args.out_prefix)):
+      os.mkdir(os.path.dirname(args.out_prefix))
 
-    with open(o.respairdat_file, "rb") as inp:
-        rp = ResPairData(_pickle.load(inp))
-    files = motif.make_and_dump_hier_score_tables(rp, **o)
+   with open(args.respairdat_file, "rb") as inp:
+      rp = ResPairData(_pickle.load(inp))
 
-    print(files)
+   if args.allowed_aas.lower() != 'ANYAA':
+      rp = rp.subset_by_aa(args.allowed_aas, sanity_check=True)
 
+   if set(args.allowed_ss) != set('EHL'):
+      rp = rp.subset_by_ss(args.allowed_ss, sanity_check=True)
+      if len(args.allowed_ss) == 1:
+         args.use_ss_key = False
+
+   files = make_and_dump_hier_score_tables(rp, **args)
+
+   print(files)
 
 if __name__ == "__main__":
-    main()
+   main()
 
 # ============== full === min_bin_score 2 == min_pair_score 1 ===================
 # 0 1 0 cart   8.50   4.25 ori  20.08  13.39 nsmr   4.0M base 118.9K xpnd    33.4

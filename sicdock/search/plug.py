@@ -1,157 +1,96 @@
 from time import perf_counter
-from concurrent.futures import ThreadPoolExecutor
 import numpy as np
+import xarray as xr
 import homog as hm
-from sicdock.body import Body
+from sicdock.search import hier_sample, expand_samples, hier_evaluate
+from sicdock.search import hier_evaluate_executor, filter_redundancy
+from sicdock.search import trim_atom_to_res_numbering
 from sicdock.util import Bunch
 from sicdock.sampling import XformHier_f4
 from sicdock.io.io_body import dump_pdb_from_bodies
-from sicdock.geom import xform_dist2_split
 from sicdock.sym import symframes
-from sicdock.bvh import bvh_isect_vec
-from sicdock.cluster import cookie_cutter
-
-xeye = np.eye(4, dtype="f4")
 
 
 def make_plugs(plug, hole, hscore, sampler, **kw):
     args = Bunch(kw)
     ttot = perf_counter()
-    plugeval = PlugEvaluator(plug, hole, hscore, **args)
-    nresl = len(hscore.hier) if args.nresl is None else args.nresl
+    args.nresl = len(hscore.hier) if args.nresl is None else args.nresl
+    args.out_prefix = "plug" if args.out_prefix is None else args.out_prefix
 
-    xforms, scores, stats = sample_plugs(**args.sub(vars()))
-    ibest = filter_redundancy(**args.sub(**vars()))
-    tdump = dump_results(iresl=nresl - 1, **args.sub(vars()))
+    evaluator = PlugEvaluator(plug, hole, hscore, **args)
+    xforms, scores, stats = hier_sample(sampler, evaluator, **args)
+    ibest = filter_redundancy(xforms, plug, scores, **args)
+    tdump = dump_plugs(xforms, plug, hole, scores, ibest, evaluator, **args)
 
     ttot = perf_counter() - ttot
     print(f"rate: {int(stats.ntot / ttot):,}/s ttot {ttot:7.3f} tdump {tdump:7.3f}")
     print("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
     print("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
 
-
-def sample_plugs(plug, hole, hscore, sampler, nresl, plugeval, **kw):
-    args = Bunch(kw)
-    neval = list()
-    for iresl in range(nresl):
-        indices, xforms = expand_samples(**args.sub(vars()))
-        scores, *resbound, t = evaluate_samples(**args.sub(vars()))
-        neval.append((t, len(scores)))
-        pref = "plug" if args.out_prefix is None else args.out_prefix
-        print(
-            f"{pref} iresl {iresl} ntot {len(scores):11,}",
-            f"nonzero {np.sum(scores > 0):5,}",
+    xforms = xforms[ibest]
+    wrpx = args.wts.sub(rpx=1, ncontact=0)
+    wnct = args.wts.sub(rpx=0, ncontact=1)
+    rpx, lb, ub = evaluator.iface_scores(xforms, args.nresl - 1, wrpx)
+    ncontact, *_ = evaluator.iface_scores(xforms, args.nresl - 1, wnct)
+    return xr.Dataset(
+        dict(
+            scores=(["model"], scores[ibest].astype("f4")),
+            xforms=(["model", "hrow", "hcol"], xforms),
+            rpx_plug=(["model"], rpx[:, 0].astype("f4")),
+            rpx_hole=(["model"], rpx[:, 1].astype("f4")),
+            ncontact_plug=(["model"], ncontact[:, 0].astype("f4")),
+            ncontact_hole=(["model"], ncontact[:, 1].astype("f4")),
+            reslb=(["model"], lb),
+            resub=(["model"], ub),
         )
-    stats = Bunch(ntot=sum(x[1] for x in neval), neval=neval)
-    return xforms, scores, stats
-
-
-def expand_samples(iresl, sampler, beam_size, indices=None, scores=None, **kw):
-    if iresl == 0:
-        indices = np.arange(sampler.size(0), dtype="u8")
-        mask, xforms = sampler.get_xforms(0, indices)
-        return indices[mask], xforms
-    nexpand = max(1, int(beam_size / 64))
-    return sampler.expand_top_N(nexpand, iresl - 1, scores, indices)
-
-
-def evaluate_samples(executor=None, **kw):
-    args = Bunch(kw)
-    t = perf_counter()
-    if executor:
-        return (*evaluate_samples_executor(executor, **kw), perf_counter() - t)
-    s, lb, ub = args.plugeval(args.xforms, args.iresl)
-    scores = args.multi_iface_summary(s * (args.wts.plug, args.wts.hole), axis=1)
-    return scores, lb, lb, perf_counter() - t
-
-
-def evaluate_samples_simple(plugeval, iresl, xforms, wts, **kw):
-    s, lb, ub = plugeval(xforms, iresl)
-    scores = kw["multi_iface_summary"](s * (wts.plug, wts.hole), axis=1)
-    return scores, lb, ub
-
-
-def evaluate_samples_executor(executor, plugeval, iresl, xforms, wts, **kw):
-    assert isinstance(executor, ThreadPoolExecutor)
-    nworkers = executor._max_workers
-    assert nworkers > 0
-    ntasks = int(len(xforms) / 10000)
-    ntasks = max(nworkers, ntasks)
-    futures = list()
-    for i, x in enumerate(np.array_split(xforms, ntasks)):
-        futures.append(executor.submit(plugeval, x, iresl))
-        futures[-1].idx = i
-    # futures = [f for f in as_completed(futures)]
-    results = [f.result() for f in sorted(futures, key=lambda x: x.idx)]
-    s = np.concatenate([r[0] for r in results])
-    scores = kw["multi_iface_summary"](s * (wts.plug, wts.hole), axis=1)
-    lb = np.concatenate([r[1] for r in results])
-    ub = np.concatenate([r[2] for r in results])
-    return scores, lb, ub
-
-
-# def evaluate_samples_threads(plugeval, iresl, xforms, args, **kw):
-#     t = perf_counter()
-#     assert args.nthreads > 0
-#     workers = [
-#         PlugWorker(xforms, plugeval, iresl, args.nthreads, i) for i in range(args.nthreads)
-#     ]
-#     [wkr.start() for wkr in workers]
-#     [wkr.join() for wkr in workers]
-#     scores = np.empty(len(xforms))
-#     lb, ub = np.empty((2, len(xforms)), dtype="i4")
-#     for i, wkr in enumerate(workers):
-#         s, lb[i :: args.nthreads], ub[i :: args.nthreads] = wkr.rslt
-#         scores[i :: args.nthreads] = np.minimum(
-#             args.wts.plug * s[:, 0], args.wts.hole * s[:, 1]
-#         )
-#     return scores, lb, ub, perf_counter() - t
+    )
 
 
 class PlugEvaluator:
     def __init__(self, plug, hole, hscore, **kw):
-        self.plug = plug.copy()
-        self.plugsym = plug.copy()
+        self.args = Bunch(kw)
+        self.plug = plug
         self.hole = hole
         self.hscore = hscore
         self.symrot = hm.hrot([0, 0, 1], 360 / int(hole.sym[1:]), degrees=True)
-        self.wts = kw["wts"]
-        self.clashdis = kw["clashdis"]
-        self.max_trim = kw["max_trim"]
-        self.max_longaxis_dot_z = kw["max_longaxis_dot_z"]
 
-    def __call__(self, xpos, iresl, wts={}):
-        wts = self.wts.sub(wts)
-        xpos = xpos.reshape(-1, 4, 4)
-        plug, hole, hscore = self.plug, self.hole, self.hscore
-        clashdis, max_trim, score = self.clashdis, self.max_trim, hscore.scorepos
-        xsym = self.symrot @ xpos
+    def __call__(self, xforms, iresl, wts={}):
+        wts = self.args.wts.sub(wts)
+        wts_ph = wts.plug, wts.hole
+        iface_scores, plb, pub = self.iface_scores(xforms, iresl, wts)
+        scores = self.args.iface_summary(iface_scores * wts_ph, axis=1)
+        return scores, plb, pub
+
+    def iface_scores(self, xforms, iresl, wts={}):
+        wts = self.args.wts.sub(wts)
+        xeye = np.eye(4, dtype="f4")
+        xforms = xforms.reshape(-1, 4, 4)
+        plug, hole, sfxn = self.plug, self.hole, self.hscore.scorepos
+        dclsh, max_trim = self.args.clashdis, self.args.max_trim
+        xsym = self.symrot @ xforms
 
         # check for "flatness"
-        ok = np.abs((xpos @ plug.pcavecs[0])[:, 2]) <= self.max_longaxis_dot_z
+        ok = np.abs((xforms @ plug.pcavecs[0])[:, 2]) <= self.args.max_longaxis_dot_z
 
         # check chash in formed oligomer
-        ok[ok] &= plug.clash_ok(plug, clashdis, xpos[ok], xsym[ok])
+        ok[ok] &= plug.clash_ok(plug, dclsh, xforms[ok], xsym[ok])
 
         # check clash olig vs hole, or get non-clash range
         if max_trim > 0:
-            ptrim = plug.intersect_range(hole, clashdis, max_trim, xpos[ok])
-            ptrim = ((ptrim[0] - 1) // 5 + 1, (ptrim[1] + 1) // 5 - 1)  # to res numbers
-            ntrim = ptrim[0] + plug.nres - ptrim[1] - 1
-            trimok = ntrim <= max_trim
-            ptrim = (ptrim[0][trimok], ptrim[1][trimok])
+            ptrim = plug.intersect_range(hole, dclsh, max_trim, xforms[ok])
+            ptrim, trimok = trim_atom_to_res_numbering(ptrim, plug.nres, max_trim)
             ok[ok] &= trimok
             # if np.sum(trimok) - np.sum(ntrim == 0):
             # print("ntrim not0", np.sum(trimok) - np.sum(ntrim == 0))
         else:
-            ok[ok] &= plug.clash_ok(hole, clashdis, xpos[ok], xeye)
+            ok[ok] &= plug.clash_ok(hole, dclsh, xforms[ok], xeye)
             ptrim = [0], [plug.nres - 1]
 
         # score everything that didn't clash
-        xok = xpos[ok]
-        scores = np.zeros((len(xpos), 2))
-        scores[ok, 0] = score(iresl, plug, plug, xok, xsym[ok], wts, (*ptrim, *ptrim))
-        scores[ok, 1] = score(iresl, plug, hole, xok, xeye[:,], wts, ptrim)
+        xok = xforms[ok]
+        scores = np.zeros((len(xforms), 2))
+        scores[ok, 0] = sfxn(iresl, plug, plug, xok, xsym[ok], wts, (*ptrim, *ptrim))
+        scores[ok, 1] = sfxn(iresl, plug, hole, xok, xeye[:,], wts, ptrim)
 
         # record ranges used
         plb = np.zeros(len(scores), dtype="i4")
@@ -160,6 +99,28 @@ class PlugEvaluator:
             plb[ok], pub[ok] = ptrim[0], ptrim[1]
 
         return scores, plb, pub
+
+
+def dump_plugs(xforms, plug, hole, scores, ibest, evaluator, **kw):
+    args = Bunch(kw)
+    t = perf_counter()
+    fname_prefix = "plug" if args.out_prefix is None else args.out_prefix
+    nout = min(10 if args.nout is None else args.nout, len(ibest))
+    for i in range(nout):
+        plug.move_to(xforms[ibest[i]])
+        wrpx, wnct = (args.wts.sub(rpx=1, ncontact=0), args.wts.sub(rpx=0, ncontact=1))
+        scoreme = evaluator.iface_scores
+        ((pscr, hscr),), *lbub = scoreme(xforms[ibest[i]], args.nresl - 1, wrpx)
+        ((pcnt, hcnt),), *lbub = scoreme(xforms[ibest[i]], args.nresl - 1, wnct)
+        fn = fname_prefix + "_%02i.pdb" % i
+        print(
+            f"{fn} score {scores[ibest[i]]:7.3f} olig: {pscr:7.3f} hole: {hscr:7.3f}",
+            f"resi {lbub[0][0]}-{lbub[1][0]} {pcnt:7.0f} {hcnt:7.0f}",
+        )
+        dump_pdb_from_bodies(fn, [plug], symframes(hole.sym), resbounds=[lbub])
+        # dump_pdb_from_bodies(fn + "whole.pdb", [plug], symframes(hole.sym))
+    # dump_pdb_from_bodies("test_hole.pdb", [hole], symframes(hole.sym))
+    return perf_counter() - t
 
 
 def plug_get_sample_hierarchy(plug, hole, hscore):
@@ -181,54 +142,6 @@ def plug_get_sample_hierarchy(plug, hole, hscore):
     return xh
 
 
-def filter_redundancy(xforms, plug, scores, **kw):
-    args = Bunch(kw)
-    nclust = args.max_cluster
-    if nclust is None:
-        nclust = int(args.beam_size) // 10
-    ibest = np.argsort(-scores)
-    crd = xforms[ibest[:nclust], None] @ plug.cen[::10, :, None]
-    ncen = crd.shape[1]
-    crd = crd.reshape(-1, 4 * ncen)
-    keep = cookie_cutter(crd, args.rmscut * np.sqrt(ncen))
-    print(f"redundancy filter cut {args.rmscut} keep {len(keep)} of {args.max_cluster}")
-    return ibest[keep]
-
-
-def dump_results(args, plug, hole, xforms, iresl, scores, ibest, plugeval, **kw):
-    t = perf_counter()
-    fname_prefix = "plug" if args.out_prefix is None else args.out_prefix
-    nout = min(10 if args.nout is None else args.nout, len(ibest))
-    for i in range(nout):
-        plug.move_to(xforms[ibest[i]])
-        wrpx, wnct = (args.wts.sub(rpx=1, ncontact=0), args.wts.sub(rpx=0, ncontact=1))
-        ((pscr, hscr),), *lbub = plugeval(xforms[ibest[i]], iresl, wrpx)
-        ((pcnt, hcnt),), *lbub = plugeval(xforms[ibest[i]], iresl, wnct)
-        fn = fname_prefix + "_%02i.pdb" % i
-        print(
-            f"{fn} score {scores[ibest[i]]:7.3f} olig: {pscr:7.3f} hole: {hscr:7.3f}",
-            f"resi {lbub[0][0]}-{lbub[1][0]} {pcnt:7.0f} {hcnt:7.0f}",
-        )
-        dump_pdb_from_bodies(fn, [plug], symframes(hole.sym), resbounds=[lbub])
-        # dump_pdb_from_bodies(fn + "whole.pdb", [plug], symframes(hole.sym))
-    dump_pdb_from_bodies("test_hole.pdb", [hole], symframes(hole.sym))
-    return perf_counter() - t
-
-
-# class PlugWorker(threading.Thread):
-#     def __init__(self, xforms, plugeval, iresl, nthreads, iworker):
-#         super().__init__(None, None, None)
-#         self.xforms = xforms
-#         self.plugeval = plugeval
-#         self.nthreads = nthreads
-#         self.iworker = iworker
-#         self.iresl = iresl
-#
-#     def run(self):
-#         work = range(self.iworker, len(self.xforms), self.nthreads)
-#         self.rslt = self.plugeval(self.xforms[work], iresl)
-
-
 def __make_plugs_hier_sample_test__(plug, hole, hscore, **kw):
     args = Bunch(kw)
     sampler = plug_get_sample_hierarchy(plug, hole, hscore)
@@ -238,10 +151,10 @@ def __make_plugs_hier_sample_test__(plug, hole, hscore, **kw):
 
     for rpx in [0, 1]:
         args.wts = Bunch(plug=1.0, hole=1.0, ncontact=1.0, rpx=rpx)
-        plugeval = PlugEvaluator(plug, hole, hscore, **args)
+        evaluator = PlugEvaluator(plug, hole, hscore, **args)
         iresl = 0
         indices, xforms = expand_samples(**args.sub(vars()))
-        scores, *resbound, t = evaluate_samples(**args.sub(vars()))
+        scores, *resbound, t = hier_evaluate(**args.sub(vars()))
         iroot = np.argsort(-scores)[:10]
         xroot = xforms[iroot]
         sroot = scores[iroot]
@@ -251,7 +164,7 @@ def __make_plugs_hier_sample_test__(plug, hole, hscore, **kw):
             indices, xforms, scores = iroot, xroot, sroot
             for iresl in range(1, nresl):
                 indices, xforms = expand_samples(**args.sub(vars()))
-                scores, *resbound, t = evaluate_samples(**args.sub(vars()))
+                scores, *resbound, t = hier_evaluate(**args.sub(vars()))
                 print(
                     f"rpx {rpx} beam {beam_size:9,}",
                     f"iresl {iresl} ntot {len(scores):11,} nonzero {np.sum(scores > 0):5,}",

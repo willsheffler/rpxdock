@@ -1,92 +1,97 @@
 __all__ = ("Bunch", "bunchify", "unbunchify")
 
-
 class Bunch(dict):
-    def __contains__(self, k):
-        try:
-            return dict.__contains__(self, k) or hasattr(self, k)
-        except:
-            return False
+   def __init__(self, __arg_or_ns=None, **kw):
+      if __arg_or_ns is not None:
+         try:
+            super().__init__(__arg_or_ns)
+         except TypeError:
+            super().__init__(vars(__arg_or_ns))
+      self.update(kw)
 
-    def __getattr__(self, k):
-        try:
-            # Throws exception if not in prototype chain
-            return object.__getattribute__(self, k)
-        except AttributeError:
-            try:
-                return self[k]
-            except KeyError:
-                return None
+   def __contains__(self, k):
+      try:
+         return dict.__contains__(self, k) or hasattr(self, k)
+      except:
+         return False
 
-    def __setattr__(self, k, v):
-        try:
-            # Throws exception if not in prototype chain
-            object.__getattribute__(self, k)
-        except AttributeError:
-            try:
-                self[k] = v
-            except:
-                raise AttributeError(k)
-        else:
-            object.__setattr__(self, k, v)
+   def __getattr__(self, k):
+      try:
+         # Throws exception if not in prototype chain
+         return object.__getattribute__(self, k)
+      except AttributeError:
+         try:
+            return self[k]
+         except KeyError:
+            return None
 
-    def __delattr__(self, k):
-        try:
-            # Throws exception if not in prototype chain
-            object.__getattribute__(self, k)
-        except AttributeError:
-            try:
-                del self[k]
-            except KeyError:
-                raise AttributeError(k)
-        else:
-            object.__delattr__(self, k)
+   def __setattr__(self, k, v):
+      try:
+         # Throws exception if not in prototype chain
+         object.__getattribute__(self, k)
+      except AttributeError:
+         try:
+            self[k] = v
+         except:
+            raise AttributeError(k)
+      else:
+         object.__setattr__(self, k, v)
 
-    def copy(self):
-        return Bunch.from_dict(super().copy())
+   def __delattr__(self, k):
+      try:
+         # Throws exception if not in prototype chain
+         object.__getattribute__(self, k)
+      except AttributeError:
+         try:
+            del self[k]
+         except KeyError:
+            raise AttributeError(k)
+      else:
+         object.__delattr__(self, k)
 
-    def toDict(self):
-        return unbunchify(self)
+   def copy(self):
+      return Bunch.from_dict(super().copy())
 
-    def sub(self, __BUNCH_SUB_ITEMS=None, **kw):
-        if len(kw) is 0:
-            if isinstance(__BUNCH_SUB_ITEMS, dict):
-                kw = __BUNCH_SUB_ITEMS
-            else:
-                kw = vars(__BUNCH_SUB_ITEMS)
-        b = self.copy()
-        for k, v in kw.items():
-            b.__setattr__(k, v)
-        return b
+   def toDict(self):
+      return unbunchify(self)
 
-    def __getstate__(self):
-        return self.__dict__
+   def sub(self, __BUNCH_SUB_ITEMS=None, **kw):
+      if len(kw) is 0:
+         if isinstance(__BUNCH_SUB_ITEMS, dict):
+            kw = __BUNCH_SUB_ITEMS
+         else:
+            kw = vars(__BUNCH_SUB_ITEMS)
+      b = self.copy()
+      for k, v in kw.items():
+         b.__setattr__(k, v)
+      return b
 
-    def __setstate__(self, d):
-        self.__dict__.update(d)
+   def __getstate__(self):
+      return self.__dict__
 
-    def __repr__(self):
-        args = ", ".join(["%s=%r" % (key, self[key]) for key in self.keys()])
-        return "%s(%s)" % (self.__class__.__name__, args)
+   def __setstate__(self, d):
+      self.__dict__.update(d)
 
-    @staticmethod
-    def from_dict(d):
-        return bunchify(d)
+   def __repr__(self):
+      args = ", ".join(["%s=%r" % (key, self[key]) for key in self.keys()])
+      return "%s(%s)" % (self.__class__.__name__, args)
 
+   @staticmethod
+   def from_dict(d):
+      return bunchify(d)
 
 def bunchify(x):
-    if isinstance(x, dict):
-        return Bunch((k, bunchify(v)) for k, v in x.items())
-    elif isinstance(x, (list, tuple)):
-        return type(x)(bunchify(v) for v in x)
-    else:
-        return x
-
+   if isinstance(x, dict):
+      return Bunch((k, bunchify(v)) for k, v in x.items())
+   elif isinstance(x, (list, tuple)):
+      return type(x)(bunchify(v) for v in x)
+   else:
+      return x
 
 def unbunchify(x):
-    if isinstance(x, dict):
-        return dict((k, unbunchify(v)) for k, v in x.items())
-    elif isinstance(x, (list, tuple)):
-        return type(x)(unbunchify(v) for v in x)
-    else:
-        return x
+   if isinstance(x, dict):
+      return dict((k, unbunchify(v)) for k, v in x.items())
+   elif isinstance(x, (list, tuple)):
+      return type(x)(unbunchify(v) for v in x)
+   else:
+      return x

@@ -1,10 +1,87 @@
 import itertools as it
-from sicdock.search import gridslide
+from time import perf_counter
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 import homog as hm
+from sicdock.search import gridslide
+from sicdock.util import Bunch
+from sicdock.cluster import cookie_cutter
 
 
-def hier_start_samples(spec, resl=16, max_out_of_plane_angle=16, nstep=1, **kw):
+def hier_sample(sampler, evaluator, **kw):
+    args = Bunch(kw)
+    neval = list()
+    for iresl in range(args.nresl):
+        indices, xforms = expand_samples(**args.sub(vars()))
+        scores, *resbound, t = hier_evaluate(**args.sub(vars()))
+        neval.append((t, len(scores)))
+        print(
+            f"{args.out_prefix} iresl {iresl} ntot {len(scores):11,}",
+            f"nonzero {np.sum(scores > 0):5,}",
+        )
+    stats = Bunch(ntot=sum(x[1] for x in neval), neval=neval)
+    return xforms, scores, stats
+
+
+def expand_samples(iresl, sampler, beam_size, indices=None, scores=None, **kw):
+    if iresl == 0:
+        indices = np.arange(sampler.size(0), dtype="u8")
+        mask, xforms = sampler.get_xforms(0, indices)
+        return indices[mask], xforms
+    nexpand = max(1, int(beam_size / 2 ** sampler.dim()))
+    return sampler.expand_top_N(nexpand, iresl - 1, scores, indices)
+
+
+def hier_evaluate(evaluator, executor=None, **kw):
+    args = Bunch(kw)
+    t = perf_counter()
+    if executor:
+        return (*hier_evaluate_executor(executor, evaluator, **kw), perf_counter() - t)
+    iface_scores, lb, ub = evaluator(args.xforms, args.iresl)
+    return iface_scores, lb, lb, perf_counter() - t
+
+
+def hier_evaluate_executor(executor, evaluator, iresl, xforms, wts, **kw):
+    assert isinstance(executor, ThreadPoolExecutor)
+    nworkers = executor._max_workers
+    assert nworkers > 0
+    ntasks = int(len(xforms) / 10000)
+    ntasks = max(nworkers, ntasks)
+    futures = list()
+    for i, x in enumerate(np.array_split(xforms, ntasks)):
+        futures.append(executor.submit(evaluator, x, iresl))
+        futures[-1].idx = i
+    # futures = [f for f in as_completed(futures)]
+    results = [f.result() for f in sorted(futures, key=lambda x: x.idx)]
+    iface_scores = np.concatenate([r[0] for r in results])
+    lb = np.concatenate([r[1] for r in results])
+    ub = np.concatenate([r[2] for r in results])
+    return iface_scores, lb, ub
+
+
+def filter_redundancy(xforms, body, scores, **kw):
+    args = Bunch(kw)
+    nclust = args.max_cluster
+    if nclust is None:
+        nclust = int(args.beam_size) // 10
+    ibest = np.argsort(-scores)
+    crd = xforms[ibest[:nclust], None] @ body.cen[::10, :, None]
+    ncen = crd.shape[1]
+    crd = crd.reshape(-1, 4 * ncen)
+    keep = cookie_cutter(crd, args.rmscut * np.sqrt(ncen))
+    print(f"redundancy filter cut {args.rmscut} keep {len(keep)} of {args.max_cluster}")
+    return ibest[keep]
+
+
+def trim_atom_to_res_numbering(ptrim, nres, max_trim):
+    ptrim = ((ptrim[0] - 1) // 5 + 1, (ptrim[1] + 1) // 5 - 1)  # to res numbers
+    ntrim = ptrim[0] + nres - ptrim[1] - 1
+    trimok = ntrim <= max_trim
+    ptrim = (ptrim[0][trimok], ptrim[1][trimok])
+    return ptrim, trimok
+
+
+def tccage_slide_hier_samples(spec, resl=16, max_out_of_plane_angle=16, nstep=1, **kw):
     tip = max_out_of_plane_angle
 
     range1 = 180 / spec.nfold1
@@ -36,7 +113,7 @@ def hier_start_samples(spec, resl=16, max_out_of_plane_angle=16, nstep=1, **kw):
     return [rots1, rots2, dirns], newresls
 
 
-def hier_expand_samples(spec, pos1, pos2, resls):
+def tccage_slide_hier_expand(spec, pos1, pos2, resls):
     deltas = resls / 2
     assert np.min(deltas) >= 0.1, "deltas should be in degrees"
     deltas = deltas / 180 * np.pi
@@ -47,7 +124,7 @@ def hier_expand_samples(spec, pos1, pos2, resls):
     dirn = (pos2[:, :, 3] - pos1[:, :, 3])[:, :, None]
     dirnorm = np.linalg.norm(dirn, axis=1)
     assert np.min(dirnorm) > 0.9
-    # print("hier_expand_samples", n, dirnorm.shape)
+    # print("tccage_slide_hier_expand", n, dirnorm.shape)
     dirn /= dirnorm[:, None]
     newpos1 = np.empty((8 * n, 4, 4))
     newpos2 = np.empty((8 * n, 4, 4))
@@ -63,7 +140,7 @@ def hier_expand_samples(spec, pos1, pos2, resls):
     return [newpos1, newpos2, newdirn]
 
 
-def find_connected_2xCyclic_hier_slide(
+def tccage_slide_hier(
     spec,
     body1,
     body2,
@@ -72,13 +149,13 @@ def find_connected_2xCyclic_hier_slide(
     base_min_contacts=0,
     prune_frac_sortof=0.875,
     prune_minkeep=1000,
-    **kw
+    **kw,
 ):
     assert base_resl > 2, "are you sure?"
     mct = [base_min_contacts]
     mct_update = prune_frac_sortof
     npair, pos = [None] * nstep, [None] * nstep
-    samples, newresl = hier_start_samples(spec, resl=base_resl, **kw)
+    samples, newresl = tccage_slide_hier_samples(spec, resl=base_resl, **kw)
     nsamp = [np.prod([len(s) for s in samples])]
     for i in range(nstep):
         npair[i], pos[i] = gridslide.find_connected_2xCyclic_slide(
@@ -88,7 +165,7 @@ def find_connected_2xCyclic_hier_slide(
             return npair[i - 1], pos[i - 1]
         if i + 1 < nstep:
             newresl /= 2
-            samples = hier_expand_samples(spec, *pos[i], newresl)
+            samples = tccage_slide_hier_expand(spec, *pos[i], newresl)
             nsamp.append(len(samples[0]))
 
             mct.append(int(np.quantile(npair[i][:, 0], mct_update)))

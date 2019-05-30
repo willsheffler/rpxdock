@@ -6,7 +6,7 @@ from sicdock.io.io_body import dump_pdb_from_bodies
 from sicdock.cluster import prune_results_2comp
 
 
-def test_2xCyclic_hier(
+def test_tccage_slide_hier(
     C3_1nza,
     C2_3hm4,
     nfold1=3,
@@ -28,7 +28,7 @@ def test_2xCyclic_hier(
         body2 = Body(C2_3hm4, nfold2, which_ss="HEL")
 
         t = perf_counter()
-        npair, pos = find_connected_2xCyclic_hier_slide(
+        npair, pos = tccage_slide_hier(
             spec,
             body1,
             body2,
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     pose1 = ros.get_pose_cached("sicdock/data/pdb/C3_1nza_1.pdb.gz")
     pose2 = ros.get_pose_cached("sicdock/data/pdb/C2_3hm4_1.pdb.gz")
 
-    test_2xCyclic_hier(
+    test_tccage_slide_hier(
         pose1,
         pose2,
         ndump=10,
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         contact_dis=8,
     )
 
-    # test_2xCyclic_hier(
+    # test_tccage_slide_hier(
     #     pose1,
     #     pose2,
     #     ndump=10,

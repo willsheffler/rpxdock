@@ -19,8 +19,9 @@ dependencies:
  - pytest-sugar
  - pytest-xdist
  - pip
+
  - pip:
    - homog >= 0.1.10
    - xbin >= 0.1.5
    - cppimport
-   
+

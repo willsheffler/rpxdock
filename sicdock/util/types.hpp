@@ -8,6 +8,8 @@ namespace util {
 
 // RowMajor to match numpy
 template <class F>
+using V1 = Eigen::Matrix<F, 1, 1>;
+template <class F>
 using V2 = Eigen::Matrix<F, 2, 1>;
 template <class F>
 using V3 = Eigen::Matrix<F, 3, 1>;  // todo: should use aligned vector3?

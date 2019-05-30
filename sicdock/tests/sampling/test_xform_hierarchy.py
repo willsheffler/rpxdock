@@ -502,7 +502,31 @@ def test_xform_hierarchy_plug_bug():
 #  [ -0.05655876  -0.5767263    0.8149772   -4.5       ]
 #  [  0.           0.           0.           1.        ]]
 
+
+def test_OriCart1_hierarchy_product():
+    oh = OriHier_f4(999)
+    ch = CartHier1D_f4([0], [1], [1])
+    xh = OriCart1Hier_f4([0], [1], [1], 999)
+    assert oh.ori_nside == xh.ori_nside
+    resl = 0
+    i, x = xh.get_xforms(resl, urange(xh.size(resl)))
+    i, o = oh.get_ori(resl, urange(oh.size(resl)))
+    i, t = ch.get_trans(resl, urange(ch.size(resl)))
+    assert np.allclose(x[:, :3, :3], o)
+    assert np.allclose(x[:, 0, 3], t)
+
+    resl = 1
+    i, x = xh.get_xforms(resl, urange(0, xh.size(resl), 8))
+    i, o = oh.get_ori(resl, urange(oh.size(resl)))
+    i, t = ch.get_trans(resl, urange(ch.size(resl)))
+    assert np.allclose(x.reshape(24, -1, 4, 4)[0, :, :1, 3], t)
+    assert np.allclose(
+        x.reshape(24, -1, 4, 4)[:, ::8, :3, :3], o.reshape(24, -1, 3, 3)[:, ::8]
+    )
+
+
 if __name__ == "__main__":
+    test_OriCart1_hierarchy_product()
     # test_zorder()
     # test_cart_hier1()
     # test_xform_hierarchy_product()
@@ -510,8 +534,8 @@ if __name__ == "__main__":
     # test_xform_hierarchy_ctor()
     # test_xform_hierarchy_get_xforms()
     # test_xform_hierarchy_get_xforms_bs()
-    test_xform_hierarchy_expand_top_N()
-    test_xform_hierarchy_expand_top_N_nullval()
+    # test_xform_hierarchy_expand_top_N()
+    # test_xform_hierarchy_expand_top_N_nullval()
     # test_ori_hier_all2()
     # test_ori_hier_1cell()
     # test_ori_hier_rand()

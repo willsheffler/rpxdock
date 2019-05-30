@@ -2,7 +2,7 @@ from time import perf_counter
 import numpy as np
 import homog as hm
 
-from sicdock.search.hierarchical import hier_start_samples
+from sicdock.search.hierarchical import tccage_slide_hier_samples
 from sicdock.body import Body
 from sicdock.dockspec import (
     DockSpec2CompCage,
@@ -84,7 +84,7 @@ def test_2xCyclic(
         body2 = Body(C2_3hm4, nfold2, which_ss="HEL")
 
         if use_hier_leaf_samples:
-            samples, *_ = hier_start_samples(
+            samples, *_ = tccage_slide_hier_samples(
                 spec, resl=resl, max_out_of_plane_angle=tip, nstep=5
             )
         else:
