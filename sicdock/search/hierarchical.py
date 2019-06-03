@@ -1,185 +1,127 @@
 import itertools as it
-from time import perf_counter
-from concurrent.futures import ThreadPoolExecutor
 import numpy as np
-import homog as hm
-from sicdock.search import gridslide
+import sicdock.geom.homog as hm
+from sicdock.search import gridslide, evaluate_positions
 from sicdock.util import Bunch
-from sicdock.cluster import cookie_cutter
 
+def hier_search(sampler, evaluator, **kw):
+   args = Bunch(kw)
+   neval, indices, scores = list(), None, None
+   for iresl in range(args.nresl):
+      indices, xforms = expand_samples(iresl, sampler, indices, scores, **args)
+      scores, *resbound, t = evaluate_positions(**args.sub(vars()))
+      neval.append((t, len(scores)))
+      print(
+         f"{args.out_prefix} iresl {iresl} ntot {len(scores):11,}",
+         f"nonzero {np.sum(scores > 0):5,}",
+      )
+   stats = Bunch(ntot=sum(x[1] for x in neval), neval=neval)
+   return xforms, scores, stats
 
-def hier_sample(sampler, evaluator, **kw):
-    args = Bunch(kw)
-    neval = list()
-    for iresl in range(args.nresl):
-        indices, xforms = expand_samples(**args.sub(vars()))
-        scores, *resbound, t = hier_evaluate(**args.sub(vars()))
-        neval.append((t, len(scores)))
-        print(
-            f"{args.out_prefix} iresl {iresl} ntot {len(scores):11,}",
-            f"nonzero {np.sum(scores > 0):5,}",
-        )
-    stats = Bunch(ntot=sum(x[1] for x in neval), neval=neval)
-    return xforms, scores, stats
-
-
-def expand_samples(iresl, sampler, beam_size, indices=None, scores=None, **kw):
-    if iresl == 0:
-        indices = np.arange(sampler.size(0), dtype="u8")
-        mask, xforms = sampler.get_xforms(0, indices)
-        return indices[mask], xforms
-    nexpand = max(1, int(beam_size / 2 ** sampler.dim()))
-    return sampler.expand_top_N(nexpand, iresl - 1, scores, indices)
-
-
-def hier_evaluate(evaluator, executor=None, **kw):
-    args = Bunch(kw)
-    t = perf_counter()
-    if executor:
-        return (*hier_evaluate_executor(executor, evaluator, **kw), perf_counter() - t)
-    iface_scores, lb, ub = evaluator(args.xforms, args.iresl)
-    return iface_scores, lb, lb, perf_counter() - t
-
-
-def hier_evaluate_executor(executor, evaluator, iresl, xforms, wts, **kw):
-    assert isinstance(executor, ThreadPoolExecutor)
-    nworkers = executor._max_workers
-    assert nworkers > 0
-    ntasks = int(len(xforms) / 10000)
-    ntasks = max(nworkers, ntasks)
-    futures = list()
-    for i, x in enumerate(np.array_split(xforms, ntasks)):
-        futures.append(executor.submit(evaluator, x, iresl))
-        futures[-1].idx = i
-    # futures = [f for f in as_completed(futures)]
-    results = [f.result() for f in sorted(futures, key=lambda x: x.idx)]
-    iface_scores = np.concatenate([r[0] for r in results])
-    lb = np.concatenate([r[1] for r in results])
-    ub = np.concatenate([r[2] for r in results])
-    return iface_scores, lb, ub
-
-
-def filter_redundancy(xforms, body, scores, **kw):
-    args = Bunch(kw)
-    nclust = args.max_cluster
-    if nclust is None:
-        nclust = int(args.beam_size) // 10
-    ibest = np.argsort(-scores)
-    crd = xforms[ibest[:nclust], None] @ body.cen[::10, :, None]
-    ncen = crd.shape[1]
-    crd = crd.reshape(-1, 4 * ncen)
-    keep = cookie_cutter(crd, args.rmscut * np.sqrt(ncen))
-    print(f"redundancy filter cut {args.rmscut} keep {len(keep)} of {args.max_cluster}")
-    return ibest[keep]
-
-
-def trim_atom_to_res_numbering(ptrim, nres, max_trim):
-    ptrim = ((ptrim[0] - 1) // 5 + 1, (ptrim[1] + 1) // 5 - 1)  # to res numbers
-    ntrim = ptrim[0] + nres - ptrim[1] - 1
-    trimok = ntrim <= max_trim
-    ptrim = (ptrim[0][trimok], ptrim[1][trimok])
-    return ptrim, trimok
-
+def expand_samples(iresl, sampler, indices=None, scores=None, beam_size=None, **kw):
+   if iresl == 0:
+      indices = np.arange(sampler.size(0), dtype="u8")
+      mask, xforms = sampler.get_xforms(0, indices)
+      return indices[mask], xforms
+   nexpand = max(1, int(beam_size / 2**sampler.dim()))
+   return sampler.expand_top_N(nexpand, iresl - 1, scores, indices)
 
 def tccage_slide_hier_samples(spec, resl=16, max_out_of_plane_angle=16, nstep=1, **kw):
-    tip = max_out_of_plane_angle
+   tip = max_out_of_plane_angle
 
-    range1 = 180 / spec.nfold1
-    range2 = 180 / spec.nfold2
-    newresl1 = 2 * range1 / np.ceil(2 * range1 / resl)
-    newresl2 = 2 * range2 / np.ceil(2 * range2 / resl)
-    angs1 = np.arange(-range1 + newresl1 / 2, range1, newresl1)
-    angs2 = np.arange(-range2 + newresl2 / 2, range2, newresl2)
+   range1 = 180 / spec.nfold1
+   range2 = 180 / spec.nfold2
+   newresl1 = 2 * range1 / np.ceil(2 * range1 / resl)
+   newresl2 = 2 * range2 / np.ceil(2 * range2 / resl)
+   angs1 = np.arange(-range1 + newresl1 / 2, range1, newresl1)
+   angs2 = np.arange(-range2 + newresl2 / 2, range2, newresl2)
 
-    newresl3 = resl
-    angs3 = np.zeros(1)
-    if tip > resl / 8:
-        newresl3 = 2 * tip / np.ceil(2 * tip / resl)
-        angs3 = np.arange(-tip + newresl3 / 2, tip, newresl3)
-    angs3 = np.concatenate([angs3, angs3 + 180])
-    newresls = np.array([newresl1, newresl2, newresl3])
+   newresl3 = resl
+   angs3 = np.zeros(1)
+   if tip > resl / 8:
+      newresl3 = 2 * tip / np.ceil(2 * tip / resl)
+      angs3 = np.arange(-tip + newresl3 / 2, tip, newresl3)
+   angs3 = np.concatenate([angs3, angs3 + 180])
+   newresls = np.array([newresl1, newresl2, newresl3])
 
-    nr = newresls / 2
-    for i in range(1, nstep):
-        nr /= 2
-        angs1 = (angs1[:, None] + [-nr[0], +nr[0]]).reshape(-1)
-        angs2 = (angs2[:, None] + [-nr[1], +nr[1]]).reshape(-1)
-        angs3 = (angs3[:, None] + [-nr[2], +nr[2]]).reshape(-1)
+   nr = newresls / 2
+   for i in range(1, nstep):
+      nr /= 2
+      angs1 = (angs1[:, None] + [-nr[0], +nr[0]]).reshape(-1)
+      angs2 = (angs2[:, None] + [-nr[1], +nr[1]]).reshape(-1)
+      angs3 = (angs3[:, None] + [-nr[2], +nr[2]]).reshape(-1)
 
-    rots1 = spec.placements1(angs1)
-    rots2 = spec.placements2(angs2)
-    dirns = spec.slide_dir(angs3)
+   rots1 = spec.placements1(angs1)
+   rots2 = spec.placements2(angs2)
+   dirns = spec.slide_dir(angs3)
 
-    return [rots1, rots2, dirns], newresls
-
+   return [rots1, rots2, dirns], newresls
 
 def tccage_slide_hier_expand(spec, pos1, pos2, resls):
-    deltas = resls / 2
-    assert np.min(deltas) >= 0.1, "deltas should be in degrees"
-    deltas = deltas / 180 * np.pi
-    n = len(pos1)
-    x1 = hm.hrot(spec.axis1, [-deltas[0], +deltas[0]])
-    x2 = hm.hrot(spec.axis2, [-deltas[1], +deltas[1]])
-    x3 = hm.hrot(spec.axisperp, [-deltas[2], +deltas[2]])
-    dirn = (pos2[:, :, 3] - pos1[:, :, 3])[:, :, None]
-    dirnorm = np.linalg.norm(dirn, axis=1)
-    assert np.min(dirnorm) > 0.9
-    # print("tccage_slide_hier_expand", n, dirnorm.shape)
-    dirn /= dirnorm[:, None]
-    newpos1 = np.empty((8 * n, 4, 4))
-    newpos2 = np.empty((8 * n, 4, 4))
-    newdirn = np.empty((8 * n, 3))
-    lb, ub = 0, n
-    for x1, x2, x3 in it.product(x1, x2, x3):
-        newpos1[lb:ub] = x1 @ pos1
-        newpos2[lb:ub] = x2 @ pos2
-        newdirn[lb:ub] = (x3 @ dirn)[:, :3].squeeze()
-        lb, ub = lb + n, ub + n
-    newpos1[:, :3, 3] = 0
-    newpos2[:, :3, 3] = 0
-    return [newpos1, newpos2, newdirn]
-
+   deltas = resls / 2
+   assert np.min(deltas) >= 0.1, "deltas should be in degrees"
+   deltas = deltas / 180 * np.pi
+   n = len(pos1)
+   x1 = hm.hrot(spec.axis1, [-deltas[0], +deltas[0]])
+   x2 = hm.hrot(spec.axis2, [-deltas[1], +deltas[1]])
+   x3 = hm.hrot(spec.axisperp, [-deltas[2], +deltas[2]])
+   dirn = (pos2[:, :, 3] - pos1[:, :, 3])[:, :, None]
+   dirnorm = np.linalg.norm(dirn, axis=1)
+   assert np.min(dirnorm) > 0.9
+   # print("tccage_slide_hier_expand", n, dirnorm.shape)
+   dirn /= dirnorm[:, None]
+   newpos1 = np.empty((8 * n, 4, 4))
+   newpos2 = np.empty((8 * n, 4, 4))
+   newdirn = np.empty((8 * n, 3))
+   lb, ub = 0, n
+   for x1, x2, x3 in it.product(x1, x2, x3):
+      newpos1[lb:ub] = x1 @ pos1
+      newpos2[lb:ub] = x2 @ pos2
+      newdirn[lb:ub] = (x3 @ dirn)[:, :3].squeeze()
+      lb, ub = lb + n, ub + n
+   newpos1[:, :3, 3] = 0
+   newpos2[:, :3, 3] = 0
+   return [newpos1, newpos2, newdirn]
 
 def tccage_slide_hier(
-    spec,
-    body1,
-    body2,
-    base_resl=16,
-    nstep=5,
-    base_min_contacts=0,
-    prune_frac_sortof=0.875,
-    prune_minkeep=1000,
-    **kw,
+      spec,
+      body1,
+      body2,
+      base_resl=16,
+      nstep=5,
+      base_min_contacts=0,
+      prune_frac_sortof=0.875,
+      prune_minkeep=1000,
+      **kw,
 ):
-    assert base_resl > 2, "are you sure?"
-    mct = [base_min_contacts]
-    mct_update = prune_frac_sortof
-    npair, pos = [None] * nstep, [None] * nstep
-    samples, newresl = tccage_slide_hier_samples(spec, resl=base_resl, **kw)
-    nsamp = [np.prod([len(s) for s in samples])]
-    for i in range(nstep):
-        npair[i], pos[i] = gridslide.find_connected_2xCyclic_slide(
-            spec, body1, body2, samples, min_contacts=mct[-1], **kw
-        )
-        if len(npair[i]) is 0:
-            return npair[i - 1], pos[i - 1]
-        if i + 1 < nstep:
-            newresl /= 2
-            samples = tccage_slide_hier_expand(spec, *pos[i], newresl)
-            nsamp.append(len(samples[0]))
+   assert base_resl > 2, "are you sure?"
+   mct = [base_min_contacts]
+   mct_update = prune_frac_sortof
+   npair, pos = [None] * nstep, [None] * nstep
+   samples, newresl = tccage_slide_hier_samples(spec, resl=base_resl, **kw)
+   nsamp = [np.prod([len(s) for s in samples])]
+   for i in range(nstep):
+      npair[i], pos[i] = gridslide.find_connected_2xCyclic_slide(
+         spec, body1, body2, samples, min_contacts=mct[-1], **kw)
+      if len(npair[i]) is 0:
+         return npair[i - 1], pos[i - 1]
+      if i + 1 < nstep:
+         newresl /= 2
+         samples = tccage_slide_hier_expand(spec, *pos[i], newresl)
+         nsamp.append(len(samples[0]))
 
-            mct.append(int(np.quantile(npair[i][:, 0], mct_update)))
-            # if len(npair[i]) < prune_minkeep:
-            #     print("same mct")
-            #     mct.append(mct[-1])
-            # else:
-            #     nmct = npair[i][:, 0].partition(-prune_minkeep)
-            #     nmct = npair[i][-prune_minkeep, 0]
-            #     qmct = int(np.quantile(npair[i][:, 0], mct_update))
-            #     nprint("mct update", nmct, qmct)
-            #     mct.append(np.min(nmct, qmct))
+         mct.append(int(np.quantile(npair[i][:, 0], mct_update)))
+         # if len(npair[i]) < prune_minkeep:
+         #     print("same mct")
+         #     mct.append(mct[-1])
+         # else:
+         #     nmct = npair[i][:, 0].partition(-prune_minkeep)
+         #     nmct = npair[i][-prune_minkeep, 0]
+         #     qmct = int(np.quantile(npair[i][:, 0], mct_update))
+         #     nprint("mct update", nmct, qmct)
+         #     mct.append(np.min(nmct, qmct))
 
-    # print("nresult     ", [x.shape[0] for x in npair])
-    # print("samps       ", nsamp)
-    # print("min_contacts", mct)
-    return npair[-1], pos[-1]
+   # print("nresult     ", [x.shape[0] for x in npair])
+   # print("samps       ", nsamp)
+   # print("min_contacts", mct)
+   return npair[-1], pos[-1]

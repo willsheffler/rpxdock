@@ -67,8 +67,8 @@ def multiprocess_test(cli_args):
 
    if len(args.hscore_files) is 1 and args.hscore_files[0] in globals():
       args.hscore_files = globals()[args.hscore_files[0]]
-   hscore, bodies = threaded_load_hscore_and_bodies(args.hscore_files, args.holes + args.plugs,
-                                                    args.nprocess * args.nthread)
+   hscore, bodies = threaded_load_hscore_and_bodies(
+      args.hscore_files, args.holes + args.plugs, args.nprocess * args.nthread)
    holes = bodies[:len(args.holes)]
    for htag, hole in holes:
       htag = args.out_prefix + htag if args.out_prefix else htag
@@ -109,7 +109,7 @@ def quick_test(cli_args=dict()):
    args.beam_size = 1e4
    args.rmscut = 3.0
    args.max_longaxis_dot_z = 0.5
-   args.executor = ThreadPoolExecutor(args.nthread)
+   args.executor = ThreadPoolExecutor(args.ncpu)
    args.multi_iface_summary = np.min  # min(plug, hole)
    # args.max_longaxis_dot_z = 0.1
    # args.multi_iface_summary = np.sum  # sum(plug, hole)

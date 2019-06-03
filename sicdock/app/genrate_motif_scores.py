@@ -8,8 +8,6 @@ def parsearg(s):
    if isinstance(s, list):
       s = ",".join("(%s)" % a for a in s)
    arg = eval(s)
-   print(type(arg))
-   print(arg)
    if isinstance(arg, tuple) and len(arg) == 2 and isinstance(arg[0], int):
       arg = [arg]
    return arg

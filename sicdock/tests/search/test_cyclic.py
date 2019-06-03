@@ -22,7 +22,7 @@ def test_make_cyclic(hscore, cli_args=dict()):
    args.rmscut = 3.0
    # args.max_longaxis_dot_z = 0.5
    args.max_trim = 0
-   args.executor = ThreadPoolExecutor(args.nthread if args.nthread else args.ncpu)
+   # args.executor = ThreadPoolExecutor(args.nthread if args.nthread else args.ncpu)
    args.sub(cli_args)
 
    body = sicdock.body.Body(datadir + "/pdb/DHR14.pdb")
@@ -31,7 +31,7 @@ def test_make_cyclic(hscore, cli_args=dict()):
    result = concat_results(results)
 
 def main():
-   hscore = HierScore(load_threads(small_hscore_fnames))
+   hscore = HierScore(load(small_hscore_fnames))
    test_make_cyclic(hscore)
 
 if __name__ == "__main__":

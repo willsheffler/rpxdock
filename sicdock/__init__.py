@@ -17,13 +17,12 @@ from sicdock import io
 from sicdock import phmap
 # from sicdock import rosetta  # pyrosetta very slow
 # from sicdock import rotamer
-# from sicdock import sampling
+from sicdock import sampling
 # from sicdock import search
 # from sicdock import sym
 from sicdock import util
 from sicdock import xbin
 from sicdock import options
-from sicdock.util.bunch import Bunch
-from sicdock.util.timer import Timer
+from sicdock.util import Bunch, Timer, load, dump
 
 rootdir = os.path.dirname(__file__)

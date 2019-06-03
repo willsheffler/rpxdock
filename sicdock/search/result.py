@@ -1,5 +1,4 @@
-import xarray as xr
-
+import numpy as np, xarray as xr
 
 def concat_results(results, attrs=dict(), datasetkey="dataset"):
    for k in results[0]:

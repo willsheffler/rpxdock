@@ -16,6 +16,7 @@ setup_pybind11(cfg)
 #include <pybind11/pybind11.h>
 #include <algorithm>
 #include <iostream>
+#include "sicdock/util/pybind_types.hpp"
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -47,26 +48,26 @@ py::tuple get_trans(CartHier<N, F, I> ch, int resl,
   out[1] = xout[py::slice(0, nout, 1)];
   return out;
 }
-template <typename F, typename I>
-py::tuple get_ori(OriHier<F, I> oh, int resl, Ref<Matrix<I, Dynamic, 1>> idx) {
-  std::vector<size_t> orishape{idx.size(), 3, 3};
+template <typename Hier, typename F, typename I, typename X = M3<F>>
+py::tuple get_ori(Hier const& h, int resl, Vx<I> idx) {
+  std::vector<size_t> orishape{idx.size(), dim_of<X>(), dim_of<X>()};
   py::array_t<bool> iout(idx.size());
   py::array_t<F> oriout(orishape);
   bool* iptr = (bool*)iout.request().ptr;
-  M3<F>* oriptr = (M3<F>*)oriout.request().ptr;
+  X* oriptr = (X*)oriout.request().ptr;
   size_t nout = 0;
   for (size_t i = 0; i < idx.size(); ++i) {
-    iptr[i] = oh.get_value(resl, idx[i], oriptr[nout]);
+    M3<F> rot;
+    iptr[i] = h.get_value(resl, idx[i], rot);
+    oriptr[nout] = X::Identity();
+    set_rot(oriptr[nout], rot);
     if (iptr[i]) ++nout;
   }
-  py::tuple out(2);
-  out[0] = iout;
-  out[1] = oriout[py::slice(0, nout, 1)];
-  return out;
+  return py::make_tuple(iout, oriout[py::slice(0, nout, 1)]);
 }
 
 template <typename H, typename F, typename I>
-py::tuple get_xforms(H xh, int resl, Ref<Matrix<I, Dynamic, 1>> idx) {
+py::tuple get_xforms(H xh, int resl, Vx<I> idx) {
   std::vector<size_t> xshape{idx.size(), 4, 4};
   py::array_t<bool> iout(idx.size());
   py::array_t<F> xout(xshape);
@@ -97,6 +98,9 @@ py::tuple expand_top_N_impl(H xh, int N, int resl,
   X3<F>* xptr = (X3<F>*)xout.request().ptr;
   py::array_t<I> iout(N * 64);
   I* iptr = (I*)iout.request().ptr;
+  for (auto [s, i] : si)
+    if (i >= xh.size(resl))
+      throw std::range_error("expand_top_N_impl: index out of bounds");
 
   size_t nout = 0;
   {
@@ -160,36 +164,54 @@ void bind_CartHier(auto m, std::string name) {
       .def("sanity_check", &CartHier<N, F, I>::sanity_check)
       /**/;
 }
+
 template <typename F, typename I>
-void bind_OriHier(auto m, std::string name) {
-  py::class_<OriHier<F, I>>(m, name.c_str())
+RotHier<F, I> RotHier_nside(F lb, F ub, I nside, V3<F> axis) {
+  return RotHier<F, I>(lb, ub, nside, axis);
+}
+template <typename F, typename I>
+void bind_RotHier(auto m, std::string kind) {
+  py::class_<RotHier<F, I>>(m, ("RotHier_" + kind).c_str())
+      .def(py::init<F, F, F, V3<F>>(), "lb"_a, "ub"_a, "resl"_a,
+           "axis"_a = V3<F>(0, 0, 1))
+      .def("size", &RotHier<F, I>::size)
+      .def_readonly("lb", &RotHier<F, I>::rot_lb_)
+      .def_readonly("ub", &RotHier<F, I>::rot_ub_)
+      .def_readonly("rot_cell_width", &RotHier<F, I>::rot_cell_width_)
+      .def_readonly("rot_ncell", &RotHier<F, I>::rot_ncell_)
+      .def_readonly("axis", &RotHier<F, I>::axis_)
+      .def("get_ori", &get_ori<RotHier<F, I>, F, I, M3<F>>, "resl"_a, "idx"_a)
+      .def("get_xforms", &get_ori<RotHier<F, I>, F, I, X3<F>>, "resl"_a,
+           "idx"_a)
+      /**/;
+  m.def(("create_RotHier_nside_" + kind).c_str(), &RotHier_nside<F, I>, "lb"_a,
+        "ub"_a, "ncell"_a, "axis"_a = V3<F>(0, 0, 1));
+}
+
+template <typename F, typename I>
+OriHier<F, I> OriHier_nside(I nside) {
+  return OriHier<F, I>(nside);
+}
+template <typename F, typename I>
+void bind_OriHier(auto m, std::string kind) {
+  py::class_<OriHier<F, I>>(m, ("OriHier_" + kind).c_str())
       .def(py::init<F>(), "ori_resl"_a)
       .def("size", &OriHier<F, I>::size)
       .def_readonly("ori_nside", &OriHier<F, I>::onside_)
-      .def("get_ori", &get_ori<F, I>)
+      .def("get_ori", &get_ori<OriHier<F, I>, F, I>, "resl"_a, "idx"_a)
       /**/;
+  m.def(("create_OriHier_nside_" + kind).c_str(), &OriHier_nside<F, I>,
+        "nside"_a);
 }
 
 template <typename F, typename I>
-OriHier<F, I> OriHier_nside(int nside) {
-  return OriHier<F, I>(nside);
-}
-
-template <typename F, typename I>
-XformHier<F, I> XformHier_nside(V3<F> lb, V3<F> ub, V3<I> ncart, int nside) {
+XformHier<F, I> XformHier_nside(V3<F> lb, V3<F> ub, V3<I> ncart, I nside) {
   return XformHier<F, I>(lb, ub, ncart, nside);
 }
-
 template <typename F, typename I>
-OriCart1Hier<F, I> OriCart1Hier_nside(V1<F> lb, V1<F> ub, V1<I> ncart,
-                                      int nside) {
-  return OriCart1Hier<F, I>(lb, ub, ncart, nside);
-}
-
-template <typename F, typename I>
-void bind_XformHier(auto m, std::string name) {
+void bind_XformHier(auto m, std::string kind) {
   using THIS = XformHier<F, I>;
-  py::class_<THIS>(m, name.c_str())
+  py::class_<THIS>(m, ("XformHier_" + kind).c_str())
       .def(py::init<V3<F>, V3<F>, V3<I>, F>(), "lb"_a, "ub"_a, "bs"_a,
            "ori_resl"_a)
       .def("size", &THIS::size)
@@ -209,7 +231,50 @@ void bind_XformHier(auto m, std::string name) {
       .def("parent_of", py::vectorize(&THIS::parent_of))
       .def("child_of_begin", py::vectorize(&THIS::child_of_begin))
       .def("child_of_end", py::vectorize(&THIS::child_of_end))
-      .def("get_xforms", &get_xforms<THIS, F, I>)
+      .def("get_xforms", &get_xforms<THIS, F, I>, "iresl"_a, "idx"_a)
+      .def("expand_top_N", expand_top_N_pairs<THIS, F, I>, "nkeep"_a, "resl"_a,
+           "score_idx"_a, "null_val"_a = 0)
+      .def("expand_top_N", expand_top_N_separate<THIS, F, I>, "nkeep"_a,
+           "resl"_a, "score"_a, "index"_a, "null_val"_a = 0)
+      /**/;
+  m.def(("create_XformHier_nside_" + kind).c_str(), &XformHier_nside<F, I>,
+        "lb"_a, "ub"_a, "bs"_a, "nside"_a);
+}
+
+template <typename F, typename I>
+OriCart1Hier<F, I> OriCart1Hier_nside(V1<F> lb, V1<F> ub, V1<I> ncart,
+                                      I nside) {
+  return OriCart1Hier<F, I>(lb, ub, ncart, nside);
+}
+template <typename F, typename I>
+void bind_RotCart1Hier(auto m, std::string name) {
+  using THIS = RotCart1Hier<F, I>;
+  py::class_<THIS>(m, name.c_str())
+      .def(py::init<F, F, I, F, F, I, V3<F>>(), "cartlb"_a, "cartub"_a,
+           "cartnc"_a, "rotlb"_a, "rotub"_a, "rotnc"_a,
+           "axis"_a = V3<F>(0, 0, 1))
+      .def("size", &THIS::size)
+      .def_readonly("rot_ncell", &THIS::rot_ncell_)
+      .def_readonly("cart_lb", &THIS::cart_lb_)
+      .def_readonly("cart_ub", &THIS::cart_ub_)
+      .def_readonly("cart_ncell", &THIS::cart_ncell_)
+      .def_readonly("cart_bs_", &THIS::cart_bs_)
+      .def_readonly("cart_cell_width_", &THIS::cart_cell_width_)
+      .def_readonly("cart_bs_pref_prod_", &THIS::cart_bs_pref_prod_)
+      .def_readonly("rot_lb", &THIS::rot_lb_)
+      .def_readonly("rot_ub", &THIS::rot_ub_)
+      .def_readonly("rot_ncell", &THIS::rot_ncell_)
+      .def_readonly("rot_cell_width", &THIS::rot_cell_width_)
+      .def_readonly("axis", &THIS::axis_)
+      .def_readonly("ncell", &THIS::ncell_)
+      .def("dim", [](THIS const& t) { return THIS::FULL_DIM; })
+      .def("sanity_check", &THIS::sanity_check)
+      .def("cell_index_of", py::vectorize(&THIS::cell_index_of))
+      .def("hier_index_of", py::vectorize(&THIS::hier_index_of))
+      .def("parent_of", py::vectorize(&THIS::parent_of))
+      .def("child_of_begin", py::vectorize(&THIS::child_of_begin))
+      .def("child_of_end", py::vectorize(&THIS::child_of_end))
+      .def("get_xforms", &get_xforms<THIS, F, I>, "iresl"_a, "idx"_a)
       .def("expand_top_N", expand_top_N_pairs<THIS, F, I>, "nkeep"_a, "resl"_a,
            "score_idx"_a, "null_val"_a = 0)
       .def("expand_top_N", expand_top_N_separate<THIS, F, I>, "nkeep"_a,
@@ -240,7 +305,7 @@ void bind_OriCart1Hier(auto m, std::string name) {
       .def("parent_of", py::vectorize(&THIS::parent_of))
       .def("child_of_begin", py::vectorize(&THIS::child_of_begin))
       .def("child_of_end", py::vectorize(&THIS::child_of_end))
-      .def("get_xforms", &get_xforms<THIS, F, I>)
+      .def("get_xforms", &get_xforms<THIS, F, I>, "iresl"_a, "idx"_a)
       .def("expand_top_N", expand_top_N_pairs<THIS, F, I>, "nkeep"_a, "resl"_a,
            "score_idx"_a, "null_val"_a = 0)
       .def("expand_top_N", expand_top_N_separate<THIS, F, I>, "nkeep"_a,
@@ -277,12 +342,12 @@ Matrix<I, Dynamic, 1> coeffs2zorder(
 }
 
 PYBIND11_MODULE(xform_hierarchy, m) {
-  bind_CartHier<1, double, uint64_t>(m, "CartHier1D");
-  bind_CartHier<2, double, uint64_t>(m, "CartHier2D");
-  bind_CartHier<3, double, uint64_t>(m, "CartHier3D");
-  bind_CartHier<4, double, uint64_t>(m, "CartHier4D");
-  bind_CartHier<5, double, uint64_t>(m, "CartHier5D");
-  bind_CartHier<6, double, uint64_t>(m, "CartHier6D");
+  bind_CartHier<1, double, uint64_t>(m, "CartHier1D_f8");
+  bind_CartHier<2, double, uint64_t>(m, "CartHier2D_f8");
+  bind_CartHier<3, double, uint64_t>(m, "CartHier3D_f8");
+  bind_CartHier<4, double, uint64_t>(m, "CartHier4D_f8");
+  bind_CartHier<5, double, uint64_t>(m, "CartHier5D_f8");
+  bind_CartHier<6, double, uint64_t>(m, "CartHier6D_f8");
   bind_CartHier<1, float, uint64_t>(m, "CartHier1D_f4");
   bind_CartHier<2, float, uint64_t>(m, "CartHier2D_f4");
   bind_CartHier<3, float, uint64_t>(m, "CartHier3D_f4");
@@ -290,17 +355,17 @@ PYBIND11_MODULE(xform_hierarchy, m) {
   bind_CartHier<5, float, uint64_t>(m, "CartHier5D_f4");
   bind_CartHier<6, float, uint64_t>(m, "CartHier6D_f4");
 
-  bind_OriHier<double, uint64_t>(m, "OriHier");
-  bind_OriHier<float, uint64_t>(m, "OriHier_f4");
-  m.def("create_OriHier_nside", &OriHier_nside<double, uint64_t>, "nside"_a);
-  m.def("create_OriHier_nside_f4", &OriHier_nside<float, uint64_t>, "nside"_a);
+  bind_OriHier<double, uint64_t>(m, "f8");
+  bind_OriHier<float, uint64_t>(m, "f4");
 
-  bind_XformHier<double, uint64_t>(m, "XformHier");
-  m.def("create_XformHier_nside", &XformHier_nside<double, uint64_t>, "lb"_a,
-        "ub"_a, "bs"_a, "nside"_a);
-  bind_XformHier<float, uint64_t>(m, "XformHier_f4");
-  m.def("create_XformHier_4f_nside", &XformHier_nside<float, uint64_t>, "lb"_a,
-        "ub"_a, "bs"_a, "nside"_a);
+  bind_RotHier<double, uint64_t>(m, "f8");
+  bind_RotHier<float, uint64_t>(m, "f4");
+
+  bind_RotCart1Hier<double, uint64_t>(m, "RotCart1Hier_f8");
+  bind_RotCart1Hier<float, uint64_t>(m, "RotCart1Hier_f4");
+
+  bind_XformHier<double, uint64_t>(m, "f8");
+  bind_XformHier<float, uint64_t>(m, "f4");
 
   m.def("zorder3coeffs", &zorder2coeffs<uint64_t, 3>);
   m.def("coeffs3zorder", &coeffs2zorder<uint64_t, 3>);

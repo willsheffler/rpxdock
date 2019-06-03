@@ -64,17 +64,46 @@ F epsilon2() {
   return std::sqrt(std::numeric_limits<F>::epsilon());
 }
 
+template <typename F>
+void set_rot(M3<F>& lhs, M3<F> rhs) {
+  lhs = rhs;
+}
+template <typename F>
+void set_rot(X3<F>& lhs, M3<F> rhs) {
+  lhs.linear() = rhs;
+}
+template <typename F>
+size_t dim_of() {
+  return 0;
+}
+template <>
+size_t dim_of<X3<float>>() {
+  return 4;
+}
+template <>
+size_t dim_of<X3<double>>() {
+  return 4;
+}
+template <>
+size_t dim_of<M3<float>>() {
+  return 3;
+}
+template <>
+size_t dim_of<M3<double>>() {
+  return 3;
+}
+
 }  // namespace util
 }  // namespace sicdock
 
 namespace Eigen {
 
 template <typename V>
-V *begin(sicdock::util::Vx<V> v) {
+V* begin(sicdock::util::Vx<V> v) {
   return v.data();
 }
 template <typename V>
-V *end(sicdock::util::Vx<V> v) {
+V* end(sicdock::util::Vx<V> v) {
   return v.data() + v.size();
 }
 

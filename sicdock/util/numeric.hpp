@@ -4,6 +4,10 @@
 namespace sicdock {
 namespace util {
 
+static const double pi = 3.14159265358979323846;
+static const double todeg = 180.0 / pi;
+static const double torad = pi / 180.0;
+
 template <typename F>
 F square(F x) {
   return x * x;
