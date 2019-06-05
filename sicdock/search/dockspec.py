@@ -1,6 +1,6 @@
 import numpy as np
-import sicdock.geom.homog as hm
-from sicdock import sym
+import sicdock.homog as hm
+from sicdock.geom import sym
 
 class DockSpec1CompCage:
    def __init__(self, spec):

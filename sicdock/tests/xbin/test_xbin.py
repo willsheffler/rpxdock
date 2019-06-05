@@ -2,10 +2,10 @@ import _pickle
 from time import perf_counter
 import numpy as np
 from sicdock.xbin import xbin_test, Xbin_double, Xbin_float, create_Xbin_nside_double
-from sicdock.geom.homog import angle_of_3x3
+from sicdock.homog import angle_of_3x3
 from sicdock.geom import bcc
 
-import sicdock.geom.homog as hm
+import sicdock.homog as hm
 """
 data from cpp test (commented out because pytest always prints it)
   bt24_BCC6 4.000/ 30.0 cr 3.537 dt 0.875 da  0.754 x2k: 115.394ns k2x: 108.414ns 46531.591    1521

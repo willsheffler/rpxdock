@@ -2,7 +2,7 @@ import _pickle
 from time import perf_counter
 import numpy as np
 from cppimport import import_hook
-import sicdock.geom.homog as hm
+import sicdock.homog as hm
 from sicdock.bvh.bvh_nd import *
 from scipy.spatial.distance import cdist
 

@@ -324,13 +324,31 @@ struct BVHIsectRange {
   using Xform = X3<F>;
   F rad = 0, rad2 = 0;
   int lb = 0, ub, mid;
-  int minrange = 0;
+  int minrange = 0, max_lb = -1, min_ub = 0;
   Xform bXa = Xform::Identity();
-  BVHIsectRange(F r, Xform x, int _ub, int _mid = -1, int mxtrim = -1)
+  BVHIsectRange(F r, Xform x, int _ub, int _mid = -1, int maxtrim = -1,
+                int maxtrim_lb = -1, int maxtrim_ub = -1)
       : rad(r), rad2(r * r), bXa(x), mid(_mid), ub(_ub) {
     if (mid < 0) mid = ub / 2;
-    if (mxtrim < 0) mxtrim = _ub + 1;
-    minrange = ub - mxtrim;
+    max_lb = ub;
+
+    if (maxtrim_lb >= 0 && maxtrim_ub >= 0) {
+      maxtrim = maxtrim == -1 ? maxtrim_lb + maxtrim_ub : maxtrim;
+      max_lb = maxtrim_lb;
+      min_ub = ub - maxtrim_ub;
+      mid = (max_lb + min_ub) / 2;
+    } else if (maxtrim_ub >= 0) {
+      maxtrim = maxtrim == -1 ? maxtrim_ub : maxtrim;
+      min_ub = ub - maxtrim_ub;
+      mid = 0;
+    } else if (maxtrim_lb >= 0) {
+      maxtrim = maxtrim == -1 ? maxtrim_lb : maxtrim;
+      max_lb = maxtrim_lb;
+      mid = ub;
+    } else if (maxtrim < 0) {
+      maxtrim = ub + 1;
+    }
+    minrange = ub - maxtrim;
   }
   bool intersectVolumeVolume(Sphere<F> r1, Sphere<F> r2) {
     if (r1.lb > ub || r1.ub < lb) return false;
@@ -351,20 +369,27 @@ struct BVHIsectRange {
         lb = std::max(v1.idx + 1, lb);
       else
         ub = std::min(v1.idx - 1, ub);
-      return (ub - lb) <= minrange;
+      bool ok = (ub >= min_ub) && (lb <= max_lb) && ((ub - lb) >= minrange);
+      if (!ok) {
+        lb = -1;
+        ub = -1;
+        return true;
+      }
     }
     return false;
   }
 };
 template <typename F>
 py::tuple isect_range_single(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
-                             F mindist, int maxtrim) {
+                             F mindist, int maxtrim = -1, int maxtrim_lb = -1,
+                             int maxtrim_ub = -1) {
   int lb, ub;
   {
     py::gil_scoped_release release;
     X3<F> x1(pos1), x2(pos2);
     BVHIsectRange<F> query(mindist, x1.inverse() * x2,
-                           (int)bvh1.objs.size() - 1, maxtrim);
+                           (int)bvh1.objs.size() - 1, -1, maxtrim, maxtrim_lb,
+                           maxtrim_ub);
     sicdock::bvh::BVIntersect(bvh1, bvh2, query);
     lb = query.lb;
     ub = query.ub;
@@ -373,7 +398,8 @@ py::tuple isect_range_single(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
 }
 template <typename F>
 py::tuple isect_range(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
-                      py::array_t<F> pos2, F mindist, int maxtrim) {
+                      py::array_t<F> pos2, F mindist, int maxtrim = -1,
+                      int maxtrim_lb = -1, int maxtrim_ub = -1) {
   auto x1 = xform_py_to_eigen(pos1);
   auto x2 = xform_py_to_eigen(pos2);
   if (x1.size() != x2.size() && x1.size() != 1 && x2.size() != 1)
@@ -381,15 +407,16 @@ py::tuple isect_range(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
   auto lb = std::make_unique<Vx<int>>();
   auto ub = std::make_unique<Vx<int>>();
   {
-    size_t n = std::max(x1.size(), x2.size());
     py::gil_scoped_release release;
+    size_t n = std::max(x1.size(), x2.size());
     lb->resize(n);
     ub->resize(n);
     for (size_t i = 0; i < n; ++i) {
       size_t i1 = x1.size() == 1 ? 0 : i;
       size_t i2 = x2.size() == 1 ? 0 : i;
       BVHIsectRange<F> query(mindist, x1[i1].inverse() * x2[i2],
-                             (int)bvh1.objs.size() - 1, maxtrim);
+                             (int)bvh1.objs.size() - 1, -1, maxtrim, maxtrim_lb,
+                             maxtrim_ub);
       sicdock::bvh::BVIntersect(bvh1, bvh2, query);
       (*lb)[i] = query.lb;
       (*ub)[i] = query.ub;
@@ -404,9 +431,6 @@ py::tuple naive_isect_range(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
   X3<F> pos = x1.inverse() * x2;
   F dist2 = mindist * mindist;
   int lb = 0, ub = (int)bvh1.objs.size() - 1, mid = ub / 2;
-
-  // BVHIsectRange<F> query(mindist, x1.inverse() * x2, (int)bvh1.objs.size() -
-  // 1);
 
   for (auto o1 : bvh1.objs) {
     for (auto o2 : bvh2.objs) {
@@ -944,9 +968,11 @@ PYBIND11_MODULE(bvh, m) {
   m.def("naive_isect_fixed", &naive_isect_fixed<double>);
 
   m.def("isect_range_single", &isect_range_single<double>, "intersction test",
-        "bvh1"_a, "bvh2"_a, "pos1"_a, "pos2"_a, "mindist"_a, "maxtrim"_a = -1);
+        "bvh1"_a, "bvh2"_a, "pos1"_a, "pos2"_a, "mindist"_a, "maxtrim"_a = -1,
+        "maxtrim_lb"_a = -1, "maxtrim_ub"_a = -1);
   m.def("isect_range", &isect_range<double>, "intersction test", "bvh1"_a,
-        "bvh2"_a, "pos1"_a, "pos2"_a, "mindist"_a, "maxtrim"_a = -1);
+        "bvh2"_a, "pos1"_a, "pos2"_a, "mindist"_a, "maxtrim"_a = -1,
+        "maxtrim_lb"_a = -1, "maxtrim_ub"_a = -1);
   m.def("naive_isect_range", &naive_isect_range<double>, "intersction test",
         "bvh1"_a, "bvh2"_a, "pos1"_a, "pos2"_a, "mindist"_a);
 

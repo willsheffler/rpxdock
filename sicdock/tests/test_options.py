@@ -1,5 +1,5 @@
 import sys
-from sicdock.options import *
+from sicdock.app.options import *
 
 def test_defaults():
    args = defaults()

@@ -31,8 +31,7 @@ using std::cout;
 using std::endl;
 
 template <int N, typename F, typename I>
-py::tuple get_trans(CartHier<N, F, I> ch, int resl,
-                    Ref<Matrix<I, Dynamic, 1>> idx) {
+py::tuple get_trans(CartHier<N, F, I> ch, int resl, Vx<I> idx) {
   std::vector<size_t> xshape{idx.size(), N};
   py::array_t<bool> iout(idx.size());
   py::array_t<F> xout(xshape);

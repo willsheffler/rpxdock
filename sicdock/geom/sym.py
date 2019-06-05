@@ -1,6 +1,6 @@
-import sicdock.geom.homog as hm
 import numpy as np
 from sicdock.data import datadir
+from sicdock import homog as hm
 
 tetrahedral_frames = np.load(datadir + "/tetrahedral_frames.pickle", allow_pickle=True)
 octahedral_frames = np.load(datadir + "/octahedral_frames.pickle", allow_pickle=True)

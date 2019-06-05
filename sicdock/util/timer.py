@@ -27,11 +27,12 @@ class Timer:
       return self
 
    def checkpoint(self, name='none', verbose=False):
-      if self.verbose or verbose:
-         print(f'{self.name} checkpoint {name}", "iter {len(self.checkpoints[name])}')
       t = time.perf_counter()
       self.checkpoints[name].append(t - self.last)
       self.last = t
+      if self.verbose or verbose:
+         print(f'{self.name} checkpoint {name} iter {len(self.checkpoints[name])}',
+               f'time {self.checkpoints[name][-1]}')
       return self
 
    def __exit__(self, type=None, value=None, traceback=None):
@@ -61,7 +62,8 @@ class Timer:
       else:
          raise ValueError('Timer, unknown order: ' + order)
 
-   def report(self, order='longest', summary='sum', namelen=None, precision='10.5f', printme=True):
+   def report(self, order='longest', summary='sum', namelen=None, precision='10.5f',
+              printme=True):
       if namelen is None:
          namelen = max(len(n) for n in self.checkpoints)
       lines = [f"Times(order={order}, summary={summary}):"]
@@ -71,6 +73,12 @@ class Timer:
       r = os.linesep.join(lines)
       if printme: print(r)
       return r
+
+   @property
+   def total(self):
+      if 'total' in self.checkpoints:
+         return sum(self.checkpoints['total'])
+      return time.perf_counter() - self.start
 
    def __str__(self):
       return self.report(printme=False)

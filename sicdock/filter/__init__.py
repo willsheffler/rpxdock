@@ -1,1 +1,1 @@
-from sicdock.filter.redundancy import *
+from .redundancy import *

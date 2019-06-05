@@ -86,3 +86,4 @@ _khash_ffi.c
 
 *.pdb.pickle
 *.pdb.gz.pickle
+*.pickle

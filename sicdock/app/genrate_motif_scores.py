@@ -50,13 +50,13 @@ def main():
 
    if args.respairdat_file == "TEST":
       args.respairdat_file = "/home/sheffler/debug/sicdock/respairdat/pdb_res_pair_data_si30_10_rots.pickle"
-   if args.out_prefix == "auto":
+   if args.output_prefix == "auto":
       # dname = os.path.dirname(args.respairdat_file) + '/hscore'
       dname = "./"
       bname = os.path.basename(args.respairdat_file.replace(".pickle", ""))
-      args.out_prefix = dname + "/" + bname + '_'
-   if not os.path.exists(os.path.dirname(args.out_prefix)):
-      os.mkdir(os.path.dirname(args.out_prefix))
+      args.output_prefix = dname + "/" + bname + '_'
+   if not os.path.exists(os.path.dirname(args.output_prefix)):
+      os.mkdir(os.path.dirname(args.output_prefix))
 
    with open(args.respairdat_file, "rb") as inp:
       rp = ResPairData(_pickle.load(inp))

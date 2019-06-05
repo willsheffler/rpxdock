@@ -1,5 +1,5 @@
 import numpy as np
-import sicdock.geom.homog as hm
+import sicdock.homog as hm
 
 def grid_sym_axis(cart, ang, axis=[0, 0, 1]):
    c = hm.htrans(cart[:, None] * np.array(axis[:3]))

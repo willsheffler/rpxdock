@@ -1,6 +1,6 @@
 import itertools as it
 import numpy as np
-import sicdock.geom.homog as hm
+import sicdock.homog as hm
 from sicdock.search import gridslide, evaluate_positions
 from sicdock.util import Bunch
 
@@ -12,7 +12,7 @@ def hier_search(sampler, evaluator, **kw):
       scores, *resbound, t = evaluate_positions(**args.sub(vars()))
       neval.append((t, len(scores)))
       print(
-         f"{args.out_prefix} iresl {iresl} ntot {len(scores):11,}",
+         f"{args.output_prefix} iresl {iresl} ntot {len(scores):11,}",
          f"nonzero {np.sum(scores > 0):5,}",
       )
    stats = Bunch(ntot=sum(x[1] for x in neval), neval=neval)
@@ -110,6 +110,7 @@ def tccage_slide_hier(
          samples = tccage_slide_hier_expand(spec, *pos[i], newresl)
          nsamp.append(len(samples[0]))
 
+         print(mct_update)
          mct.append(int(np.quantile(npair[i][:, 0], mct_update)))
          # if len(npair[i]) < prune_minkeep:
          #     print("same mct")

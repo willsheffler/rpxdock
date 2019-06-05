@@ -1,7 +1,7 @@
 import itertools as it
 import numpy as np
 import sicdock.sampling.orientations as ori
-import sicdock.geom.homog as hm
+import sicdock.homog as hm
 
 def samples_1xMonomer_orientations(resl):
    quats = ori.quaternion_set_with_covering_radius_degrees(resl)[0]

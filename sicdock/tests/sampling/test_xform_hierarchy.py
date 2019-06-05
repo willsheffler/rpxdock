@@ -4,7 +4,7 @@ import numpy as np
 from cppimport import import_hook
 from sicdock.sampling import *
 from sicdock.bvh.bvh_nd import *
-import sicdock.geom.homog as hm
+import sicdock.homog as hm
 from scipy.spatial.distance import cdist
 from sicdock.geom import xform_dist2_split
 from sicdock.geom.xform_dist import *

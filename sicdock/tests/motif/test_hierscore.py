@@ -1,5 +1,5 @@
 import numpy as np
-import sicdock.geom.homog as hm
+import sicdock.homog as hm
 import sicdock
 
 def rand_xform_sphere(n, radius, maxang=0):

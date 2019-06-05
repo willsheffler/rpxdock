@@ -1,3 +1,4 @@
+from . import plot, bunch, numeric, timer
 from .plot import *
 from .util import *
 from .bunch import *

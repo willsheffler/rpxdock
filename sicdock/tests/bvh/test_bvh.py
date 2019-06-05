@@ -1,6 +1,5 @@
-import _pickle
+import _pickle, numpy as np, itertools as it
 from time import perf_counter
-import numpy as np
 
 # from cppimport import import_hook
 #
@@ -10,8 +9,8 @@ import numpy as np
 #
 from sicdock.bvh import bvh_test
 from sicdock.bvh import bvh
-
-import sicdock.geom.homog as hm
+from sicdock import Bunch
+import sicdock.homog as hm
 
 def test_bvh_isect_cpp():
    assert bvh_test.TEST_bvh_test_isect()
@@ -741,6 +740,56 @@ def test_bvh_isect_range(body=None, cart_sd=0.3, N2=10, mindist=0.02):
       f"ratio {int(totnaive/totbvh):,}x isect-only: {totbvh/totbvh0:3.3f}x",
    )
 
+def test_bvh_isect_range_lb_ub(body=None, cart_sd=0.3, N1=3, N2=20, mindist=0.02):
+   N1 = 1 if body else N1
+   N = N1 * N2
+   Npts = 1000
+   nhit, nrangefail = 0, 0
+   args = [
+      Bunch(maxtrim=a, maxtrim_lb=b, maxtrim_ub=c) for a in (-1, 400) for b in (-1, 300)
+      for c in (-1, 300)
+   ]
+   for ibvh, arg in it.product(range(N1), args):
+      if body:
+         bvh1, bvh2 = body.bvh_bb, body.bvh_bb
+      else:
+         # xyz1 = np.random.rand(Npts, 3) - [0.5, 0.5, 0.5]
+         # xyz2 = np.random.rand(Npts, 3) - [0.5, 0.5, 0.5]
+         xyz1 = random_walk(Npts)
+         xyz2 = random_walk(Npts)
+         bvh1 = bvh.bvh_create(xyz1)
+         bvh2 = bvh.bvh_create(xyz2)
+
+      pos1 = hm.rand_xform(N2, cart_sd=cart_sd)
+      pos2 = hm.rand_xform(N2, cart_sd=cart_sd)
+      ranges = list()
+      for i in range(N2):
+         c = bvh.bvh_isect(bvh1=bvh1, bvh2=bvh2, pos1=pos1[i], pos2=pos2[i],
+                           mindist=mindist)
+         if c: nhit += 1
+         range1 = bvh.isect_range_single(bvh1=bvh1, bvh2=bvh2, pos1=pos1[i], pos2=pos2[i],
+                                         mindist=mindist, **arg)
+         ranges.append(range1)
+         if range1[0] < 0:
+            nrangefail += 1
+            assert c
+            continue
+
+         assert arg.maxtrim < 0 or np.diff(range1) >= Npts - arg.maxtrim
+         assert arg.maxtrim_lb < 0 or range1[0] <= arg.maxtrim_lb
+         assert arg.maxtrim_ub < 0 or range1[1] >= Npts - arg.maxtrim_ub
+
+         # mostly covered elsewhere, and quite slow
+         # range2 = bvh.naive_isect_range(bvh1, bvh2, pos1[i], pos2[i], mindist)
+         # assert range1 == range2
+
+      lb, ub = bvh.isect_range(bvh1, bvh2, pos1, pos2, mindist, **arg)
+      ranges = np.array(ranges)
+      assert np.all(lb == ranges[:, 0])
+      assert np.all(ub == ranges[:, 1])
+
+   print(f"iscet {nhit:,} hit of {N:,} iter, frangefail {nrangefail/nhit}", )
+
 def test_bvh_pickle(tmpdir):
    xyz1 = np.random.rand(1000, 3) - [0.5, 0.5, 0.5]
    xyz2 = np.random.rand(1000, 3) - [0.5, 0.5, 0.5]
@@ -896,7 +945,8 @@ if __name__ == "__main__":
    # test_collect_pairs_range()
    # test_slide_collect_pairs()
    # test_bvh_accessors()
-   test_bvh_isect_range()
+   # test_bvh_isect_range()
+   test_bvh_isect_range_lb_ub(N1=10, N2=20)
    # import tempfile
    # test_bvh_pickle(tempfile.mkdtemp())
 

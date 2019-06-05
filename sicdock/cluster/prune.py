@@ -1,5 +1,5 @@
 import numpy as np
-import sicdock.geom.homog as hm
+import sicdock.homog as hm
 
 from sicdock.cluster import cookie_cutter
 

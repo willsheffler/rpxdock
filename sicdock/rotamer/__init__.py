@@ -1,2 +1,2 @@
-from sicdock.rotamer.rotamer import *
-from sicdock.rotamer.richardson import *
+from .rotamer import *
+from .richardson import *

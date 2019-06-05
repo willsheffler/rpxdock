@@ -2,7 +2,7 @@ import numpy as np
 from sicdock.geom import primitive_test
 from sicdock.geom import miniball_test, miniball
 from sicdock.geom import xform_dist2_split
-import sicdock.geom.homog as hm
+import sicdock.homog as hm
 
 def test_geom_sphere():
    assert primitive_test.TEST_geom_primitive_sphere()

@@ -11,9 +11,9 @@ def test_timer():
       timer.checkpoint('baz')
 
    times = timer.report_dict()
-   assert numpy.allclose(times['foo'], 0.01, atol=0.002)
-   assert numpy.allclose(times['bar'], 0.03, atol=0.002)
-   assert numpy.allclose(times['baz'], 0.02, atol=0.002)
+   assert numpy.allclose(times['foo'], 0.01, atol=0.005)
+   assert numpy.allclose(times['bar'], 0.03, atol=0.005)
+   assert numpy.allclose(times['baz'], 0.02, atol=0.005)
 
    times = timer.report_dict(order='longest')
    assert list(times.keys()) == ['total', 'bar', 'baz', 'foo']
@@ -34,16 +34,16 @@ def test_summary():
       timer.checkpoint('foo')
 
    times = timer.report_dict(summary=sum)
-   assert numpy.allclose(times['foo'], 0.06, atol=0.002)
+   assert numpy.allclose(times['foo'], 0.06, atol=0.01)
 
    times = timer.report_dict(summary=numpy.mean)
-   assert numpy.allclose(times['foo'], 0.02, atol=0.002)
+   assert numpy.allclose(times['foo'], 0.02, atol=0.01)
 
    times = timer.report_dict(summary='mean')
-   assert numpy.allclose(times['foo'], 0.02, atol=0.002)
+   assert numpy.allclose(times['foo'], 0.02, atol=0.01)
 
    times = timer.report_dict(summary='min')
-   assert numpy.allclose(times['foo'], 0.01, atol=0.002)
+   assert numpy.allclose(times['foo'], 0.01, atol=0.01)
 
    with pytest.raises(ValueError):
       timer.report(summary='foo')

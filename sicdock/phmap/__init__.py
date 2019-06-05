@@ -1,2 +1,2 @@
 from cppimport import import_hook
-from sicdock.phmap.phmap import *
+from .phmap import *

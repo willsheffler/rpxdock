@@ -1,8 +1,10 @@
-from sicdock import data
-from sicdock.rosetta import get_pose_cached
 import pytest, os, sys, _pickle
 from os.path import join, dirname, abspath, exists
+
+from sicdock import data
+from sicdock.rosetta.triggers_init import get_pose_cached
 from sicdock.motif import ResPairData, HierScore
+from sicdock.search.result import dummy_result
 
 # addoption doesn't work for me
 # def pytest_addoption(parser):
@@ -67,3 +69,7 @@ def hscore(datadir):
       pref + "pdb_res_pair_data_si30_10_rots_ILV_noSS_p0.5_b1_hier3_Kflat_1_0.pickle",
       pref + "pdb_res_pair_data_si30_10_rots_ILV_noSS_p0.5_b1_hier4_Kflat_1_0.pickle",
    ])
+
+@pytest.fixture(scope="session")
+def result():
+   return dummy_result()

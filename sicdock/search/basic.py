@@ -1,6 +1,7 @@
 from time import perf_counter
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
+from sicdock import Bunch
 
 def grid_search(sampler, evaluator, **kw):
    if (not isinstance(sampler, np.ndarray) or sampler.ndim != 3
@@ -8,14 +9,15 @@ def grid_search(sampler, evaluator, **kw):
       raise ValueError('sampler for grid_search should be array of samples')
    xforms = sampler
    scores, *resbound, t = evaluate_positions(evaluator, xforms, **kw)
-   stats = Bunch(ntot=len(xforms), neval=[len(xforms)])
+   stats = Bunch(ntot=len(xforms), neval=[(t, len(scores))])
    return xforms, scores, stats
 
-def evaluate_positions(evaluator, executor=None, **kw):
+def evaluate_positions(evaluator, xforms, executor=None, **kw):
    t = perf_counter()
    if executor:
-      return (*evaluate_positions_executor(executor, evaluator, **kw), perf_counter() - t)
-   iface_scores, lb, ub = evaluator(**kw)
+      result = evaluate_positions_executor(executor, evaluator, xforms, **kw)
+      return (*result, perf_counter() - t)
+   iface_scores, lb, ub = evaluator(xforms, **kw)
    return iface_scores, lb, lb, perf_counter() - t
 
 def evaluate_positions_executor(executor, evaluator, xforms, **kw):

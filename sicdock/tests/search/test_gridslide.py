@@ -1,17 +1,17 @@
 from time import perf_counter
 import numpy as np
-import sicdock.geom.homog as hm
+import sicdock.homog as hm
 
 from sicdock.search.hierarchical import tccage_slide_hier_samples
 from sicdock.body import Body
-from sicdock.dockspec import (
+from sicdock.search.dockspec import (
    DockSpec2CompCage,
    DockSpec1CompCage,
    DockSpecMonomerToCyclic,
 )
 from sicdock.search import gridslide
 from sicdock.io.io_body import dump_pdb_from_bodies
-from sicdock import sym
+from sicdock.geom import sym
 
 from sicdock.cluster.prune import prune_results_2comp
 

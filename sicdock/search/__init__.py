@@ -1,6 +1,7 @@
-from sicdock.search.basic import *
-from sicdock.search.result import *
-from sicdock.search.hierarchical import *
-from sicdock.search.gridslide import *
-from sicdock.search.cyclic import *
-from sicdock.search.plug import *
+from .basic import *
+from .result import *
+from .hierarchical import *
+from .gridslide import *
+from .cyclic import *
+from .plug import *
+from . import basic, result, hierarchical, gridslide, cyclic, plug

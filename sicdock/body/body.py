@@ -1,44 +1,41 @@
-import copy
-
-import numpy as np
-import sicdock.geom.homog as hm
-
+import copy, numpy as np, sicdock
 from sicdock import bvh
 from sicdock.util.numeric import pca_eig
 from sicdock import motif
-
-import sicdock.rosetta as ros
+from sicdock.rosetta import get_bb_coords
 
 _CLASH_RADIUS = 1.75
 
 class Body:
-   def __init__(self, pdb, sym="C1", which_ss="HE", posecache=False, **kw):
-      if isinstance(pdb, str):
-         self.pdbfile = pdb
+   def __init__(self, pdb_or_pose, sym="C1", which_ss="HE", posecache=False, **kw):
+      if isinstance(pdb_or_pose, str):
+         import sicdock.rosetta.triggers_init as ros
+         self.pdbfile = pdb_or_pose
          if posecache:
-            self.pose = ros.get_pose_cached(pdb)
+            pose = ros.get_pose_cached(pdb_or_pose)
          else:
-            self.pose = ros.pose_from_file(pdb)
-            ros.assign_secstruct(self.pose)
+            pose = ros.pose_from_file(pdb_or_pose)
+            ros.assign_secstruct(pose)
       else:
-         self.pose = pdb
+         pose = pdb_or_pose
+         self.pdbfile = pose.pdb_info().name() if pose.pdb_info() else None
 
       if isinstance(sym, int):
          sym = "C%i" % sym
       self.sym = sym
       self.nfold = int(sym[1:])
-      self.seq = np.array(list(self.pose.sequence()))
-      self.ss = np.array(list(self.pose.secstruct()))
+      self.seq = np.array(list(pose.sequence()))
+      self.ss = np.array(list(pose.secstruct()))
       self.ssid = motif.ss_to_ssid(self.ss)
-      self.coord = ros.get_bb_coords(self.pose)
+      self.coord = get_bb_coords(pose)
       self.chain = np.repeat(0, self.seq.shape[0])
       self.resno = np.arange(len(self.seq))
 
       if sym and sym[0] == "C" and int(sym[1:]):
          n = self.coord.shape[0]
          nfold = int(sym[1:])
-         self.seq = np.array(list(nfold * self.pose.sequence()))
-         self.ss = np.array(list(nfold * self.pose.secstruct()))
+         self.seq = np.array(list(nfold * pose.sequence()))
+         self.ss = np.array(list(nfold * pose.secstruct()))
          self.ssid = motif.ss_to_ssid(self.ss)
          self.chain = np.repeat(range(nfold), n)
          self.resno = np.tile(range(n), nfold)
@@ -46,7 +43,7 @@ class Body:
          newcoord[:n] = self.coord
          # print(self.coord.shape, newcoord.shape)
          for i in range(1, nfold):
-            self.pos = hm.hrot([0, 0, 1], 360.0 * i / nfold)
+            self.pos = sicdock.homog.hrot([0, 0, 1], 360.0 * i / nfold)
             newcoord[i * n:][:n] = self.positioned_coord()
          self.coord = newcoord
       else:
@@ -71,8 +68,10 @@ class Body:
       self.pair_buf = np.empty((10000, 2), dtype="i4")
       self.pcavals, self.pcavecs = pca_eig(self.cen)
 
+      self.trim_direction = kw['trim_direction'] if 'trim_direction' in kw else None
+
       if self.sym != "C1":
-         self.asym_body = Body(pdb, "C1", which_ss, posecache, **kw)
+         self.asym_body = Body(pose, "C1", which_ss, posecache, **kw)
       else:
          self.asym_body = self
 
@@ -172,7 +171,7 @@ class Body:
    def dump_pdb(self, fname, asym=False):
       from sicdock.io.io_body import dump_pdb_from_bodies
 
-      dump_pdb_from_bodies(fname, [self], symframes(self.sym))
+      dump_pdb_from_bodies(fname, [self], sicdock.geom.symframes(self.sym))
 
       #      from sicdock.io import pdb_format_atom
       #

@@ -1,7 +1,7 @@
 import _pickle
 from time import perf_counter
 import numpy as np
-import sicdock.geom.homog as hm
+import sicdock.homog as hm
 from sicdock.body import Body
 
 def test_body(C2_3hm4, C3_1nza, sym1=2, sym2=3):

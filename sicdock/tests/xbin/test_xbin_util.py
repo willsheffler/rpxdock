@@ -3,11 +3,11 @@ from time import perf_counter
 import numpy as np
 from sicdock.xbin import Xbin_double, Xbin_float
 import sicdock.xbin.xbin_util as xu
-from sicdock.geom.homog import angle_of_3x3
+from sicdock.homog import angle_of_3x3
 from sicdock.geom import bcc
 from sicdock import phmap
 
-import sicdock.geom.homog as hm
+import sicdock.homog as hm
 
 def test_key_of_pairs():
    xb = Xbin_double(1, 20)

@@ -10,10 +10,87 @@ from sicdock.data import datadir
 from sicdock.util import load, Bunch, load_threads, MultiThreadLoader
 from sicdock.body import Body
 from sicdock.io.io_body import dump_pdb_from_bodies
-from sicdock.sym import symframes
+from sicdock.geom import symframes
+from sicdock.sampling import RotCart1Hier_f4, grid_sym_axis
 from sicdock.search import concat_results, make_plugs, plug_get_sample_hierarchy
+from sicdock.search import grid_search
 from sicdock.search.plug import __make_plugs_hier_sample_test__, ____PLUG_TEST_SAMPLE_HIERARCHY____
 from sicdock.tests.motif.hscore_data_locations_will import *
+
+def quick_test_olig(hscore, cli_args=dict()):
+   args = sicdock.app.defaults()
+   args.nout = 0
+   args.nresl = 5
+   args.wts = Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
+   args.beam_size = 1e4
+   args.rmscut = 3.0
+   args.max_longaxis_dot_z = 0.5
+   args.executor = ThreadPoolExecutor(args.ncpu)
+   args.multi_iface_summary = np.min  # min(plug, hole)
+   args.plug_fixed_olig = True
+   # args.max_longaxis_dot_z = 0.1
+   # args.multi_iface_summary = np.sum  # sum(plug, hole)
+   # args.multi_iface_summary = lambda x, **kw: x[:, 0]  # plug only
+   # args.wts = Bunch(plug=1.0, hole=1.0, ncontact=1.0, rpx=0)  # ncontact only
+
+   args.sub(cli_args)
+
+   cache = "/home/sheffler/debug/plug_from_oligomer/plug_from_olig.pickle"
+   fplug = '/home/sheffler/debug/plug_from_oligomer/input/test_c3_mono.pdb'
+   fhole = '/home/sheffler/debug/plug_from_oligomer/input/C3_o42_Z_asym.pdb'
+   try:
+      with open(cache, "rb") as inp:
+         plug, hole = _pickle.load(inp)
+   except:
+      plug = Body(fplug)
+      hole = Body(fhole, sym=3)
+      with open(cache, "wb") as out:
+         _pickle.dump([plug, hole], out)
+   if args.nout: dump_pdb_from_bodies("test_hole.pdb", [hole], symframes(hole.sym))
+
+   hsamp = RotCart1Hier_f4(-120, 120, 20, 0, 120, 12, [0, 0, 1])
+   result1 = make_plugs(plug, hole, hscore, hsamp, **args)
+
+   # should match hsamp resl4 grid
+   gcart = np.linspace(-119.625, 119.625, 20 * 16)
+   gang = np.linspace(0.3125, 119.6875, 12 * 16)
+   xgrid = grid_sym_axis(gcart, gang)
+   result2 = make_plugs(plug, hole, hscore, xgrid, search=grid_search, **args)
+
+   assert np.allclose(result1.scores[0], result2.scores[0])
+
+def quick_test(hscore, cli_args=dict()):
+   args = sicdock.app.defaults()
+   args.nout = 3
+   args.nresl = 5
+   args.wts = Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
+   args.beam_size = 1e4
+   args.rmscut = 3.0
+   args.max_longaxis_dot_z = 0.5
+   args.executor = ThreadPoolExecutor(args.ncpu)
+   args.multi_iface_summary = np.min  # min(plug, hole)
+   # args.max_longaxis_dot_z = 0.1
+   # args.multi_iface_summary = np.sum  # sum(plug, hole)
+   # args.multi_iface_summary = lambda x, **kw: x[:, 0]  # plug only
+   # args.wts = Bunch(plug=1.0, hole=1.0, ncontact=1.0, rpx=0)  # ncontact only
+   # args.output_prefix = "rpx"
+   args.sub(cli_args)
+
+   make_sampler = ____PLUG_TEST_SAMPLE_HIERARCHY____
+   try:
+      with open("/home/sheffler/debug/sicdock/hole.pickle", "rb") as inp:
+         plug, hole = _pickle.load(inp)
+      # plug = Body("/home/sheffler/scaffolds/repeat/dhr8/DHR05.pdb")
+   except:
+      plug = Body(datadir + "/pdb/DHR14.pdb")
+      # hole = Body(datadir + "/pdb/hole_C3_tiny.pdb", sym=3)
+      hole = HC(Body, "/home/sheffler/scaffolds/holes/C3_i52_Z_asym.pdb", sym=3)
+      with open("/home/sheffler/debug/sicdock/hole.pickle", "wb") as out:
+         _pickle.dump([plug, hole], out)
+   dump_pdb_from_bodies("test_hole.pdb", [hole], symframes(hole.sym))
+   sampler = make_sampler(plug, hole, hscore)
+   result = make_plugs(plug, hole, hscore, sampler, **args)
+   print(result)
 
 def multiprocess_helper(ihole, iplug, make_sampler, args):
    global ___GLOBALS_MULTIPROCESS_TEST
@@ -24,10 +101,12 @@ def multiprocess_helper(ihole, iplug, make_sampler, args):
    sampler = make_sampler(plug, hole, hscore)
    if args.nthread > 1:
       args.executor = ThreadPoolExecutor(args.nthread)
-   result = make_plugs(plug, hole, hscore, sampler, out_prefix=tag, **args)
+   result = make_plugs(plug, hole, hscore, sampler, output_prefix=tag, **args)
+   result.attrs['ihole'] = ihole
+   result.attrs['iplug'] = iplug
    if args.executor:
       args.executor.shutdown(wait=False)
-   return Bunch(ihole=ihole, iplug=iplug, dataset=result)
+   return result
 
 def load_body(f):
    tag = os.path.basename(f).replace(".pdb", "")
@@ -47,7 +126,7 @@ def threaded_load_hscore_and_bodies(hscore_files, body_files, nthread):
    return hscore, bodies
 
 def multiprocess_test(cli_args):
-   args = sicdock.options.defaults()
+   args = sicdock.app.defaults()
    args.nout = 1
    args.nresl = 5
    args.wts = Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
@@ -71,7 +150,7 @@ def multiprocess_test(cli_args):
       args.hscore_files, args.holes + args.plugs, args.nprocess * args.nthread)
    holes = bodies[:len(args.holes)]
    for htag, hole in holes:
-      htag = args.out_prefix + htag if args.out_prefix else htag
+      htag = args.output_prefix + htag if args.output_prefix else htag
       dump_pdb_from_bodies(htag + ".pdb", [hole], symframes(hole.sym))
    plugs = bodies[len(args.holes):]
 
@@ -101,46 +180,8 @@ def multiprocess_test(cli_args):
    )
    return concat_results(results)
 
-def quick_test(cli_args=dict()):
-   args = sicdock.options.defaults()
-   args.nout = 3
-   args.nresl = 5
-   args.wts = Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
-   args.beam_size = 1e4
-   args.rmscut = 3.0
-   args.max_longaxis_dot_z = 0.5
-   args.executor = ThreadPoolExecutor(args.ncpu)
-   args.multi_iface_summary = np.min  # min(plug, hole)
-   # args.max_longaxis_dot_z = 0.1
-   # args.multi_iface_summary = np.sum  # sum(plug, hole)
-   # args.multi_iface_summary = lambda x, **kw: x[:, 0]  # plug only
-   # args.wts = Bunch(plug=1.0, hole=1.0, ncontact=1.0, rpx=0)  # ncontact only
-   # args.out_prefix = "rpx"
-   args.sub(cli_args)
-
-   make_sampler = ____PLUG_TEST_SAMPLE_HIERARCHY____
-   try:
-      with open("/home/sheffler/debug/sicdock/hole.pickle", "rb") as inp:
-         plug, hole = _pickle.load(inp)
-      # plug = sicdock.body.Body("/home/sheffler/scaffolds/repeat/dhr8/DHR05.pdb")
-   except:
-      plug = sicdock.body.Body(datadir + "/pdb/DHR14.pdb")
-      # hole = sicdock.body.Body(datadir + "/pdb/hole_C3_tiny.pdb", sym=3)
-      hole = HC(Body, "/home/sheffler/scaffolds/holes/C3_i52_Z_asym.pdb", sym=3)
-      with open("/home/sheffler/debug/sicdock/hole.pickle", "wb") as out:
-         _pickle.dump([plug, hole], out)
-   dump_pdb_from_bodies("test_hole.pdb", [hole], symframes(hole.sym))
-   hscore = HierScore(load_threads(small_hscore_fnames))
-   sampler = make_sampler(plug, hole, hscore)
-   results = [
-      dict(dataset=make_plugs(plug, hole, hscore, sampler, **args), ih=0, ip=0),
-      dict(dataset=make_plugs(plug, hole, hscore, sampler, **args), ih=0, ip=1),
-   ]
-   result = concat_results(results, dict(plugs=["foo"], holes=["bar"]))
-   print(result)
-
 def server_test(cli_args):
-   args = sicdock.options.defaults()
+   args = sicdock.app.defaults()
    args.nout = 3
    args.nresl = 5
    args.wts = Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
@@ -153,7 +194,7 @@ def server_test(cli_args):
    # args.multi_iface_summary = np.sum  # sum(plug, hole)
    # args.multi_iface_summary = lambda x, **kw: x[:, 0]  # plug only
    # args.wts = Bunch(plug=1.0, hole=1.0, ncontact=1.0, rpx=0)  # ncontact only
-   # args.out_prefix = "rpx"
+   # args.output_prefix = "rpx"
 
    make_sampler = plug_get_sample_hierarchy
    args = args.sub_(nout=20, beam_size=3e5, rmscut=3)
@@ -182,10 +223,10 @@ def server_test(cli_args):
          plug = HC(Body, fname, n=0)
          pre = htag + "_" + ptag
          sampler = make_sampler(plug, hole, hscore)
-         make_plugs(plug, hole, hscore, sampler, out_prefix=pre, **args)
+         make_plugs(plug, hole, hscore, sampler, output_prefix=pre, **args)
 
 def hier_sample_test(cli_args):
-   args = sicdock.options.defaults()
+   args = sicdock.app.defaults()
    args.nout = 3
    args.nresl = 5
    args.wts = Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
@@ -198,7 +239,7 @@ def hier_sample_test(cli_args):
    # args.multi_iface_summary = np.sum  # sum(plug, hole)
    # args.multi_iface_summary = lambda x, **kw: x[:, 0]  # plug only
    # args.wts = Bunch(plug=1.0, hole=1.0, ncontact=1.0, rpx=0)  # ncontact only
-   # args.out_prefix = "rpx"
+   # args.output_prefix = "rpx"
 
    raise NotImplemented
    hscore = HierScore(load_big_hscore())
@@ -207,7 +248,7 @@ def hier_sample_test(cli_args):
    args.beam_size = 2e5
    args.nout = 20
    args.multi_iface_summary = np.sum
-   args.out_prefix = "ncontact_over_rpx_sum"
+   args.output_prefix = "ncontact_over_rpx_sum"
    smapler = plug_get_sample_hierarchy(plug, hole, hscore)
    # make_plugs(plug, hole, hscore, **args)
    __make_plugs_hier_sample_test__(plug, hole, hscore, **args)
@@ -239,9 +280,11 @@ def load_big_hscore():
    return load_threads(big_hscore_fnames)
 
 def main():
+   sicdock.rosetta.rosetta_init()
    if len(sys.argv) is 1:
-      return quick_test()
-   parser = sicdock.options.default_cli_parser()
+      hscore = HierScore(load_threads(small_hscore_fnames))
+      return quick_test_olig(hscore)
+   parser = sicdock.app.default_cli_parser()
    parser.add_argument("mode", default="quick_test")
    parser.add_argument("--plugs", nargs="+")
    parser.add_argument("--holes", nargs="+")

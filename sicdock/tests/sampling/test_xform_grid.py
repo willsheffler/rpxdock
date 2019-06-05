@@ -1,5 +1,5 @@
 from sicdock.sampling.xform_grid import grid_sym_axis
-import sicdock.geom.homog as hm
+import sicdock.homog as hm
 import numpy as np
 
 def test_grid_sym_axis():
