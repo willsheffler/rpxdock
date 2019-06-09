@@ -1,4 +1,6 @@
-import time, os, collections, statistics
+import time, os, collections, statistics, logging, numpy
+
+log = logging.getLogger(__name__)
 
 _summary_types = dict(
    sum=sum,
@@ -8,10 +10,26 @@ _summary_types = dict(
    median=statistics.median,
 )
 
+class _TimerGetter:
+   def __init__(self, timer, summary):
+      self.timer = timer
+      self.summary = summary
+
+   def __getattr__(self, name):
+      if name in ('timer', 'checkpoints'):
+         raise AttributeError
+      if name in self.timer.checkpoints:
+         return self.summary(self.timer.checkpoints[name])
+      raise AttributeError("Timer has no attribute named: " + name)
+
 class Timer:
    def __init__(self, name='Timer', verbose=False):
       self.name = name
       self.verbose = verbose
+      self.mean = _TimerGetter(self, numpy.mean)
+      self.min = _TimerGetter(self, numpy.min)
+      self.max = _TimerGetter(self, numpy.max)
+      self.median = _TimerGetter(self, numpy.median)
 
    def start(self):
       return self.__enter__()
@@ -20,7 +38,7 @@ class Timer:
       return self.__exit__()
 
    def __enter__(self):
-      if self.verbose: print(f'{self.name} intialized')
+      if self.verbose: log.debug(f'{self.name} intialized')
       self.start = time.perf_counter()
       self.last = self.start
       self.checkpoints = collections.defaultdict(list)
@@ -31,19 +49,21 @@ class Timer:
       self.checkpoints[name].append(t - self.last)
       self.last = t
       if self.verbose or verbose:
-         print(f'{self.name} checkpoint {name} iter {len(self.checkpoints[name])}',
-               f'time {self.checkpoints[name][-1]}')
+         log.debug(f'{self.name} checkpoint {name} iter {len(self.checkpoints[name])}' +
+                   f'time {self.checkpoints[name][-1]}')
       return self
 
    def __exit__(self, type=None, value=None, traceback=None):
       self.checkpoints['total'].append(time.perf_counter() - self.start)
-      if self.verbose: print(f'{self.name} finished')
+      if self.verbose: log.debug(f'{self.name} finished')
       if self.verbose: self.report()
       return self
 
    def __getattr__(self, name):
+      if name == "checkpoints":
+         raise AttributeError
       if name in self.checkpoints:
-         return sum(self.checkpoints[name])
+         return self.checkpoints[name]
       raise AttributeError("Timer has no attribute named: " + name)
 
    def alltimes(self, name):
@@ -71,7 +91,7 @@ class Timer:
       for cpoint, t in times.items():
          lines.append(f'    {cpoint:>{namelen}} {t:{precision}}')
       r = os.linesep.join(lines)
-      if printme: print(r)
+      if printme: log.info(r)
       return r
 
    @property
@@ -82,3 +102,9 @@ class Timer:
 
    def __str__(self):
       return self.report(printme=False)
+
+   def merge(self, others):
+      if isinstance(others, Timer): others = [others]
+      for other in others:
+         for k, v in other.checkpoints.items():
+            self.checkpoints[k].extend(v)

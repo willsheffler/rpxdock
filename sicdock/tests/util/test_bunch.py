@@ -52,6 +52,11 @@ def test_bunch_sub():
    assert b3.d == "dee"
    assert b3.foobar is None
 
+   assert 'a' in b
+   b4 = b.sub(a=None)
+   assert not 'a' in b4
+   assert 'b' in b4
+
 def test_bunch_items():
    b = Bunch(dict(item='item'))
    b.attr = 'attr'

@@ -1,19 +1,56 @@
-import _pickle, os, multiprocessing, threading, copy, hashlib
+import _pickle, os, multiprocessing, threading, copy, hashlib, logging, concurrent, time
 from collections import abc
 import numpy as np, xarray as xr
 
+log = logging.getLogger(__name__)
+
 def load(f, verbose=True):
    if isinstance(f, str):
-      if verbose: print('loading', f)
+      if verbose: log.debug(f'loading{f}')
       with open(f, "rb") as inp:
          return _pickle.load(inp)
    return [load(x) for x in f]
 
-def dump(obj, f):
+def dump(thing, f):
    d = os.path.dirname(f)
    if d: os.makedirs(d, exist_ok=True)
    with open(f, "wb") as out:
-      return _pickle.dump(obj, out)
+      return _pickle.dump(thing, out)
+
+def num_digits(n):
+   isarray = isinstance(n, np.ndarray)
+   if not isarray: n = np.array([n])
+   absn = np.abs(n.astype('i8'))
+   absn[absn == 0] = 1  # same num digits, avoid log problems
+   ndig = 1 + np.floor(np.log10(absn)).astype('i8')
+   ndig[absn == 0] = 1
+   ndig[n < 0] += 1
+   if not isarray and len(ndig) == 1:
+      return int(ndig[0])
+   return ndig
+
+def can_pickle(thing):
+   try:
+      _pickle.dumps(thing)
+      return True
+   except:
+      return False
+
+def pickle_time(thing):
+   t = time.perf_counter()
+   _pickle.dumps(thing)
+   return time.perf_counter() - t
+
+def pickle_analysis(thing, mintime=0.1, loglevel='debug'):
+   logme = getattr(log, loglevel.lower())
+   logme('pickle_analysis:')
+   for k, v in thing.items():
+      if not can_pickle(v):
+         logme(f'  cant pickle {k} : {v}')
+      else:
+         t = pickle_time(v)
+         if t > mintime:
+            logme(f'  pickle time of {k} is {t}'),
 
 def cpu_count():
    try:
@@ -56,25 +93,39 @@ def sanitize_for_pickle(data):
       data = m + '.' + n
    return data
 
-class ThreadLoader(threading.Thread):
-   def __init__(self, fname):
-      super().__init__(None, None, None)
-      self.fname = fname
+def load_threads(fnames, nthread=0):
+   if nthread <= 0: nthread = cpu_count()
+   with concurrent.futures.ThreadPoolExecutor(nthread) as exe:
+      return list(exe.map(load, fnames))
 
-   def run(self):
-      self.result = load(self.fname, verbose=False)
-      print("loaded", self.fname)
+class InProcessExecutor:
+   def __init__(self, *args, **kw):
+      pass
 
-def load_threads(fnames):
-   threads = [ThreadLoader(f) for f in fnames]
-   [t.start() for t in threads]
-   [t.join() for t in threads]
-   return [t.result for t in threads]
+   def __enter__(self):
+      return self
 
-class MultiThreadLoader(threading.Thread):
-   def __init__(self, fnames):
-      super().__init__(None, None, None)
-      self.fnames = fnames
+   def __exit__(self, *args):
+      pass
 
-   def run(self):
-      self.result = load_threads(self.fnames)
+   def submit(self, fn, *args, **kw):
+      return NonFuture(fn, *args, **kw)
+
+   # def map(self, func, *iterables):
+   # return map(func, *iterables)
+   # return (NonFuture(func(*args) for args in zip(iterables)))
+
+class NonFuture:
+   def __init__(self, fn, *args, dummy=None, **kw):
+      self.fn = fn
+      self.dummy = not callable(fn) if dummy is None else dummy
+      self.args = args
+      self.kw = kw
+      self._condition = threading.Condition()
+      self._state = "FINISHED"
+      self._waiters = []
+
+   def result(self):
+      if self.dummy:
+         return self.fn
+      return self.fn(*self.args, **self.kw)

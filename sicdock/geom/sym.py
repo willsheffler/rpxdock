@@ -7,15 +7,15 @@ octahedral_frames = np.load(datadir + "/octahedral_frames.pickle", allow_pickle=
 icosahedral_frames = np.load(datadir + "/icosahedral_frames.pickle", allow_pickle=True)
 
 def symframes(sym):
+   if isinstance(sym, int) or sym.startswith("C"):
+      if not isinstance(sym, int): sym = int(sym[1:])
+      return list(hm.hrot([0, 0, 1], np.arange(sym) / sym * 360))
    if sym.startswith("T"):
       return tetrahedral_frames
    if sym.startswith("O"):
       return octahedral_frames
    if sym.startswith("I"):
       return icosahedral_frames
-   if sym.startswith("C"):
-      n = int(sym[1:])
-      return list(hm.hrot([0, 0, 1], np.arange(n) / n * 360))
 
 frames = dict(T=tetrahedral_frames, O=octahedral_frames, I=icosahedral_frames)
 
@@ -54,9 +54,7 @@ to_neighbor_olig = dict(
    },
 )
 
-axes_second = {
-   s: {k: to_neighbor_olig[s][k] @ v for k, v in axes[s].items()} for s in "TOI"
-}
+axes_second = {s: {k: to_neighbor_olig[s][k] @ v for k, v in axes[s].items()} for s in "TOI"}
 
 # tetrahedral_frames = np.array(
 # [

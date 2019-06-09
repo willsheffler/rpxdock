@@ -8,8 +8,8 @@ def test_result(result):
    b.attrs['bar'] = 2
    c = concat_results([a, b])
    assert len(c.model) == len(a.model) + len(b.model)
-   assert c.meta == [a.attrs, b.attrs]
-   assert np.all(c.imeta == np.repeat([0, 1], len(result)))
+   assert c.dockinfo == [a.attrs, b.attrs]
+   assert np.all(c.ijob == np.repeat([0, 1], len(result)))
 
 def test_result_pickle(result, tmpdir):
    with open(tmpdir + '/foo', 'wb') as out:
@@ -17,6 +17,8 @@ def test_result_pickle(result, tmpdir):
    with open(tmpdir + '/foo', 'rb') as inp:
       result2 = _pickle.load(inp)
    assert result == result2
+   assert isinstance(result, Result)
+   assert isinstance(result2, Result)
 
 def test_result_attrs():
    result = Result(foo=np.array(10), attrs=dict(bar='baz'))
@@ -28,9 +30,20 @@ def test_mismatch_len(result):
    assert len(result) != len(result2)
    assert len(r) == len(result) + len(result2)
 
+def test_top_each(result):
+   n = 13
+   top = result.top_each(n)
+   for k, v in top.items():
+      assert len(v) == 13
+      w = np.where(result.ijob == k)[0]
+      s = result.scores[w]
+      o = np.argsort(-s)[:n]
+      assert np.allclose(s[o], result.scores[v])
+
 if __name__ == '__main__':
    import tempfile
-   test_result(dummy_result(1000))
+   # test_result(dummy_result(1000))
    test_result_pickle(dummy_result(1000), tempfile.mkdtemp())
-   test_result_attrs()
-   test_mismatch_len(dummy_result(1000))
+   # test_result_attrs()
+   # test_mismatch_len(dummy_result(1000))
+   test_top_each(dummy_result(1000))

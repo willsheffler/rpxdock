@@ -1,7 +1,7 @@
 import numpy as np
 from sicdock.geom import primitive_test
 from sicdock.geom import miniball_test, miniball
-from sicdock.geom import xform_dist2_split
+from sicdock.geom import xform_dist2
 import sicdock.homog as hm
 
 def test_geom_sphere():
@@ -21,10 +21,6 @@ def test_miniball_py():
    d = np.linalg.norm(crd - cen, axis=1)
    print(np.min(d), np.max(d))
    assert np.max(d) <= rad + 0.00000001
-
-def xform_dist2(*args):
-   c, o = xform_dist2_split(*args)
-   return c + o
 
 def test_xform_dist():
    N = 1

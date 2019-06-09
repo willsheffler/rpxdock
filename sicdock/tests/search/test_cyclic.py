@@ -5,9 +5,9 @@ import numpy as np
 
 import sicdock
 from sicdock.motif import HierScore
-from sicdock.motif._loadhack import hackcache as HC
+from sicdock.util import GLOBALCACHE as HC
 from sicdock.data import datadir
-from sicdock.util import load, Bunch, load_threads, MultiThreadLoader
+from sicdock.util import load, Bunch, load_threads
 from sicdock.io.io_body import dump_pdb_from_bodies
 from sicdock.geom import symframes
 from sicdock.tests.motif.hscore_data_locations_will import *
@@ -15,11 +15,10 @@ from sicdock.search import make_cyclic, concat_results
 
 def test_make_cyclic(hscore, cli_args=dict()):
    args = sicdock.app.defaults()
-   args.nout = 0
    args.nresl = 5
    args.wts = Bunch(ncontact=0.1, rpx=0.0)
    args.beam_size = 1e3
-   args.rmscut = 3.0
+   args.max_bb_redundancy = 3.0
    # args.max_longaxis_dot_z = 0.5
    args.max_trim = 0
    # args.executor = ThreadPoolExecutor(args.nthread if args.nthread else args.ncpu)

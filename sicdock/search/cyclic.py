@@ -90,8 +90,8 @@ class CyclicEvaluator:
 def dump_cyclic(xforms, body, sym, scores, ibest, evaluator, **kw):
    args = Bunch(kw)
    t = perf_counter()
-   nout = min(10 if args.nout is None else args.nout, len(ibest))
-   for iout in range(nout):
+   nout_debug = min(10 if args.nout_debug is None else args.nout_debug, len(ibest))
+   for iout in range(nout_debug):
       i = ibest[iout]
       body.move_to(xforms[i])
       wrpx, wnct = (args.wts.sub(rpx=1, ncontact=0), args.wts.sub(rpx=0, ncontact=1))

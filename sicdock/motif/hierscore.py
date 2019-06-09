@@ -7,7 +7,7 @@ from sicdock.util import Bunch
 from sicdock.sampling import xform_hier_guess_sampling_covrads
 from sicdock.xbin import smear, Xbin
 from sicdock.xbin import xbin_util as xu
-from sicdock.util import load, dump
+from sicdock.util import load, dump, load_threads
 from sicdock.motif import Xmap, ResPairScore, marginal_max_score
 from sicdock.bvh import bvh_collect_pairs_range_vec, bvh_collect_pairs_vec
 
@@ -21,8 +21,9 @@ class HierScore:
             assert all("_SS_" in f for f in files)
             self.use_ss = True
          assert "base" in files[0]
-         self.base = load(files[0])
-         self.hier = [load(f) for f in files[1:]]
+         data = load_threads(files)
+         self.base = data[0]
+         self.hier = data[1:]
          self.resl = list(h.attr.cart_extent for h in self.hier)
       else:
          self.base = files[0]
@@ -95,8 +96,7 @@ def make_and_dump_hier_score_tables(rp, **_):
 
    resls, xhresl, nbase_nm3 = xform_hier_guess_sampling_covrads(**args)
    # xbin_base = Xbin(args.base_cart_resl, ORI_RESL, args.xbin_max_cart)
-   xbin_base = create_xbin_even_nside(args.base_cart_resl, args.base_ori_resl,
-                                      args.xbin_max_cart)
+   xbin_base = create_xbin_even_nside(args.base_cart_resl, args.base_ori_resl, args.xbin_max_cart)
    rps = sic.motif.create_res_pair_score(rp, xbin_base, **args)
    rps.attr.opts = args
    rps.attr.nbase_nm3 = nbase_nm3
@@ -133,8 +133,8 @@ def make_and_dump_hier_score_tables(rp, **_):
          if args.smear_kernel == "x3":  # 1/R**3 uniform in R
             grid_r2 = xbin.grid6.neighbor_sphere_radius_square_cut(smearrad, exhalf)
             kern = 1 - (np.arange(grid_r2 + 1) / grid_r2)**1.5
-         smearmap = smear(xbin, basemap.phmap, radius=smearrad, extrahalf=exhalf,
-                          oddlast3=1, sphere=1, kernel=kern)
+         smearmap = smear(xbin, basemap.phmap, radius=smearrad, extrahalf=exhalf, oddlast3=1,
+                          sphere=1, kernel=kern)
       else:
          smearmap = basemap.phmap
       sm = sic.motif.Xmap(xbin, smearmap, rehash_bincens=True)
@@ -148,9 +148,8 @@ def make_and_dump_hier_score_tables(rp, **_):
       sm.attr.use_ss_key = args.use_ss_key
 
       print(f"{ihier} {smearrad} {exhalf}", f"cart {cart_extent:6.2f} {cart_resl:6.2f}",
-            f"ori {ori_extent:6.2f} {xbin.ori_resl:6.2f}",
-            f"nsmr {len(smearmap)/1e6:5.1f}M", f"base {len(basemap)/1e3:5.1f}K",
-            f"xpnd {len(smearmap) / len(basemap):7.1f}")
+            f"ori {ori_extent:6.2f} {xbin.ori_resl:6.2f}", f"nsmr {len(smearmap)/1e6:5.1f}M",
+            f"base {len(basemap)/1e3:5.1f}K", f"xpnd {len(smearmap) / len(basemap):7.1f}")
       fname = args.output_prefix + "%s_%s_p%s_b%s_hier%i_%s_%i_%i.pickle" % (
          args.allowed_aas, sstag, _rmzero(f"{args.min_pair_score}"),
          _rmzero(f"{args.min_bin_score}"), ihier, "K" + args.smear_kernel, smearrad, exhalf)

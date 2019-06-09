@@ -74,7 +74,7 @@ def test_xbin_covrad(niter=20, nsamp=5000):
       # print('ori_resl', ori_resl, 'nside:', xb.ori_nside,
       # 'max(ori_dist):', np.max(ori_dist))
       assert np.all(cart_dist < cart_resl)
-      assert np.all(ori_dist < 1.05 * ori_resl / 180 * np.pi)
+      assert np.all(ori_dist < 1.1 * ori_resl / 180 * np.pi)
       cart_tight |= np.max(cart_dist) > cart_resl * 0.85
       ori_tight |= np.max(ori_dist) > ori_resl * 0.8 / 180 * np.pi
    assert cart_tight

@@ -11,7 +11,7 @@ class Bunch(dict):
 
    def __contains__(self, k):
       try:
-         return dict.__contains__(self, k) or hasattr(self, k)
+         return dict.__contains__(self, k) or k in self.__dict__
       except:
          return False
 
@@ -61,10 +61,13 @@ class Bunch(dict):
             kw = __BUNCH_SUB_ITEMS
          else:
             kw = vars(__BUNCH_SUB_ITEMS)
-      b = self.copy()
+      newbunch = self.copy()
       for k, v in kw.items():
-         b.__setattr__(k, v)
-      return b
+         if v is None and k in newbunch:
+            del newbunch[k]
+         else:
+            newbunch.__setattr__(k, v)
+      return newbunch
 
    def __getstate__(self):
       return self.__dict__
@@ -82,7 +85,7 @@ class Bunch(dict):
 
 def bunchify(x):
    if isinstance(x, dict):
-      return Bunch((k, bunchify(v)) for k, v in x.items())
+      return Bunch(**x)
    elif isinstance(x, (list, tuple)):
       return type(x)(bunchify(v) for v in x)
    else:

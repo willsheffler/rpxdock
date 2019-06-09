@@ -1,4 +1,4 @@
-import copy, numpy as np, sicdock
+import os, copy, numpy as np, sicdock
 from sicdock import bvh
 from sicdock.util.numeric import pca_eig
 from sicdock import motif
@@ -7,7 +7,8 @@ from sicdock.rosetta import get_bb_coords
 _CLASH_RADIUS = 1.75
 
 class Body:
-   def __init__(self, pdb_or_pose, sym="C1", which_ss="HE", posecache=False, **kw):
+   def __init__(self, pdb_or_pose, sym="C1", which_ss="HE", posecache=False, label=None,
+                components=[], **kw):
       if isinstance(pdb_or_pose, str):
          import sicdock.rosetta.triggers_init as ros
          self.pdbfile = pdb_or_pose
@@ -20,8 +21,12 @@ class Body:
          pose = pdb_or_pose
          self.pdbfile = pose.pdb_info().name() if pose.pdb_info() else None
 
-      if isinstance(sym, int):
-         sym = "C%i" % sym
+      if label is None and self.pdbfile:
+         label = os.path.basename(self.pdbfile.rstrip('.gz').rstrip('.pdb'))
+      self.components = components
+      self.which_ss = which_ss
+      self.label = label
+      if isinstance(sym, int): sym = "C%i" % sym
       self.sym = sym
       self.nfold = int(sym[1:])
       self.seq = np.array(list(pose.sequence()))
@@ -65,15 +70,28 @@ class Body:
       self.bvh_cen = bvh.bvh_create(self.allcen[:, :3], which_cen)
       self.cen = self.allcen[which_cen]
       self.pos = np.eye(4, dtype="f4")
-      self.pair_buf = np.empty((10000, 2), dtype="i4")
       self.pcavals, self.pcavecs = pca_eig(self.cen)
 
-      self.trim_direction = kw['trim_direction'] if 'trim_direction' in kw else None
+      self.trim_direction = kw['trim_direction'].upper() if 'trim_direction' in kw else None
 
       if self.sym != "C1":
          self.asym_body = Body(pose, "C1", which_ss, posecache, **kw)
       else:
          self.asym_body = self
+
+   def strip_data(self):
+      self.seq = None
+      self.ss = None
+      self.ssid = None
+      self.coord = None
+      self.chain = None
+      self.resno = None
+      self.allcen = None
+      self.cen = None
+      self.stub = None
+      self.bvh_bb = None
+      self.bvh_cen = None
+      self.asym_body = None
 
    def com(self):
       return self.pos @ self.bvh_bb.com()
@@ -124,18 +142,14 @@ class Body:
          self.pos[:3, 3] += delta * dirn
       return delta
 
-   def intersect_range(
-         self,
-         other,
-         mindis=2 * _CLASH_RADIUS,
-         max_trim=100,
-         self_pos=None,
-         other_pos=None,
-   ):
+   def intersect_range(self, other, mindis=2 * _CLASH_RADIUS, max_trim=100, self_pos=None,
+                       other_pos=None):
       self_pos = self.pos if self_pos is None else self_pos
       other_pos = other.pos if other_pos is None else other_pos
-      return bvh.isect_range(self.bvh_bb, other.bvh_bb, self_pos, other_pos, mindis,
-                             max_trim)
+      ntrim = max_trim if 'N' in self.trim_direction else -1
+      ctrim = max_trim if 'C' in self.trim_direction else -1
+      return bvh.isect_range(self.bvh_bb, other.bvh_bb, self_pos, other_pos, mindis, max_trim,
+                             ntrim, ctrim)
 
    def intersect(self, other, mindis=2 * _CLASH_RADIUS, self_pos=None, other_pos=None):
       self_pos = self.pos if self_pos is None else self_pos
@@ -159,9 +173,8 @@ class Body:
 
    def contact_pairs(self, other, maxdis, buf=None):
       if not buf:
-         buf = self.pair_buf
-      p, o = bvh.bvh_collect_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis,
-                                   buf)
+         buf = np.empty((10000, 2), dtype="i4")
+      p, o = bvh.bvh_collect_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis, buf)
       assert not o
       return p
 

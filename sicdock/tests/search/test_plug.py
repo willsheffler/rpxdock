@@ -5,9 +5,9 @@ import numpy as np
 import xarray as xr
 import sicdock
 from sicdock.motif import HierScore
-from sicdock.motif._loadhack import hackcache as HC
+from sicdock.util import GLOBALCACHE as HC
 from sicdock.data import datadir
-from sicdock.util import load, Bunch, load_threads, MultiThreadLoader
+from sicdock.util import load, Bunch, load_threads
 from sicdock.body import Body
 from sicdock.io.io_body import dump_pdb_from_bodies
 from sicdock.geom import symframes
@@ -19,11 +19,10 @@ from sicdock.tests.motif.hscore_data_locations_will import *
 
 def quick_test_olig(hscore, cli_args=dict()):
    args = sicdock.app.defaults()
-   args.nout = 0
    args.nresl = 5
    args.wts = Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
    args.beam_size = 1e4
-   args.rmscut = 3.0
+   args.max_bb_redundancy = 3.0
    args.max_longaxis_dot_z = 0.5
    args.executor = ThreadPoolExecutor(args.ncpu)
    args.multi_iface_summary = np.min  # min(plug, hole)
@@ -46,7 +45,7 @@ def quick_test_olig(hscore, cli_args=dict()):
       hole = Body(fhole, sym=3)
       with open(cache, "wb") as out:
          _pickle.dump([plug, hole], out)
-   if args.nout: dump_pdb_from_bodies("test_hole.pdb", [hole], symframes(hole.sym))
+   if args.nout_debug: dump_pdb_from_bodies("test_hole.pdb", [hole], symframes(hole.sym))
 
    hsamp = RotCart1Hier_f4(-120, 120, 20, 0, 120, 12, [0, 0, 1])
    result1 = make_plugs(plug, hole, hscore, hsamp, **args)
@@ -61,11 +60,11 @@ def quick_test_olig(hscore, cli_args=dict()):
 
 def quick_test(hscore, cli_args=dict()):
    args = sicdock.app.defaults()
-   args.nout = 3
+   args.nout_debug = 3
    args.nresl = 5
    args.wts = Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
    args.beam_size = 1e4
-   args.rmscut = 3.0
+   args.max_bb_redundancy = 3.0
    args.max_longaxis_dot_z = 0.5
    args.executor = ThreadPoolExecutor(args.ncpu)
    args.multi_iface_summary = np.min  # min(plug, hole)
@@ -117,7 +116,7 @@ def load_body(f):
    return tag, body
 
 def threaded_load_hscore_and_bodies(hscore_files, body_files, nthread):
-   loader = MultiThreadLoader(hscore_files)
+   loader = load_threads(hscore_files)
    loader.start()
    with ProcessPoolExecutor(nthread) as exe:
       bodies = list(exe.map(load_body, body_files))
@@ -127,11 +126,11 @@ def threaded_load_hscore_and_bodies(hscore_files, body_files, nthread):
 
 def multiprocess_test(cli_args):
    args = sicdock.app.defaults()
-   args.nout = 1
+   args.nout_debug = 1
    args.nresl = 5
    args.wts = Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
    args.beam_size = 1e4
-   args.rmscut = 3.0
+   args.max_bb_redundancy = 3.0
    args.max_longaxis_dot_z = 0.5
    args.multi_iface_summary = np.min  # min(plug, hole)
    args.trial_run = True
@@ -146,8 +145,8 @@ def multiprocess_test(cli_args):
 
    if len(args.hscore_files) is 1 and args.hscore_files[0] in globals():
       args.hscore_files = globals()[args.hscore_files[0]]
-   hscore, bodies = threaded_load_hscore_and_bodies(
-      args.hscore_files, args.holes + args.plugs, args.nprocess * args.nthread)
+   hscore, bodies = threaded_load_hscore_and_bodies(args.hscore_files, args.holes + args.plugs,
+                                                    args.nprocess * args.nthread)
    holes = bodies[:len(args.holes)]
    for htag, hole in holes:
       htag = args.output_prefix + htag if args.output_prefix else htag
@@ -182,11 +181,11 @@ def multiprocess_test(cli_args):
 
 def server_test(cli_args):
    args = sicdock.app.defaults()
-   args.nout = 3
+   args.nout_debug = 3
    args.nresl = 5
    args.wts = Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
    args.beam_size = 1e4
-   args.rmscut = 3.0
+   args.max_bb_redundancy = 3.0
    args.max_longaxis_dot_z = 0.5
    args.executor = ThreadPoolExecutor(args.nworker)
    args.multi_iface_summary = np.min  # min(plug, hole)
@@ -197,10 +196,10 @@ def server_test(cli_args):
    # args.output_prefix = "rpx"
 
    make_sampler = plug_get_sample_hierarchy
-   args = args.sub_(nout=20, beam_size=3e5, rmscut=3)
+   args = args.sub_(nout_debug=20, beam_size=3e5, max_bb_redundancy=3)
    # hscore_tables = HC(load_big_hscore)
    hscore_tables = HC(load_medium_hscore)
-   # args = args.sub_(nout=2, beam_size=2e4, rmscut=3)
+   # args = args.sub_(nout_debug=2, beam_size=2e4, max_bb_redundancy=3)
    # hscore_tables = HC(load_small_hscore)
    hscore = HierScore(hscore_tables)
    holes = [
@@ -227,11 +226,11 @@ def server_test(cli_args):
 
 def hier_sample_test(cli_args):
    args = sicdock.app.defaults()
-   args.nout = 3
+   args.nout_debug = 3
    args.nresl = 5
    args.wts = Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
    args.beam_size = 1e4
-   args.rmscut = 3.0
+   args.max_bb_redundancy = 3.0
    args.max_longaxis_dot_z = 0.5
    args.executor = ThreadPoolExecutor(args.nworker)
    args.multi_iface_summary = np.min  # min(plug, hole)
@@ -246,7 +245,7 @@ def hier_sample_test(cli_args):
    args.wts.ncontact = 1.0
    args.wts.rpx = 1.0
    args.beam_size = 2e5
-   args.nout = 20
+   args.nout_debug = 20
    args.multi_iface_summary = np.sum
    args.output_prefix = "ncontact_over_rpx_sum"
    smapler = plug_get_sample_hierarchy(plug, hole, hscore)

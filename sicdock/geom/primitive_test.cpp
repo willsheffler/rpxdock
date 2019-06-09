@@ -43,7 +43,7 @@ bool geom_primitive_sphere_test(int niter) {
     Vec p2 = Vec::Random();
     Vec p3 = Vec::Random();
     Vec p4 = Vec::Random();
-    F const eps = epsilon2<F>();
+    F const eps = epsilon2<F>() * 10;
     Sph s1(p1);
     Sph s2(p1, p2);
     Sph s3(p1, p2, p3);
