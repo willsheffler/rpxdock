@@ -1,2 +1,2 @@
 from cppimport import import_hook
-from .bvh import *
+from sicdock.bvh.bvh import *

@@ -5,7 +5,6 @@ __version__ = "0.1"
 import os
 
 from sicdock.util import Bunch, Timer, load, dump
-from sicdock import analysis
 from sicdock import app
 from sicdock import body
 from sicdock import bvh

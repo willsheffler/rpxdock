@@ -25,6 +25,8 @@ REQUIRED = [
    'numpy',
    'xarray==0.11.3',
    'pytest',
+   'pytest-sugar',
+   'pytest-xdist',
    'tqdm',
    'homog',
    'cppimport',
@@ -53,22 +55,21 @@ except FileNotFoundError:
 # Load the package's __version__.py module as a dictionary.
 about = {}
 if not VERSION:
-   project_slug = NAME.lower().replace("-", "_").replace(" ", "_")
+   project_slug = NAME.lower().replace('-', '_').replace(' ', '_')
    with open(os.path.join(here, project_slug, '__version__.py')) as f:
       exec(f.read(), about)
 else:
    about['__version__'] = VERSION
 
-
 class UploadCommand(Command):
-   """Support setup.py upload."""
+   'Support setup.py upload.'
 
    description = 'Build and publish the package.'
    user_options = []
 
    @staticmethod
    def status(s):
-      """Prints things in bold."""
+      'Prints things in bold.'
       print('\033[1m{0}\033[0m'.format(s))
 
    def initialize_options(self):
@@ -96,6 +97,13 @@ class UploadCommand(Command):
 
       sys.exit()
 
+def get_files(*patterns):
+   fnames = set()
+   from pathlib import Path
+   for pattern in patterns:
+      for filename in Path('sicdock').glob(pattern):
+         fnames.add(str(filename).lstrip('sicdock/'))
+   return list(fnames)
 
 # Where the magic happens:
 setup(
@@ -108,7 +116,7 @@ setup(
    author_email=EMAIL,
    python_requires=REQUIRES_PYTHON,
    url=URL,
-   packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
+   packages=find_packages(),
    # If your package is a single module, use this instead of 'packages':
    # py_modules=['sicdock'],
 
@@ -117,6 +125,17 @@ setup(
    # },
    install_requires=REQUIRED,
    extras_require=EXTRAS,
+   tests_require=['pytest'],
+   package_dir={'sicdock': 'sicdock'},
+   package_data=dict(sicdock=[
+      '*/*.hpp',
+      '*/*.cpp',
+      'data/*.pickle',
+      'data/hscore/*',
+      'data/pdb/*',
+      'sampling/data/karney/*',
+      'rotamer/richardson.csv',
+   ] + get_files('extern/**/*')),
    include_package_data=True,
    license='Apache2',
    classifiers=[
