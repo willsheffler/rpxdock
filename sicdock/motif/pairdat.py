@@ -1,6 +1,7 @@
-import os, time
-import xarray as xr
-import numpy as np
+import os, time, logging
+import xarray as xr, numpy as np
+
+log = logging.getLogger(__name__)
 
 class ResPairData:
    def __init__(self, data, sanity_check=None):
@@ -173,7 +174,7 @@ class ResPairData:
       # from sicdock import Timer
       # with Timer() as timer:
       if True:
-         print('n iters', min(Npdb, 100))
+         log.debug(f'ResPaisDat sanity_check iters {min(Npdb, 100)}')
          for ipdb in np.random.choice(Npdb, min(Npdb, 100), replace=False):
             rlb, rub = rp.pdb_res_offsets[ipdb:ipdb + 2]
             # if rlb > 0:

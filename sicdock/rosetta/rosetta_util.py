@@ -47,3 +47,22 @@ def get_cb_coords(pose, which_resi=None):
          cb = r.xyz("CA")
       cbs.append(np.array([cb.x, cb.y, cb.z, 1]))
    return np.stack(cbs).astype("f8")
+
+def get_sc_coords(pose, which_resi=None):
+   if which_resi is None:
+      which_resi = list(range(1, pose.size() + 1))
+   resaname, resacrd = list(), list()
+   for ir in which_resi:
+      r = pose.residue(ir)
+      if not r.is_protein():
+         raise ValueError("non-protein residue %s at position %i" % (r.name(), ir))
+      anames, crd = list(), list()
+      for ia in range(r.natoms()):
+         anames.append(r.atom_name(ia + 1))
+         xyz = r.xyz(ia + 1)
+         crd.append([xyz.x, xyz.y, xyz.z])
+      resaname.append(anames)
+      hcrd = np.ones((len(anames), 4), dtype='f4')
+      hcrd[:, :3] = np.array(crd)
+      resacrd.append(hcrd)
+   return resaname, resacrd

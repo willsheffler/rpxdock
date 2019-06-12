@@ -23,8 +23,8 @@ def test_tccage_slide_hier(
 
    for arch in archs.split():
       spec = DockSpec2CompCage(arch)
-      body1 = Body(C3_1nza, nfold1, which_ss="HEL")
-      body2 = Body(C2_3hm4, nfold2, which_ss="HEL")
+      body1 = Body(C3_1nza, nfold1, score_only_ss="HEL")
+      body2 = Body(C2_3hm4, nfold2, score_only_ss="HEL")
 
       t = perf_counter()
       npair, pos = tccage_slide_hier(

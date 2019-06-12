@@ -1,10 +1,13 @@
-import sys, argparse, functools, logging
-import numpy as np
+import sys, os, argparse, functools, logging, glob, numpy as np
 from sicdock.util import cpu_count, Bunch
+
+log = logging.getLogger(__name__)
 
 _iface_summary_methods = dict(min=np.min, sum=np.sum)
 
 def add_argument_unless_exists(parser, *arg, **kw):
+   if not (arg or kw):
+      return functools.partial(add_argument_unless_exists, parser)
    try:
       parser.add_argument(*arg, **kw)
    except argparse.ArgumentError:
@@ -12,14 +15,15 @@ def add_argument_unless_exists(parser, *arg, **kw):
 
 def default_cli_parser(parent=None):
    parser = parent if parent else argparse.ArgumentParser()
-   addarg = functools.partial(add_argument_unless_exists, parser)
+   addarg = add_argument_unless_exists(parser)
    addarg("--inputs", nargs="*", type=str, default=[])
    addarg("--ncpu", type=int, default=cpu_count())
    addarg("--nthread", type=int, default=0)
    addarg("--nprocess", type=int, default=0)
    addarg("--trial_run", action="store_true", default=False)
-   addarg("--hscore_files", nargs="+", default=[])
+   addarg("--hscore_files", nargs="+", default=['ilv_helix'])
    addarg("--max_trim", type=int, default=100)
+   addarg("--max_pair_dist", type=float, default=8.0)
    addarg("--trim_direction", type=str, default="NC")
    addarg("--nout_debug", type=int, default=0)
    addarg("--nout_top", type=int, default=10)
@@ -39,9 +43,13 @@ def default_cli_parser(parent=None):
    addarg("--grid_resolution_cart_angstroms", type=float, default=1)
    addarg("--grid_resolution_ori_degrees", type=float, default=1)
    H = "output file prefix. will output pickles for a base ResPairScore plus --hierarchy_depth hier XMaps"
-   addarg("--output_prefix", nargs="?", default="auto", type=str, help=H)
+   addarg("--output_prefix", nargs="?", default="", type=str, help=H)
    addarg("--dont_store_body_in_results", action="store_true", default=False)
    addarg("--loglevel", default='INFO')
+   addarg("--score_only_ss", default='EHL')
+   addarg("--score_only_aa", default='ANYAA')
+   addarg("--score_only_sspair", default=[], nargs="+")
+   addarg("--hscore_data_dir", default='/home/sheffler/data/rpx/hscore')
    parser.has_sicdock_args = True
    return parser
 
@@ -55,6 +63,16 @@ def get_cli_args(argv=None):
 def defaults():
    return get_cli_args([])
 
+def set_loglevel(loglevel):
+   try:
+      numeric_level = int(loglevel)
+   except ValueError:
+      numeric_level = getattr(logging, loglevel.upper(), None)
+   if not isinstance(numeric_level, int):
+      raise ValueError('Invalid log level: %s' % loglevel)
+   logging.getLogger().setLevel(level=numeric_level)
+   log.info(f'set loglevel to {numeric_level}')
+
 def process_cli_args(arg):
    arg = Bunch(arg)
 
@@ -62,10 +80,21 @@ def process_cli_args(arg):
 
    _extract_weights(arg)
 
-   numeric_level = getattr(logging, arg.loglevel.upper(), None)
-   if not isinstance(numeric_level, int):
-      raise ValueError('Invalid log level: %s' % arg.loglevel)
-   logging.getLogger().setLevel(level=numeric_level)
+   set_loglevel(arg.loglevel)
+
+   arg.score_only_aa = arg.score_only_aa.upper()
+   arg.score_only_ss = arg.score_only_ss.upper()
+
+   d = os.path.dirname(arg.output_prefix)
+   if d: os.makedirs(d, exist_ok=True)
+
+   arg.score_only_sspair = [''.join(sorted(p)) for p in arg.score_only_sspair]
+   arg.score_only_sspair = sorted(set(arg.score_only_sspair))
+   if any(len(p) != 2 for p in arg.score_only_sspair):
+      raise argparse.ArgumentError(None, '--score_only_sspair accepts two letter SS pairs')
+   if (any(p[0] not in "EHL" for p in arg.score_only_sspair)
+       or any(p[1] not in "EHL" for p in arg.score_only_sspair)):
+      raise argparse.ArgumentError(None, '--score_only_sspair accepts only EHL')
 
    return arg
 
@@ -94,3 +123,11 @@ def _extract_weights(arg):
    for k in todel:
       del arg[k]
    arg.wts = wts
+
+def parse_list_of_strtuple(s):
+   if isinstance(s, list):
+      s = ",".join("(%s)" % a for a in s)
+   arg = eval(s)
+   if isinstance(arg, tuple) and len(arg) == 2 and isinstance(arg[0], int):
+      arg = [arg]
+   return arg

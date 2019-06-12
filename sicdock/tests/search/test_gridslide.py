@@ -30,7 +30,7 @@ def test_1xCyclic(
       nfold = int(arch[1])
       pose = C3_1nza if nfold is 3 else C2_3hm4
       spec = DockSpec1CompCage(arch)
-      body = Body(pose, nfold, which_ss="HEL")
+      body = Body(pose, nfold, score_only_ss="HEL")
 
       samples = gridslide.samples_1xCyclic(spec, resl=resl)
       t = perf_counter()
@@ -77,15 +77,14 @@ def test_2xCyclic(
 
    for arch in archs.split():
       spec = DockSpec2CompCage(arch)
-      body1 = Body(C3_1nza, nfold1, which_ss="HEL")
-      body2 = Body(C2_3hm4, nfold2, which_ss="HEL")
+      body1 = Body(C3_1nza, nfold1, score_only_ss="HEL")
+      body2 = Body(C2_3hm4, nfold2, score_only_ss="HEL")
 
       if use_hier_leaf_samples:
-         samples, *_ = tccage_slide_hier_samples(spec, resl=resl,
-                                                 max_out_of_plane_angle=tip, nstep=5)
+         samples, *_ = tccage_slide_hier_samples(spec, resl=resl, max_out_of_plane_angle=tip,
+                                                 nstep=5)
       else:
-         samples = gridslide.samples_2xCyclic_slide(spec, resl=resl,
-                                                    max_out_of_plane_angle=tip)
+         samples = gridslide.samples_2xCyclic_slide(spec, resl=resl, max_out_of_plane_angle=tip)
       print("samples tip:", tip, len(samples[0]), len(samples[1]), len(samples[2]))
 
       t = perf_counter()
@@ -141,7 +140,7 @@ def test_monomer_to_cyclic(top7, ndump=0, resl=30, contact_dis=8, min_contacts=1
                            archs="C2 C3 C4 C5 C6"):
    for arch in archs.split():
       spec = DockSpecMonomerToCyclic(arch)
-      body = Body(top7, 1, which_ss="HEL")
+      body = Body(top7, 1, score_only_ss="HEL")
       samples = gridslide.samples_1xMonomer_orientations(resl)
       npair, pos = gridslide.find_connected_monomer_to_cyclic_slide(
          spec, body, samples, min_contacts=min_contacts, contact_dis=contact_dis)

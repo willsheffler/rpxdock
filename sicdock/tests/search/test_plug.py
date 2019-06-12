@@ -15,7 +15,6 @@ from sicdock.sampling import RotCart1Hier_f4, grid_sym_axis
 from sicdock.search import concat_results, make_plugs, plug_get_sample_hierarchy
 from sicdock.search import grid_search
 from sicdock.search.plug import __make_plugs_hier_sample_test__, ____PLUG_TEST_SAMPLE_HIERARCHY____
-from sicdock.tests.motif.hscore_data_locations_will import *
 
 def quick_test_olig(hscore, cli_args=dict()):
    args = sicdock.app.defaults()

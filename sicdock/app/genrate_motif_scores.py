@@ -1,77 +1,63 @@
-import sys, os, argparse, _pickle
-import numpy as np
-import sicdock
+import sys, os, argparse, _pickle, logging, functools, numpy as np, sicdock
 from sicdock.util import Bunch
 from sicdock.motif import ResPairData, make_and_dump_hier_score_tables
 
-def parsearg(s):
-   if isinstance(s, list):
-      s = ",".join("(%s)" % a for a in s)
-   arg = eval(s)
-   if isinstance(arg, tuple) and len(arg) == 2 and isinstance(arg[0], int):
-      arg = [arg]
-   return arg
-
 def get_opts():
    parser = sicdock.options.default_cli_parser()
-   paa = parser.add_argument
+   addarg = sicdock.options.add_argument_unless_exists(parser)
    H = "ResPairData file containing Xarray Dataset with pdb, residue, and pair info"
-   paa("respairdat_file", type=str, help=H)
+   addarg("respairdat_file", type=str, help=H)
    H = "final sampling resolution"
-   paa("--base_sample_resl", default=np.sqrt(2) / 2, type=float, help=H)
+   addarg("--base_sample_resl", default=np.sqrt(2) / 2, type=float, help=H)
    H = "Xbin base translational resolution"
-   paa("--base_cart_resl", default=0.7, type=float, help=H)
+   addarg("--base_cart_resl", default=0.7, type=float, help=H)
    H = "Xbin base orientational resoltution"
-   paa("--base_ori_resl", default=10.0, type=float, help=H)
-   paa("--xbin_max_cart", default=128.0, type=float, help="Xbin max traslation")
-   paa("--min_ssep", default=10, type=int, help="min seq sep")
+   addarg("--base_ori_resl", default=10.0, type=float, help=H)
+   addarg("--xbin_max_cart", default=128.0, type=float, help="Xbin max traslation")
+   addarg("--min_ssep", default=10, type=int, help="min seq sep")
    H = "number of hierarchical tables to make"
-   paa("--hierarchy_depth", default=5, type=int, help=H)
-   paa("--sampling_lever", default=25, type=float)
-   paa("--xhier_cart_fudge_factor", default=1.5, type=float)
-   paa("--xhier_ori_fudge_factor", default=2.5, type=float)
-   paa("--min_bin_score", default=1.0, type=float)
-   paa("--min_pair_score", default=0.5, type=float)
-   paa("--smear_params", default=["2,1", "1,1", "1,1", "1,0", "1,0"], type=str, nargs="*")
-   # paa("--smear_params", default=[(2, 0)])
-   paa("--smear_kernel", default="flat", type=str)
-   paa("--only_do_hier", default=-1, type=int)
-   paa("--allowed_aas", default="ANYAA", type=str)
-   paa("--allowed_ss", default='EHL', type=str)
-   paa("--use_ss_key", default=False, action='store_true')
-   args = parser.parse_args()
-   args.smear_params = parsearg(args.smear_params)
-   args.allowed_aas = args.allowed_aas.upper()
-   args.allowed_ss = args.allowed_ss.upper()
-   return Bunch(args)
+   addarg("--hierarchy_depth", default=5, type=int, help=H)
+   addarg("--sampling_lever", default=25, type=float)
+   addarg("--xhier_cart_fudge_factor", default=1.5, type=float)
+   addarg("--xhier_ori_fudge_factor", default=2.5, type=float)
+   addarg("--min_bin_score", default=1.0, type=float)
+   addarg("--min_pair_score", default=0.5, type=float)
+   addarg("--smear_params", default=["2,1", "1,1", "1,1", "1,0", "1,0"], type=str, nargs="*")
+   # addarg("--smear_params", default=[(2, 0)])
+   addarg("--smear_kernel", default="flat", type=str)
+   addarg("--only_do_hier", default=-1, type=int)
+   addarg("--use_ss_key", default=False, action='store_true')
+   arg = parser.parse_args()
+   arg.smear_params = sicdock.options.parse_list_of_strtuple(arg.smear_params)
+   sicdock.options.process_cli_args(arg)
+   return Bunch(arg)
 
 def main():
-   args = get_opts()
+   arg = get_opts()
 
-   if args.respairdat_file == "TEST":
-      args.respairdat_file = "/home/sheffler/debug/sicdock/respairdat/pdb_res_pair_data_si30_10_rots.pickle"
-   if args.output_prefix == "auto":
-      # dname = os.path.dirname(args.respairdat_file) + '/hscore'
-      dname = "./"
-      bname = os.path.basename(args.respairdat_file.replace(".pickle", ""))
-      args.output_prefix = dname + "/" + bname + '_'
-   if not os.path.exists(os.path.dirname(args.output_prefix)):
-      os.mkdir(os.path.dirname(args.output_prefix))
+   if arg.respairdat_file == "TEST":
+      arg.respairdat_file = "/home/sheffler/debug/sicdock/respairdat/pdb_res_pair_data_si30_10_rots.pickle"
+   bname = os.path.basename(arg.respairdat_file.replace(".pickle", ""))
+   arg.output_prefix += bname + '_'
 
-   with open(args.respairdat_file, "rb") as inp:
+   with open(arg.respairdat_file, "rb") as inp:
       rp = ResPairData(_pickle.load(inp))
 
-   if args.allowed_aas.lower() != 'ANYAA':
-      rp = rp.subset_by_aa(args.allowed_aas, sanity_check=True)
+   if arg.score_only_aa.lower() != 'ANYAA':
+      logging.info(f'using only aa {arg.score_only_aa}')
+      rp = rp.subset_by_aa(arg.score_only_aa, sanity_check=True)
 
-   if set(args.allowed_ss) != set('EHL'):
-      rp = rp.subset_by_ss(args.allowed_ss, sanity_check=True)
-      if len(args.allowed_ss) == 1:
-         args.use_ss_key = False
+   if set(arg.score_only_ss) != set('EHL'):
+      logging.info(f'using only ss {arg.score_only_ss}')
+      rp = rp.subset_by_ss(arg.score_only_ss, sanity_check=True)
+      if len(arg.score_only_ss) == 1:
+         arg.use_ss_key = False
 
-   files = make_and_dump_hier_score_tables(rp, **args)
+   files = make_and_dump_hier_score_tables(rp, **arg)
 
-   print(files)
+   logging.info('produced files:')
+   for f in files:
+      logging.info(f)
 
 if __name__ == "__main__":
    main()

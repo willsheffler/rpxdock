@@ -1,42 +1,87 @@
-import os, _pickle, threading
-from itertools import repeat
-import numpy as np
-import sicdock as sic
+import os, _pickle, threading, logging, glob, numpy as np
+from concurrent.futures import ThreadPoolExecutor
+import sicdock as sd
 from sicdock.rotamer import get_rotamer_space
 from sicdock.util import Bunch
 from sicdock.sampling import xform_hier_guess_sampling_covrads
 from sicdock.xbin import smear, Xbin
 from sicdock.xbin import xbin_util as xu
-from sicdock.util import load, dump, load_threads
+from sicdock.util import load, dump, load_threads, InProcessExecutor
 from sicdock.motif import Xmap, ResPairScore, marginal_max_score
 from sicdock.bvh import bvh_collect_pairs_range_vec, bvh_collect_pairs_vec
 
+log = logging.getLogger(__name__)
+
 class HierScore:
-   def __init__(self, files, maxdis=8):
-      if isinstance(files[0], str):
-         if "_noSS_" in files[0]:
-            assert all("_noSS_" in f for f in files)
+   def __init__(self, files, max_pair_dist=8.0, hscore_data_dir=None, **kw):
+      arg = sd.Bunch(kw)
+      if len(files) is 0:
+         raise ValueError('HierScore given no datafiles')
+      if len(files) is 1:
+         files = _check_hscore_files_aliases(files[0], hscore_data_dir)
+      if len(files) > 8:
+         for f in files:
+            log.error(f)
+         raise ValueError('too many hscore_files (?)')
+      if all(isinstance(f, str) for f in files):
+         if "_SSindep_" in files[0]:
+            assert all("_SSindep_" in f for f in files)
             self.use_ss = False
          else:
-            assert all("_SS_" in f for f in files)
+            assert all("_SSdep_" in f for f in files)
             self.use_ss = True
          assert "base" in files[0]
-         data = load_threads(files)
+         data = load_threads(files, len(files))
          self.base = data[0]
          self.hier = data[1:]
          self.resl = list(h.attr.cart_extent for h in self.hier)
-      else:
+      elif isinstance(files[0], ResPairScore) and all(isinstance(f, Xmap) for f in files[1:]):
          self.base = files[0]
          self.hier = list(files[1:])
          self.use_ss = self.base.attr.opts.use_ss_key
          assert all(self.use_ss == h.attr.cli_args.use_ss_key for h in self.hier)
-      self.maxdis = [maxdis + h.attr.cart_extent for h in self.hier]
-      self.tl = threading.local()
+      else:
+         raise ValueError('HierScore expects filenames or ResPairScore+[Xmap*]')
+      self.max_pair_dist = [max_pair_dist + h.attr.cart_extent for h in self.hier]
+      self.map_pairs_multipos = xu.ssmap_pairs_multipos if self.use_ss else xu.map_pairs_multipos
+      self.map_pairs = xu.ssmap_of_selected_pairs if self.use_ss else xu.map_of_selected_pairs
+      self.score_only_sspair = arg.score_only_sspair
 
-   def score(self, iresl, body1, body2, wcontact=0):
-      return self.scorepos(iresl, body1, body2, body1.pos, body2.pos, wcontact)
+   def score(self, body1, body2, wts, iresl=-1, bounds=None):
+      return self.scorepos(body1, body2, body1.pos, body2.pos, wts, iresl, bounds)
 
-   def scorepos(self, iresl, body1, body2, pos1, pos2, wts, bounds=None):
+   def score_matrix_intra(self, body, wts, iresl=-1):
+      pairs, lbub = bvh_collect_pairs_vec(body.bvh_cen, body.bvh_cen, np.eye(4), np.eye(4),
+                                          self.max_pair_dist[iresl])
+      pairs = body.filter_pairs(pairs, self.score_only_sspair)
+      assert len(lbub) is 1
+      xmap = self.hier[iresl]
+      ssstub = body.ssid, body.ssid, body.stub, body.stub
+      if not self.use_ss: ssstub = ssstub[2:]
+      pscore = self.map_pairs(xmap.xbin, xmap.phmap, pairs, *ssstub)
+      m = np.zeros((len(body), ) * 2, dtype='f4')
+      m[pairs[:, 0], pairs[:, 1]] += pscore
+      m[pairs[:, 1], pairs[:, 0]] += pscore
+      m /= 2
+      return m
+
+#  m.def("map_of_selected_pairs", &map_of_selected_pairs_onearray<K, F, double>,
+#        "xbin"_a, "phmap"_a, "idx"_c, "xform1"_c, "xform2"_c, "pos1"_a = eye4,
+#        "pos2"_a = eye4);
+#  m.def("map_of_selected_pairs",
+#        &map_of_selected_pairs_onearray_same<K, F, double>, "xbin"_a, "phmap"_a,
+#        "idx"_c, "xform"_c, "pos1"_a = eye4, "pos2"_a = eye4);
+#
+#  m.def("ssmap_of_selected_pairs",
+#        &ssmap_of_selected_pairs_onearray<K, F, double>, "xbin"_a, "phmap"_a,
+#        "idx"_c, "ss1"_c, "ss2"_c, "xform1"_c, "xform2"_c, "pos1"_a = eye4,
+#        "pos2"_a = eye4);
+#  m.def("ssmap_of_selected_pairs",
+#        &ssmap_of_selected_pairs_onearray_same<K, F, double>, "xbin"_a,
+#        "phmap"_a, "idx"_c, "ss"_c, "xform"_c, "pos1"_a = eye4,
+#        "pos2"_a = eye4);
+
+   def scorepos(self, body1, body2, pos1, pos2, wts, iresl=-1, bounds=None):
       pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
       if not bounds:
          bounds = ([-2e9], [2e9], [-2e9], [2e9])
@@ -44,7 +89,7 @@ class HierScore:
          bounds += ([-2e9], [2e9])
 
       pairs, lbub = bvh_collect_pairs_range_vec(body1.bvh_cen, body2.bvh_cen, pos1, pos2,
-                                                self.maxdis[iresl], *bounds)
+                                                self.max_pair_dist[iresl], *bounds)
       if wts.rpx == 0:
          return wts.ncontact * (lbub[:, 1] - lbub[:, 0])
 
@@ -52,9 +97,7 @@ class HierScore:
       phmap = self.hier[iresl].phmap
       ssstub = body1.ssid, body2.ssid, body1.stub, body2.stub
       ssstub = ssstub if self.use_ss else ssstub[2:]
-      fun = xu.ssmap_pairs_multipos if self.use_ss else xu.map_pairs_multipos
-
-      pscore = fun(xbin, phmap, pairs, *ssstub, lbub, pos1, pos2)
+      pscore = self.map_pairs_multipos(xbin, phmap, pairs, *ssstub, lbub, pos1, pos2)
 
       lbub1, lbub2, idx1, idx2, res1, res2 = marginal_max_score(lbub, pairs, pscore)
 
@@ -87,75 +130,91 @@ class HierScore:
 def create_xbin_even_nside(cart_resl, ori_resl, max_cart):
    xbin = Xbin(cart_resl, ori_resl, max_cart)
    if xbin.ori_nside % 2 != 0:
-      xbin = sic.xbin.create_Xbin_nside(cart_resl, xbin.ori_nside + 1, max_cart)
+      xbin = sd.xbin.create_Xbin_nside(cart_resl, xbin.ori_nside + 1, max_cart)
    return xbin
 
-def make_and_dump_hier_score_tables(rp, **_):
-   args = Bunch(_)
+def make_and_dump_hier_score_tables(rp, **kw):
+   arg = Bunch(kw)
    fnames = list()
 
-   resls, xhresl, nbase_nm3 = xform_hier_guess_sampling_covrads(**args)
-   # xbin_base = Xbin(args.base_cart_resl, ORI_RESL, args.xbin_max_cart)
-   xbin_base = create_xbin_even_nside(args.base_cart_resl, args.base_ori_resl, args.xbin_max_cart)
-   rps = sic.motif.create_res_pair_score(rp, xbin_base, **args)
-   rps.attr.opts = args
+   resls, xhresl, nbase_nm3 = xform_hier_guess_sampling_covrads(**arg)
+   # xbin_base = Xbin(arg.base_cart_resl, ORI_RESL, arg.xbin_max_cart)
+   xbin_base = create_xbin_even_nside(arg.base_cart_resl, arg.base_ori_resl, arg.xbin_max_cart)
+   rps = sd.motif.create_res_pair_score(rp, xbin_base, **arg)
+   rps.attr.opts = arg
    rps.attr.nbase_nm3 = nbase_nm3
    rps.attr.xhresl = xhresl
 
-   print(args.base_cart_resl, resls[-1][0])
-   sstag = "SS" if args.use_ss_key else "noSS"
-   ftup = args.allowed_aas, sstag, _rmzero(f"{args.min_pair_score}"), _rmzero(
-      f"{args.min_bin_score}")
-   fnames.append(args.output_prefix + "%s_%s_p%s_b%s_base.pickle" % ftup)
+   log.debug(f'base_cart_resl {arg.base_cart_resl} resls[-1][0] {resls[-1][0]}')
+   sstag = "SSdep" if arg.use_ss_key else "SSindep"
+   ftup = arg.score_only_ss, arg.score_only_aa, sstag, _rmzero(f"{arg.min_pair_score}"), _rmzero(
+      f"{arg.min_bin_score}")
+   fnames.append(arg.output_prefix + "%s_%s_%s_p%s_b%s_base.pickle" % ftup)
    dump(rps, fnames[-1])
 
-   if len(args.smear_params) == 1:
-      args.smear_params = args.smear_params * len(resls)
-   assert len(args.smear_params) == len(resls)
+   if len(arg.smear_params) == 1:
+      arg.smear_params = arg.smear_params * len(resls)
+   assert len(arg.smear_params) == len(resls)
+
+   exe = InProcessExecutor()
+   if arg.nthread > 1:
+      exe = ThreadPoolExecutor(arg.nthread)
+   if arg.nthread < 0:
+      exe = ThreadPoolExecutor(arg.ncpu)
+   futures = list()
    for ihier, (cart_extent, ori_extent) in enumerate(resls):
-      if args.only_do_hier >= 0 and args.only_do_hier != ihier:
+      if arg.only_do_hier >= 0 and arg.only_do_hier != ihier:
          continue
-      smearrad, exhalf = args.smear_params[ihier]
-      cart_resl = cart_extent / (smearrad * 3 - 1 + exhalf)
-      ori_nside = xbin_base.ori_nside
-      if ori_extent / xbin_base.ori_resl > 1.8:
-         ori_nside //= 2
-      if smearrad == 0 and exhalf == 0:
-         cart_resl = cart_extent
+      f = futures.append(
+         exe.submit(make_and_dump_hier_score_tables_one, rp, ihier, xbin_base, cart_extent,
+                    ori_extent, sstag, **arg))
+   fnames.extend(f.result() for f in futures)
+   return [f.replace('//', '/') for f in fnames]
 
-      xbin = sic.xbin.create_Xbin_nside(cart_resl, ori_nside, args.xbin_max_cart)
-      basemap, *_ = sic.motif.create_res_pair_score_map(rp, xbin, **args)
-      assert basemap.xbin == xbin
+def make_and_dump_hier_score_tables_one(rp, ihier, xbin_base, cart_extent, ori_extent, sstag,
+                                        **kw):
+   arg = Bunch(kw)
+   smearrad, exhalf = arg.smear_params[ihier]
+   cart_resl = cart_extent / (smearrad * 3 - 1 + exhalf)
+   ori_nside = xbin_base.ori_nside
+   if ori_extent / xbin_base.ori_resl > 1.8:
+      ori_nside //= 2
+   if smearrad == 0 and exhalf == 0:
+      cart_resl = cart_extent
 
-      if smearrad > 0:
-         if args.smear_kernel == "flat":
-            kern = []
-         if args.smear_kernel == "x3":  # 1/R**3 uniform in R
-            grid_r2 = xbin.grid6.neighbor_sphere_radius_square_cut(smearrad, exhalf)
-            kern = 1 - (np.arange(grid_r2 + 1) / grid_r2)**1.5
-         smearmap = smear(xbin, basemap.phmap, radius=smearrad, extrahalf=exhalf, oddlast3=1,
-                          sphere=1, kernel=kern)
-      else:
-         smearmap = basemap.phmap
-      sm = sic.motif.Xmap(xbin, smearmap, rehash_bincens=True)
-      ori_lever_extent = ori_extent * np.pi / 180 * args.sampling_lever
-      sm.attr.hresl = np.sqrt(cart_extent**2 + ori_lever_extent**2)
-      sm.attr.cli_args = args
-      sm.attr.smearrad = smearrad
-      sm.attr.exhalf = exhalf
-      sm.attr.cart_extent = cart_extent
-      sm.attr.ori_extent = ori_extent
-      sm.attr.use_ss_key = args.use_ss_key
+   xbin = sd.xbin.create_Xbin_nside(cart_resl, ori_nside, arg.xbin_max_cart)
+   basemap, *_ = sd.motif.create_res_pair_score_map(rp, xbin, **arg)
+   assert basemap.xbin == xbin
 
-      print(f"{ihier} {smearrad} {exhalf}", f"cart {cart_extent:6.2f} {cart_resl:6.2f}",
-            f"ori {ori_extent:6.2f} {xbin.ori_resl:6.2f}", f"nsmr {len(smearmap)/1e6:5.1f}M",
-            f"base {len(basemap)/1e3:5.1f}K", f"xpnd {len(smearmap) / len(basemap):7.1f}")
-      fname = args.output_prefix + "%s_%s_p%s_b%s_hier%i_%s_%i_%i.pickle" % (
-         args.allowed_aas, sstag, _rmzero(f"{args.min_pair_score}"),
-         _rmzero(f"{args.min_bin_score}"), ihier, "K" + args.smear_kernel, smearrad, exhalf)
-      fnames.append(fname)
-      dump(sm, fname)
-   return fnames
+   if smearrad > 0:
+      if arg.smear_kernel == "flat":
+         kern = []
+      if arg.smear_kernel == "x3":  # 1/R**3 uniform in R
+         grid_r2 = xbin.grid6.neighbor_sphere_radius_square_cut(smearrad, exhalf)
+         kern = 1 - (np.arange(grid_r2 + 1) / grid_r2)**1.5
+      smearmap = smear(xbin, basemap.phmap, radius=smearrad, extrahalf=exhalf, oddlast3=1,
+                       sphere=1, kernel=kern)
+   else:
+      smearmap = basemap.phmap
+   sm = sd.motif.Xmap(xbin, smearmap, rehash_bincens=True)
+   ori_lever_extent = ori_extent * np.pi / 180 * arg.sampling_lever
+   sm.attr.hresl = np.sqrt(cart_extent**2 + ori_lever_extent**2)
+   sm.attr.cli_args = arg
+   sm.attr.smearrad = smearrad
+   sm.attr.exhalf = exhalf
+   sm.attr.cart_extent = cart_extent
+   sm.attr.ori_extent = ori_extent
+   sm.attr.use_ss_key = arg.use_ss_key
+
+   log.info(f"{ihier} {smearrad} {exhalf} cart {cart_extent:6.2f} {cart_resl:6.2f}" +
+            f"ori {ori_extent:6.2f} {xbin.ori_resl:6.2f} nsmr {len(smearmap)/1e6:5.1f}M" +
+            f"base {len(basemap)/1e3:5.1f}K xpnd {len(smearmap) / len(basemap):7.1f}")
+
+   fname = arg.output_prefix + "%s_%s_%s_p%s_b%s_hier%i_%s_%i_%i.pickle" % (
+      arg.score_only_ss, arg.score_only_aa, sstag, _rmzero(f"{arg.min_pair_score}"),
+      _rmzero(f"{arg.min_bin_score}"), ihier, "K" + arg.smear_kernel, smearrad, exhalf)
+   dump(sm, fname)
+   return fname
 
 def _rmzero(a):
    if a[-1] == "0" and "." in a:
@@ -163,26 +222,12 @@ def _rmzero(a):
       return b.rstrip(".")
    return a
 
-def hscore_test_data(tag, path=None):
-   # pref = os.path.dirname(__file__) + "/../data/hscore"
-   pref = "/home/sheffler/debug/sicdock/hier/"
-   return HierScore([
-      pref + "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_base.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier0_Kflat_1_0.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier1_Kflat_1_0.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier2_Kflat_1_0.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier3_Kflat_1_0.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_noSS_p0.5_b1_hier4_Kflat_1_0.pickle",
-   ])
-
-def hscore_test_data_ss(tag, path=None):
-   # pref = os.path.dirname(__file__) + "/../data/hscore"
-   pref = "/home/sheffler/debug/sicdock/hier/"
-   return HierScore([
-      pref + "pdb_res_pair_data_si30_10_rots_SS_p0.5_b1_base.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_SS_p0.5_b1_hier0_Kflat_1_0.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_SS_p0.5_b1_hier1_Kflat_1_0.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_SS_p0.5_b1_hier2_Kflat_1_0.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_SS_p0.5_b1_hier3_Kflat_1_0.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_SS_p0.5_b1_hier4_Kflat_1_0.pickle",
-   ])
+def _check_hscore_files_aliases(alias, hscore_data_dir):
+   try:
+      pattern = os.path.join(hscore_data_dir, alias, '*.pickle')
+      g = sorted(glob.glob(pattern))
+      if len(g) > 0:
+         return g
+   except:
+      pass
+   raise ValueError(f'hscore datadir {hscore_data_dir} or alias {alias} invalid')

@@ -1,18 +1,20 @@
-import os, copy, numpy as np, sicdock
+import os, copy, numpy as np, sicdock, logging
 from sicdock import bvh
 from sicdock.util.numeric import pca_eig
 from sicdock import motif
-from sicdock.rosetta import get_bb_coords
+from sicdock.rosetta import get_bb_coords, get_sc_coords
+
+log = logging.getLogger(__name__)
 
 _CLASH_RADIUS = 1.75
 
 class Body:
-   def __init__(self, pdb_or_pose, sym="C1", which_ss="HE", posecache=False, label=None,
-                components=[], **kw):
+   def __init__(self, pdb_or_pose, sym="C1", **kw):
+      arg = sicdock.Bunch(kw)
       if isinstance(pdb_or_pose, str):
          import sicdock.rosetta.triggers_init as ros
          self.pdbfile = pdb_or_pose
-         if posecache:
+         if arg.posecache:
             pose = ros.get_pose_cached(pdb_or_pose)
          else:
             pose = ros.pose_from_file(pdb_or_pose)
@@ -21,11 +23,11 @@ class Body:
          pose = pdb_or_pose
          self.pdbfile = pose.pdb_info().name() if pose.pdb_info() else None
 
-      if label is None and self.pdbfile:
+      if arg.label is None and self.pdbfile:
          label = os.path.basename(self.pdbfile.rstrip('.gz').rstrip('.pdb'))
-      self.components = components
-      self.which_ss = which_ss
-      self.label = label
+      self.components = arg.components if arg.components else []
+      self.score_only_ss = arg.score_only_ss if arg.score_only_ss else "EHL"
+      self.label = arg.label
       if isinstance(sym, int): sym = "C%i" % sym
       self.sym = sym
       self.nfold = int(sym[1:])
@@ -35,6 +37,7 @@ class Body:
       self.coord = get_bb_coords(pose)
       self.chain = np.repeat(0, self.seq.shape[0])
       self.resno = np.arange(len(self.seq))
+      self.orig_anames, self.orig_coords = get_sc_coords(pose)
 
       if sym and sym[0] == "C" and int(sym[1:]):
          n = self.coord.shape[0]
@@ -46,7 +49,6 @@ class Body:
          self.resno = np.tile(range(n), nfold)
          newcoord = np.empty((nfold * n, ) + self.coord.shape[1:])
          newcoord[:n] = self.coord
-         # print(self.coord.shape, newcoord.shape)
          for i in range(1, nfold):
             self.pos = sicdock.homog.hrot([0, 0, 1], 360.0 * i / nfold)
             newcoord[i * n:][:n] = self.positioned_coord()
@@ -63,7 +65,7 @@ class Body:
       self.allcen = self.stub[:, :, 3]
       which_cen = np.repeat(False, len(self.ss))
       for ss in "EHL":
-         if ss in which_ss:
+         if ss in self.score_only_ss:
             which_cen |= self.ss == ss
       which_cen &= ~np.isin(self.seq, ["G", "C", "P"])
       self.which_cen = which_cen
@@ -75,9 +77,12 @@ class Body:
       self.trim_direction = kw['trim_direction'].upper() if 'trim_direction' in kw else None
 
       if self.sym != "C1":
-         self.asym_body = Body(pose, "C1", which_ss, posecache, **kw)
+         self.asym_body = Body(pose, "C1", **arg)
       else:
          self.asym_body = self
+
+   def __len__(self):
+      return len(self.seq)
 
    def strip_data(self):
       self.seq = None
@@ -171,6 +176,9 @@ class Body:
       cen = self.stub[:n, :, 3]
       return (self.pos @ cen[..., None]).squeeze()
 
+   def positioned_orig_coords(self):
+      return [(self.pos @ x[..., None]).squeeze() for x in self.orig_coords]
+
    def contact_pairs(self, other, maxdis, buf=None):
       if not buf:
          buf = np.empty((10000, 2), dtype="i4")
@@ -181,31 +189,11 @@ class Body:
    def contact_count(self, other, maxdis):
       return bvh.bvh_count_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis)
 
-   def dump_pdb(self, fname, asym=False):
+   def dump_pdb(self, fname, asym=False, **kw):
+      # import needs to be here to avoid cyclic import
       from sicdock.io.io_body import dump_pdb_from_bodies
-
-      dump_pdb_from_bodies(fname, [self], sicdock.geom.symframes(self.sym))
-
-      #      from sicdock.io import pdb_format_atom
-      #
-      #      s = ""
-      #      ia = 0
-      #      crd = self.positioned_coord(asym=asym)
-      #      cen = self.positioned_cen(asym=asym)
-      #      for i in range(len(crd)):
-      #         c = self.chain[i]
-      #         j = self.resno[i]
-      #         aa = self.seq[i]
-      #         s += pdb_format_atom(ia=ia + 0, ir=j, rn=aa, xyz=crd[i, 0], c=c, an="N")
-      #         s += pdb_format_atom(ia=ia + 1, ir=j, rn=aa, xyz=crd[i, 1], c=c, an="CA")
-      #         s += pdb_format_atom(ia=ia + 2, ir=j, rn=aa, xyz=crd[i, 2], c=c, an="C")
-      #         s += pdb_format_atom(ia=ia + 3, ir=j, rn=aa, xyz=crd[i, 3], c=c, an="O")
-      #         s += pdb_format_atom(ia=ia + 4, ir=j, rn=aa, xyz=crd[i, 4], c=c, an="CB")
-      #         s += pdb_format_atom(ia=ia + 5, ir=j, rn=aa, xyz=cen[i], c=c, an="CEN")
-      #         ia += 6
-      #
-      #      with open(fname, "w") as out:
-      #         out.write(s)
+      bod = [self.asym_body if asym else self]
+      return dump_pdb_from_bodies(fname, bod, **kw)
 
    def copy(self):
       b = copy.copy(self)
@@ -213,3 +201,23 @@ class Body:
       assert b.pos is not self.pos
       assert b.coord is self.coord
       return b
+
+   def filter_pairs(self, pairs, score_only_sspair, sanity_check=True):
+      if not score_only_sspair: return pairs
+      ss0 = self.ss[pairs[:, 0]]
+      ss1 = self.ss[pairs[:, 1]]
+      ok = np.ones(len(ss0), dtype=np.bool)
+      for sspair in score_only_sspair:
+         ss0in0 = np.isin(ss0, sspair[0])
+         ss0in1 = np.isin(ss0, sspair[1])
+         ss1in0 = np.isin(ss1, sspair[0])
+         ss1in1 = np.isin(ss1, sspair[1])
+         ok0 = np.logical_and(ss0in0, ss1in1)
+         ok1 = np.logical_and(ss1in0, ss0in1)
+         ok &= np.logical_or(ok0, ok1)
+      if sanity_check:
+         sspair = [str(x) + str(y) for x, y in zip(ss0[ok], ss1[ok])]
+         for s in set(sspair):
+            assert s in score_only_sspair or (s[1] + s[0]) in score_only_sspair
+      log.debug(f'filter_pairs {len(pairs)} to {np.sum(ok)}')
+      return pairs[ok]

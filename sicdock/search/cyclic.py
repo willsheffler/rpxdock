@@ -77,7 +77,7 @@ class CyclicEvaluator:
       # score everything that didn't clash
       xok = xforms[ok]
       scores = np.zeros(len(xforms))
-      scores[ok] = sfxn(iresl, body, body, xok, xsym[ok], wts, (*ptrim, *ptrim))
+      scores[ok] = sfxn(body, body, xok, xsym[ok], wts, iresl, (*ptrim, *ptrim))
 
       # record ranges used
       plb = np.zeros(len(scores), dtype="i4")

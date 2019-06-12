@@ -90,8 +90,8 @@ class PlugEvaluator:
       scores = np.zeros((len(xforms), 2))
       scores[ok, 0] = 9999
       if not self.arg.plug_fixed_olig:
-         scores[ok, 0] = sfxn(iresl, plug, plug, xok, xsym[ok], wts, (*ptrim, *ptrim))
-      scores[ok, 1] = sfxn(iresl, plug, hole, xok, xeye[:, ], wts, ptrim)
+         scores[ok, 0] = sfxn(plug, plug, xok, xsym[ok], wts, iresl, (*ptrim, *ptrim))
+      scores[ok, 1] = sfxn(plug, hole, xok, xeye[:, ], wts, iresl, ptrim)
 
       # record ranges used
       plb = np.zeros(len(scores), dtype="i4")

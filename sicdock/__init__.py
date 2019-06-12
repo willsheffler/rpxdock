@@ -23,6 +23,8 @@ from sicdock import xbin
 from sicdock.search import dockspec
 from sicdock.app import options
 
+from sicdock.body import Body
+from sicdock.motif import HierScore
 from sicdock.search import Result
 
 rootdir = os.path.dirname(__file__)

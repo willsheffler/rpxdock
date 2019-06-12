@@ -10,7 +10,6 @@ from sicdock.data import datadir
 from sicdock.util import load, Bunch, load_threads
 from sicdock.io.io_body import dump_pdb_from_bodies
 from sicdock.geom import symframes
-from sicdock.tests.motif.hscore_data_locations_will import *
 from sicdock.search import make_cyclic, concat_results
 
 def test_make_cyclic(hscore, cli_args=dict()):
