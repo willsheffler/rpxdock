@@ -84,6 +84,3 @@ _khash_ffi.c
 .rendered.*
 .*.cppimporthash
 
-*.pdb.pickle
-*.pdb.gz.pickle
-*.pickle
