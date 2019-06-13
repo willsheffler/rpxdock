@@ -30,7 +30,7 @@ def default_cli_parser(parent=None):
    addarg("--nout_each", type=int, default=1)
    addarg("--dump_pdbs", action='store_true', default=False)
    addarg("--suppress_dump_results", action='store_true', default=False)
-   addarg("--nresl", type=int, default=5)
+   addarg("--nresl", type=int, default=None)
    addarg("--clashdis", type=float, default=3.5)
    addarg("--beam_size", type=int, default=1e5)
    addarg("--max_bb_redundancy", type=float, default=3.0)
@@ -88,13 +88,8 @@ def process_cli_args(arg):
    d = os.path.dirname(arg.output_prefix)
    if d: os.makedirs(d, exist_ok=True)
 
-   arg.score_only_sspair = [''.join(sorted(p)) for p in arg.score_only_sspair]
-   arg.score_only_sspair = sorted(set(arg.score_only_sspair))
-   if any(len(p) != 2 for p in arg.score_only_sspair):
-      raise argparse.ArgumentError(None, '--score_only_sspair accepts two letter SS pairs')
-   if (any(p[0] not in "EHL" for p in arg.score_only_sspair)
-       or any(p[1] not in "EHL" for p in arg.score_only_sspair)):
-      raise argparse.ArgumentError(None, '--score_only_sspair accepts only EHL')
+   _process_arg_sspair(arg)
+   arg.trim_direction = arg.trim_direction.upper()
 
    return arg
 
@@ -131,3 +126,12 @@ def parse_list_of_strtuple(s):
    if isinstance(arg, tuple) and len(arg) == 2 and isinstance(arg[0], int):
       arg = [arg]
    return arg
+
+def _process_arg_sspair(arg):
+   arg.score_only_sspair = [''.join(sorted(p)) for p in arg.score_only_sspair]
+   arg.score_only_sspair = sorted(set(arg.score_only_sspair))
+   if any(len(p) != 2 for p in arg.score_only_sspair):
+      raise argparse.ArgumentError(None, '--score_only_sspair accepts two letter SS pairs')
+   if (any(p[0] not in "EHL" for p in arg.score_only_sspair)
+       or any(p[1] not in "EHL" for p in arg.score_only_sspair)):
+      raise argparse.ArgumentError(None, '--score_only_sspair accepts only EHL')

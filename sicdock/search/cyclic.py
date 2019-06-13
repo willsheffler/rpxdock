@@ -15,7 +15,7 @@ def make_cyclic(monomer, sym, hscore, search=hier_search, **kw):
    t = sicdock.Timer().start()
    sym = "C%i" % i if isinstance(sym, int) else sym
    args.nresl = len(hscore.hier) if args.nresl is None else args.nresl
-   args.output_prefix = sym if args.output_prefix is None else args.output_prefix
+   args.output_prefix = arg.output_prefix if args.output_prefix else sym
 
    cart_resl, ori_resl = hscore.base.attr.xhresl
    ncart = int(np.ceil(2 * monomer.radius_max() / cart_resl))

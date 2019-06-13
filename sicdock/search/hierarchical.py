@@ -5,14 +5,15 @@ from sicdock.search import gridslide, evaluate_positions
 from sicdock.util import Bunch
 
 def hier_search(sampler, evaluator, **kw):
-   args = Bunch(kw)
+   arg = Bunch(kw)
    neval, indices, scores = list(), None, None
-   for iresl in range(args.nresl):
-      indices, xforms = expand_samples(iresl, sampler, indices, scores, **args)
-      scores, *resbound, t = evaluate_positions(**args.sub(vars()))
+   nresl = arg.nresl if arg.nresl else len(evaluator.hscore)
+   for iresl in range(arg.nresl):
+      indices, xforms = expand_samples(iresl, sampler, indices, scores, **arg)
+      scores, *resbound, t = evaluate_positions(**arg.sub(vars()))
       neval.append((t, len(scores)))
       print(
-         f"{args.output_prefix} iresl {iresl} ntot {len(scores):11,}",
+         f"{arg.output_prefix} iresl {iresl} ntot {len(scores):11,}",
          f"nonzero {np.sum(scores > 0):5,}",
       )
    stats = Bunch(ntot=sum(x[1] for x in neval), neval=neval)
@@ -101,8 +102,8 @@ def tccage_slide_hier(
    samples, newresl = tccage_slide_hier_samples(spec, resl=base_resl, **kw)
    nsamp = [np.prod([len(s) for s in samples])]
    for i in range(nstep):
-      npair[i], pos[i] = gridslide.find_connected_2xCyclic_slide(
-         spec, body1, body2, samples, min_contacts=mct[-1], **kw)
+      npair[i], pos[i] = gridslide.find_connected_2xCyclic_slide(spec, body1, body2, samples,
+                                                                 min_contacts=mct[-1], **kw)
       if len(npair[i]) is 0:
          return npair[i - 1], pos[i - 1]
       if i + 1 < nstep:

@@ -74,7 +74,7 @@ class Body:
       self.pos = np.eye(4, dtype="f4")
       self.pcavals, self.pcavecs = pca_eig(self.cen)
 
-      self.trim_direction = kw['trim_direction'].upper() if 'trim_direction' in kw else None
+      self.trim_direction = arg.trim_direction if arg.trim_direction in arg else 'NC'
 
       if self.sym != "C1":
          self.asym_body = Body(pose, "C1", **arg)

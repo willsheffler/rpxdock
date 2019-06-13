@@ -113,10 +113,8 @@ def dump_plugs(xforms, plug, hole, scores, ibest, evaluator, **kw):
       ((pscr, hscr), ), *lbub = scoreme(xforms[ibest[i]], arg.nresl - 1, wrpx)
       ((pcnt, hcnt), ), *lbub = scoreme(xforms[ibest[i]], arg.nresl - 1, wnct)
       fn = fname_prefix + "_%02i.pdb" % i
-      log.info(
-         f"{fn} score {scores[ibest[i]]:7.3f} olig: {pscr:7.3f} hole: {hscr:7.3f}",
-         f"resi {lbub[0][0]}-{lbub[1][0]} {pcnt:7.0f} {hcnt:7.0f}",
-      )
+      log.info(f"{fn} score {scores[ibest[i]]:7.3f} olig: {pscr:7.3f} hole: {hscr:7.3f}" +
+               f"resi {lbub[0][0]}-{lbub[1][0]} {pcnt:7.0f} {hcnt:7.0f}")
       sicdock.io.dump_pdb_from_bodies(fn, [plug], sicdock.geom.symframes(hole.sym),
                                       resbounds=[lbub])
    return t.total

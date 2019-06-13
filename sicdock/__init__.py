@@ -25,6 +25,6 @@ from sicdock.app import options
 
 from sicdock.body import Body
 from sicdock.motif import HierScore
-from sicdock.search import Result
+from sicdock.search import Result, hier_search, grid_search
 
 rootdir = os.path.dirname(__file__)

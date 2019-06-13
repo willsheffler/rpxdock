@@ -59,16 +59,24 @@ def respairscore(datadir):
    return data.small_respairscore()
 
 @pytest.fixture(scope="session")
-def hscore(datadir):
-   pref = datadir + "/hscore/"
-   return HierScore([
-      pref + "pdb_res_pair_data_si30_10_rots_ILV_SSindep_p0.5_b1_base.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_ILV_SSindep_p0.5_b1_hier0_Kflat_1_0.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_ILV_SSindep_p0.5_b1_hier1_Kflat_1_0.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_ILV_SSindep_p0.5_b1_hier2_Kflat_1_0.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_ILV_SSindep_p0.5_b1_hier3_Kflat_1_0.pickle",
-      pref + "pdb_res_pair_data_si30_10_rots_ILV_SSindep_p0.5_b1_hier4_Kflat_1_0.pickle",
-   ])
+def hscore():
+   return data.small_hscore()
+
+@pytest.fixture(scope="session")
+def body():
+   return data.body_dhr14()
+
+@pytest.fixture(scope="session")
+def plug():
+   return data.body_dhr64()
+
+@pytest.fixture(scope="session")
+def hole():
+   return data.body_small_c3_hole()
+
+@pytest.fixture(scope="session")
+def body_c3_mono():
+   return data.body_c3_mono()
 
 @pytest.fixture(scope="session")
 def result():

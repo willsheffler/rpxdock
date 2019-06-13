@@ -15,10 +15,9 @@ log = logging.getLogger(__name__)
 class HierScore:
    def __init__(self, files, max_pair_dist=8.0, hscore_data_dir=None, **kw):
       arg = sd.Bunch(kw)
-      if len(files) is 0:
-         raise ValueError('HierScore given no datafiles')
-      if len(files) is 1:
-         files = _check_hscore_files_aliases(files[0], hscore_data_dir)
+      if isinstance(files, str): files = [files]
+      if len(files) is 0: raise ValueError('HierScore given no datafiles')
+      if len(files) is 1: files = _check_hscore_files_aliases(files[0], hscore_data_dir)
       if len(files) > 8:
          for f in files:
             log.error(f)
@@ -46,6 +45,9 @@ class HierScore:
       self.map_pairs_multipos = xu.ssmap_pairs_multipos if self.use_ss else xu.map_pairs_multipos
       self.map_pairs = xu.ssmap_of_selected_pairs if self.use_ss else xu.map_of_selected_pairs
       self.score_only_sspair = arg.score_only_sspair
+
+   def __len__(self):
+      return len(self.hier)
 
    def score(self, body1, body2, wts, iresl=-1, bounds=None):
       return self.scorepos(body1, body2, body1.pos, body2.pos, wts, iresl, bounds)
