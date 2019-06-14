@@ -15,6 +15,7 @@ struct CartHier {
   using Fn = Eigen::Matrix<F, CART_DIM, 1>;
   using In = Eigen::Matrix<I, CART_DIM, 1>;
   static I const FULL_DIM = CART_DIM;
+  int dim() const { return FULL_DIM; }
   static I const ONE = 1;
   static I const NEXPAND = (ONE << FULL_DIM);
 
@@ -57,9 +58,8 @@ struct CartHier {
 
   I size(I resl) const { return cart_ncell_ * ONE << (CART_DIM * resl); }
 
-  bool get_value(I resl, I index, Fn& trans) const {
+  auto get_params(I resl, I index) const {
     assert(resl <= MAX_RESL_ONE_CELL);  // not rigerous check if Ncells > 1
-    if (index >= size(resl)) return false;
     I cell_index = index >> (CART_DIM * resl);
     I hier_index = index & ((ONE << (CART_DIM * resl)) - 1);
     F scale = 1.0 / F(ONE << resl);
@@ -68,7 +68,25 @@ struct CartHier {
       I undilated = util::undilate<CART_DIM>(hier_index >> i);
       params[i] = (static_cast<F>(undilated) + 0.5) * scale;
     }
+    return std::make_pair(cell_index, params);
+  }
+
+  bool get_value(I resl, I index, Fn& trans) const {
+    if (index >= size(resl)) return false;
+    auto [cell_index, params] = this->get_params(resl, index);
     return this->trans_params_to_value(params, cell_index, resl, trans);
+  }
+
+  bool get_value(I resl, I index, X3<F>& x) const {
+    if (index >= size(resl)) return false;
+    auto [cell_index, params] = this->get_params(resl, index);
+    Fn trans;
+    bool success = this->trans_params_to_value(params, cell_index, resl, trans);
+    if (!success) return false;
+    x = X3<F>::Identity();
+    for (int i = 0; i < std::min<int>(3, FULL_DIM); ++i)
+      x.translation()[i] = trans[i];
+    return true;
   }
 
   ///@brief sets value based on cell_index and parameters using geometric bounds
@@ -91,6 +109,7 @@ template <typename F = double, typename I = uint64_t>
 struct RotHier {
   static I const ORI_DIM = 1;
   static I const FULL_DIM = ORI_DIM;
+  int dim() const { return FULL_DIM; }
   static I const MAX_RESL_ONE_CELL = sizeof(I) * 8 / ORI_DIM;
   static I const ONE = 1;
   static I const NEXPAND = (ONE << FULL_DIM);
@@ -147,6 +166,7 @@ template <typename F = double, typename I = uint64_t>
 struct OriHier {
   static I const ORI_DIM = 3;
   static I const FULL_DIM = ORI_DIM;
+  int dim() const { return FULL_DIM; }
   static I const MAX_RESL_ONE_CELL = sizeof(I) * 8 / ORI_DIM;
   static I const ONE = 1;
   static I const NEXPAND = (ONE << FULL_DIM);
@@ -274,6 +294,7 @@ struct OriHier {
 template <typename F = double, typename I = uint64_t>
 struct XformHier : public OriHier<F, I>, public CartHier<3, F, I> {
   static I const FULL_DIM = 6;
+  int dim() const { return FULL_DIM; }
   static I const ORI_DIM = 3;
   static I const CART_DIM = 3;
   static I const MAX_RESL_ONE_CELL = sizeof(I) * 8 / FULL_DIM;
@@ -353,6 +374,7 @@ struct XformHier : public OriHier<F, I>, public CartHier<3, F, I> {
 template <typename F = double, typename I = uint64_t>
 struct OriCart1Hier : public OriHier<F, I>, public CartHier<1, F, I> {
   static I const FULL_DIM = 4;
+  int dim() const { return FULL_DIM; }
   static I const ORI_DIM = 3;
   static I const CART_DIM = 1;
   static I const MAX_RESL_ONE_CELL = sizeof(I) * 8 / FULL_DIM;
@@ -433,6 +455,7 @@ struct OriCart1Hier : public OriHier<F, I>, public CartHier<1, F, I> {
 template <typename F = double, typename I = uint64_t>
 struct RotCart1Hier : public RotHier<F, I>, public CartHier<1, F, I> {
   static I const FULL_DIM = 2;
+  int dim() const { return FULL_DIM; }
   static I const ORI_DIM = 1;
   static I const CART_DIM = 1;
   static I const MAX_RESL_ONE_CELL = sizeof(I) * 8 / FULL_DIM;

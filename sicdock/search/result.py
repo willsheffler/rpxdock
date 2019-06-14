@@ -152,6 +152,8 @@ def dummy_result(size=1000):
       resub=(["model"], np.random.randint(100, 200, size)),
    )
 
-def assert_results_close(r, s):
-   assert (np.allclose(r.scores, s.scores) and np.allclose(r.xforms, s.xforms)
-           and np.allclose(r.reslb, s.reslb) and np.allclose(r.resub, s.resub))
+def assert_results_close(r, s, n=-1):
+   assert np.allclose(r.scores[:n], s.scores[:n])
+   assert np.allclose(r.reslb[:n], s.reslb[:n])
+   assert np.allclose(r.resub[:n], s.resub[:n])
+   assert np.allclose(r.xforms[:n], s.xforms[:n], atol=1e-3)

@@ -18,6 +18,8 @@ def testarg():
 def test_plug_hier(hscore, plug, hole):
    arg = testarg()
    arg.max_trim = 200
+   # arg.nout_debug = 3
+   # arg.output_prefix = 'test_plug_hier'
    sampler = sd.search.plug.____PLUG_TEST_SAMPLE_HIERARCHY____(plug, hole, hscore)
    result = make_plugs(plug, hole, hscore, sampler, **arg)
    ref = sd.data.get_test_data('test_plug_hier')
@@ -28,7 +30,7 @@ def test_plug_olig_hier(hscore, body_c3_mono, hole):
    hsamp = RotCart1Hier_f4(-120, 120, 20, 0, 120, 12, [0, 0, 1])
    result = make_plugs(body_c3_mono, hole, hscore, hsamp, search=sd.hier_search, **arg)
    refh, _ = sd.data.get_test_data('test_plug_olig_grid_vs_hier')
-   sd.search.assert_results_close(result, refh)
+   sd.search.assert_results_close(result, refh, 10)
 
 def test_plug_olig_grid(hscore, body_c3_mono, hole):
    arg = testarg().sub(plug_fixed_olig=True)
@@ -38,16 +40,16 @@ def test_plug_olig_grid(hscore, body_c3_mono, hole):
    xgrid = grid_sym_axis(gcart, gang)
    resultg = make_plugs(body_c3_mono, hole, hscore, xgrid, search=sd.grid_search, **arg)
    _, refg = sd.data.get_test_data('test_plug_olig_grid_vs_hier')
-   sd.search.assert_results_close(resultg, refg)
+   sd.search.assert_results_close(resultg, refg, 10)
 
 if __name__ == "__main__":
    # plug = sd.Body(sd.data.datadir + '/pdb/dhr64.pdb')
    # sd.dump(plug, sd.data.datadir + '/body/dhr64.pickle')
 
    plug = sd.data.body_dhr64()
-   body_c3_mono = sd.data.body_c3_mono()
+   # body_c3_mono = sd.data.body_c3_mono()
    hole = sd.data.body_small_c3_hole()
 
    test_plug_hier(sd.data.small_hscore(), plug, hole)
-   test_plug_olig_hier(sd.data.small_hscore(), body_c3_mono, hole)
-   test_plug_olig_grid(sd.data.small_hscore(), body_c3_mono, hole)
+   # test_plug_olig_hier(sd.data.small_hscore(), body_c3_mono, hole)
+   # test_plug_olig_grid(sd.data.small_hscore(), body_c3_mono, hole)

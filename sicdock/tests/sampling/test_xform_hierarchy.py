@@ -53,6 +53,9 @@ def test_cart_hier1():
       ch2 = CartHier1D_f8([lb], [ub], [bs])
       for resl in range(4):
          assert ch2.size(resl) == ch.size(resl) * bs
+   ok, t = ch.get_trans(3, np.arange(ch.size(resl), dtype='u8'))
+   ok, x = ch.get_xforms(3, np.arange(ch.size(resl), dtype='u8'))
+   assert np.allclose(t, x[:, :1, 3])
 
 def test_xform_hierarchy_product():
    oh = OriHier_f8(999)
@@ -70,9 +73,7 @@ def test_xform_hierarchy_product():
    i, o = oh.get_ori(resl, urange(oh.size(resl)))
    i, t = ch.get_trans(resl, urange(ch.size(resl)))
    assert np.allclose(x.reshape(24, -1, 4, 4)[0, :, :3, 3], t)
-   assert np.allclose(
-      x.reshape(24, -1, 4, 4)[:, ::8, :3, :3],
-      o.reshape(24, -1, 3, 3)[:, ::8])
+   assert np.allclose(x.reshape(24, -1, 4, 4)[:, ::8, :3, :3], o.reshape(24, -1, 3, 3)[:, ::8])
 
 def test_xform_hierarchy_product_zorder():
    for ang in [999, 30, 20, 10, 5]:
@@ -487,9 +488,7 @@ def test_OriCart1_hierarchy_product():
    i, o = oh.get_ori(resl, urange(oh.size(resl)))
    i, t = ch.get_trans(resl, urange(ch.size(resl)))
    assert np.allclose(x.reshape(24, -1, 4, 4)[0, :, :1, 3], t)
-   assert np.allclose(
-      x.reshape(24, -1, 4, 4)[:, ::8, :3, :3],
-      o.reshape(24, -1, 3, 3)[:, ::8])
+   assert np.allclose(x.reshape(24, -1, 4, 4)[:, ::8, :3, :3], o.reshape(24, -1, 3, 3)[:, ::8])
 
 def test_rot_hier():
    rh = RotHier_f8(0, 64, 64)
@@ -571,8 +570,7 @@ def test_rotcart1_hier():
    axis, ang = hm.axis_angle_of(x)
    assert np.allclose(axis[0, :3], rh.axis)
    assert np.allclose(
-      x[:, 2, 3],
-      [-56, -56, -40, -40, -56, -56, -40, -40, -24, -24, -8, -8, -24, -24, -8, -8])
+      x[:, 2, 3], [-56, -56, -40, -40, -56, -56, -40, -40, -24, -24, -8, -8, -24, -24, -8, -8])
    assert np.allclose(ang * 180 / np.pi,
                       [8, 24, 8, 24, 40, 56, 40, 56, 8, 24, 8, 24, 40, 56, 40, 56])
 
@@ -608,30 +606,32 @@ def test_rotcart1_hier_expand_top_N():
    assert np.min(idx) == 40 - 12 and np.max(idx) == 40 - 1
 
 if __name__ == "__main__":
-   test_rot_hier()
-   test_rot_hier_multicell()
-   test_rotcart1_hier()
-   test_rotcart1_hier_multicell()
-   test_rotcart1_hier_expand_top_N()
-   test_OriCart1_hierarchy_product()
-   test_zorder()
    test_cart_hier1()
-   test_xform_hierarchy_product()
-   test_xform_hierarchy_product_zorder()
-   test_xform_hierarchy_ctor()
-   test_xform_hierarchy_get_xforms()
-   test_xform_hierarchy_get_xforms_bs()
-   test_xform_hierarchy_expand_top_N()
-   test_xform_hierarchy_expand_top_N_nullval()
-   test_ori_hier_all2()
-   test_ori_hier_1cell()
-   test_ori_hier_rand()
-   # slow_test_ori_hier_rand_nside4()
-   test_ori_hier_rand_nside()
-   test_avg_dist()
-   test_ori_hier_angresl()
-   # crappy_xform_hierarchy_resl_sanity_check()
-   test_xform_hierarchy_product_zorder()
-   test_ori_hier_angresl()
-   test_accessors()
-   test_xform_hierarchy_plug_bug()
+
+   # test_rot_hier()
+   # test_rot_hier_multicell()
+   # test_rotcart1_hier()
+   # test_rotcart1_hier_multicell()
+   # test_rotcart1_hier_expand_top_N()
+   # test_OriCart1_hierarchy_product()
+   # test_zorder()
+   # test_cart_hier1()
+   # test_xform_hierarchy_product()
+   # test_xform_hierarchy_product_zorder()
+   # test_xform_hierarchy_ctor()
+   # test_xform_hierarchy_get_xforms()
+   # test_xform_hierarchy_get_xforms_bs()
+   # test_xform_hierarchy_expand_top_N()
+   # test_xform_hierarchy_expand_top_N_nullval()
+   # test_ori_hier_all2()
+   # test_ori_hier_1cell()
+   # test_ori_hier_rand()
+   # # slow_test_ori_hier_rand_nside4()
+   # test_ori_hier_rand_nside()
+   # test_avg_dist()
+   # test_ori_hier_angresl()
+   # # crappy_xform_hierarchy_resl_sanity_check()
+   # test_xform_hierarchy_product_zorder()
+   # test_ori_hier_angresl()
+   # test_accessors()
+   # test_xform_hierarchy_plug_bug()

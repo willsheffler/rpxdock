@@ -24,7 +24,7 @@ def expand_samples(iresl, sampler, indices=None, scores=None, beam_size=None, **
       indices = np.arange(sampler.size(0), dtype="u8")
       mask, xforms = sampler.get_xforms(0, indices)
       return indices[mask], xforms
-   nexpand = max(1, int(beam_size / 2**sampler.dim()))
+   nexpand = max(1, int(beam_size / 2**sampler.dim))
    return sampler.expand_top_N(nexpand, iresl - 1, scores, indices)
 
 def tccage_slide_hier_samples(spec, resl=16, max_out_of_plane_angle=16, nstep=1, **kw):
