@@ -12,9 +12,9 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'sicdock'
+NAME = 'rpxdock'
 DESCRIPTION = 'Protein Docking Toolkit'
-URL = 'https://github.com/willsheffler/sicdock.git'
+URL = 'https://github.com/willsheffler/rpxdock.git'
 EMAIL = 'willsheffler@gmail.com'
 AUTHOR = 'Will Sheffler'
 REQUIRES_PYTHON = '>=3.6.0'
@@ -101,8 +101,8 @@ def get_files(*patterns):
    fnames = set()
    from pathlib import Path
    for pattern in patterns:
-      for filename in Path('sicdock').glob(pattern):
-         fnames.add(str(filename).lstrip('sicdock/'))
+      for filename in Path('rpxdock').glob(pattern):
+         fnames.add(str(filename).lstrip('rpxdock/'))
    return list(fnames)
 
 # Where the magic happens:
@@ -118,7 +118,7 @@ setup(
    url=URL,
    packages=find_packages(),
    # If your package is a single module, use this instead of 'packages':
-   # py_modules=['sicdock'],
+   # py_modules=['rpxdock'],
 
    # entry_points={
    #     'console_scripts': ['mycli=mymodule:cli'],
@@ -126,8 +126,8 @@ setup(
    install_requires=REQUIRED,
    extras_require=EXTRAS,
    tests_require=['pytest'],
-   package_dir={'sicdock': 'sicdock'},
-   package_data=dict(sicdock=[
+   package_dir={'rpxdock': 'rpxdock'},
+   package_data=dict(rpxdock=[
       '*/*.hpp',
       '*/*.cpp',
       'data/*.pickle',

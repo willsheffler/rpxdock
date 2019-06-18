@@ -11,46 +11,45 @@ from time import perf_counter
 from collections import defaultdict
 
 _overrides = {
-   "genrate_motif_scores.py": "PYTHONPATH=. python sicdock/app/genrate_motif_scores.py TEST"
+   "genrate_motif_scores.py": "PYTHONPATH=. python rpxdock/app/genrate_motif_scores.py TEST"
 }
 
 _file_mappings = {
-   "rosetta.py": ["sicdock/tests/test_body.py"],
-   "bvh_algo.hpp": ["sicdock/tests/bvh/test_bvh_nd.py"],
-   "bvh.cpp": ["sicdock/tests/bvh/test_bvh.py"],
-   "bvh_nd.cpp": ["sicdock/tests/bvh/test_bvh_nd.py"],
-   "bvh.hpp": ["sicdock/tests/bvh/test_bvh_nd.py"],
-   "dockspec.py": ["sicdock/tests/search/test_gridslide.py"],
-   "_orientations.hpp": ["sicdock/sampling/orientations.py"],
-   "_orientations.cpp": ["sicdock/sampling/orientations.py"],
-   "_orientations_test.cpp": ["sicdock/sampling/orientations.py"],
-   "cookie_cutter.cpp": ["sicdock/tests/cluster/test_cluster.py"],
-   "xbin.hpp": ["sicdock/tests/xbin/test_xbin.py"],
-   "xbin.cpp": ["sicdock/tests/xbin/test_xbin.py"],
-   "xbin_util.cpp": ["sicdock/tests/xbin/test_xbin_util.py"],
-   "xmap.cpp": ["sicdock/tests/xbin/test_xmap.py"],
-   "phmap.cpp": ["sicdock/tests/phmap/test_phmap.py"],
-   "phmap.hpp": ["sicdock/tests/phmap/test_phmap.py"],
-   "xbin_test.cpp": ["sicdock/tests/xbin/test_xbin.py"],
-   "_motif.cpp": ["sicdock/motif/frames.py"],
-   "primitive.hpp": ["sicdock/tests/geom/test_geom.py"],
-   "dilated_int.hpp": ["sicdock/tests/util/test_util.py"],
-   "dilated_int_test.cpp": ["sicdock/tests/util/test_util.py"],
-   "numeric.hpp": ["sicdock/tests/xbin/test_xbin.py"],
-   "xform_hierarchy.hpp": ["sicdock/tests/sampling/test_xform_hierarchy.py"],
-   "xform_hierarchy.cpp": ["sicdock/tests/sampling/test_xform_hierarchy.py"],
-   "miniball.cpp": ["sicdock/tests/geom/test_geom.py"],
-   "miniball.hpp": ["sicdock/tests/geom/test_geom.py"],
-   "smear.hpp": ["sicdock/tests/xbin/test_smear.py"],
-   "smear.cpp": ["sicdock/tests/xbin/test_smear.py"],
-   "bcc.hpp": ["sicdock/tests/geom/test_bcc.py"],
-   "bcc.cpp": ["sicdock/tests/geom/test_bcc.py"],
-   "pybind_types.hpp": ["sicdock/tests/util/test_pybind_types.py"],
-   "xform_dist.cpp": ["sicdock/tests/geom/test_geom.py"],
-   "hierscore.py": ["sicdock/tests/search/test_plug.py"],
+   "rosetta.py": ["rpxdock/tests/test_body.py"],
+   "bvh_algo.hpp": ["rpxdock/tests/bvh/test_bvh_nd.py"],
+   "bvh.cpp": ["rpxdock/tests/bvh/test_bvh.py"],
+   "bvh_nd.cpp": ["rpxdock/tests/bvh/test_bvh_nd.py"],
+   "bvh.hpp": ["rpxdock/tests/bvh/test_bvh_nd.py"],
+   "dockspec.py": ["rpxdock/tests/search/test_gridslide.py"],
+   "_orientations.hpp": ["rpxdock/sampling/orientations.py"],
+   "_orientations.cpp": ["rpxdock/sampling/orientations.py"],
+   "_orientations_test.cpp": ["rpxdock/sampling/orientations.py"],
+   "cookie_cutter.cpp": ["rpxdock/tests/cluster/test_cluster.py"],
+   "xbin.hpp": ["rpxdock/tests/xbin/test_xbin.py"],
+   "xbin.cpp": ["rpxdock/tests/xbin/test_xbin.py"],
+   "xbin_util.cpp": ["rpxdock/tests/xbin/test_xbin_util.py"],
+   "xmap.cpp": ["rpxdock/tests/xbin/test_xmap.py"],
+   "phmap.cpp": ["rpxdock/tests/phmap/test_phmap.py"],
+   "phmap.hpp": ["rpxdock/tests/phmap/test_phmap.py"],
+   "xbin_test.cpp": ["rpxdock/tests/xbin/test_xbin.py"],
+   "_motif.cpp": ["rpxdock/motif/frames.py"],
+   "primitive.hpp": ["rpxdock/tests/geom/test_geom.py"],
+   "dilated_int.hpp": ["rpxdock/tests/util/test_util.py"],
+   "dilated_int_test.cpp": ["rpxdock/tests/util/test_util.py"],
+   "numeric.hpp": ["rpxdock/tests/xbin/test_xbin.py"],
+   "xform_hierarchy.hpp": ["rpxdock/tests/sampling/test_xform_hierarchy.py"],
+   "xform_hierarchy.cpp": ["rpxdock/tests/sampling/test_xform_hierarchy.py"],
+   "miniball.cpp": ["rpxdock/tests/geom/test_geom.py"],
+   "miniball.hpp": ["rpxdock/tests/geom/test_geom.py"],
+   "smear.hpp": ["rpxdock/tests/xbin/test_smear.py"],
+   "smear.cpp": ["rpxdock/tests/xbin/test_smear.py"],
+   "bcc.hpp": ["rpxdock/tests/geom/test_bcc.py"],
+   "bcc.cpp": ["rpxdock/tests/geom/test_bcc.py"],
+   "pybind_types.hpp": ["rpxdock/tests/util/test_pybind_types.py"],
+   "xform_dist.cpp": ["rpxdock/tests/geom/test_geom.py"],
+   "hierscore.py": ["rpxdock/tests/search/test_plug.py"],
 }
 _post = defaultdict(lambda: "")
-
 
 def file_has_main(file):
    with open(file) as inp:
@@ -59,13 +58,11 @@ def file_has_main(file):
             return True
    return False
 
-
 def testfile_of(path, bname):
    print("testfile_of", path, bname)
-   t = re.sub("^sicdock", "sicdock/tests", path) + "/test_" + bname
+   t = re.sub("^rpxdock", "rpxdock/tests", path) + "/test_" + bname
    if os.path.exists(t):
       return t
-
 
 def dispatch(file, pytest_args="--duration=5"):
    """for the love of god... clean me up"""
@@ -98,7 +95,6 @@ def dispatch(file, pytest_args="--duration=5"):
       cmd = "pytest {pytest_args}".format(**vars())
 
    return cmd, _post[bname]
-
 
 t = perf_counter()
 

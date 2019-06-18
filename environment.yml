@@ -1,4 +1,4 @@
-name: sicdock
+name: rpxdock
 channels:
  - conda-forge
  - https://conda.anaconda.org/t/IuO94WfD-JCG/rosettacommons
