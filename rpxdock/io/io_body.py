@@ -18,6 +18,7 @@ def make_pdb_from_bodies(
       bfactor=None,
       occupancy=None,
       use_orig_coords=False,
+      **kw,
 ):
    allatomnames = "N CA C O CB CEN".split()
    if not only_atoms and not include_cen:
@@ -30,13 +31,15 @@ def make_pdb_from_bodies(
    if isinstance(chain_letters, int):
       chain_letters = all_pymol_chains[:chain_letters]
 
+   if bfactor and len(bfactor) > 9: bfactor = [bfactor]  # hacky
+
    startatm = start[0]
    startchain = start[1]
    bodies = [bodies] if isinstance(bodies, Body) else bodies
    s = ""
    ia = startatm
    max_resno = np.repeat(int(-9e9), len(chain_letters))
-   for xsym in symframes:
+   for isym, xsym in enumerate(symframes):
       for ibody, body in enumerate(bodies):
          com = xsym @ body.pos[:, 3]
          if not keep(com):
@@ -63,7 +66,8 @@ def make_pdb_from_bodies(
             max_resno[c] = max(resno, max_resno[c])
             cletter = chain_letters[c]
             occ = 1 if occupancy is None else occupancy[resno]
-            bfac = 1 if bfactor is None else bfactor[resno]
+            bfac = 0 if bfactor is None else bfactor[ibody][resno]
+            # if bfac != 0 and isym == 0: print(isym, ibody, resno, bfac)
             aindex = range(len(orig_coords[i])) if use_orig_coords else aindex0
             for j in aindex:
 

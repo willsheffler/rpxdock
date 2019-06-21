@@ -1,21 +1,22 @@
-import numpy as np, xarray as xr, rpxdock, logging
-from rpxdock.search import hier_search, filter_redundancy
-from rpxdock.search import trim_atom_to_res_numbering, Result
+import logging
+import numpy as np, xarray as xr, rpxdock as rp
+from rpxdock.search import trim_atom_to_res_numbering, hier_search
 
 log = logging.getLogger(__name__)
 
-def make_plugs(plug, hole, hscore, sampler, search=hier_search, **kw):
+def make_plugs(plug, hole, hscore, search=hier_search, sampler=None, **kw):
 
-   arg = rpxdock.Bunch(kw)
+   arg = rp.Bunch(kw)
    arg.nresl = len(hscore.hier) if arg.nresl is None else arg.nresl
    arg.output_prefix = "plug" if arg.output_prefix is None else arg.output_prefix
 
-   t = rpxdock.Timer().start()
+   t = rp.Timer().start()
    evaluator = PlugEvaluator(plug, hole, hscore, **arg)
+   if sampler is None: sampler = _default_samplers[search](plug, hole, hscore)
 
    xforms, scores, stats = search(sampler, evaluator, **arg)
 
-   ibest = filter_redundancy(xforms, plug, scores, **arg)
+   ibest = rp.filter_redundancy(xforms, plug, scores, **arg)
    tdump = dump_plugs(xforms, plug, hole, scores, ibest, evaluator, **arg)
 
    log.debug(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
@@ -30,10 +31,11 @@ def make_plugs(plug, hole, hscore, sampler, search=hier_search, **kw):
    ncontact, *_ = evaluator.iface_scores(xforms, arg.nresl - 1, wnct)
    ifacescores = rpx + ncontact
    assert np.allclose(np.min(rpx + ncontact, axis=1), scores)
-   return Result(
+   return rp.Result(
       body_=[] if arg.dont_store_body_in_results else [plug, hole],
       body_label_=[] if arg.dont_store_body_in_results else ['plug', 'hole'],
-      attrs=dict(arg=arg, stats=stats, sym=hole.sym, ttotal=t.total, tdump=tdump),
+      attrs=dict(arg=arg, stats=stats, sym=hole.sym, ttotal=t.total, tdump=tdump,
+                 output_body='all'),
       scores=(["model"], scores.astype("f4")),
       xforms=(["model", "hrow", "hcol"], xforms),
       tot_plug=(["model"], ifacescores[:, 0].astype("f4")),
@@ -48,11 +50,11 @@ def make_plugs(plug, hole, hscore, sampler, search=hier_search, **kw):
 
 class PlugEvaluator:
    def __init__(self, plug, hole, hscore, **kw):
-      self.arg = rpxdock.Bunch(kw)
+      self.arg = rp.Bunch(kw)
       self.plug = plug
       self.hole = hole
       self.hscore = hscore
-      self.symrot = rpxdock.homog.hrot([0, 0, 1], 360 / int(hole.sym[1:]), degrees=True)
+      self.symrot = rp.homog.hrot([0, 0, 1], 360 / int(hole.sym[1:]), degrees=True)
 
    def __call__(self, xforms, iresl=-1, wts={}, **_):
       wts = self.arg.wts.sub(wts)
@@ -104,8 +106,8 @@ class PlugEvaluator:
       return scores, plb, pub
 
 def dump_plugs(xforms, plug, hole, scores, ibest, evaluator, **kw):
-   arg = rpxdock.Bunch(kw)
-   t = rpxdock.Timer().start()
+   arg = rp.Bunch(kw)
+   t = rp.Timer().start()
    fname_prefix = "plug" if arg.output_prefix is None else arg.output_prefix
    nout_debug = min(10 if arg.nout_debug is None else arg.nout_debug, len(ibest))
    for i in range(nout_debug):
@@ -117,8 +119,7 @@ def dump_plugs(xforms, plug, hole, scores, ibest, evaluator, **kw):
       fn = fname_prefix + "_%02i.pdb" % i
       log.info(f"{fn} score {scores[ibest[i]]:7.3f} olig: {pscr:7.3f} hole: {hscr:7.3f}" +
                f"resi {lbub[0][0]}-{lbub[1][0]} {pcnt:7.0f} {hcnt:7.0f}")
-      rpxdock.io.dump_pdb_from_bodies(fn, [plug], rpxdock.geom.symframes(hole.sym),
-                                      resbounds=[lbub])
+      rp.io.dump_pdb_from_bodies(fn, [plug], rp.geom.symframes(hole.sym), resbounds=[lbub])
    return t.total
 
 def plug_get_sample_hierarchy(plug, hole, hscore):
@@ -134,20 +135,22 @@ def plug_get_sample_hierarchy(plug, hole, hscore):
    cartub = np.array([+r2, +r2, +h])
    cartlb = np.array([-r2, -r2, -h])
    cartbs = np.array([nr2, nr2, nh], dtype="i")
-   xh = rpxdock.sampling.XformHier_f4(cartlb, cartub, cartbs, ori_samp_resl)
+   xh = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, ori_samp_resl)
    assert xh.sanity_check(), "bad xform hierarchy"
    log.info(f"XformHier {xh.size(0):,} {xh.cart_bs} {xh.ori_resl} {xh.cart_lb} {xh.cart_ub}")
    return xh
 
+_default_samplers = {hier_search: plug_get_sample_hierarchy}
+
 def __make_plugs_hier_sample_test__(plug, hole, hscore, **kw):
-   arg = rpxdock.Bunch(kw)
+   arg = rp.Bunch(kw)
    sampler = plug_get_sample_hierarchy(plug, hole, hscore)
    sampler = plug_test_hier_sampler(plug, hole, hscore)
 
    nresl = kw["nresl"]
 
    for rpx in [0, 1]:
-      arg.wts = rpxdock.Bunch(plug=1.0, hole=1.0, ncontact=1.0, rpx=rpx)
+      arg.wts = rp.Bunch(plug=1.0, hole=1.0, ncontact=1.0, rpx=rpx)
       evaluator = PlugEvaluator(plug, hole, hscore, **arg)
       iresl = 0
       indices, xforms = expand_samples(**arg.sub(vars()))
@@ -181,7 +184,7 @@ def plug_test_hier_sampler(plug, hole, hscore):
    cartub = np.array([6 * r, r, r])
    cartlb = np.array([-6 * r, 0, 0])
    cartbs = np.array([12, 1, 1], dtype="i")
-   xh = rpxdock.sampling.XformHier_f4(cartlb, cartub, cartbs, rori)
+   xh = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, rori)
    assert xh.sanity_check(), "bad xform hierarchy"
    print(f"XformHier {xh.size(0):,}", xh.cart_bs, xh.ori_resl, xh.cart_lb, xh.cart_ub)
    return xh

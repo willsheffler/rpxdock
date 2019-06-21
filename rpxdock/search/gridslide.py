@@ -29,7 +29,7 @@ def samples_2xCyclic_slide(spec, resl=1, max_out_of_plane_angle=10, **kw):
    slides = np.concatenate([slideposdn, slideposup, slidenegdn, slidenegup])
    # print("slides", slides)
    slides = spec.slide_dir(slides)
-   return [rots1, rots2, slides]
+   return rots1, rots2, slides
 
 def find_connected_1xCyclic_slide(spec, body, samples, min_contacts=30, contact_dis=8.0):
    body2 = body.copy()  # shallow copy except pos

@@ -63,21 +63,33 @@ class DockSpec2CompCage:
       self.sym = spec[0]
       self.nfold1 = int(spec[1])
       self.nfold2 = int(spec[2])
+      self.nfold = np.array([self.nfold1, self.nfold2])
       assert self.sym in "TOI"
       self.axis1 = sym.axes[self.sym][self.nfold1]
       self.axis2 = sym.axes[self.sym][self.nfold2]
       self.axis2 = sym.axes[self.sym][33] if spec == "T33" else self.axis2
+      self.axis = np.array([self.axis1, self.axis2])
       self.axisperp = hm.hcross(self.axis1, self.axis2)
       self.orig1 = hm.align_vector([0, 0, 1], self.axis1)
       self.orig2 = hm.align_vector([0, 0, 1], self.axis2)
+      self.orig = np.array([self.orig1, self.orig2])
       self.symframes_ = sym.frames[self.sym]
       self.axis1_second = sym.axes_second[self.sym][self.nfold1]
       self.axis2_second = sym.axes_second[self.sym][self.nfold2]
+      self.axis_second = [self.axis1_second, self.axis2_second]
       self.to_neighbor_olig1 = sym.to_neighbor_olig[self.sym][self.nfold1]
       self.to_neighbor_olig2 = sym.to_neighbor_olig[self.sym][self.nfold2]
+      self.to_neighbor_olig = np.array([self.to_neighbor_olig1, self.to_neighbor_olig2])
       if spec == "T33":
          self.axis2_second = sym.axes_second[self.sym][33]
          self.to_neighbor_olig2 = sym.to_neighbor_olig[self.sym][33]
+      self.compframes = np.array([sym.symframes(self.nfold[i], self.axis[i]) for i in [0, 1]])
+      fax1 = hm.hcross(self.axis1, hm.hcross(self.axis1, self.axis2))
+      fax2 = hm.hcross(self.axis2, hm.hcross(self.axis2, self.axis1))
+      self.xflip = hm.hrot([fax1, fax2], np.pi)
+
+   def __str__(self):
+      return f'{self.spec} axis1 {self.axis1[:3]} axis2 {self.axis2[:3]}'
 
    def slide_dir(self, angles):
       axisdelta = self.axis2 - self.axis1

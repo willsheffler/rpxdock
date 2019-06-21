@@ -9,8 +9,11 @@ log = logging.getLogger(__name__)
 _CLASH_RADIUS = 1.75
 
 class Body:
-   def __init__(self, pdb_or_pose, sym="C1", **kw):
+   def __init__(self, pdb_or_pose, sym="C1", symaxis=[0, 0, 1], **kw):
       arg = rpxdock.Bunch(kw)
+
+      # pose stuff
+      pose = pdb_or_pose
       if isinstance(pdb_or_pose, str):
          import rpxdock.rosetta.triggers_init as ros
          self.pdbfile = pdb_or_pose
@@ -19,38 +22,44 @@ class Body:
          else:
             pose = ros.pose_from_file(pdb_or_pose)
             ros.assign_secstruct(pose)
-      else:
-         pose = pdb_or_pose
-         self.pdbfile = pose.pdb_info().name() if pose.pdb_info() else None
-
-      if arg.label is None and self.pdbfile:
-         label = os.path.basename(self.pdbfile.rstrip('.gz').rstrip('.pdb'))
-      self.components = arg.components if arg.components else []
-      self.score_only_ss = arg.score_only_ss if arg.score_only_ss else "EHL"
-      self.label = arg.label
-      if isinstance(sym, int): sym = "C%i" % sym
-      self.sym = sym
-      self.nfold = int(sym[1:])
+      self.pdbfile = pose.pdb_info().name() if pose.pdb_info() else None
+      self.orig_anames, self.orig_coords = get_sc_coords(pose)
       self.seq = np.array(list(pose.sequence()))
       self.ss = np.array(list(pose.secstruct()))
-      self.ssid = motif.ss_to_ssid(self.ss)
       self.coord = get_bb_coords(pose)
+      self.set_asym_body(pose, sym, **kw)
+
+      self.label = arg.label
+      if self.label is None and self.pdbfile:
+         self.label = os.path.basename(self.pdbfile.rstrip('.gz').rstrip('.pdb'))
+      if self.label is None: self.label = 'unk'
+      self.components = arg.components if arg.components else []
+      self.score_only_ss = arg.score_only_ss if arg.score_only_ss else "EHL"
+      self.ssid = motif.ss_to_ssid(self.ss)
       self.chain = np.repeat(0, self.seq.shape[0])
       self.resno = np.arange(len(self.seq))
-      self.orig_anames, self.orig_coords = get_sc_coords(pose)
+      self.trim_direction = arg.trim_direction if arg.trim_direction else 'NC'
 
+      self.init_coords(sym, symaxis)
+
+   def init_coords(self, sym, symaxis):
+      if isinstance(sym, (int, np.int32, np.int64, np.uint32, np.uint64)):
+         sym = "C%i" % sym
+      self.sym = sym
+      self.symaxis = symaxis
+      self.nfold = int(sym[1:])
       if sym and sym[0] == "C" and int(sym[1:]):
          n = self.coord.shape[0]
          nfold = int(sym[1:])
-         self.seq = np.array(list(nfold * pose.sequence()))
-         self.ss = np.array(list(nfold * pose.secstruct()))
+         self.seq = np.array(np.tile(self.seq, nfold))
+         self.ss = np.array(np.tile(self.ss, nfold))
          self.ssid = motif.ss_to_ssid(self.ss)
          self.chain = np.repeat(range(nfold), n)
          self.resno = np.tile(range(n), nfold)
          newcoord = np.empty((nfold * n, ) + self.coord.shape[1:])
          newcoord[:n] = self.coord
          for i in range(1, nfold):
-            self.pos = rpxdock.homog.hrot([0, 0, 1], 360.0 * i / nfold)
+            self.pos = rpxdock.homog.hrot(self.symaxis, 360.0 * i / nfold)
             newcoord[i * n:][:n] = self.positioned_coord()
          self.coord = newcoord
       else:
@@ -74,12 +83,15 @@ class Body:
       self.pos = np.eye(4, dtype="f4")
       self.pcavals, self.pcavecs = pca_eig(self.cen)
 
-      self.trim_direction = arg.trim_direction if arg.trim_direction in arg else 'NC'
-
-      if self.sym != "C1":
-         self.asym_body = Body(pose, "C1", **arg)
-      else:
-         self.asym_body = self
+   def set_asym_body(self, pose, sym, **kw):
+      if isinstance(sym, int): sym = "C%i" % sym
+      self.asym_body = self
+      if sym != "C1":
+         if pose is None:
+            log.warning(f'asym_body not built, no pose available')
+            self.asym_body = None
+         else:
+            self.asym_body = Body(pose, "C1", **kw)
 
    def __len__(self):
       return len(self.seq)
@@ -202,11 +214,18 @@ class Body:
       assert b.coord is self.coord
       return b
 
-   def filter_pairs(self, pairs, score_only_sspair, sanity_check=True):
+   def copy_with_sym(self, sym, symaxis):
+      b = copy.deepcopy(self.asym_body)
+      b.pos = np.eye(4, dtype='f4')
+      b.init_coords(sym, symaxis)
+      return b
+
+   def filter_pairs(self, pairs, score_only_sspair, other=None, sanity_check=True):
+      if not other: other = self
       if not score_only_sspair: return pairs
       ss0 = self.ss[pairs[:, 0]]
-      ss1 = self.ss[pairs[:, 1]]
-      ok = np.ones(len(ss0), dtype=np.bool)
+      ss1 = other.ss[pairs[:, 1]]
+      ok = np.ones(len(pairs), dtype=np.bool)
       for sspair in score_only_sspair:
          ss0in0 = np.isin(ss0, sspair[0])
          ss0in1 = np.isin(ss0, sspair[1])

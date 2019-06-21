@@ -40,6 +40,10 @@ def test_top_each(result):
       o = np.argsort(-s)[:n]
       assert np.allclose(s[o], result.scores[v])
 
+def test_result_no_body_label(result):
+   foo = Result(result.data, body_=['a', 'b', 'c'])
+   assert foo.body_label_ == 'body0 body1 body2'.split()
+
 if __name__ == '__main__':
    import tempfile
    # test_result(dummy_result(1000))
@@ -47,3 +51,4 @@ if __name__ == '__main__':
    # test_result_attrs()
    # test_mismatch_len(dummy_result(1000))
    test_top_each(dummy_result(1000))
+   test_result_no_body_label(dummy_result(1000))

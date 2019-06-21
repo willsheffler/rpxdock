@@ -25,7 +25,8 @@ def expand_samples(iresl, sampler, indices=None, scores=None, beam_size=None, **
       mask, xforms = sampler.get_xforms(0, indices)
       return indices[mask], xforms
    nexpand = max(1, int(beam_size / 2**sampler.dim))
-   return sampler.expand_top_N(nexpand, iresl - 1, scores, indices)
+   idx, xforms = sampler.expand_top_N(nexpand, iresl - 1, scores, indices)
+   return idx, xforms
 
 def tccage_slide_hier_depricated_samples_depricated(spec, resl=16, max_out_of_plane_angle=16,
                                                     nstep=1, **kw):

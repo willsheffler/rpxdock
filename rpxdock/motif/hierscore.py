@@ -67,6 +67,20 @@ class HierScore:
       m /= 2
       return m
 
+   def score_matrix_inter(self, bodyA, bodyB, wts, symframes=[np.eye(4)], iresl=-1):
+      m = np.zeros((len(bodyA), len(bodyB)), dtype='f4')
+      for xsym in symframes.astype('f4'):
+         pairs, lbub = bvh_collect_pairs_vec(bodyA.bvh_cen, bodyB.bvh_cen, bodyA.pos,
+                                             xsym @ bodyB.pos, self.max_pair_dist[iresl])
+         assert len(lbub) is 1
+         pairs = bodyA.filter_pairs(pairs, self.score_only_sspair, other=bodyB)
+         xmap = self.hier[iresl]
+         ssstub = bodyA.ssid, bodyB.ssid, bodyA.pos @ bodyA.stub, xsym @ bodyB.pos @ bodyB.stub
+         if not self.use_ss: ssstub = ssstub[2:]
+         pscore = self.map_pairs(xmap.xbin, xmap.phmap, pairs, *ssstub)
+         m[pairs[:, 0], pairs[:, 1]] += pscore
+      return m
+
 #  m.def("map_of_selected_pairs", &map_of_selected_pairs_onearray<K, F, double>,
 #        "xbin"_a, "phmap"_a, "idx"_c, "xform1"_c, "xform2"_c, "pos1"_a = eye4,
 #        "pos2"_a = eye4);

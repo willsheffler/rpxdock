@@ -50,16 +50,16 @@ def test_1xCyclic(
       for i, imax in enumerate(omax[:ndump]):
          print("tcdock best", i, npair[imax], "nresult", len(npair))
          body.move_to(pos[imax])
-         dump_pdb_from_bodies(
-            "rpxdock_%s_%03i.pdb" % (arch, i),
-            body,
-            spec.symframes(),  # [:8],
-            keep=lambda x: x[2] >= 0,
-            no_duplicate_chains=False,
-            no_duplicate_reschain_pairs=True,
-            include_cen=False,
-            chain_letters=-1,
-         )
+         # dump_pdb_from_bodies(
+         #    "rpxdock_%s_%03i.pdb" % (arch, i),
+         #    body,
+         #    spec.symframes(),  # [:8],
+         #    keep=lambda x: x[2] >= 0,
+         #    no_duplicate_chains=False,
+         #    no_duplicate_reschain_pairs=True,
+         #    include_cen=False,
+         #    chain_letters=-1,
+         # )
 
 def test_2xCyclic(
       C3_1nza,
@@ -125,16 +125,16 @@ def test_2xCyclic(
          print("tcdock best", i, npair[imax])
          body1.move_to(pos1[imax])
          body2.move_to(pos2[imax])
-         dump_pdb_from_bodies(
-            "rpxdock_%s_%03i.pdb" % (arch, i),
-            [body1, body2],
-            spec.symframes(),  # [:8],
-            keep=lambda x: np.sum(x) > 0,
-            no_duplicate_chains=False,
-            no_duplicate_reschain_pairs=True,
-            include_cen=False,
-            chain_letters=-1,
-         )
+         # dump_pdb_from_bodies(
+         #    "rpxdock_%s_%03i.pdb" % (arch, i),
+         #    [body1, body2],
+         #    spec.symframes(),  # [:8],
+         #    keep=lambda x: np.sum(x) > 0,
+         #    no_duplicate_chains=False,
+         #    no_duplicate_reschain_pairs=True,
+         #    include_cen=False,
+         #    chain_letters=-1,
+         # )
 
 def test_monomer_to_cyclic(top7, ndump=0, resl=30, contact_dis=8, min_contacts=10,
                            archs="C2 C3 C4 C5 C6"):
@@ -158,20 +158,20 @@ def test_monomer_to_cyclic(top7, ndump=0, resl=30, contact_dis=8, min_contacts=1
          best = npair[imax]
          print("tcdock best", i, best, "nresult", len(npair))
          body.move_to(pos[imax])
-         dump_pdb_from_bodies(
-            "rpxdock_%s_%03i.pdb" % (arch, i),
-            body,
-            spec.symframes(),  # [:8],
-            keep=lambda x: x[2] >= 0,
-            no_duplicate_chains=False,
-            no_duplicate_reschain_pairs=True,
-            include_cen=False,
-            chain_letters=-1,
-         )
+         # dump_pdb_from_bodies(
+         #    "rpxdock_%s_%03i.pdb" % (arch, i),
+         #    body,
+         #    spec.symframes(),  # [:8],
+         #    keep=lambda x: x[2] >= 0,
+         #    no_duplicate_chains=False,
+         #    no_duplicate_reschain_pairs=True,
+         #    include_cen=False,
+         #    chain_letters=-1,
+         # )
 
 if __name__ == "__main__":
 
-   import rpxdock.rosetta as ros
+   from rpxdock.rosetta.triggers_init import get_pose_cached
 
    f1 = "rpxdock/data/pdb/C3_1nza_1.pdb.gz"
    f2 = "rpxdock/data/pdb/C2_3hm4_1.pdb.gz"
@@ -179,8 +179,8 @@ if __name__ == "__main__":
    # f2 = "/home/sheffler/scaffolds/big/C3_3ziy_1.pdb"
    # f1 = "/home/sheffler/scaffolds/wheel/C3.pdb"
    # f2 = "/home/sheffler/scaffolds/wheel/C5.pdb"
-   pose1 = ros.get_pose_cached(f1)
-   pose2 = ros.get_pose_cached(f2)
+   pose1 = get_pose_cached(f1)
+   pose2 = get_pose_cached(f2)
    # test_1xCyclic(pose1, pose2, ndump=0, resl=1)
    # test_2xCyclic(pose1, pose2, ndump=3, resl=10, archs="T32")
 
@@ -198,10 +198,10 @@ if __name__ == "__main__":
    #     use_hier_leaf_samples=True,
    # )
 
-   # pose3 = ros.get_pose_cached("rpxdock/data/pdb/C5_1ojx.pdb.gz")
+   # pose3 = get_pose_cached("rpxdock/data/pdb/C5_1ojx.pdb.gz")
    # test_2xCyclic(
    # pose3, pose1, nfold1=5, nfold2=3, ndump=3, resl=5, tip=10, archs="I53"
    # )
 
-   # top7 = ros.get_pose_cached("rpxdock/data/pdb/top7.pdb.gz")
+   # top7 = get_pose_cached("rpxdock/data/pdb/top7.pdb.gz")
    # test_monomer_to_cyclic(top7, ndump=10, resl=3, archs="C4")

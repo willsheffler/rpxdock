@@ -12,6 +12,10 @@
 		{
 			"name": "generate_motif_scores",
 			"shell_cmd" : "cd $folder; CC='ccache gcc' PYTHONPATH=. python rpxdock/app/genrate_motif_scores.py TEST &> sublime_build.log"
+		},
+   	{
+			"name": "test_cage",
+			"shell_cmd" : "cd $folder; CC='ccache gcc' PYTHONPATH=. python rpxdock/tests/search/test_cage.py &> sublime_build.log"
 		}
 
 

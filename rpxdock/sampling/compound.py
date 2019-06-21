@@ -1,5 +1,31 @@
 import numpy as np, rpxdock as sd
 
+class GridHier:
+   def __init__(self, samples):
+      if isinstance(samples, GridHier):
+         self.samples = samples.samples
+      else:
+         samples = np.asarray(samples)
+         if samples.ndim == 2: samples = samples[None]
+         if not samples.shape[-2:] == (4, 4):
+            raise ValueError('samples must be (N,4,4) array')
+         self.samples = samples
+      self.dim = 0
+      self.ncell = len(self.samples)
+
+   def size(self, resl):
+      return self.ncell
+
+   def cellsize(self, resl):
+      return 1
+
+   def __len__(self):
+      return self.ncell
+
+   def get_xforms(self, resl=0, idx=None):
+      if idx is None: return self.samples
+      return np.repeat(True, len(idx)), self.samples[idx]
+
 class CompoundHier:
    def __init__(self, *args):
       self.parts = args
@@ -9,8 +35,8 @@ class CompoundHier:
       self.dims = np.array([p.dim for p in self.parts], dtype='u8')
       self.dim = np.sum(self.dims, dtype='u8')
       self.dummies = {
-         np.float32: sd.sampling.DummyHier_f4(self.dim, self.ncell),
-         np.float64: sd.sampling.DummyHier_f8(self.dim, self.ncell)
+         np.dtype('f4'): sd.sampling.DummyHier_f4(self.dim, self.ncell),
+         np.dtype('f8'): sd.sampling.DummyHier_f8(self.dim, self.ncell)
       }
 
    def check_indices(self, resl, idx):
@@ -55,7 +81,8 @@ class CompoundHier:
          split.append(np.bitwise_or(c, h))
       return np.stack(split)
 
-   def get_xforms(self, resl, idx):
+   def get_xforms(self, resl=0, idx=None):
+      if idx is None: idx = np.arange(self.size(resl))
       split = self.split_indices(resl, idx)
       ok = np.repeat(True, len(idx))
       xforms = list()
@@ -63,16 +90,46 @@ class CompoundHier:
          v, x = p.get_xforms(resl, sidx)
          ok &= v
          xforms.append(x)
-      return ok, np.stack(xforms)[:, ok]
+      return ok, np.stack(xforms, axis=1)[ok]
 
    def expand_top_N(self, nexpand, resl, scores, indices):
-      dummy = dummies[scores.dtype]
+      dummy = self.dummies[scores.dtype]
       idx, _ = dummy.expand_top_N(nexpand, resl, scores, indices)
       ok, xforms = self.get_xforms(resl + 1, idx)
-      return idx[ok]
+      return idx[ok], xforms
 
    def size(self, resl):
       return np.uint64(self.ncell * self.cellsize(resl))
 
    def cellsize(self, resl):
       return np.uint64(2**(self.dim * resl))
+
+class ProductHier(CompoundHier):
+   def __init__(self, *args):
+      super().__init__(*args)
+
+   def combine_xforms(self, xparts):
+      x = xparts[:, -1]
+      for i in reversed(range(xparts.shape[1] - 1)):
+         x = xparts[:, i] @ x
+      return x
+
+   def get_xforms(self, *args, **kw):
+      ok, xparts = super().get_xforms(*args, **kw)
+      return ok, self.combine_xforms(xparts)
+
+   def expand_top_N(self, nexpand, resl, scores, indices):
+      idx, xparts = super().expand_top_N(nexpand, resl, scores, indices)
+      return idx[ok], self.combine_xforms(xparts)
+
+class SlideHier:
+   def __init__(self, sampler, body1, body2):
+      self.sampler = sampler
+      if isintance(sampler, (list, tuple)):
+         assert len(sampler) is 3
+         self.sampler = rp.CompoundHier(*sampler)
+      self.body1 = body1
+      self.body2 = body2
+
+   def get_xforms(self, resl, idx):
+      pass

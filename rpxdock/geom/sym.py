@@ -6,10 +6,12 @@ tetrahedral_frames = np.load(datadir + "/tetrahedral_frames.pickle", allow_pickl
 octahedral_frames = np.load(datadir + "/octahedral_frames.pickle", allow_pickle=True)
 icosahedral_frames = np.load(datadir + "/icosahedral_frames.pickle", allow_pickle=True)
 
-def symframes(sym):
+def symframes(sym, axis=[0, 0, 1]):
+   if isinstance(sym, (int, np.int32, np.int64, np.uint32, np.uint64)):
+      sym = int(sym)
    if isinstance(sym, int) or sym.startswith("C"):
       if not isinstance(sym, int): sym = int(sym[1:])
-      return list(hm.hrot([0, 0, 1], np.arange(sym) / sym * 360))
+      return list(hm.hrot(axis, np.arange(sym) / sym * 360))
    if sym.startswith("T"):
       return tetrahedral_frames
    if sym.startswith("O"):

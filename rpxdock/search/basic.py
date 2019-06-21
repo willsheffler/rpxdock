@@ -4,7 +4,8 @@ import numpy as np
 from rpxdock import Bunch
 
 def grid_search(sampler, evaluator, **kw):
-   if (not isinstance(sampler, np.ndarray) or sampler.ndim != 3 or sampler.shape[-2:] != (4, 4)):
+   if (not isinstance(sampler, np.ndarray) or sampler.ndim not in (3, 4)
+       or sampler.shape[-2:] != (4, 4)):
       raise ValueError('sampler for grid_search should be array of samples')
    xforms = sampler
    scores, *resbound, t = evaluate_positions(evaluator, xforms, **kw)

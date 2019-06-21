@@ -35,6 +35,7 @@ def default_cli_parser(parent=None):
    addarg("--beam_size", type=int, default=1e5)
    addarg("--max_bb_redundancy", type=float, default=3.0)
    addarg("--max_longaxis_dot_z", type=float, default=1.000001)
+   addarg("--max_delta_h", type=float, default=50)
    addarg("--iface_summary", default="min")
    addarg("--weight_rpx", type=float, default=1.0)
    addarg("--weight_ncontact", type=float, default=0.01)

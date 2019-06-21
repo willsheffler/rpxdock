@@ -46,11 +46,5 @@ def main():
    fix_small_respairscore()
    fix_small_hscore()
 
-   # def body_dhr14():
-   # def body_dhr64():
-   # def body_small_c3_hole():
-   # def body_c3_mono():
-   # def get_test_data(name):
-
 if __name__ == '__main__':
    main()

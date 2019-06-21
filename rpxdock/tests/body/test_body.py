@@ -79,7 +79,7 @@ def test_body_pickle(C3_1nza, tmpdir):
    assert np.allclose(b.bvh_cen.centers(), b2.bvh_cen.centers())
 
 if __name__ == "__main__":
-   import rpxdock.rosetta as ros
+   from rpxdock.rosetta.triggers_init import get_pose_cached
    from tempfile import mkdtemp
 
    # f1 = "rpxdock/data/pdb/C2_3hm4_1.pdb.gz"
@@ -89,7 +89,7 @@ if __name__ == "__main__":
    # f1 = "/home/sheffler/scaffolds/wheel/C3.pdb"
    # f2 = "/home/sheffler/scaffolds/wheel/C5.pdb"
    # pose1 = ros.get_pose_cached(f1)
-   pose2 = ros.get_pose_cached(f2)
+   pose2 = get_pose_cached(f2)
    # test_body(pose1, pose2)
 
    test_body_pickle(f2, mkdtemp())

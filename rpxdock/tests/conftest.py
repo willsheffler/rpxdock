@@ -64,19 +64,27 @@ def hscore():
 
 @pytest.fixture(scope="session")
 def body():
-   return data.body_dhr14()
+   return data.get_body('DHR14')
 
 @pytest.fixture(scope="session")
 def plug():
-   return data.body_dhr64()
+   return data.get_body('dhr64')
 
 @pytest.fixture(scope="session")
 def hole():
-   return data.body_small_c3_hole()
+   return data.get_body('small_c3_hole_sym3')
 
 @pytest.fixture(scope="session")
 def body_c3_mono():
-   return data.body_c3_mono()
+   return data.get_body('test_c3_mono')
+
+@pytest.fixture(scope="session")
+def body_cageA():
+   return data.get_body('T33_dn2_asymA')
+
+@pytest.fixture(scope="session")
+def body_cageB():
+   return data.get_body('T33_dn2_asymB')
 
 @pytest.fixture(scope="session")
 def result():

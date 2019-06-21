@@ -1,7 +1,9 @@
-from .basic import *
-from .result import *
-from .hierarchical import *
-from .gridslide import *
-from .cyclic import *
-from .plug import *
-from . import basic, result, hierarchical, gridslide, cyclic, plug
+from rpxdock.search.basic import *
+from rpxdock.search.hierarchical import *
+from rpxdock.search.result import *
+from rpxdock.search.dockspec import *
+from rpxdock.search.cyclic import *
+from rpxdock.search.gridslide import *
+from rpxdock.search.cage import *
+from rpxdock.search.plug import *
+from rpxdock.search import basic, result, hierarchical, gridslide, cyclic, plug
