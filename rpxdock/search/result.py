@@ -1,16 +1,13 @@
 import copy, logging
 from collections import OrderedDict, abc, defaultdict
-import numpy as np, xarray as xr
+import numpy as np, xarray as xr, rpxdock as rp
 from rpxdock.util import sanitize_for_pickle, num_digits
-from rpxdock.body import Body
-from rpxdock.io import dump_pdb_from_bodies
-from rpxdock.geom import symframes
 
 log = logging.getLogger(__name__)
 
 class Result:
    def __init__(self, data_or_file=None, body_=[], body_label_=None, **kw):
-      if isinstance(body_, Body): body_ = [body_]
+      if isinstance(body_, rp.Body): body_ = [body_]
       self.bodies = [body_]
       self.body_label_ = body_label_ if body_label_ else ['body%i' % i for i in range(len(body_))]
       if len(self.body_label_) != len(body_):
@@ -112,7 +109,8 @@ class Result:
       bod = [bod[i] for i in output_body]
       bodlab = None
       for i, b in enumerate(bod):
-         b.move_to(self.xforms[imodel, i] if multipos else self.xforms[imodel])
+         pos = self.xforms[imodel, i] if multipos else self.xforms[imodel]
+         b.move_to(pos.data)
       if not fname:
          output_prefix = output_prefix + sep if output_prefix else ''
          body_names = [b.label for b in bod]
@@ -125,11 +123,11 @@ class Result:
       log.info(f'dumping pdb {fname} score {self.scores.data[imodel]}')
       bfactor = None
       if hscore:
-         sm = hscore.score_matrix_inter(bod[0], bod[1], kw['wts'], symframes(sym))
+         sm = hscore.score_matrix_inter(bod[0], bod[1], kw['wts'], rp.geom.symframes(sym))
          bfactor = [sm.sum(axis=1), sm.sum(axis=0)]
-      dump_pdb_from_bodies(fname, bod, symframes(sym), resbounds=[(self.reslb[imodel],
-                                                                   self.resub[imodel])],
-                           bfactor=bfactor, **kw)
+      bounds = [(self.reslb[imodel], self.resub[imodel])]
+      rp.io.dump_pdb_from_bodies(fname, bod, symframes=rp.geom.symframes(sym), resbounds=bounds,
+                                 bfactor=bfactor, **kw)
 
    def __len__(self):
       return len(self.model)
