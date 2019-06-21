@@ -24,6 +24,7 @@ VERSION = '0.1.0'
 REQUIRED = [
    'numpy',
    'xarray==0.11.3',
+   'pandas==0.24.2',
    'pytest',
    'pytest-sugar',
    'pytest-xdist',
