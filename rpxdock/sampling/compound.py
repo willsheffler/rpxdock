@@ -95,7 +95,7 @@ class CompoundHier:
    def expand_top_N(self, nexpand, resl, scores, indices):
       dummy = self.dummies[scores.dtype]
       idx, _ = dummy.expand_top_N(nexpand, resl, scores, indices)
-      ok, xforms = self.get_xforms(resl + 1, idx)
+      ok, xforms = CompoundHier.get_xforms(self, resl + 1, idx)
       return idx[ok], xforms
 
    def size(self, resl):
@@ -120,7 +120,7 @@ class ProductHier(CompoundHier):
 
    def expand_top_N(self, nexpand, resl, scores, indices):
       idx, xparts = super().expand_top_N(nexpand, resl, scores, indices)
-      return idx[ok], self.combine_xforms(xparts)
+      return idx, self.combine_xforms(xparts)
 
 class SlideHier:
    def __init__(self, sampler, body1, body2):

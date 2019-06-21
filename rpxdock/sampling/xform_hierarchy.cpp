@@ -256,6 +256,32 @@ OriCart1Hier<F, I> OriCart1Hier_nside(V1<F> lb, V1<F> ub, V1<I> ncart,
                                       I nside) {
   return OriCart1Hier<F, I>(lb, ub, ncart, nside);
 }
+
+template <typename F, typename I>
+py::tuple RC1H_get_state(RotCart1Hier<F, I> const& h) {
+  return py::make_tuple(h.rot_lb_, h.rot_ub_, h.rot_cell_width_, h.rot_ncell_,
+                        h.axis_, h.cart_lb_[0], h.cart_ub_[0], h.cart_bs_[0],
+                        h.cart_cell_width_[0], h.cart_bs_pref_prod_[0],
+                        h.cart_ncell_, h.ncell_);
+}
+template <typename F, typename I>
+auto RC1H_set_state(py::tuple state) {
+  auto h = std::make_unique<RotCart1Hier<F, I>>(0, 0, 0, 0, 0, 0);  // dummy
+  h->rot_lb_ = py::cast<F>(state[0]);
+  h->rot_ub_ = py::cast<F>(state[1]);
+  h->rot_cell_width_ = py::cast<F>(state[2]);
+  h->rot_ncell_ = py::cast<I>(state[3]);
+  h->axis_ = py::cast<V3<F>>(state[4]);
+  h->cart_lb_[0] = py::cast<F>(state[5]);
+  h->cart_ub_[0] = py::cast<F>(state[6]);
+  h->cart_bs_[0] = py::cast<I>(state[7]);
+  h->cart_cell_width_[0] = py::cast<F>(state[8]);
+  h->cart_bs_pref_prod_[0] = py::cast<I>(state[9]);
+  h->cart_ncell_ = py::cast<I>(state[10]);
+  h->ncell_ = py::cast<I>(state[11]);
+  return h;
+}
+
 template <typename F, typename I>
 void bind_RotCart1Hier(auto m, std::string name) {
   using THIS = RotCart1Hier<F, I>;
@@ -289,6 +315,9 @@ void bind_RotCart1Hier(auto m, std::string name) {
            "score_idx"_a, "null_val"_a = 0)
       .def("expand_top_N", expand_top_N_separate<THIS, F, I>, "nkeep"_a,
            "resl"_a, "score"_a, "index"_a, "null_val"_a = 0)
+      .def(py::pickle([](const THIS& h) { return RC1H_get_state<F, I>(h); },
+                      [](py::tuple t) { return RC1H_set_state<F, I>(t); }))
+
       /**/;
 }
 
@@ -385,14 +414,20 @@ struct DummyHier {
 
 template <typename F, typename I>
 void bind_DummyHier(auto m, std::string name) {
-  using T = DummyHier<F, I>;
-  py::class_<T>(m, name.c_str())
+  using THIS = DummyHier<F, I>;
+  py::class_<THIS>(m, name.c_str())
       .def(py::init<uint64_t, uint64_t>(), "dim"_a, "ncell"_a)
-      .def("size", &T::size)
-      .def("child_of_begin", &T::child_of_begin)
-      .def("child_of_end", &T::child_of_end)
-      .def("expand_top_N", expand_top_N_separate<T, F, I>, "nkeep"_a, "resl"_a,
-           "score"_a, "index"_a, "null_val"_a = 0)
+      .def("size", &THIS::size)
+      .def("child_of_begin", &THIS::child_of_begin)
+      .def("child_of_end", &THIS::child_of_end)
+      .def("expand_top_N", expand_top_N_separate<THIS, F, I>, "nkeep"_a,
+           "resl"_a, "score"_a, "index"_a, "null_val"_a = 0)
+      .def(py::pickle(
+          [](const THIS& h) { return py::make_tuple(h.dim_, h.ncell_); },
+          [](py::tuple t) {
+            return std::make_unique<DummyHier<F, I>>(py::cast<I>(t[0]),
+                                                     py::cast<I>(t[1]));
+          }))
       /**/;
 }
 

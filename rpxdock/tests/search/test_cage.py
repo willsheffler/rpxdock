@@ -34,7 +34,7 @@ def test_cage_hier(hscore, body_cageA, body_cageB):
    # arg.executor = concurrent.futures.ThreadPoolExecutor(min(4, arg.ncpu / 2))
 
    spec = rp.search.DockSpec2CompCage('T33')
-   sampler = rp.search.hier_cage_sampler(spec, 50, 100)
+   sampler = rp.search.hier_2axis_sampler(spec, 50, 100)
 
    result = rp.search.make_cage([body_cageA, body_cageB], spec, hscore, rp.hier_search, sampler,
                                 **arg)

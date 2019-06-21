@@ -1,7 +1,7 @@
 import itertools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_atom_to_res_numbering
 
-def hier_cage_sampler(spec, lb=25, ub=200, resl=10, angresl=10, flip1=True, flip2=True):
+def hier_2axis_sampler(spec, lb=25, ub=200, resl=10, angresl=10, flip1=True, flip2=True):
    cart_nstep = int(np.ceil((ub - lb) / resl))
    ang1, ang2 = 360 / spec.nfold1, 360 / spec.nfold2
    ang1_nstep = int(np.ceil(ang1 / angresl))

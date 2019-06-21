@@ -605,8 +605,37 @@ def test_rotcart1_hier_expand_top_N():
    assert len(idx) == 3 * 4
    assert np.min(idx) == 40 - 12 and np.max(idx) == 40 - 1
 
+def test_RotCart1Hier_pickle(tmpdir):
+   import _pickle
+   h = RotCart1Hier_f8(0, 256, 1, 0, 256, 1)
+   with open(tmpdir + '/foo', 'wb') as out:
+      _pickle.dump(h, out)
+   with open(tmpdir + '/foo', 'rb') as inp:
+      h2 = _pickle.load(inp)
+   assert np.allclose(h.axis, h2.axis)
+   assert h.cart_bs_ == h2.cart_bs_
+   assert h.cart_bs_pref_prod_ == h2.cart_bs_pref_prod_
+   assert h.cart_cell_width_ == h2.cart_cell_width_
+   assert h.cart_lb == h2.cart_lb
+   assert h.cart_ncell == h2.cart_ncell
+   assert h.cart_ub == h2.cart_ub
+   assert h.rot_lb == h2.rot_lb
+   assert h.rot_ub == h2.rot_ub
+   assert h.rot_cell_width == h2.rot_cell_width
+   assert h.rot_ncell == h2.rot_ncell
+   assert h.cell_index_of(3, 7) == h2.cell_index_of(3, 7)
+   np.all(h.child_of_begin([7, 11]) == h2.child_of_begin([7, 11]))
+   np.all(h.child_of_end([7, 11]) == h2.child_of_end([7, 11]))
+   assert h.dim == h2.dim
+   assert np.allclose(h.get_xforms(2, [3])[1], h2.get_xforms(2, [3])[1])
+   assert h.ncell == h2.ncell
+   assert h.parent_of(7) == h2.parent_of(7)
+   assert h.size(2) == h2.size(2)
+
 if __name__ == "__main__":
-   test_cart_hier1()
+   import tempfile
+   test_RotCart1Hier_pickle(tempfile.mkdtemp())
+   # test_cart_hier1()
 
    # test_rot_hier()
    # test_rot_hier_multicell()

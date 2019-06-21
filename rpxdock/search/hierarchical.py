@@ -1,22 +1,18 @@
-import itertools as it
-import numpy as np
-import rpxdock.homog as hm
-from rpxdock.search import gridslide, evaluate_positions
-from rpxdock.util import Bunch
+import logging, itertools, numpy as np, rpxdock as rp
+
+log = logging.getLogger(__name__)
 
 def hier_search(sampler, evaluator, **kw):
-   arg = Bunch(kw)
+   arg = rp.Bunch(kw)
    neval, indices, scores = list(), None, None
    nresl = arg.nresl if arg.nresl else len(evaluator.hscore)
    for iresl in range(arg.nresl):
       indices, xforms = expand_samples(iresl, sampler, indices, scores, **arg)
-      scores, *resbound, t = evaluate_positions(**arg.sub(vars()))
+      scores, *resbound, t = rp.search.evaluate_positions(**arg.sub(vars()))
       neval.append((t, len(scores)))
-      print(
-         f"{arg.output_prefix} iresl {iresl} ntot {len(scores):11,}",
-         f"nonzero {np.sum(scores > 0):5,}",
-      )
-   stats = Bunch(ntot=sum(x[1] for x in neval), neval=neval)
+      log.info(f"{arg.output_prefix} iresl {iresl} ntot {len(scores):11,}" +
+               f"nonzero {np.sum(scores > 0):5,}")
+   stats = rp.Bunch(ntot=sum(x[1] for x in neval), neval=neval)
    return xforms, scores, stats
 
 def expand_samples(iresl, sampler, indices=None, scores=None, beam_size=None, **kw):
@@ -65,9 +61,9 @@ def tccage_slide_hier_depricated_expand_depricated(spec, pos1, pos2, resls):
    assert np.min(deltas) >= 0.1, "deltas should be in degrees"
    deltas = deltas / 180 * np.pi
    n = len(pos1)
-   x1 = hm.hrot(spec.axis1, [-deltas[0], +deltas[0]])
-   x2 = hm.hrot(spec.axis2, [-deltas[1], +deltas[1]])
-   x3 = hm.hrot(spec.axisperp, [-deltas[2], +deltas[2]])
+   x1 = rp.homog.hrot(spec.axis1, [-deltas[0], +deltas[0]])
+   x2 = rp.homog.hrot(spec.axis2, [-deltas[1], +deltas[1]])
+   x3 = rp.homog.hrot(spec.axisperp, [-deltas[2], +deltas[2]])
    dirn = (pos2[:, :, 3] - pos1[:, :, 3])[:, :, None]
    dirnorm = np.linalg.norm(dirn, axis=1)
    assert np.min(dirnorm) > 0.9
@@ -77,7 +73,7 @@ def tccage_slide_hier_depricated_expand_depricated(spec, pos1, pos2, resls):
    newpos2 = np.empty((8 * n, 4, 4))
    newdirn = np.empty((8 * n, 3))
    lb, ub = 0, n
-   for x1, x2, x3 in it.product(x1, x2, x3):
+   for x1, x2, x3 in itertools.product(x1, x2, x3):
       newpos1[lb:ub] = x1 @ pos1
       newpos2[lb:ub] = x2 @ pos2
       newdirn[lb:ub] = (x3 @ dirn)[:, :3].squeeze()
@@ -95,8 +91,8 @@ def tccage_slide_hier_depricated(spec, body1, body2, base_resl=16, nstep=5, base
    samples, newresl = tccage_slide_hier_depricated_samples_depricated(spec, resl=base_resl, **kw)
    nsamp = [np.prod([len(s) for s in samples])]
    for i in range(nstep):
-      npair[i], pos[i] = gridslide.find_connected_2xCyclic_slide(spec, body1, body2, samples,
-                                                                 min_contacts=mct[-1], **kw)
+      npair[i], pos[i] = rp.search.gridslide.find_connected_2xCyclic_slide(
+         spec, body1, body2, samples, min_contacts=mct[-1], **kw)
       if len(npair[i]) is 0:
          return npair[i - 1], pos[i - 1]
       if i + 1 < nstep:
@@ -104,7 +100,7 @@ def tccage_slide_hier_depricated(spec, body1, body2, base_resl=16, nstep=5, base
          samples = tccage_slide_hier_depricated_expand_depricated(spec, *pos[i], newresl)
          nsamp.append(len(samples[0]))
 
-         print(mct_update)
+         log.debug(mct_update)
          mct.append(int(np.quantile(npair[i][:, 0], mct_update)))
          # if len(npair[i]) < prune_minkeep:
          #     print("same mct")

@@ -108,9 +108,12 @@ class Result:
          raise ValueError(f'output_body ouf of bounds {output_body}')
       bod = [bod[i] for i in output_body]
       bodlab = None
-      for i, b in enumerate(bod):
-         pos = self.xforms[imodel, i] if multipos else self.xforms[imodel]
-         b.move_to(pos.data)
+      if self.xforms.ndim == 4:
+         for x, b in zip(self.xforms[imodel], bod):
+            b.move_to(x.data)
+      else:
+         for b in bod:
+            b.move_to(self.xforms[imodel].data)
       if not fname:
          output_prefix = output_prefix + sep if output_prefix else ''
          body_names = [b.label for b in bod]
