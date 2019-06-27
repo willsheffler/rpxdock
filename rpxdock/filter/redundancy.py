@@ -17,7 +17,7 @@ def filter_redundancy(xforms, body, scores, **kw):
    else:
       crd0 = xforms[ibest[:nclust], 0, None] @ body[0].cen[::10, :, None]
       crd1 = xforms[ibest[:nclust], 1, None] @ body[1].cen[::10, :, None]
-      crd = np.concatenate([crd0, crd1])
+      crd = np.concatenate([crd0, crd1], axis=1)
 
    ncen = crd.shape[1]
    crd = crd.reshape(-1, 4 * ncen)

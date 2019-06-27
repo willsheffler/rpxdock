@@ -47,7 +47,7 @@ _file_mappings = {
    "bcc.cpp": ["rpxdock/tests/geom/test_bcc.py"],
    "pybind_types.hpp": ["rpxdock/tests/util/test_pybind_types.py"],
    "xform_dist.cpp": ["rpxdock/tests/geom/test_geom.py"],
-   "hierscore.py": ["rpxdock/tests/search/test_plug.py"],
+   # "hierscore.py": ["rpxdock/tests/search/test_plug.py"],
 }
 _post = defaultdict(lambda: "")
 

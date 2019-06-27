@@ -8,12 +8,12 @@ def hier_search(sampler, evaluator, **kw):
    nresl = arg.nresl if arg.nresl else len(evaluator.hscore)
    for iresl in range(arg.nresl):
       indices, xforms = expand_samples(iresl, sampler, indices, scores, **arg)
-      scores, *resbound, t = rp.search.evaluate_positions(**arg.sub(vars()))
+      scores, extra, t = rp.search.evaluate_positions(**arg.sub(vars()))
       neval.append((t, len(scores)))
       log.info(f"{arg.output_prefix} iresl {iresl} ntot {len(scores):11,}" +
                f"nonzero {np.sum(scores > 0):5,}")
    stats = rp.Bunch(ntot=sum(x[1] for x in neval), neval=neval)
-   return xforms, scores, stats
+   return xforms, scores, extra, stats
 
 def expand_samples(iresl, sampler, indices=None, scores=None, beam_size=None, **kw):
    if iresl == 0:
@@ -24,8 +24,7 @@ def expand_samples(iresl, sampler, indices=None, scores=None, beam_size=None, **
    idx, xforms = sampler.expand_top_N(nexpand, iresl - 1, scores, indices)
    return idx, xforms
 
-def tccage_slide_hier_depricated_samples_depricated(spec, resl=16, max_out_of_plane_angle=16,
-                                                    nstep=1, **kw):
+def tccage_slide_hier_samples_depricated(spec, resl=16, max_out_of_plane_angle=16, nstep=1, **kw):
    tip = max_out_of_plane_angle
 
    range1 = 180 / spec.nfold1
@@ -56,7 +55,7 @@ def tccage_slide_hier_depricated_samples_depricated(spec, resl=16, max_out_of_pl
 
    return [rots1, rots2, dirns], newresls
 
-def tccage_slide_hier_depricated_expand_depricated(spec, pos1, pos2, resls):
+def tccage_slide_hier_expand_depricated(spec, pos1, pos2, resls):
    deltas = resls / 2
    assert np.min(deltas) >= 0.1, "deltas should be in degrees"
    deltas = deltas / 180 * np.pi
@@ -67,7 +66,7 @@ def tccage_slide_hier_depricated_expand_depricated(spec, pos1, pos2, resls):
    dirn = (pos2[:, :, 3] - pos1[:, :, 3])[:, :, None]
    dirnorm = np.linalg.norm(dirn, axis=1)
    assert np.min(dirnorm) > 0.9
-   # print("tccage_slide_hier_depricated_expand_depricated", n, dirnorm.shape)
+   # print("tccage_slide_hier_expand_depricated", n, dirnorm.shape)
    dirn /= dirnorm[:, None]
    newpos1 = np.empty((8 * n, 4, 4))
    newpos2 = np.empty((8 * n, 4, 4))
@@ -88,7 +87,7 @@ def tccage_slide_hier_depricated(spec, body1, body2, base_resl=16, nstep=5, base
    mct = [base_min_contacts]
    mct_update = prune_frac_sortof
    npair, pos = [None] * nstep, [None] * nstep
-   samples, newresl = tccage_slide_hier_depricated_samples_depricated(spec, resl=base_resl, **kw)
+   samples, newresl = tccage_slide_hier_samples_depricated(spec, resl=base_resl, **kw)
    nsamp = [np.prod([len(s) for s in samples])]
    for i in range(nstep):
       npair[i], pos[i] = rp.search.gridslide.find_connected_2xCyclic_slide(
@@ -97,7 +96,7 @@ def tccage_slide_hier_depricated(spec, body1, body2, base_resl=16, nstep=5, base
          return npair[i - 1], pos[i - 1]
       if i + 1 < nstep:
          newresl /= 2
-         samples = tccage_slide_hier_depricated_expand_depricated(spec, *pos[i], newresl)
+         samples = tccage_slide_hier_expand_depricated(spec, *pos[i], newresl)
          nsamp.append(len(samples[0]))
 
          log.debug(mct_update)

@@ -49,8 +49,8 @@ class HierScore:
    def __len__(self):
       return len(self.hier)
 
-   def score(self, body1, body2, wts, iresl=-1, bounds=None):
-      return self.scorepos(body1, body2, body1.pos, body2.pos, wts, iresl, bounds)
+   def score(self, body1, body2, wts, iresl=-1, *bounds):
+      return self.scorepos(body1, body2, body1.pos, body2.pos, iresl, *bounds, wts=wts)
 
    def score_matrix_intra(self, body, wts, iresl=-1):
       pairs, lbub = bvh_collect_pairs_vec(body.bvh_cen, body.bvh_cen, np.eye(4), np.eye(4),
@@ -97,17 +97,43 @@ class HierScore:
 #        "phmap"_a, "idx"_c, "ss"_c, "xform"_c, "pos1"_a = eye4,
 #        "pos2"_a = eye4);
 
-   def scorepos(self, body1, body2, pos1, pos2, wts, iresl=-1, bounds=None):
+   def scorepos(self, body1, body2, pos1, pos2, iresl=-1, bounds=(), **kw):
+      arg = Bunch(kw)
       pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
-      if not bounds:
-         bounds = ([-2e9], [2e9], [-2e9], [2e9])
-      if len(bounds) is 2:
-         bounds += ([-2e9], [2e9])
+      # if not bounds:
+      # bounds = [-2e9], [2e9], nsym[0], [-2e9], [2e9], nsym[1]
+      # if len(bounds) is 2:
+      # bounds += nsym[1],
+      # if len(bounds) is 3:
+      # bounds += [-2e9], [2e9], 1
+      bounds = list(bounds)
+      if len(bounds) > 2 and (bounds[2] is None or bounds[2] < 0):
+         bounds[2] = body1.asym_body.nres
+      if len(bounds) > 5 and (bounds[5] is None or bounds[5] < 0):
+         bounds[5] = body2.asym_body.nres
 
+      # print('nres asym', body1.asym_body.nres, body2.asym_body.nres)
+      # print(bounds[2], bounds[5])
       pairs, lbub = bvh_collect_pairs_range_vec(body1.bvh_cen, body2.bvh_cen, pos1, pos2,
                                                 self.max_pair_dist[iresl], *bounds)
-      if wts.rpx == 0:
-         return wts.ncontact * (lbub[:, 1] - lbub[:, 0])
+
+      if bounds: assert len(bounds[0]) in (1, len(lbub))
+      # if len(bounds[0]) > 1:
+      #    print(len(lbub), len(bounds[0]))
+
+      #    # print(lbub)
+      #    for i, (lb, ub) in enumerate(lbub):
+      #       asym_res1 = pairs[lb:ub, 0] % body1.asym_body.nres
+      #       asym_res2 = pairs[lb:ub, 1] % body2.asym_body.nres
+      #       print(i, f'{np.min(asym_res1)}-{np.max(asym_res1)}', bounds[0][i], bounds[1][i])
+      #       print(i, f'{np.min(asym_res2)}-{np.max(asym_res2)}', bounds[3][i], bounds[4][i])
+      #       assert np.all(asym_res1 >= bounds[0][i])
+      #       assert np.all(asym_res1 <= bounds[1][i])
+      #       assert np.all(asym_res2 >= bounds[3][i])
+      #       assert np.all(asym_res2 <= bounds[4][i])
+
+      if arg.wts.rpx == 0:
+         return arg.wts.ncontact * (lbub[:, 1] - lbub[:, 0])
 
       xbin = self.hier[iresl].xbin
       phmap = self.hier[iresl].phmap
@@ -124,7 +150,7 @@ class HierScore:
          mscore = side1 + side2
          # mscore = np.sum(pscore[lb:ub])
          # mscore = np.log(np.sum(np.exp(pscore[lb:ub])))
-         scores[i] = wts.rpx * mscore + wts.ncontact * (ub - lb)
+         scores[i] = arg.wts.rpx * mscore + arg.wts.ncontact * (ub - lb)
 
       return scores
 

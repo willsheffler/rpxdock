@@ -94,6 +94,7 @@ def find_connected_2xCyclic_slide(spec, body1, body2, samples, min_contacts=30, 
             pos1[nresult] = body1.pos
             pos2[nresult] = body2.pos
             nresult += 1
+
    assert nhit == maxsize
    npair3 = np.empty((nresult, 3))
    pos1, pos2 = spec.place_along_axes(pos1[:nresult], pos2[:nresult])

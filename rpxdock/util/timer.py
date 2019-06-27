@@ -26,6 +26,7 @@ class Timer:
    def __init__(self, name='Timer', verbose=False):
       self.name = name
       self.verbose = verbose
+      self.sum = _TimerGetter(self, numpy.sum)
       self.mean = _TimerGetter(self, numpy.mean)
       self.min = _TimerGetter(self, numpy.min)
       self.max = _TimerGetter(self, numpy.max)

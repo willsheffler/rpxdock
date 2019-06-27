@@ -87,5 +87,13 @@ def body_cageB():
    return data.get_body('T33_dn2_asymB')
 
 @pytest.fixture(scope="session")
+def body_cageA_extended():
+   return data.get_body('T33_dn2_asymA_extended')
+
+@pytest.fixture(scope="session")
+def body_cageB_extended():
+   return data.get_body('T33_dn2_asymB_extended')
+
+@pytest.fixture(scope="session")
 def result():
    return dummy_result()

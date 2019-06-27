@@ -24,6 +24,7 @@ from rpxdock.search import dockspec
 from rpxdock.app import options
 
 from rpxdock.body import Body
+from rpxdock.bvh import BVH
 from rpxdock.data import datadir
 from rpxdock.motif import HierScore, ResPairData, ResPairScore
 from rpxdock.search import Result, hier_search, grid_search, concat_results

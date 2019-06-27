@@ -391,13 +391,13 @@ def slow_test_ori_hier_rand_nside4():
       assert maxang[resl] * 0.8 < angle < maxang[resl]
 
 def test_avg_dist():
-   from rpxdock.bvh import bvh
+   from rpxdock.bvh import bvh, BVH
 
    N = 1000
    ch = CartHier3D_f8([-1, -1, -1], [2, 2, 2], [1, 1, 1])
    for resl in range(1, 4):
       i, grid = ch.get_trans(resl, urange(ch.size(3)))
-      gridbvh = bvh.bvh_create(grid)
+      gridbvh = BVH(grid)
       dis = np.empty(N)
       samp = np.random.rand(N, 3)
       for j in range(N):

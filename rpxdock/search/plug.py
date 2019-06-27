@@ -1,6 +1,6 @@
 import logging
 import numpy as np, xarray as xr, rpxdock as rp
-from rpxdock.search import trim_atom_to_res_numbering, hier_search
+from rpxdock.search import hier_search
 
 log = logging.getLogger(__name__)
 
@@ -13,10 +13,10 @@ def make_plugs(plug, hole, hscore, search=hier_search, sampler=None, **kw):
    evaluator = PlugEvaluator(plug, hole, hscore, **arg)
    if sampler is None: sampler = _default_samplers[search](plug, hole, hscore)
 
-   xforms, scores, stats = search(sampler, evaluator, **arg)
+   xforms, scores, extra, stats = search(sampler, evaluator, **arg)
 
    ibest = rp.filter_redundancy(xforms, plug, scores, **arg)
-   tdump = dump_plugs(xforms, plug, hole, scores, ibest, evaluator, **arg)
+   tdump = _debug_dump_plugs(xforms, plug, hole, scores, ibest, evaluator, **arg)
 
    log.debug(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
    log.debug("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
@@ -26,13 +26,11 @@ def make_plugs(plug, hole, hscore, search=hier_search, sampler=None, **kw):
    scores = scores[ibest]
    wrpx = arg.wts.sub(ncontact=0)
    wnct = arg.wts.sub(rpx=0)
-   rpx, lb, ub = evaluator.iface_scores(xforms, arg.nresl - 1, wrpx)
+   rpx, extra = evaluator.iface_scores(xforms, arg.nresl - 1, wrpx)
    ncontact, *_ = evaluator.iface_scores(xforms, arg.nresl - 1, wnct)
    ifacescores = rpx + ncontact
    assert np.allclose(np.min(rpx + ncontact, axis=1), scores)
-   return rp.Result(
-      body_=[] if arg.dont_store_body_in_results else [plug, hole],
-      body_label_=[] if arg.dont_store_body_in_results else ['plug', 'hole'],
+   data = dict(
       attrs=dict(arg=arg, stats=stats, sym=hole.sym, ttotal=t.total, tdump=tdump,
                  output_body='all'),
       scores=(["model"], scores.astype("f4")),
@@ -43,8 +41,14 @@ def make_plugs(plug, hole, hscore, search=hier_search, sampler=None, **kw):
       rpx_hole=(["model"], rpx[:, 1].astype("f4")),
       ncontact_plug=(["model"], ncontact[:, 0].astype("f4")),
       ncontact_hole=(["model"], ncontact[:, 1].astype("f4")),
-      reslb=(["model"], lb),
-      resub=(["model"], ub),
+   )
+   for k, v in extra.items():
+      if not isinstance(v, (list, tuple)) or len(v) > 3: v = ['model'], v
+      data[k] = v
+   return rp.Result(
+      body_=[] if arg.dont_store_body_in_results else [plug, hole],
+      body_label_=[] if arg.dont_store_body_in_results else ['plug', 'hole'],
+      **data,
    )
 
 class PlugEvaluator:
@@ -58,9 +62,9 @@ class PlugEvaluator:
    def __call__(self, xforms, iresl=-1, wts={}, **_):
       wts = self.arg.wts.sub(wts)
       wts_ph = wts.plug, wts.hole
-      iface_scores, plb, pub = self.iface_scores(xforms, iresl, wts)
+      iface_scores, extra = self.iface_scores(xforms, iresl, wts)
       scores = self.arg.iface_summary(iface_scores * wts_ph, axis=1)
-      return scores, plb, pub
+      return scores, extra
 
    def iface_scores(self, xforms, iresl=-1, wts={}, **_):
       wts = self.arg.wts.sub(wts)
@@ -73,38 +77,35 @@ class PlugEvaluator:
       # check for "flatness"
       ok = np.abs((xforms @ plug.pcavecs[0])[:, 2]) <= self.arg.max_longaxis_dot_z
 
-      if not self.arg.plug_fixed_olig:
-         # check chash in formed oligomer
-         ok[ok] &= plug.clash_ok(plug, dclsh, xforms[ok], xsym[ok])
+      if not self.arg.plug_fixed_olig:  # check chash in formed oligomer
+         ok[ok] &= plug.clash_ok(plug, xforms[ok], xsym[ok], mindis=dclsh)
 
-      # check clash olig vs hole, or get non-clash range
-      if max_trim > 0:
-         ptrim = plug.intersect_range(hole, dclsh, max_trim, xforms[ok])
-         ptrim, trimok = trim_atom_to_res_numbering(ptrim, plug.nres, max_trim)
+      if max_trim > 0:  # get non-clash range
+         trim = plug.intersect_range(hole, xforms[ok], max_trim=max_trim, mindis=dclsh)
+         trim, trimok = rp.search.trim_ok(trim, plug.nres, max_trim)
          ok[ok] &= trimok
-         # if np.sum(trimok) - np.sum(ntrim == 0):
-         # print("ntrim not0", np.sum(trimok) - np.sum(ntrim == 0))
-      else:
-         ok[ok] &= plug.clash_ok(hole, dclsh, xforms[ok], xeye)
-         ptrim = [0], [plug.nres - 1]
+      else:  #  check clash olig vs hole
+         ok[ok] &= plug.clash_ok(hole, xforms[ok], xeye, mindis=dclsh)
+         trim = [0], [plug.nres - 1]
 
       # score everything that didn't clash
       xok = xforms[ok]
       scores = np.zeros((len(xforms), 2))
       scores[ok, 0] = 9999
       if not self.arg.plug_fixed_olig:
-         scores[ok, 0] = sfxn(plug, plug, xok, xsym[ok], wts, iresl, (*ptrim, *ptrim))
-      scores[ok, 1] = sfxn(plug, hole, xok, xeye[:, ], wts, iresl, ptrim)
+         bounds = (*trim, -1, *trim, -1)
+         scores[ok, 0] = sfxn(plug, plug, xok, xsym[ok], iresl, bounds=bounds, wts=wts)
+      scores[ok, 1] = sfxn(plug, hole, xok, xeye[:, ], iresl, bounds=trim, wts=wts)
 
       # record ranges used
       plb = np.zeros(len(scores), dtype="i4")
       pub = np.ones(len(scores), dtype="i4") * (plug.nres - 1)
-      if ptrim:
-         plb[ok], pub[ok] = ptrim[0], ptrim[1]
+      if trim:
+         plb[ok], pub[ok] = trim[0], trim[1]
 
-      return scores, plb, pub
+      return scores, rp.Bunch(reslb=plb, resub=pub)
 
-def dump_plugs(xforms, plug, hole, scores, ibest, evaluator, **kw):
+def _debug_dump_plugs(xforms, plug, hole, scores, ibest, evaluator, **kw):
    arg = rp.Bunch(kw)
    t = rp.Timer().start()
    fname_prefix = "plug" if arg.output_prefix is None else arg.output_prefix
@@ -113,12 +114,13 @@ def dump_plugs(xforms, plug, hole, scores, ibest, evaluator, **kw):
       plug.move_to(xforms[ibest[i]])
       wrpx, wnct = (arg.wts.sub(rpx=1, ncontact=0), arg.wts.sub(rpx=0, ncontact=1))
       scoreme = evaluator.iface_scores
-      ((pscr, hscr), ), *lbub = scoreme(xforms[ibest[i]], arg.nresl - 1, wrpx)
-      ((pcnt, hcnt), ), *lbub = scoreme(xforms[ibest[i]], arg.nresl - 1, wnct)
+      ((pscr, hscr), ), extra = scoreme(xforms[ibest[i]], arg.nresl - 1, wrpx)
+      ((pcnt, hcnt), ), extra = scoreme(xforms[ibest[i]], arg.nresl - 1, wnct)
       fn = fname_prefix + "_%02i.pdb" % i
       log.info(f"{fn} score {scores[ibest[i]]:7.3f} olig: {pscr:7.3f} hole: {hscr:7.3f}" +
-               f"resi {lbub[0][0]}-{lbub[1][0]} {pcnt:7.0f} {hcnt:7.0f}")
-      rp.io.dump_pdb_from_bodies(fn, [plug], rp.geom.symframes(hole.sym), resbounds=[lbub])
+               f"resi {extra.reslb[0]}-{extra.resub[0]} {pcnt:7.0f} {hcnt:7.0f}")
+      # print('_debug_dump_plugs', i, scores[ibest[i]], extra.reslb.data[0], extra.resub.data[0])
+      rp.io.dump_pdb_from_bodies(fn, [plug], rp.geom.symframes(hole.sym), resbounds=extra)
    return t.total
 
 def plug_get_sample_hierarchy(plug, hole, hscore):
@@ -140,6 +142,18 @@ def plug_get_sample_hierarchy(plug, hole, hscore):
    return xh
 
 _default_samplers = {hier_search: plug_get_sample_hierarchy}
+
+def plug_test_hier_sampler(plug, hole, hscore, n=6):
+   r, rori = hscore.base.attr.xhresl
+   cartub = np.array([n * r, r, r])
+   cartlb = np.array([-n * r, 0, 0])
+   cartbs = np.array([2 * n, 1, 1], dtype="i")
+   xh = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, rori)
+   assert xh.sanity_check(), "bad xform hierarchy"
+   # print(f"XformHier {xh.size(0):,}", xh.cart_bs, xh.ori_resl, xh.cart_lb, xh.cart_ub)
+   return xh
+
+### below is junk?
 
 def __make_plugs_hier_sample_test__(plug, hole, hscore, **kw):
    arg = rp.Bunch(kw)
@@ -177,13 +191,3 @@ def __make_plugs_hier_sample_test__(plug, hole, hscore, **kw):
          print()
 
    assert 0
-
-def plug_test_hier_sampler(plug, hole, hscore):
-   r, rori = hscore.base.attr.xhresl
-   cartub = np.array([6 * r, r, r])
-   cartlb = np.array([-6 * r, 0, 0])
-   cartbs = np.array([12, 1, 1], dtype="i")
-   xh = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, rori)
-   assert xh.sanity_check(), "bad xform hierarchy"
-   print(f"XformHier {xh.size(0):,}", xh.cart_bs, xh.ori_resl, xh.cart_lb, xh.cart_ub)
-   return xh

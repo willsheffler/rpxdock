@@ -8,17 +8,17 @@ def grid_search(sampler, evaluator, **kw):
        or sampler.shape[-2:] != (4, 4)):
       raise ValueError('sampler for grid_search should be array of samples')
    xforms = sampler
-   scores, *resbound, t = evaluate_positions(evaluator, xforms, **kw)
+   scores, extra, t = evaluate_positions(evaluator, xforms, **kw)
    stats = Bunch(ntot=len(scores), neval=[(t, len(scores))])
-   return xforms, scores, stats
+   return xforms, scores, extra, stats
 
 def evaluate_positions(evaluator, xforms, executor=None, **kw):
    t = perf_counter()
    if executor:
       result = evaluate_positions_executor(executor, evaluator, xforms, **kw)
       return (*result, perf_counter() - t)
-   iface_scores, lb, ub = evaluator(xforms, **kw)
-   return iface_scores, lb, lb, perf_counter() - t
+   scores, extra = evaluator(xforms, **kw)
+   return scores, extra, perf_counter() - t
 
 def evaluate_positions_executor(executor, evaluator, xforms, **kw):
    assert isinstance(executor, ThreadPoolExecutor)
@@ -32,14 +32,19 @@ def evaluate_positions_executor(executor, evaluator, xforms, **kw):
       futures[-1].idx = i
    # futures = [f for f in as_completed(futures)]
    results = [f.result() for f in sorted(futures, key=lambda x: x.idx)]
-   iface_scores = np.concatenate([r[0] for r in results])
-   lb = np.concatenate([r[1] for r in results])
-   ub = np.concatenate([r[2] for r in results])
-   return iface_scores, lb, ub
+   scores = np.concatenate([r[0] for r in results])
+   extra = {k: np.concatenate([r[1][k] for r in results]) for k in results[0][1]}
+   return scores, extra
 
-def trim_atom_to_res_numbering(ptrim, nres, max_trim):
-   ptrim = ((ptrim[0] - 1) // 5 + 1, (ptrim[1] + 1) // 5 - 1)  # to res numbers
-   ntrim = ptrim[0] + nres - ptrim[1] - 1
+# def trim_atom_to_res_numbering(trim, nres, max_trim, **kw):
+# trim = ((trim[0] - 1) // 5 + 1, (trim[1] + 1) // 5 - 1)  # to res numbers
+# return trim_ok(trim, nres, max_trim, **kw)
+
+def trim_ok(trim, nres, max_trim, **kw):
+   ntrim = trim[0] + nres - trim[1] - 1
+   # print('foooo', ntrim, trim[0], trim[1])
    trimok = ntrim <= max_trim
-   ptrim = (ptrim[0][trimok], ptrim[1][trimok])
-   return ptrim, trimok
+   trimok &= trim[0] >= 0
+   trimok &= trim[1] >= 0
+   trim = (trim[0][trimok], trim[1][trimok])
+   return trim, trimok

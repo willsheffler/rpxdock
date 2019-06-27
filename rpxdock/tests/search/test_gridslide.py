@@ -2,7 +2,7 @@ from time import perf_counter
 import numpy as np
 import rpxdock.homog as hm
 
-from rpxdock.search.hierarchical import tccage_slide_hier_depricated_samples_depricated
+from rpxdock.search.hierarchical import tccage_slide_hier_samples_depricated
 from rpxdock.body import Body
 from rpxdock.search.dockspec import (
    DockSpec2CompCage,
@@ -81,8 +81,8 @@ def test_2xCyclic(
       body2 = Body(C2_3hm4, nfold2, score_only_ss="HEL")
 
       if use_hier_leaf_samples:
-         samples, *_ = tccage_slide_hier_depricated_samples_depricated(
-            spec, resl=resl, max_out_of_plane_angle=tip, nstep=5)
+         samples, *_ = tccage_slide_hier_samples_depricated(spec, resl=resl,
+                                                            max_out_of_plane_angle=tip, nstep=5)
       else:
          samples = gridslide.samples_2xCyclic_slide(spec, resl=resl, max_out_of_plane_angle=tip)
       print("samples tip:", tip, len(samples[0]), len(samples[1]), len(samples[2]))

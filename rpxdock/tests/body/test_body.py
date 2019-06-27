@@ -7,6 +7,10 @@ from rpxdock.body import Body
 def test_body(C2_3hm4, C3_1nza, sym1=2, sym2=3):
    body1 = Body(C2_3hm4, sym1)
    body2 = Body(C3_1nza, sym2)
+   assert body1.bvh_bb.max_id() == body1.nres - 1
+   assert body1.bvh_cen.max_id() == body1.nres - 1
+   assert body2.bvh_bb.max_id() == body2.nres - 1
+   assert body2.bvh_cen.max_id() == body2.nres - 2  # GLY
 
    resl = 5
    samp1 = range(0, 360 // sym1, resl)
@@ -82,15 +86,15 @@ if __name__ == "__main__":
    from rpxdock.rosetta.triggers_init import get_pose_cached
    from tempfile import mkdtemp
 
-   # f1 = "rpxdock/data/pdb/C2_3hm4_1.pdb.gz"
+   f1 = "rpxdock/data/pdb/C2_3hm4_1.pdb.gz"
    f2 = "rpxdock/data/pdb/C3_1nza_1.pdb.gz"
    # f1 = "/home/sheffler/scaffolds/big/C2_3jpz_1.pdb"
    # f2 = "/home/sheffler/scaffolds/big/C3_3ziy_1.pdb"
    # f1 = "/home/sheffler/scaffolds/wheel/C3.pdb"
    # f2 = "/home/sheffler/scaffolds/wheel/C5.pdb"
-   # pose1 = ros.get_pose_cached(f1)
+   pose1 = get_pose_cached(f1)
    pose2 = get_pose_cached(f2)
-   # test_body(pose1, pose2)
+   test_body(pose1, pose2)
 
    test_body_pickle(f2, mkdtemp())
 

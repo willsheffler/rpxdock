@@ -13,38 +13,83 @@ def testarg():
    arg.max_longaxis_dot_z = 0.5
    arg.executor = ThreadPoolExecutor(min(4, arg.ncpu / 2))
    arg.multi_iface_summary = np.min
+   arg.debug = True
    return arg
 
 def test_plug_hier(hscore, plug, hole):
    arg = testarg()
-   arg.max_trim = 200
-   # arg.nout_debug = 3
-   # arg.output_prefix = 'test_plug_hier'
-   sampler = rp.search.plug.plug_test_hier_sampler(plug, hole, hscore)
+   arg.max_trim = 0
+
+   # arg.output_prefix = "test_plug_hier"
+   # arg.nout_debug = 10
+   # hole.dump_pdb('ref.pdb', use_body_sym=True)
+
+   sampler = rp.search.plug.plug_test_hier_sampler(plug, hole, hscore, 2)
    # sampler = rp.search.plug.plug_get_sample_hierarchy(plug, hole, hscore)
+   # arg.beam_size = 1e5
    result = make_plugs(plug, hole, hscore, rp.hier_search, sampler, **arg)
+
+   # print(result.reslb)
+   # print(result.resub)
+
    # rp.dump(result, 'rpxdock/data/testdata/test_plug_hier.pickle')
    ref = rp.data.get_test_data('test_plug_hier')
    rp.search.assert_results_close(result, ref)
 
+def test_plug_hier_trim(hscore, plug, hole):
+   arg = testarg()
+   arg.max_trim = 200
+
+   # arg.output_prefix = "test_plug_hier_trim"
+   # arg.nout_debug = 10
+   # hole.dump_pdb('ref.pdb', use_body_sym=True)
+
+   sampler = rp.search.plug.plug_test_hier_sampler(plug, hole, hscore, 1)
+   # sampler = rp.search.plug.plug_get_sample_hierarchy(plug, hole, hscore)
+   # arg.beam_size = 1e5
+   result = make_plugs(plug, hole, hscore, rp.hier_search, sampler, **arg)
+
+   # print(result.reslb)
+   # print(result.resub)
+   # result.dump_pdbs_top_score(10)
+
+   # rp.dump(result, 'rpxdock/data/testdata/test_plug_hier_trim.pickle')
+   ref = rp.data.get_test_data('test_plug_hier_trim')
+   rp.search.assert_results_close(result, ref)
+
 def test_plug_olig_hier(hscore, body_c3_mono, hole):
    arg = testarg().sub(plug_fixed_olig=True)
+   body_c3_mono.trim_direction = "C"
+
+   # arg.output_prefix = "test_plug_olig_hier"
+   # arg.nout_debug = 20
+   # hole.dump_pdb('ref.pdb')
+
    hsamp = RotCart1Hier_f4(-120, 120, 20, 0, 120, 12, [0, 0, 1])
    result = make_plugs(body_c3_mono, hole, hscore, rp.hier_search, hsamp, **arg)
+
    # rp.dump(result, 'rpxdock/data/testdata/test_plug_olig_hier.pickle')
    ref = rp.data.get_test_data('test_plug_olig_hier')
-   rp.search.assert_results_close(result, ref, 10)
+   rp.search.assert_results_close(result, ref)
 
 def test_plug_olig_grid(hscore, body_c3_mono, hole):
    arg = testarg().sub(plug_fixed_olig=True)
+
+   # arg.output_prefix = "test_plug_olig_grid"
+   # arg.nout_debug = 10
+   # hole.dump_pdb('ref.pdb')
+
    # should match hsamp resl4 grid
    gcart = np.linspace(-119.625, 119.625, 20 * 16)
    gang = np.linspace(0.3125, 119.6875, 12 * 16)
    xgrid = grid_sym_axis(gcart, gang)
    result = make_plugs(body_c3_mono, hole, hscore, rp.grid_search, xgrid, **arg)
+
+   # result.dump_pdbs_top_score(5)
+
    # rp.dump(result, 'rpxdock/data/testdata/test_plug_olig_grid.pickle')
    ref = rp.data.get_test_data('test_plug_olig_grid')
-   rp.search.assert_results_close(result, ref, 10)
+   rp.search.assert_results_close(result, ref)
 
 if __name__ == "__main__":
    # plug = rp.Body(rp.data.datadir + '/pdb/dhr64.pdb')
@@ -57,8 +102,12 @@ if __name__ == "__main__":
    hole = rp.data.get_body('small_c3_hole_sym3')
    plug = rp.data.get_body('dhr64')
    body_c3_mono = rp.data.get_body('test_c3_mono')
-   hscore = rp.data.small_hscore()
 
+   hscore = rp.data.small_hscore()
+   # hscore = rp.HierScore('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
+
+   # hole.dump_pdb('ref.pdb', use_body_sym=True)
    test_plug_hier(hscore, plug, hole)
+   test_plug_hier_trim(hscore, plug, hole)
    test_plug_olig_hier(hscore, body_c3_mono, hole)
    test_plug_olig_grid(hscore, body_c3_mono, hole)

@@ -108,6 +108,8 @@ class SphereBVH {
     init(begin, end, sphbeg, sphend);
   }
 
+  size_t size() const { return objs.size(); }
+
   /** Given an iterator range over \a Object references, constructs the BVH,
    * overwriting whatever is in there currently.
    * Requires that bounding_vol(Object) return a Volume. */

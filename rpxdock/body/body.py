@@ -1,12 +1,7 @@
-import os, copy, numpy as np, rpxdock, logging
-from rpxdock import bvh
-from rpxdock.util.numeric import pca_eig
-from rpxdock import motif
-from rpxdock.rosetta import get_bb_coords, get_sc_coords
+import os, copy, numpy as np, rpxdock, logging, rpxdock as rp
 
 log = logging.getLogger(__name__)
-
-_CLASH_RADIUS = 1.75
+_CLASHRAD = 1.75
 
 class Body:
    def __init__(self, pdb_or_pose, sym="C1", symaxis=[0, 0, 1], **kw):
@@ -23,19 +18,19 @@ class Body:
             pose = ros.pose_from_file(pdb_or_pose)
             ros.assign_secstruct(pose)
       self.pdbfile = pose.pdb_info().name() if pose.pdb_info() else None
-      self.orig_anames, self.orig_coords = get_sc_coords(pose)
+      self.orig_anames, self.orig_coords = rp.rosetta.get_sc_coords(pose)
       self.seq = np.array(list(pose.sequence()))
       self.ss = np.array(list(pose.secstruct()))
-      self.coord = get_bb_coords(pose)
+      self.coord = rp.rosetta.get_bb_coords(pose)
       self.set_asym_body(pose, sym, **kw)
 
       self.label = arg.label
       if self.label is None and self.pdbfile:
-         self.label = os.path.basename(self.pdbfile.rstrip('.gz').rstrip('.pdb'))
+         self.label = os.path.basename(self.pdbfile.replace('.gz', '').replace('.pdb', ''))
       if self.label is None: self.label = 'unk'
       self.components = arg.components if arg.components else []
       self.score_only_ss = arg.score_only_ss if arg.score_only_ss else "EHL"
-      self.ssid = motif.ss_to_ssid(self.ss)
+      self.ssid = rp.motif.ss_to_ssid(self.ss)
       self.chain = np.repeat(0, self.seq.shape[0])
       self.resno = np.arange(len(self.seq))
       self.trim_direction = arg.trim_direction if arg.trim_direction else 'NC'
@@ -53,7 +48,7 @@ class Body:
          nfold = int(sym[1:])
          self.seq = np.array(np.tile(self.seq, nfold))
          self.ss = np.array(np.tile(self.ss, nfold))
-         self.ssid = motif.ss_to_ssid(self.ss)
+         self.ssid = rp.motif.ss_to_ssid(self.ss)
          self.chain = np.repeat(range(nfold), n)
          self.resno = np.tile(range(n), nfold)
          newcoord = np.empty((nfold * n, ) + self.coord.shape[1:])
@@ -69,8 +64,9 @@ class Body:
       assert len(self.chain) == len(self.coord)
 
       self.nres = len(self.coord)
-      self.stub = motif.bb_stubs(self.coord)
-      self.bvh_bb = bvh.bvh_create(self.coord[..., :3].reshape(-1, 3))
+      self.stub = rp.motif.bb_stubs(self.coord)
+      ids = np.repeat(np.arange(self.nres, dtype=np.int32), self.coord.shape[1])
+      self.bvh_bb = rp.BVH(self.coord[..., :3].reshape(-1, 3), [], ids)
       self.allcen = self.stub[:, :, 3]
       which_cen = np.repeat(False, len(self.ss))
       for ss in "EHL":
@@ -78,10 +74,10 @@ class Body:
             which_cen |= self.ss == ss
       which_cen &= ~np.isin(self.seq, ["G", "C", "P"])
       self.which_cen = which_cen
-      self.bvh_cen = bvh.bvh_create(self.allcen[:, :3], which_cen)
+      self.bvh_cen = rp.BVH(self.allcen[:, :3], which_cen)
       self.cen = self.allcen[which_cen]
       self.pos = np.eye(4, dtype="f4")
-      self.pcavals, self.pcavecs = pca_eig(self.cen)
+      self.pcavals, self.pcavecs = rp.util.numeric.pca_eig(self.cen)
 
    def set_asym_body(self, pose, sym, **kw):
       if isinstance(sym, int): sym = "C%i" % sym
@@ -142,7 +138,7 @@ class Body:
       return self
 
    def move_to_center(self):
-      self.pos[:3, 3] = 0
+      self.pos[:, 3] = -self.bvh_bb.com()
       return self
 
    def long_axis(self):
@@ -151,33 +147,45 @@ class Body:
    def long_axis_z_angle(self):
       return np.arccos(abs(self.long_axis()[2])) * 180 / np.pi
 
-   def slide_to(self, other, dirn, radius=_CLASH_RADIUS):
+   def slide_to(self, other, dirn, radius=_CLASHRAD):
       dirn = np.array(dirn, dtype=np.float64)
       dirn /= np.linalg.norm(dirn)
-      delta = bvh.bvh_slide(self.bvh_bb, other.bvh_bb, self.pos, other.pos, radius, dirn)
+      delta = rp.bvh.bvh_slide(self.bvh_bb, other.bvh_bb, self.pos, other.pos, radius, dirn)
       if delta < 9e8:
          self.pos[:3, 3] += delta * dirn
       return delta
 
-   def intersect_range(self, other, mindis=2 * _CLASH_RADIUS, max_trim=100, self_pos=None,
-                       other_pos=None):
-      self_pos = self.pos if self_pos is None else self_pos
-      other_pos = other.pos if other_pos is None else other_pos
+   def intersect_range(self, other, xself=None, xother=None, mindis=2 * _CLASHRAD, max_trim=100,
+                       nasym1=None, debug=False, **kw):
+      if nasym1 is None: nasym1 = self.asym_body.nres
+      xself = self.pos if xself is None else xself
+      xother = other.pos if xother is None else xother
       ntrim = max_trim if 'N' in self.trim_direction else -1
       ctrim = max_trim if 'C' in self.trim_direction else -1
-      return bvh.isect_range(self.bvh_bb, other.bvh_bb, self_pos, other_pos, mindis, max_trim,
-                             ntrim, ctrim)
+      # print('intersect_range', mindis, nasym1, self.bvh_bb.max_id(), max_trim, ntrim, ctrim)
+      trim = rp.bvh.isect_range(self.bvh_bb, other.bvh_bb, xself, xother, mindis, max_trim, ntrim,
+                                ctrim, nasym1=nasym1)
 
-   def intersect(self, other, mindis=2 * _CLASH_RADIUS, self_pos=None, other_pos=None):
-      self_pos = self.pos if self_pos is None else self_pos
-      other_pos = other.pos if other_pos is None else other_pos
-      return bvh.bvh_isect_vec(self.bvh_bb, other.bvh_bb, self_pos, other_pos, mindis)
+      if debug:
+         ok = np.logical_and(trim[0] >= 0, trim[1] >= 0)
+         xotherok = xother[ok] if xother.ndim == 3 else xother
+         clash, ids = rp.bvh.bvh_isect_fixed_range_vec(self.bvh_bb, other.bvh_bb, xself[ok],
+                                                       xotherok, mindis, trim[0][ok], trim[1][ok])
+         # print(np.sum(clash) / len(clash))
+         assert not np.any(clash)
+
+      return trim
+
+   def intersect(self, other, xself=None, xother=None, mindis=2 * _CLASHRAD, **kw):
+      xself = self.pos if xself is None else xself
+      xother = other.pos if xother is None else xother
+      return rp.bvh.bvh_isect_vec(self.bvh_bb, other.bvh_bb, xself, xother, mindis)
 
    def clash_ok(self, *args, **kw):
       return np.logical_not(self.intersect(*args, **kw))
 
    def distance_to(self, other):
-      return bvh.bvh_min_dist(self.bvh_bb, other.bvh_bb, self.pos, other.pos)
+      return rp.bvh.bvh_min_dist(self.bvh_bb, other.bvh_bb, self.pos, other.pos)
 
    def positioned_coord(self, asym=False):
       n = len(self.coord) // self.nfold if asym else len(self.coord)
@@ -194,18 +202,18 @@ class Body:
    def contact_pairs(self, other, maxdis, buf=None):
       if not buf:
          buf = np.empty((10000, 2), dtype="i4")
-      p, o = bvh.bvh_collect_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis, buf)
+      p, o = rp.bvh.bvh_collect_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis,
+                                      buf)
       assert not o
       return p
 
    def contact_count(self, other, maxdis):
-      return bvh.bvh_count_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis)
+      return rp.bvh.bvh_count_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis)
 
-   def dump_pdb(self, fname, asym=False, **kw):
+   def dump_pdb(self, fname, **kw):
       # import needs to be here to avoid cyclic import
       from rpxdock.io.io_body import dump_pdb_from_bodies
-      bod = [self.asym_body if asym else self]
-      return dump_pdb_from_bodies(fname, bod, **kw)
+      return dump_pdb_from_bodies(fname, [self], **kw)
 
    def copy(self):
       b = copy.copy(self)
@@ -218,6 +226,7 @@ class Body:
       b = copy.deepcopy(self.asym_body)
       b.pos = np.eye(4, dtype='f4')
       b.init_coords(sym, symaxis)
+      b.asym_body = self.asym_body
       return b
 
    def filter_pairs(self, pairs, score_only_sspair, other=None, sanity_check=True):

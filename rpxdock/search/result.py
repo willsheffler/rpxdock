@@ -23,6 +23,9 @@ class Result:
          if attrs: del kw['attrs']
          attrs = sanitize_for_pickle(attrs)
          self.data = xr.Dataset(dict(**kw), attrs=attrs)
+      # b/c I always mistype these
+      self.dump_pdb_top_score = self.dump_pdbs_top_score
+      self.dump_pdb_top_score_each = self.dump_pdbs_top_score_each
 
    def sortby(self, *args, **kw):
       r = copy.copy(self)
@@ -52,6 +55,11 @@ class Result:
    def setstate(self, state):
       self.data = xr.Dataset.from_dict(state)
 
+   def sel(self, *args, **kw):
+      r = copy.copy(self)
+      r.data = r.data.sel(*args, **kw)
+      return r
+
    def dump_pdbs_top_score(self, nout_top=10, **kw):
       best = np.argsort(-self.scores)
       return self.dump_pdbs(best[:nout_top], lbl='top', **kw)
@@ -65,6 +73,7 @@ class Result:
       return which
 
    def dump_pdbs_top_score_each(self, nout_each=1, **kw):
+      if nout_each is 0: return
       which = self.top_each(nout_each)
       ndigijob = num_digits(len(which) - 1)
       dumped = set()
@@ -74,8 +83,9 @@ class Result:
                                   **kw)
       return dumped
 
-   def dump_pdbs(self, which, ndigwhich=None, ndigmodel=None, lbl='', skip=[], output_prefix='',
-                 **kw):
+   def dump_pdbs(self, which, ndigwhich=None, ndigmodel=None, lbl='', skip=[],
+                 output_prefix='rpx', **kw):
+      if len(which) is 0: return set()
       if isinstance(which, abc.Mapping):
          raise ValueError('dump_pdbs takes sequence not mapping')
       if not output_prefix and 'output_prefix' in self.attrs:
@@ -112,8 +122,7 @@ class Result:
          for x, b in zip(self.xforms[imodel], bod):
             b.move_to(x.data)
       else:
-         for b in bod:
-            b.move_to(self.xforms[imodel].data)
+         bod[0].move_to(self.xforms[imodel].data)
       if not fname:
          output_prefix = output_prefix + sep if output_prefix else ''
          body_names = [b.label for b in bod]
@@ -128,7 +137,9 @@ class Result:
       if hscore:
          sm = hscore.score_matrix_inter(bod[0], bod[1], kw['wts'], rp.geom.symframes(sym))
          bfactor = [sm.sum(axis=1), sm.sum(axis=0)]
-      bounds = [(self.reslb[imodel], self.resub[imodel])]
+      bounds = np.tile([[-9e9], [9e9]], len(bod)).T
+      if 'reslb' in self.data and 'resub' in self.data:
+         bounds = np.stack([self.reslb[imodel], self.resub[imodel]], axis=-1)
       rp.io.dump_pdb_from_bodies(fname, bod, symframes=rp.geom.symframes(sym), resbounds=bounds,
                                  bfactor=bfactor, **kw)
 
@@ -140,7 +151,7 @@ class Result:
       return len(self.dockinfo)
 
    def __eq__(self, other):
-      return self.data == other.data
+      return self.data.equals(other.data)
 
 def dict_coherent_entries(alldicts):
    sets = defaultdict(set)
@@ -183,7 +194,8 @@ def dummy_result(size=1000):
    )
 
 def assert_results_close(r, s, n=-1):
+   assert set(r.keys()) == set(s.keys())
    assert np.allclose(r.scores[:n], s.scores[:n])
-   assert np.allclose(r.reslb[:n], s.reslb[:n])
-   assert np.allclose(r.resub[:n], s.resub[:n])
    assert np.allclose(r.xforms[:n], s.xforms[:n], atol=1e-3)
+   for k in r.data:
+      assert np.allclose(r[k][:n], s[k][:n])

@@ -1,5 +1,5 @@
 import numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
-from rpxdock.search import hier_search, trim_atom_to_res_numbering
+from rpxdock.search import hier_search
 
 def make_cyclic_hier_sampler(monomer, hscore):
    cart_resl, ori_resl = hscore.base.attr.xhresl
@@ -17,9 +17,9 @@ def make_cyclic(monomer, sym, hscore, search=hier_search, sampler=None, **kw):
 
    if sampler is None: sampler = _default_samplers[search](monomer, hscore)
    evaluator = CyclicEvaluator(monomer, sym, hscore, **arg)
-   xforms, scores, stats = search(sampler, evaluator, **arg)
+   xforms, scores, extra, stats = search(sampler, evaluator, **arg)
    ibest = rp.filter_redundancy(xforms, monomer, scores, **arg)
-   tdump = dump_cyclic(xforms, monomer, sym, scores, ibest, evaluator, **arg)
+   tdump = _debug_dump_cyclic(xforms, monomer, sym, scores, ibest, evaluator, **arg)
 
    if arg.verbose:
       print(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
@@ -29,17 +29,17 @@ def make_cyclic(monomer, sym, hscore, search=hier_search, sampler=None, **kw):
    xforms = xforms[ibest]
    wrpx = arg.wts.sub(rpx=1, ncontact=0)
    wnct = arg.wts.sub(rpx=0, ncontact=1)
-   rpx, lb, ub = evaluator(xforms, arg.nresl - 1, wrpx)
-   ncontact, *_ = evaluator(xforms, arg.nresl - 1, wnct)
+   rpx, extra = evaluator(xforms, arg.nresl - 1, wrpx)
+   ncontact, _ = evaluator(xforms, arg.nresl - 1, wnct)
    return rp.Result(
       body_=None if arg.dont_store_body_in_results else [monomer],
-      attrs=dict(arg=arg, stats=stats, ttotal=t.total, tdump=tdump),
+      attrs=dict(arg=arg, stats=stats, ttotal=t.total, tdump=tdump, sym=sym),
       scores=(["model"], scores[ibest].astype("f4")),
       xforms=(["model", "hrow", "hcol"], xforms),
       rpx=(["model"], rpx.astype("f4")),
       ncontact=(["model"], ncontact.astype("f4")),
-      reslb=(["model"], lb),
-      resub=(["model"], ub),
+      reslb=(["model"], extra.reslb),
+      resub=(["model"], extra.resub),
    )
 
 class CyclicEvaluator:
@@ -50,39 +50,37 @@ class CyclicEvaluator:
       self.symrot = hm.hrot([0, 0, 1], 360 / int(sym[1:]), degrees=True)
 
    def __call__(self, xforms, iresl=-1, wts={}, **kw):
-      wts = self.arg.wts.sub(wts)
+      arg = self.arg.sub(wts=wts)
       xeye = np.eye(4, dtype="f4")
-      xforms = xforms.reshape(-1, 4, 4)
       body, sfxn = self.body, self.hscore.scorepos
-      dclsh, max_trim = self.arg.clashdis, self.arg.max_trim
+      xforms = xforms.reshape(-1, 4, 4)  #@ body.pos
       xsym = self.symrot @ xforms
 
       # check for "flatness"
       ok = np.abs((xforms @ body.pcavecs[0])[:, 2]) <= self.arg.max_longaxis_dot_z
 
       # check clash, or get non-clash range
-      if max_trim > 0:
-         ptrim = body.intersect_range(body, dclsh, max_trim, xforms[ok], xsym[ok])
-         ptrim, trimok = trim_atom_to_res_numbering(ptrim, body.nres, max_trim)
+      if arg.max_trim > 0:
+         trim = body.intersect_range(body, xforms[ok], xsym[ok], **arg)
+         trim, trimok = rp.search.trim_ok(trim, body.nres, **arg)
          ok[ok] &= trimok
       else:
-         ok[ok] &= body.clash_ok(body, dclsh, xforms[ok], xsym[ok])
-         ptrim = [0], [body.nres - 1]
+         ok[ok] &= body.clash_ok(body, xforms[ok], xsym[ok], **arg)
+         trim = [0], [body.nres - 1]
 
       # score everything that didn't clash
-      xok = xforms[ok]
       scores = np.zeros(len(xforms))
-      scores[ok] = sfxn(body, body, xok, xsym[ok], wts, iresl, (*ptrim, *ptrim))
+      bounds = (*trim, -1, *trim, -1)
+      scores[ok] = sfxn(body, body, xforms[ok], xsym[ok], iresl, bounds, **arg)
 
       # record ranges used
-      plb = np.zeros(len(scores), dtype="i4")
-      pub = np.ones(len(scores), dtype="i4") * (body.nres - 1)
-      if ptrim:
-         plb[ok], pub[ok] = ptrim[0], ptrim[1]
+      lb = np.zeros(len(scores), dtype="i4")
+      ub = np.ones(len(scores), dtype="i4") * (body.nres - 1)
+      if trim: lb[ok], ub[ok] = trim[0], trim[1]
 
-      return scores, plb, pub
+      return scores, rp.Bunch(reslb=lb, resub=ub)
 
-def dump_cyclic(xforms, body, sym, scores, ibest, evaluator, **kw):
+def _debug_dump_cyclic(xforms, body, sym, scores, ibest, evaluator, **kw):
    arg = rp.Bunch(kw)
    t = rp.Timer().start()
    nout_debug = min(10 if arg.nout_debug is None else arg.nout_debug, len(ibest))
@@ -90,12 +88,12 @@ def dump_cyclic(xforms, body, sym, scores, ibest, evaluator, **kw):
       i = ibest[iout]
       body.move_to(xforms[i])
       wrpx, wnct = (arg.wts.sub(rpx=1, ncontact=0), arg.wts.sub(rpx=0, ncontact=1))
-      scr, *lbub = evaluator(xforms[i], arg.nresl - 1, wrpx)
-      cnt, *lbub = evaluator(xforms[i], arg.nresl - 1, wnct)
+      scr, extra = evaluator(xforms[i], arg.nresl - 1, wrpx)
+      cnt, extra = evaluator(xforms[i], arg.nresl - 1, wnct)
       fn = arg.output_prefix + "_%02i.pdb" % iout
       print(
          f"{fn} score {scores[i]:7.3f} rpx {scr[0]:7.3f} cnt {cnt[0]:4}",
-         f"resi {lbub[0][0]}-{lbub[1][0]}",
+         f"resi {extra.reslb[0]}-{extra.resub[0]}",
       )
-      rp.dump_pdb_from_bodies(fn, [body], rp.symframes(sym), resbounds=[lbub])
+      rp.dump_pdb_from_bodies(fn, [body], rp.symframes(sym), resbounds=extra)
    return t.total

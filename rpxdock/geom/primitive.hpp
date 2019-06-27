@@ -10,6 +10,7 @@ namespace geom {
 using namespace util;
 
 struct Empty {};
+
 template <class F>
 class Sphere {
   using Scalar = F;
@@ -19,7 +20,8 @@ class Sphere {
  public:
   Vec3 cen;
   F rad;
-  int lb, ub;
+  int lb = 2000000000;
+  int ub = -2000000000;
 
   Sphere() : cen(0, 0, 0), rad(1) {}
   Sphere(Vec3 c, F r) : cen(c), rad(r) {}
@@ -157,6 +159,8 @@ struct UpdateBounds<Ary, Sph, false> {
 template <class Ary, class Sph>
 struct UpdateBounds<Ary, Sph, true> {
   static void update_bounds(Ary const& points, Sph& sph) {
+    sph.lb = 2000000000;
+    sph.ub = -2000000000;
     for (size_t i = 0; i < points.size(); ++i) {
       sph.lb = std::min(sph.lb, points.get_index(i));
       sph.ub = std::max(sph.ub, points.get_index(i));
@@ -171,6 +175,8 @@ auto welzl_bounding_sphere(Ary const& points) noexcept {
   std::vector<Pt> sos(4);
   Sph bound = welzl_bounding_sphere_impl(points, points.size(), sos, 0);
   UpdateBounds<Ary, Sph, range>::update_bounds(points, bound);
+  // if (bound.lb < 0 || bound.lb > bound.ub || bound.ub > 2000)
+  // std::cout << bound.lb << " " << bound.ub << std::endl;
   return bound;
 }
 

@@ -1,5 +1,5 @@
-import itertools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
-from rpxdock.search import hier_search, trim_atom_to_res_numbering
+import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
+from rpxdock.search import hier_search, trim_ok
 
 def hier_2axis_sampler(spec, lb=25, ub=200, resl=10, angresl=10, flip1=True, flip2=True):
    cart_nstep = int(np.ceil((ub - lb) / resl))
@@ -26,9 +26,9 @@ def make_cage(bodies, spec, hscore, search=hier_search, sampler=None, **kw):
 
    Evaluator = CageEvaluatorTrim if arg.max_trim else CageEvaluatorNoTrim
    evaluator = Evaluator(bodies, spec, hscore, **arg)
-   xforms, scores, stats = search(sampler, evaluator, **arg)
+   xforms, scores, extra, stats = search(sampler, evaluator, **arg)
    ibest = rp.filter_redundancy(xforms, bodies, scores, **arg)
-   tdump = dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **arg)
+   tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **arg)
 
    if arg.verbose:
       print(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
@@ -38,7 +38,7 @@ def make_cage(bodies, spec, hscore, search=hier_search, sampler=None, **kw):
    xforms = xforms[ibest]
    wrpx = arg.wts.sub(rpx=1, ncontact=0)
    wnct = arg.wts.sub(rpx=0, ncontact=1)
-   rpx, lb, ub = evaluator(xforms, arg.nresl - 1, wrpx)
+   rpx, extra = evaluator(xforms, arg.nresl - 1, wrpx)
    ncontact, *_ = evaluator(xforms, arg.nresl - 1, wnct)
    data = dict(
       attrs=dict(arg=arg, stats=stats, ttotal=t.total, tdump=tdump,
@@ -47,9 +47,10 @@ def make_cage(bodies, spec, hscore, search=hier_search, sampler=None, **kw):
       xforms=(["model", "comp", "hrow", "hcol"], xforms),
       rpx=(["model"], rpx.astype("f4")),
       ncontact=(["model"], ncontact.astype("f4")),
-      reslb=(["model"], lb),
-      resub=(["model"], ub),
    )
+   for k, v in extra.items():
+      if not isinstance(v, (list, tuple)) or len(v) > 3: v = ['model'], v
+      data[k] = v
    for i in range(len(bodies)):
       data[f'disp{i}'] = (['model'], np.sum(xforms[:, i, :3, 3] * spec.axis[None, i, :3], axis=1))
       data[f'angle{i}'] = (['model'], rp.homog.angle_of(xforms[:, i]) * 180 / np.pi)
@@ -60,64 +61,85 @@ def make_cage(bodies, spec, hscore, search=hier_search, sampler=None, **kw):
    )
 
 class EvaluatorBase:
-   def __init__(self, bodies, spec, hscore, max_delta_h=9e9, clashdis=3.5, max_trim=100,
-                wts=rp.Bunch(ncontact=0.1, rpx=1.0), **kw):
+   def __init__(self, bodies, spec, hscore, wts=rp.Bunch(ncontact=0.1, rpx=1.0), **kw):
       self.arg = rp.Bunch(kw)
       self.hscore = hscore
       self.symrots = [rp.geom.symframes(n) for n in spec.nfold]
-      self.bodies = bodies
+      self.bodies = list(bodies)
       self.spec = spec
-      self.max_delta_h = max_delta_h
-      self.clashdis = clashdis
-      self.max_trim = max_trim
-      self.wts = wts
+      self.arg.wts = wts
+      self.bodies[0] = self.bodies[0].copy_with_sym(self.spec.nfold1, self.spec.axis1)
+      self.bodies[1] = self.bodies[1].copy_with_sym(self.spec.nfold2, self.spec.axis2)
 
 class CageEvaluatorTrim(EvaluatorBase):
-   def __init__(self, *args, max_trim=100, **kw):
+   def __init__(self, *args, **kw):
       super().__init__(*args, **kw)
 
-   def __call__(self, xforms, iresl=-1, wts={}, **kw):
-      wts = self.wts.sub(wts)
+   def __call__(self, x, iresl=-1, wts={}, **kw):
+      arg = self.arg.sub(wts=wts)
+
       xeye = np.eye(4, dtype="f4")
       compA, compB = self.bodies
-      xforms = xforms.reshape(-1, 2, 4, 4)
+      x = x.reshape(-1, 2, 4, 4)
+      xnbr = self.spec.to_neighbor_olig
 
       # check for "flatness"
-      d1 = hm.hdot(xforms[:, 0] @ compA.com(), self.spec.axis[0])
-      d2 = hm.hdot(xforms[:, 1] @ compB.com(), self.spec.axis[1])
-      ok = abs(d1 - d2) < self.max_delta_h
+      d1 = hm.hdot(x[:, 0] @ compA.com(), self.spec.axis[0])
+      d2 = hm.hdot(x[:, 1] @ compB.com(), self.spec.axis[1])
+      ok = abs(d1 - d2) < arg.max_delta_h
 
-      # check clash, or get non-clash range
-      plb = np.zeros(len(ok), dtype='i4')
-      pub = np.ones(len(ok), dtype='i4') * (compA.nres - 1)
-      for i, (frameA, frameB) in enumerate(itertools.product(*self.spec.compframes)):
-         xformsA = xforms[ok, 0] @ frameA @ compA.pos
-         xformsB = xforms[ok, 1] @ frameB @ compA.pos
-         ptrim0 = compA.intersect_range(compB, self.clashdis, self.max_trim, xformsA, xformsB)
-         ptrim0, trimok = trim_atom_to_res_numbering(ptrim0, compA.nres, self.max_trim)
-         ok[ok] &= trimok
-         plb[ok] = np.maximum(plb[ok], ptrim0[0])
-         pub[ok] = np.minimum(pub[ok], ptrim0[1])
-      print('nplb', np.sum(plb > 0))
-      print('npub', np.sum(pub < compA.nres - 1))
+      irA = compA.intersect_range
+      irB = compB.intersect_range
+      lbA = np.zeros(len(x), dtype='i4')
+      lbB = np.zeros(len(x), dtype='i4')
+      ubA = np.ones(len(x), dtype='i4') * (self.bodies[0].asym_body.nres - 1)
+      ubB = np.ones(len(x), dtype='i4') * (self.bodies[1].asym_body.nres - 1)
+
+      trimA1 = irA(compB, x[ok, 0], x[ok, 1], **arg)
+      trimA1, trimok = trim_ok(trimA1, compA.asym_body.nres, **arg)
+      ok[ok] &= trimok
+
+      xa = x[ok, 0]
+      trimA2 = irA(compA, xa, xnbr[0] @ xa, **arg)
+      trimA2, trimok2 = trim_ok(trimA2, compA.asym_body.nres, **arg)
+      ok[ok] &= trimok2
+      lbA[ok] = np.maximum(trimA1[0][trimok2], trimA2[0])
+      ubA[ok] = np.minimum(trimA1[1][trimok2], trimA2[1])
+
+      xb = x[ok, 1]
+      trimB = irB(compB, xb, xnbr[1] @ xb, **arg)
+      trimB, trimok = trim_ok(trimB, compB.asym_body.nres, **arg)
+      ok[ok] &= trimok
+      lbB[ok], ubB[ok] = trimB
 
       # score everything that didn't clash
-      scores = np.zeros(len(xforms))
-      for frameA, frameB in zip(*self.spec.compframes):
-         xformsA = xforms[ok, 0] @ frameA @ compA.pos
-         xformsB = xforms[ok, 1] @ frameB @ compB.pos
-         scores[ok] += self.hscore.scorepos(compA, compB, xformsA, xformsB, wts, iresl,
-                                            bounds=[plb[ok], pub[ok]])
-      return scores, plb, pub
+      bounds = lbA[ok], ubA[ok], compA.asym_body.nres, lbB[ok], ubB[ok], compB.asym_body.nres
+      scores = np.zeros(len(x))
+      scores[ok] = self.hscore.scorepos(
+         body1=compA,
+         body2=compB,
+         pos1=x[ok, 0],
+         pos2=x[ok, 1],
+         iresl=iresl,
+         bounds=bounds,
+         **arg,
+      )
+
+      # if np.sum(ok):
+      # print(iresl, np.sum(ok), np.min(scores[ok]), np.max(scores[ok]), np.mean(lbA),
+      # np.mean(ubA), np.mean(lbB), np.mean(ubB))
+
+      return scores, rp.Bunch(
+         reslb=(['model', 'component'], np.stack([lbA, lbB], axis=1)),
+         resub=(['model', 'component'], np.stack([ubA, ubB], axis=1)),
+      )
 
 class CageEvaluatorNoTrim(CageEvaluatorTrim):
    def __init__(self, *args, **kw):
       super().__init__(*args, **kw)
-      self.bodies[0] = self.bodies[0].copy_with_sym(self.spec.nfold1, self.spec.axis1)
-      self.bodies[1] = self.bodies[1].copy_with_sym(self.spec.nfold2, self.spec.axis2)
 
    def __call__(self, xforms, iresl=-1, wts={}, **kw):
-      wts = self.wts.sub(wts)
+      arg = self.arg.sub(wts=wts)
       xeye = np.eye(4, dtype="f4")
       compA, compB = self.bodies
       xforms = xforms.reshape(-1, 2, 4, 4)
@@ -125,24 +147,23 @@ class CageEvaluatorNoTrim(CageEvaluatorTrim):
       # # check for "flatness"
       d1 = hm.hdot(xforms[:, 0] @ compA.com(), self.spec.axis[0])
       d2 = hm.hdot(xforms[:, 1] @ compB.com(), self.spec.axis[1])
-      ok = abs(d1 - d2) < self.max_delta_h
+      ok = abs(d1 - d2) < arg.max_delta_h
 
       # check clash, or get non-clash range
       xnbr = self.spec.to_neighbor_olig
       x0, x1 = xforms[:, 0] @ compA.pos, xforms[:, 1] @ compB.pos
-      ok[ok] &= compA.clash_ok(compA, self.clashdis, x0[ok], xnbr[0] @ x0[ok])
-      ok[ok] &= compB.clash_ok(compB, self.clashdis, x1[ok], xnbr[1] @ x1[ok])
-      ok[ok] &= compA.clash_ok(compB, self.clashdis, x0[ok], x1[ok])
+      ok[ok] &= compA.clash_ok(compA, x0[ok], xnbr[0] @ x0[ok], **arg)
+      ok[ok] &= compB.clash_ok(compB, x1[ok], xnbr[1] @ x1[ok], **arg)
+      ok[ok] &= compA.clash_ok(compB, x0[ok], x1[ok], **arg)
 
       # score everything that didn't clash
       scores = np.zeros(len(xforms))
-      scores[ok] += self.hscore.scorepos(compA, compB, xforms[ok, 0], xforms[ok, 1], wts, iresl)
+      scores[ok] += self.hscore.scorepos(compA, compB, xforms[ok, 0], xforms[ok, 1], iresl,
+                                         wts=wts)
 
-      plb = np.zeros(len(scores), dtype="i4")
-      pub = np.ones(len(scores), dtype="i4") * (compA.nres - 1)
-      return scores, plb, pub
+      return scores, rp.Bunch()
 
-def dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw):
+def _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw):
    arg = rp.Bunch(kw)
    t = rp.Timer().start()
    nout_debug = min(10 if arg.nout_debug is None else arg.nout_debug, len(ibest))

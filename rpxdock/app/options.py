@@ -25,6 +25,7 @@ def default_cli_parser(parent=None):
    addarg("--max_trim", type=int, default=100)
    addarg("--max_pair_dist", type=float, default=8.0)
    addarg("--trim_direction", type=str, default="NC")
+   addarg("--debug", action="store_true", default=False)
    addarg("--nout_debug", type=int, default=0)
    addarg("--nout_top", type=int, default=10)
    addarg("--nout_each", type=int, default=1)

@@ -23,8 +23,8 @@ def test_tccage_slide_hier_depricated(
 
    for arch in archs.split():
       spec = DockSpec2CompCage(arch)
-      body1 = Body(C3_1nza, nfold1, score_only_ss="HEL")
-      body2 = Body(C2_3hm4, nfold2, score_only_ss="HEL")
+      body1 = Body(C3_1nza, sym=nfold1, score_only_ss="HEL")
+      body2 = Body(C2_3hm4, sym=nfold2, score_only_ss="HEL")
 
       t = perf_counter()
       npair, pos = tccage_slide_hier_depricated(

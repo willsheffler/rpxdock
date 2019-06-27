@@ -5,9 +5,9 @@ from rpxdock.io.io import *
 
 def make_pdb_from_bodies(
       bodies,
-      symframes=[np.eye(4)],
+      symframes=None,
       start=(0, 0),
-      use_body_sym=False,
+      use_body_sym=None,
       keep=lambda x: True,
       no_duplicate_chains=False,
       no_duplicate_reschain_pairs=True,
@@ -20,6 +20,14 @@ def make_pdb_from_bodies(
       use_orig_coords=False,
       **kw,
 ):
+   if symframes is None and use_body_sym is None:
+      use_body_sym = True
+      symframes = [np.eye(4)]
+   elif symframes is None:
+      symframes = [np.eye(4)]
+   elif use_body_sym is None:
+      use_body_sym = False
+
    allatomnames = "N CA C O CB CEN".split()
    if not only_atoms and not include_cen:
       only_atoms = "N CA C O CB".split()
@@ -32,6 +40,13 @@ def make_pdb_from_bodies(
       chain_letters = all_pymol_chains[:chain_letters]
 
    if bfactor and len(bfactor) > 9: bfactor = [bfactor]  # hacky
+
+   if len(resbounds) == 0:
+      resbounds = [(-9e9, 9e9)] * len(bodies)
+   if isinstance(resbounds, dict):
+      resbounds = np.stack([resbounds['reslb'], resbounds['resub']], axis=-1)
+   if isinstance(resbounds[0], (int, np.int32, np.int64)):
+      resbounds = [resbounds]
 
    startatm = start[0]
    startchain = start[1]
@@ -52,6 +67,7 @@ def make_pdb_from_bodies(
          if len(resbounds) > ibody:
             reslb, resub = resbounds[ibody][0], resbounds[ibody][1]
          for i in range(len(crd)):
+            iasym = i % body.asym_body.nres if use_body_sym else i
             if not reslb <= i <= resub:
                continue
             ic = body.chain[i] + startchain
@@ -135,7 +151,7 @@ def make_pdb_from_bodies(
          )
    return s, (startatm, startchain)
 
-def dump_pdb_from_bodies(fname, bodies, symframes=[np.eye(4)], **kw):
-   s, *_ = make_pdb_from_bodies(bodies, symframes, **kw)
+def dump_pdb_from_bodies(fname, *args, **kw):
+   s, *_ = make_pdb_from_bodies(*args, **kw)
    with open(fname, "w") as out:
       out.write(s)
