@@ -2,7 +2,7 @@ import os, glob, rpxdock as rp
 
 def main():
 
-   replace = True
+   replace = False
 
    if replace:
       for fn in glob.glob(rp.data.bodydir + '/*'):

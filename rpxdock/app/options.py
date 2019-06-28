@@ -3,7 +3,7 @@ from rpxdock.util import cpu_count, Bunch
 
 log = logging.getLogger(__name__)
 
-_iface_summary_methods = dict(min=np.min, sum=np.sum)
+_iface_summary_methods = dict(min=np.min, sum=np.sum, median=np.median)
 
 def add_argument_unless_exists(parser, *arg, **kw):
    if not (arg or kw):
@@ -55,6 +55,9 @@ def default_cli_parser(parent=None):
    addarg("--hscore_data_dir", default='/home/sheffler/data/rpx/hscore')
    addarg("--docking_method", default='hier')
    addarg("--cart_bounds", default=[], type=float, nargs='+')
+   addarg("--use_fixed_mindis", action='store_true', default=False)
+   addarg("--trimmable_components", default="")
+   addarg("--align_components", action='store_true', default=False)
    parser.has_rpxdock_args = True
    return parser
 

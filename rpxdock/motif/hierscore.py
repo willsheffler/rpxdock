@@ -49,6 +49,9 @@ class HierScore:
    def __len__(self):
       return len(self.hier)
 
+   def hier_mindis(self, iresl):
+      return [1.5, 2.0, 2.75, 3.25, 3.5][iresl]
+
    def score(self, body1, body2, wts, iresl=-1, *bounds):
       return self.scorepos(body1, body2, body1.pos, body2.pos, iresl, *bounds, wts=wts)
 

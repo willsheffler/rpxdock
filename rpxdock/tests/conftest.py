@@ -95,5 +95,21 @@ def body_cageB_extended():
    return data.get_body('T33_dn2_asymB_extended')
 
 @pytest.fixture(scope="session")
+def bodyC2():
+   return data.get_body('C2_REFS10_1')
+
+@pytest.fixture(scope="session")
+def bodyC3():
+   return data.get_body('C3_1na0-1_1')
+
+@pytest.fixture(scope="session")
+def bodyC4():
+   return data.get_body('C4_1na0-G1_1')
+
+@pytest.fixture(scope="session")
+def body_tiny():
+   return data.get_body('tiny')
+
+@pytest.fixture(scope="session")
 def result():
    return dummy_result()

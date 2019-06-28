@@ -8,6 +8,7 @@ class DockSpec1CompCage:
       assert spec in "T2 T3 O2 O3 O4 I2 I3 I5".split()
       self.spec = spec
       self.sym = spec[0]
+      self.num_components = 1
       self.nfold = int(spec[1])
       assert self.sym in "TOI"
       self.axis = sym.axes[self.sym][self.nfold]
@@ -61,6 +62,7 @@ class DockSpec2CompCage:
       assert spec in "T32 T33 O32 O42 O43 I32 I52 I53".split()
       self.spec = spec
       self.sym = spec[0]
+      self.num_components = 2
       self.nfold1 = int(spec[1])
       self.nfold2 = int(spec[2])
       self.nfold = np.array([self.nfold1, self.nfold2])
@@ -152,11 +154,38 @@ class DockSpec2CompCage:
 
       return (pos1.reshape(origshape), pos2.reshape(origshape))
 
+class DockSpec3CompCage:
+   def __init__(self, spec):
+      assert len(spec) == 4
+      assert spec in "O432 I532".split()
+      self.spec = spec
+      self.sym = spec[0]
+      self.num_components = 3
+      self.symframes_ = sym.frames[self.sym]
+      assert self.sym in "TOI"
+      self.nfold = np.array([int(spec[1]), int(spec[2]), int(spec[3])], dtype='i')
+      self.axis = np.array([sym.axes[self.sym][n] for n in self.nfold])
+      self.axisperp = [
+         hm.hcross(self.axis[1], self.axis[2]),
+         hm.hcross(self.axis[2], self.axis[0]),
+         hm.hcross(self.axis[0], self.axis[1])
+      ]
+      self.orig = [hm.align_vector([0, 0, 1], a) for a in self.axis]
+      self.axis_second = [sym.axes_second[self.sym][n] for n in self.nfold]
+      self.to_neighbor_olig = [sym.to_neighbor_olig[self.sym][n] for n in self.nfold]
+      self.compframes = np.array([sym.symframes(self.nfold[i], self.axis[i]) for i in [0, 1, 2]])
+      self.xflip = hm.hrot([
+         hm.hcross(self.axis[0], hm.hcross(self.axis[0], self.axis[1])),
+         hm.hcross(self.axis[1], hm.hcross(self.axis[1], self.axis[2])),
+         hm.hcross(self.axis[2], hm.hcross(self.axis[2], self.axis[0]))
+      ], np.pi)
+
 class DockSpecMonomerToCyclic:
    def __init__(self, spec):
       assert len(spec) == 2
       assert spec[0] == "C"
       self.spec = spec
+      self.num_components = 1
       self.nfold = int(spec[1])
       assert self.nfold > 1
       self.angle = 2 * np.pi / self.nfold

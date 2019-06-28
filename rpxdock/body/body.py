@@ -37,7 +37,7 @@ class Body:
 
       self.init_coords(sym, symaxis)
 
-   def init_coords(self, sym, symaxis):
+   def init_coords(self, sym, symaxis, xform=np.eye(4)):
       if isinstance(sym, (int, np.int32, np.int64, np.uint32, np.uint64)):
          sym = "C%i" % sym
       self.sym = sym
@@ -56,7 +56,7 @@ class Body:
          for i in range(1, nfold):
             self.pos = rpxdock.homog.hrot(self.symaxis, 360.0 * i / nfold)
             newcoord[i * n:][:n] = self.positioned_coord()
-         self.coord = newcoord
+         self.coord = (xform @ newcoord[:, :, :, None]).reshape(-1, 5, 4)
       else:
          raise ValueError("unknown symmetry: " + sym)
       assert len(self.seq) == len(self.coord)
@@ -107,7 +107,7 @@ class Body:
       self.asym_body = None
 
    def com(self):
-      return self.pos @ self.bvh_bb.com()
+      return self.bvh_bb.com()
 
    def rg(self):
       d = self.cen - self.com()
@@ -222,11 +222,18 @@ class Body:
       assert b.coord is self.coord
       return b
 
-   def copy_with_sym(self, sym, symaxis):
+   def copy_with_sym(self, sym, symaxis=[0, 0, 1]):
       b = copy.deepcopy(self.asym_body)
       b.pos = np.eye(4, dtype='f4')
       b.init_coords(sym, symaxis)
       b.asym_body = self.asym_body
+      return b
+
+   def copy_xformed(self, xform):
+      b = copy.deepcopy(self.asym_body)
+      b.pos = np.eye(4, dtype='f4')
+      b.init_coords('C1', [0, 0, 1], xform)
+      b.asym_body = b
       return b
 
    def filter_pairs(self, pairs, score_only_sspair, other=None, sanity_check=True):

@@ -10,7 +10,7 @@ def hier_search(sampler, evaluator, **kw):
       indices, xforms = expand_samples(iresl, sampler, indices, scores, **arg)
       scores, extra, t = rp.search.evaluate_positions(**arg.sub(vars()))
       neval.append((t, len(scores)))
-      log.info(f"{arg.output_prefix} iresl {iresl} ntot {len(scores):11,}" +
+      log.info(f"{arg.output_prefix} iresl {iresl} ntot {len(scores):11,} " +
                f"nonzero {np.sum(scores > 0):5,}")
    stats = rp.Bunch(ntot=sum(x[1] for x in neval), neval=neval)
    return xforms, scores, extra, stats

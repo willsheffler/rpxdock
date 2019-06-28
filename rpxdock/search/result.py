@@ -134,7 +134,7 @@ class Result:
          fname = output_prefix + middle + suffix + '.pdb'
       log.info(f'dumping pdb {fname} score {self.scores.data[imodel]}')
       bfactor = None
-      if hscore:
+      if hscore and len(bod) == 2:
          sm = hscore.score_matrix_inter(bod[0], bod[1], kw['wts'], rp.geom.symframes(sym))
          bfactor = [sm.sum(axis=1), sm.sum(axis=0)]
       bounds = np.tile([[-9e9], [9e9]], len(bod)).T
@@ -194,7 +194,10 @@ def dummy_result(size=1000):
    )
 
 def assert_results_close(r, s, n=-1):
-   assert set(r.keys()) == set(s.keys())
+   if set(r.keys()) != set(s.keys()):
+      print(list(r.keys()))
+      print(list(s.keys()))
+   assert set(r.keys()) == set(s.keys()), 'results must have same fields'
    assert np.allclose(r.scores[:n], s.scores[:n])
    assert np.allclose(r.xforms[:n], s.xforms[:n], atol=1e-3)
    for k in r.data:
