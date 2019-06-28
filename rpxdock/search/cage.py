@@ -1,7 +1,7 @@
 import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
 
-def make_cage(bodies, spec, hscore, search=hier_search, sampler=None, align_components=True,
+def make_cage(bodies, spec, hscore, search=hier_search, sampler=None, fixed_components=False,
               **kw):
    arg = rp.Bunch(kw)
    t = rp.Timer().start()
@@ -9,7 +9,8 @@ def make_cage(bodies, spec, hscore, search=hier_search, sampler=None, align_comp
    arg.output_prefix = arg.output_prefix if arg.output_prefix else spec.spec
 
    assert len(bodies) == spec.num_components
-   if align_components:
+   bodies = list(bodies)
+   if not fixed_components:
       for i, b in enumerate(bodies):
          bodies[i] = b.copy_xformed(rp.homog.align_vector([0, 0, 1], spec.axis[i]))
 

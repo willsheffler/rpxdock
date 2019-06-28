@@ -1,20 +1,20 @@
 #! /home/sheffler/.conda/envs/rpxdock/bin/python
 
-import logging, os, rpxdock as sd, numpy as np
+import logging, os, rpxdock as rp, numpy as np
 
 def get_opts():
-   parser = sd.options.default_cli_parser()
-   addarg = sd.options.add_argument_unless_exists(parser)
+   parser = rp.options.default_cli_parser()
+   addarg = rp.options.add_argument_unless_exists(parser)
    addarg("--bodies", type=str, nargs='+', required=True)
    addarg("--other_bodies", type=str, nargs='+', default=[])
    addarg("--dump_scored_pdb", action='store_true', default=False)
    arg = parser.parse_args()
-   return sd.options.process_cli_args(arg)
+   return rp.options.process_cli_args(arg)
 
 def score_onebody(hscore, **kw):
-   arg = sd.Bunch(kw)
+   arg = rp.Bunch(kw)
    for fn in arg.bodies:
-      body = sd.Body(fn)
+      body = rp.Body(fn)
       iscores = hscore.score_matrix_intra(body, arg.wts)
       overall = np.sum(np.max(iscores, axis=0))
       # print(np.max(iscores, axis=1))
@@ -34,9 +34,9 @@ def score_onebody(hscore, **kw):
             f'sum(mean) {summean:7.3f} {bfac_file}')
 
 def score_twobody(hscore, **kw):
-   arg = sd.Bunch(kw)
+   arg = rp.Bunch(kw)
    for fn1 in arg.bodies:
-      body1 = sd.Body(fn1)
+      body1 = rp.Body(fn1)
       for fn2 in arg.other_bodies:
          body2 = Body(fn2)
          print(fn1, fn2, hscore.score(body1, body2, arg.wts))
@@ -45,7 +45,7 @@ def main():
    arg = get_opts()
    logging.info(f'weights: {arg.wts}')
 
-   hscore = sd.HierScore(arg.hscore_files, **arg)
+   hscore = rp.HierScore(arg.hscore_files, **arg)
 
    if arg.other_bodies:
       score_twobody(hscore, **arg)

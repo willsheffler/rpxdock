@@ -13,7 +13,7 @@ def make_pdb_from_bodies(
       no_duplicate_reschain_pairs=True,
       include_cen=True,
       only_atoms=None,
-      chain_letters=all_pymol_chains,
+      chain_letters=None,
       resbounds=[],
       bfactor=None,
       occupancy=None,
@@ -36,7 +36,10 @@ def make_pdb_from_bodies(
 
    elems = "N C C O C X".split()
    aindex0 = [allatomnames.index(a) for a in only_atoms]
-   if isinstance(chain_letters, int):
+   if chain_letters is None:
+      n = len(all_pymol_chains) - len(all_pymol_chains) % len(bodies)
+      chain_letters = all_pymol_chains[:n]
+   elif isinstance(chain_letters, int):
       chain_letters = all_pymol_chains[:chain_letters]
 
    if bfactor and len(bfactor) > 9: bfactor = [bfactor]  # hacky
@@ -82,7 +85,7 @@ def make_pdb_from_bodies(
             max_resno[c] = max(resno, max_resno[c])
             cletter = chain_letters[c]
             occ = 1 if occupancy is None else occupancy[resno]
-            bfac = 0 if bfactor is None else bfactor[ibody][resno]
+            bfac = 0 if bfactor is None else bfactor[ibody][resno % len(bfactor[ibody])]
             # if bfac != 0 and isym == 0: print(isym, ibody, resno, bfac)
             aindex = range(len(orig_coords[i])) if use_orig_coords else aindex0
             for j in aindex:

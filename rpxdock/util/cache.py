@@ -13,10 +13,13 @@ class Cache(dict):
    def keys_have_changed_since_checkpoint(self):
       return set(self.keys()) != self._checkpoint
 
-   def __call__(self, fun, *args, _force_reload=False, _saved_only=False, _nodump=False,
-                _key=None, **kw):
+   def key_of(self, fun, *args, **kw):
+      return fun.__name__, repr(args), repr(kw)
+
+   def get_cached(self, fun, *args, _force_reload=False, _saved_only=False, _nodump=False,
+                  _key=None, **kw):
       if _key is None:
-         _key = fun.__name__, repr(args), repr(kw)
+         _key = self.key_of(fun, *args, **kw)
       try:
          assert not _force_reload
          val = self[_key]
@@ -28,10 +31,13 @@ class Cache(dict):
          self[_key] = val
       if _nodump:
          self._nodump.add(_key)
-      return val
+      return _key, val
+
+   def __call__(self, *args, **kw):
+      return self.get_cached(*args, **kw)[1]
 
    def remove(self, fun, *args, _force_reload=False, **kw):
-      _key = fun.__name__, repr(args), repr(kw)
+      _key = self.key_of(fun, *args, **kw)
       del self[_key]
 
    def save(self, fname, force=False):
@@ -59,11 +65,26 @@ class Cache(dict):
          if strict:
             raise e
 
+def NOCACHE(fun, *args, **kw):
+   return run(*args, **kw)
+
 GLOBALCACHE = Cache()
 if sys.argv and sys.argv[0] in ['ipython', 'test_server']:
    if not hasattr(os, "__HACK_MULTIRUN_CACHE"):
       os._HACK_MULTIRUN_CACHE = Cache()
    GLOBALCACHE = os._HACK_MULTIRUN_CACHE
 
-def NOCACHE(fun, *args, **kw):
-   return run(*args, **kw)
+class CachedProxy:
+   def __init__(self, thing):
+      self._CachedProxy__key__ = id(thing)
+      GLOBALCACHE[self._CachedProxy__key__] = thing
+
+   def __getattr__(self, name):
+      if name == '_CachedProxy__key__':
+         raise AttributeError
+      return getattr(GLOBALCACHE[self._CachedProxy__key__], name)
+
+def remove_proxy(thing):
+   if isinstce(thing, CachedProxy):
+      return GLOBALCACHE[thing._CachedProxy__key__]
+   return thing

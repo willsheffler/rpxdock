@@ -32,5 +32,6 @@ from rpxdock.filter import filter_redundancy
 from rpxdock.io import dump_pdb_from_bodies
 from rpxdock.geom import symframes
 from rpxdock.sampling import ProductHier, GridHier, CompoundHier
+from rpxdock.util.cache import GLOBALCACHE, CachedProxy
 
 rootdir = os.path.dirname(__file__)

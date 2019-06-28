@@ -21,11 +21,11 @@ def _test_cage_slide(hscore, body_cageA, body_cageB):
    rp.search.samples_2xCyclic_slide(spec)
 
 def test_cage_hier_no_trim(hscore, body_cageA, body_cageB):
-   arg = get_arg(align_components=False)
+   arg = get_arg(fixed_components=True)
    arg.beam_size = 5000
 
    spec = rp.search.DockSpec2CompCage('T33')
-   sampler = rp.sampling.hier_multi_axis_sampler(spec.nfold, spec.axis, spec.xflip, 50, 60)
+   sampler = rp.sampling.hier_multi_axis_sampler(spec, [50, 60])
    result = rp.search.make_cage([body_cageA, body_cageB], spec, hscore, rp.hier_search, sampler,
                                 **arg)
    # print(result)
@@ -37,7 +37,7 @@ def test_cage_hier_no_trim(hscore, body_cageA, body_cageB):
    rp.search.assert_results_close(result, ref)
 
 def test_cage_hier_trim(hscore, body_cageA_extended, body_cageB_extended):
-   arg = get_arg().sub(nout_debug=0, max_trim=150, align_components=False)
+   arg = get_arg().sub(nout_debug=0, max_trim=150, fixed_components=True)
    arg.output_prefix = 'test_cage_hier_trim'
    arg.wts.ncontact = 0.0
    arg.trimmable_components = 'AB'
@@ -46,7 +46,7 @@ def test_cage_hier_trim(hscore, body_cageA_extended, body_cageB_extended):
    # print('test_cage_hier_trim', body_cageA_extended.nres)
 
    spec = rp.search.DockSpec2CompCage('T33')
-   sampler = rp.sampling.hier_multi_axis_sampler(spec.nfold, spec.axis, spec.xflip, 40, 80)
+   sampler = rp.sampling.hier_multi_axis_sampler(spec, [40, 80])
    body_cageA_extended.trim_direction = "C"
    body_cageB_extended.trim_direction = "C"
    bodies = [body_cageA_extended, body_cageB_extended]
@@ -71,15 +71,14 @@ def test_cage_hier_trim(hscore, body_cageA_extended, body_cageB_extended):
    rp.search.assert_results_close(result, ref)
 
 def test_cage_hier_3comp(hscore, bodyC4, bodyC3, bodyC2):
-   arg = get_arg(align_components=True)
+   arg = get_arg()
    arg.wts.ncontact = 0.01
    arg.beam_size = 10000
    arg.iface_summary = np.median
 
    bodies = [bodyC4, bodyC3, bodyC2]
    spec = rp.search.DockSpec3CompCage('O432')
-   sampler = rp.sampling.hier_multi_axis_sampler(spec.nfold, spec.axis, spec.xflip, 70, 90,
-                                                 flip=False)
+   sampler = rp.sampling.hier_multi_axis_sampler(spec, [70, 90], flip_components=False)
    result = rp.search.make_cage(bodies, spec, hscore, rp.hier_search, sampler, **arg)
 
    # result.dump_pdbs_top_score(hscore=hscore,

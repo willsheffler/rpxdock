@@ -5,6 +5,16 @@ log = logging.getLogger(__name__)
 
 _iface_summary_methods = dict(min=np.min, sum=np.sum, median=np.median)
 
+def str2bool(v):
+   if isinstance(v, bool):
+      return v
+   if v.lower() in ('yes', 'true', 't', 'y', '1'):
+      return True
+   elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+      return False
+   else:
+      raise argparse.ArgumentTypeError('Boolean value expected.')
+
 def add_argument_unless_exists(parser, *arg, **kw):
    if not (arg or kw):
       return functools.partial(add_argument_unless_exists, parser)
@@ -17,11 +27,14 @@ def default_cli_parser(parent=None):
    parser = parent if parent else argparse.ArgumentParser()
    addarg = add_argument_unless_exists(parser)
    addarg("--inputs", nargs="*", type=str, default=[])
+   addarg("--inputs1", nargs="*", type=str, default=[])
+   addarg("--inputs2", nargs="*", type=str, default=[])
+   addarg("--inputs3", nargs="*", type=str, default=[])
    addarg("--ncpu", type=int, default=cpu_count())
    addarg("--nthread", type=int, default=0)
    addarg("--nprocess", type=int, default=0)
    addarg("--trial_run", action="store_true", default=False)
-   addarg("--hscore_files", nargs="+", default=['ilv_helix'])
+   addarg("--hscore_files", nargs="+", default=['ilv_h'])
    addarg("--max_trim", type=int, default=100)
    addarg("--max_pair_dist", type=float, default=8.0)
    addarg("--trim_direction", type=str, default="NC")
@@ -56,8 +69,12 @@ def default_cli_parser(parent=None):
    addarg("--docking_method", default='hier')
    addarg("--cart_bounds", default=[], type=float, nargs='+')
    addarg("--use_fixed_mindis", action='store_true', default=False)
+   # tcdock
+   addarg("--architecture", type=str, default=None)
    addarg("--trimmable_components", default="")
-   addarg("--align_components", action='store_true', default=False)
+   addarg("--flip_components", nargs='+', default=[True], type=str2bool)
+   addarg("--fixed_components", action='store_true', default=False)
+
    parser.has_rpxdock_args = True
    return parser
 
@@ -84,6 +101,14 @@ def set_loglevel(loglevel):
 def process_cli_args(arg):
    arg = Bunch(arg)
 
+   if not arg.inputs:
+      if arg.inputs1:
+         arg.inputs.append(arg.inputs1)
+         if arg.inputs2:
+            arg.inputs.append(arg.inputs2)
+            if arg.inputs3:
+               arg.inputs.append(arg.inputs3)
+
    arg.iface_summary = _iface_summary_methods[arg.iface_summary]
 
    _extract_weights(arg)
@@ -98,6 +123,9 @@ def process_cli_args(arg):
 
    _process_arg_sspair(arg)
    arg.trim_direction = arg.trim_direction.upper()
+
+   if arg.architecture:
+      arg.architecture = arg.architecture.upper()
 
    return arg
 
