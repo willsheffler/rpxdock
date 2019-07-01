@@ -38,8 +38,11 @@ def main():
    result = rp.concat_results(result)
 
    print(result)
-   result.dump_pdbs_top_score(hscore=hscore, **arg)
-   result.dump_pdbs_top_score_each(hscore=hscore, **arg)
+   if arg.dump_pdbs:
+      result.dump_pdbs_top_score(hscore=hscore, **arg)
+      result.dump_pdbs_top_score_each(hscore=hscore, **arg)
+   if not arg.suppress_dump_results:
+      rp.util.dump(results, arg.output_prefix + '_Result.pickle')
 
 if __name__ == '__main__':
    main()

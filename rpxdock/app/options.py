@@ -26,54 +26,157 @@ def add_argument_unless_exists(parser, *arg, **kw):
 def default_cli_parser(parent=None):
    parser = parent if parent else argparse.ArgumentParser()
    addarg = add_argument_unless_exists(parser)
-   addarg("--inputs", nargs="*", type=str, default=[])
-   addarg("--inputs1", nargs="*", type=str, default=[])
-   addarg("--inputs2", nargs="*", type=str, default=[])
-   addarg("--inputs3", nargs="*", type=str, default=[])
-   addarg("--ncpu", type=int, default=cpu_count())
-   addarg("--nthread", type=int, default=0)
-   addarg("--nprocess", type=int, default=0)
-   addarg("--trial_run", action="store_true", default=False)
-   addarg("--hscore_files", nargs="+", default=['ilv_h'])
-   addarg("--max_trim", type=int, default=100)
-   addarg("--max_pair_dist", type=float, default=8.0)
-   addarg("--trim_direction", type=str, default="NC")
-   addarg("--debug", action="store_true", default=False)
-   addarg("--nout_debug", type=int, default=0)
-   addarg("--nout_top", type=int, default=10)
-   addarg("--nout_each", type=int, default=1)
-   addarg("--dump_pdbs", action='store_true', default=False)
-   addarg("--suppress_dump_results", action='store_true', default=False)
-   addarg("--nresl", type=int, default=None)
-   addarg("--clashdis", type=float, default=3.5)
-   addarg("--beam_size", type=int, default=1e5)
-   addarg("--max_bb_redundancy", type=float, default=3.0)
-   addarg("--max_cluster", type=int, default=0)
-   addarg("--max_longaxis_dot_z", type=float, default=1.000001)
-   addarg("--max_delta_h", type=float, default=50)
-   addarg("--iface_summary", default="min")
-   addarg("--weight_rpx", type=float, default=1.0)
-   addarg("--weight_ncontact", type=float, default=0.01)
-   addarg("--weight_plug", type=float, default=1.0)
-   addarg("--weight_hole", type=float, default=1.0)
+   addarg("--inputs", nargs="*", type=str, default=[],
+          help='input structures for single component protocols')
+   addarg("--inputs1", nargs="*", type=str, default=[],
+          help='input structures for single component protocols')
+   addarg("--inputs2", nargs="*", type=str, default=[],
+          help='input structures for second component for 2+ component protocols')
+   addarg("--inputs3", nargs="*", type=str, default=[],
+          help='input structurs for third component for 3+ component protocols')
+   addarg(
+      "--ncpu", type=int, default=cpu_count(),
+      help='number of cpu cores available. defaults to all cores or cores available according to slurm allocation'
+   )
+   addarg(
+      "--nthread", type=int, default=0,
+      help='number of threads to use in threaded protocols, default single thread and/or ncpu for some things'
+   )
+   addarg(
+      "--nprocess", type=int, default=0,
+      help='number of processes to use for multiprocess protocols, defaults to ncpu most of the time'
+   )
+   addarg("--trial_run", action="store_true", default=False,
+          help='reduce runtime by using minimal samples, smaller score files, whatever')
+   addarg(
+      "--hscore_files", nargs="+", default=['ilv_h'],
+      help='rpx score files using in scoring for most protocols. defaults to pairs involving only ILV and only in helices. Can be only a path-suffix, which will be appended to --hscore_data_dir. Can be a list of files. Score files with various parameters can be generated with rpxdock/app/generate_motif_scores.py.'
+   )
+   addarg(
+      "--hscore_data_dir", default='/home/sheffler/data/rpx/hscore',
+      help='default path to search for hcores_files. defaults to /home/sheffler/data/rpx/hscore')
+   addarg(
+      "--max_trim", type=int, default=100,
+      help='maximum allowed trimming of residues from docking components. specifying 0 will completely disable trimming, and may allow significantly shorter runtimes. defaults to 100.'
+   )
+   addarg(
+      "--trim_direction", type=str, default="NC",
+      help='For variable length protocols, if --max_trim > 0, allow trimming from only N or C. If this is not specified, trimming may be allowed from N or C directions, though some protocols trim from only one direction as appropriate. (maybe)'
+   )
+   addarg(
+      "--max_pair_dist", type=float, default=8.0,
+      help="maxium distance between centroids for a pair of residues do be considered interacting. In hierarchical protocols, coarser stages will add appropriate amounts to this distance. defaults to 8.0"
+   )
+   # addarg("--use_fixed_mindis", action='store_true', default=False)
+   addarg("--debug", action="store_true", default=False,
+          help='Enable potentially expensive debugging checks')
+   addarg(
+      "--nout_debug", type=int, default=0,
+      help='Specify number of pdb outputs for individual protocols to output for each search. This is not the preferred way to get pdb outputs, use --nout_top and --nout_each unless you have a reason not to. defaults to 0'
+   )
+   addarg(
+      "--nout_top", type=int, default=10,
+      help='total number of top scoring output structures across all docks. only happens of --dump_pdbs is also specified. defaults to 10'
+   )
+   addarg(
+      "--nout_each", type=int, default=1,
+      help='number of top scoring output structurs for each individual dock. only happens if --dump_pdbs is also specfied. defaults to 1'
+   )
+   addarg("--dump_pdbs", action='store_true', default=False, help='activate output of pdb files.')
+   addarg("--suppress_dump_results", action='store_true', default=False,
+          help="suppress the output of results files")
+   addarg(
+      "--nresl", type=int, default=None,
+      help="number of hierarchical stages to do for hierarchical searches. probably use only for debugging, default is to do all stages"
+   )
+   addarg("--clashdis", type=float, default=3.5,
+          help='minimum distance allowed between heavy atoms')
+   addarg(
+      "--beam_size", type=int, default=100000,
+      help='Maximum number of samples for each stage of a hierarchical search protocol (except the first, coarsest stage, which must sample all available positions. This is the most important parameter for determining rumtime (aside from number of input structures). defaults to 50,000'
+   )
+   addarg(
+      "--max_bb_redundancy", type=float, default=3.0,
+      help='mimimum distance between outputs from a single docking run. is more-or-less a non-aligned backbone RMSD. defaults to 3.0'
+   )
+   addarg(
+      "--max_cluster", type=int, default=0,
+      help='maximum numer of results to cluster (filter redundancy via max_bb_redundancy) for each dock. defaults to no limit'
+   )
+   addarg(
+      "--max_longaxis_dot_z", type=float, default=1.000001,
+      help='maximum dot product of longest input axis (as determined by PCA) with the main symmetry axis. aka the cosine of the angle between the two axes. Can be used to force cyclic oligomers / plugs/ etc to lay flat. defaults to no constraint (1.0)'
+   )
+   addarg(
+      "--max_delta_h", type=float, default=50,
+      help='maximum diffenence between cartesian component offsets for multicomponent symmetry axis aligned docking like cages and layers. Smaller values will '
+   )
+   addarg(
+      "--iface_summary", default="min",
+      help='method to use for summarizing multiple created interface into a single score. For example, a three component cage could have 3 interfaces A/B B/C and C/A, or a monomer-based cage plug will have an oligomer interface and an oligomer / cage interface. default is min. e.g. to take the overall score as the worst of the multiple interfaces'
+   )
+   addarg("--weight_rpx", type=float, default=1.0,
+          help='score weight of the main RPX score component. defaults to 1.0')
+   addarg(
+      "--weight_ncontact", type=float, default=0.01,
+      help='score weight of each contact (pair of centroids within --max_pair_dist). defaults to 0.01'
+   )
+   addarg(
+      "--weight_plug", type=float, default=1.0,
+      help='Only for monomer-to-plug docking. score weight of plug oligomer interface. defaults to 1.0'
+   )
+   addarg(
+      "--weight_hole", type=float, default=1.0,
+      help='Only for monomer-to-plug docking. score weight of plug / cage hole interface. defaults to 1.0'
+   )
+   addarg(
+      "--output_prefix", nargs="?", default="", type=str,
+      help="output file prefix. will output pickles for a base ResPairScore plus --hierarchy_depth hier XMaps"
+   )
+   addarg(
+      "--dont_store_body_in_results", action="store_true", default=False,
+      help='reduce result output size and maybe runtime by not including structure information in results objects. will not be able to rescore or output pdbs from results objects.'
+   )
+   addarg("--loglevel", default='INFO',
+          help='select log level from CRITICAL, ERROR, WARNING, INFO or DEBUG. defaults to INFO')
+   addarg(
+      "--score_only_ss", default='EHL',
+      help="only consider residues of the specified secondary structure type when scoring. defaults to all (EHL)"
+   )
+   addarg(
+      "--score_only_aa", default='ANYAA',
+      help='only consider residues of the specified type when generating score files. Not currently supported in all protocols. defaults to ANYAA'
+   )
+   addarg(
+      "--score_only_sspair", default=[], nargs="+",
+      help="only consider pairs with the specified secondary structure types when scoring. may not work in all protocols. defaults to no constraint on scoring."
+   )
+
+   addarg(
+      "--docking_method", default='hier',
+      help='search method to use in docking. available methods may include "hier" for hierarchical search (probably best) "grid" for a flat grid search and "slide" for a lower dimension grid search using slide moves. Not all options available for all protocols. defaults to "hier"'
+   )
+   addarg(
+      "--cart_bounds", default=[], type=float, nargs='+',
+      help='cartesian bounds for various protocols. should probably be replaced with some more general mechanism. no default as protocols specific'
+   )
    addarg("--grid_resolution_cart_angstroms", type=float, default=1)
    addarg("--grid_resolution_ori_degrees", type=float, default=1)
-   H = "output file prefix. will output pickles for a base ResPairScore plus --hierarchy_depth hier XMaps"
-   addarg("--output_prefix", nargs="?", default="", type=str, help=H)
-   addarg("--dont_store_body_in_results", action="store_true", default=False)
-   addarg("--loglevel", default='INFO')
-   addarg("--score_only_ss", default='EHL')
-   addarg("--score_only_aa", default='ANYAA')
-   addarg("--score_only_sspair", default=[], nargs="+")
-   addarg("--hscore_data_dir", default='/home/sheffler/data/rpx/hscore')
-   addarg("--docking_method", default='hier')
-   addarg("--cart_bounds", default=[], type=float, nargs='+')
-   addarg("--use_fixed_mindis", action='store_true', default=False)
    # tcdock
-   addarg("--architecture", type=str, default=None)
-   addarg("--trimmable_components", default="")
-   addarg("--flip_components", nargs='+', default=[True], type=str2bool)
-   addarg("--fixed_components", action='store_true', default=False)
+   addarg(
+      "--architecture", type=str, default=None,
+      help='architecture to be produced by docking. Can be cage I32, O43, T32 or Cx for cyclic. No default value'
+   )
+   addarg("--trimmable_components", default="",
+          help='specify which components "ABC" etc are trimmable.')
+   addarg(
+      "--flip_components", nargs='+', default=[True], type=str2bool,
+      help='boolean value or values specifying if components should be allowed to flip in axis aligned docking protocols'
+   )
+   addarg(
+      "--fixed_components", action='store_true', default=False,
+      help='use this flag if components are already aligned along the appropriate symmetry axes. If absent, components are assumed to be aligned along Z and centered on the origin'
+   )
 
    parser.has_rpxdock_args = True
    return parser
@@ -126,6 +229,8 @@ def process_cli_args(arg):
 
    if arg.architecture:
       arg.architecture = arg.architecture.upper()
+
+   log.info(str(arg))
 
    return arg
 
