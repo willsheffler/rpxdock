@@ -108,7 +108,7 @@ def default_cli_parser(parent=None):
       help='maximum dot product of longest input axis (as determined by PCA) with the main symmetry axis. aka the cosine of the angle between the two axes. Can be used to force cyclic oligomers / plugs/ etc to lay flat. defaults to no constraint (1.0)'
    )
    addarg(
-      "--max_delta_h", type=float, default=50,
+      "--max_delta_h", type=float, default=9999,
       help='maximum diffenence between cartesian component offsets for multicomponent symmetry axis aligned docking like cages and layers. Smaller values will '
    )
    addarg(
