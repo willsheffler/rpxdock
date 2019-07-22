@@ -80,8 +80,10 @@ class HierScore:
          xmap = self.hier[iresl]
          ssstub = bodyA.ssid, bodyB.ssid, bodyA.pos @ bodyA.stub, xsym @ bodyB.pos @ bodyB.stub
          if not self.use_ss: ssstub = ssstub[2:]
+
          pscore = self.map_pairs(xmap.xbin, xmap.phmap, pairs, *ssstub)
          m[pairs[:, 0], pairs[:, 1]] += pscore
+
       return m
 
 #  m.def("map_of_selected_pairs", &map_of_selected_pairs_onearray<K, F, double>,

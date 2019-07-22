@@ -103,7 +103,7 @@ def make_pdb_from_bodies(
                # ATOM      3  O   MET A   0      20.402  18.063   8.049  0.00  0.00
                # ATOM      4  CB  MET A   0      20.402  18.063   8.049  0.00  0.00
                if use_orig_coords:
-                  xyz = orig_coords[i][j]
+                  xyz = xsym @ orig_coords[i][j]
                   aname = body.orig_anames[i][j]
                   elem = aname_to_elem(aname)
                else:

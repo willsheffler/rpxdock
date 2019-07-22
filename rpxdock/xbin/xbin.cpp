@@ -110,7 +110,7 @@ Vx<K> key_of_pairs(Xbin<F, K> const &xb, py::array xp, py::array x1,
   size_t sp = xp.itemsize(), sx1 = x1.itemsize(), sx2 = x2.itemsize();
   if (xp.strides()[0] != 2 * sp || xp.strides()[1] != sp)
     throw std::runtime_error("bad strides, strides not supported");
-  if (x1.dtype() != x2.dtype())
+  if (x1.dtype().kind() != x2.dtype().kind())
     throw std::runtime_error("xform arrays must have same dtype");
   if (py::isinstance<py::array_t<int64_t>>(xp)) {
     return kop_impl<int64_t, F, K>(xb, xp, x1, x2);
@@ -154,9 +154,9 @@ Vx<K> key_of_selected_pairs(Xbin<F, K> const &xb, py::array i1, py::array i2,
   if (!i2) throw std::runtime_error("bad array");
   if (i1.ndim() != 1 || i2.ndim() != 1 || i1.size() != i2.size())
     throw std::runtime_error("index must be shape (N,) and same length");
-  if (i1.dtype() != i2.dtype())
+  if (i1.dtype().kind() != i2.dtype().kind())
     throw std::runtime_error("index arrays must have same dtype");
-  if (x1.dtype() != x2.dtype())
+  if (x1.dtype().kind() != x2.dtype().kind())
     throw std::runtime_error("xform arrays must have same dtype");
   if (py::isinstance<py::array_t<int64_t>>(i1)) {
     return kop2_impl<int64_t, F, K>(xb, i1, i2, x1, x2);
@@ -205,7 +205,7 @@ Vx<K> key_of_selected_pairs_onearray(Xbin<F, K> const &xb, py::array idx,
   if (!idx) throw std::runtime_error("bad array");
   if (idx.ndim() != 2 || idx.shape()[1] != 2)
     throw std::runtime_error("index must be shape (N,2)");
-  if (x1.dtype() != x2.dtype())
+  if (x1.dtype().kind() != x2.dtype().kind())
     throw std::runtime_error("xform arrays must have same dtype");
   if (py::isinstance<py::array_t<int64_t>>(idx)) {
     return kop2_onearray_impl<int64_t, F, K>(xb, idx, x1, x2);
@@ -259,9 +259,9 @@ Vx<K> sskey_of_selected_pairs(Xbin<F, K> const &xb, py::array i1, py::array i2,
   if (!i2) throw std::runtime_error("bad array");
   if (i1.ndim() != 1 || i2.ndim() != 1 || i1.size() != i2.size())
     throw std::runtime_error("index must be shape (N,) and same length");
-  if (i1.dtype() != i2.dtype())
+  if (i1.dtype().kind() != i2.dtype().kind())
     throw std::runtime_error("index arrays must have same dtype");
-  if (x1.dtype() != x2.dtype())
+  if (x1.dtype().kind() != x2.dtype().kind())
     throw std::runtime_error("xform arrays must have same dtype");
   if (py::isinstance<py::array_t<int64_t>>(i1)) {
     return kop2ss_impl<int64_t, F, K>(xb, i1, i2, ss1, ss2, x1, x2);
@@ -312,7 +312,7 @@ Vx<K> sskey_of_selected_pairs_onearray(Xbin<F, K> const &xb, py::array idx,
   if (!idx) throw std::runtime_error("bad array");
   if (idx.ndim() != 2 || idx.shape()[1] != 2)
     throw std::runtime_error("index must be shape (N,2)");
-  if (x1.dtype() != x2.dtype())
+  if (x1.dtype().kind() != x2.dtype().kind())
     throw std::runtime_error("xform arrays must have same dtype");
   if (py::isinstance<py::array_t<int64_t>>(idx)) {
     return kop3ss_impl<int64_t, F, K>(xb, idx, ss1, ss2, x1, x2);
@@ -372,7 +372,7 @@ Vx<V> ssmap_of_selected_pairs_onearray(Xbin<F, K> const &xb,
   if (!idx) throw std::runtime_error("bad array");
   if (idx.ndim() != 2 || idx.shape()[1] != 2)
     throw std::runtime_error("index must be shape (N,2) and same length");
-  if (x1.dtype() != x2.dtype())
+  if (x1.dtype().kind() != x2.dtype().kind())
     throw std::runtime_error("xform arrays must have same dtype");
   if (py::isinstance<py::array_t<int64_t>>(idx)) {
     return mapkop3ss_impl<int64_t, F, K>(xb, map, idx, ss1, ss2, x1, x2, v0);
@@ -429,7 +429,7 @@ Vx<V> map_of_selected_pairs_onearray(Xbin<F, K> const &xb,
   if (!idx) throw std::runtime_error("bad array");
   if (idx.ndim() != 2 || idx.shape()[1] != 2)
     throw std::runtime_error("index must be shape (N,2) and same length");
-  if (x1.dtype() != x2.dtype())
+  if (x1.dtype().kind() != x2.dtype().kind())
     throw std::runtime_error("xform arrays must have same dtype");
   if (py::isinstance<py::array_t<int64_t>>(idx)) {
     return mapkop3_impl<int64_t, F, K>(xb, map, idx, x1, x2, v0);

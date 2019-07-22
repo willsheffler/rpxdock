@@ -53,10 +53,13 @@ class Body:
          self.resno = np.tile(range(n), nfold)
          newcoord = np.empty((nfold * n, ) + self.coord.shape[1:])
          newcoord[:n] = self.coord
+         new_orig_coords = self.orig_coords
          for i in range(1, nfold):
             self.pos = rpxdock.homog.hrot(self.symaxis, 360.0 * i / nfold)
             newcoord[i * n:][:n] = self.positioned_coord()
+            new_orig_coords.extend(self.positioned_orig_coords())
          self.coord = (xform @ newcoord[:, :, :, None]).reshape(-1, 5, 4)
+         self.orig_coords = [(xform @ oc[:, :, None]).reshape(-1, 4) for oc in new_orig_coords]
       else:
          raise ValueError("unknown symmetry: " + sym)
       assert len(self.seq) == len(self.coord)

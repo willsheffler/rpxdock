@@ -50,7 +50,7 @@ def test_hierscore(hscore, N=1000):
       avg_base_ptrb_bfrac.append(ptrb_bfrac)
       assert ptrb_olap > 0.65
       assert ptrb_bfrac > 0.65
-   assert np.mean(avg_base_ptrb_olap) > 0.8
+   assert np.mean(avg_base_ptrb_olap) > 0.78
    assert np.mean(avg_base_ptrb_bfrac) > 0.79
 
    avg_recov = list()

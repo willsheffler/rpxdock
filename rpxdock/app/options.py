@@ -130,7 +130,7 @@ def default_cli_parser(parent=None):
       help='Only for monomer-to-plug docking. score weight of plug / cage hole interface. defaults to 1.0'
    )
    addarg(
-      "--output_prefix", nargs="?", default="", type=str,
+      "--output_prefix", nargs="?", default="rpxdock", type=str,
       help="output file prefix. will output pickles for a base ResPairScore plus --hierarchy_depth hier XMaps"
    )
    addarg(
@@ -177,6 +177,8 @@ def default_cli_parser(parent=None):
       "--fixed_components", action='store_true', default=False,
       help='use this flag if components are already aligned along the appropriate symmetry axes. If absent, components are assumed to be aligned along Z and centered on the origin'
    )
+   addarg("--use_orig_coords", action='store_true', default=False,
+          help='remember and output the original sidechains from the input structures')
 
    parser.has_rpxdock_args = True
    return parser
