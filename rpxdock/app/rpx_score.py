@@ -30,7 +30,7 @@ def score_onebody(hscore, **kw):
          resscore = np.sum(iscores, axis=0)
          bfac_file = os.path.basename(fn) + '_rpx.pdb'
          body.dump_pdb(bfac_file, bfactor=resscore, use_orig_coords=True)
-      print(f'{fn} sum {sumsum:7.2f} mean {meanmean:7.3f} sum(max) {summax:7.3f}' +
+      print(f'{fn} sum {sumsum:7.2f} mean {meanmean:7.3f} sum(max) {summax:8.3f} ' +
             f'sum(mean) {summean:7.3f} {bfac_file}')
 
 def score_twobody(hscore, **kw):

@@ -12,9 +12,10 @@ def assign_rotamers(rp, rotspace=None):
    allrotchi = [np.array([])] * 2
    nrot = 2
    for aa, nchi in aa_nchi.items():
-      if nchi is 0:
-         continue
+      if nchi == 0: continue
       aaid = int(rp.aa2id.sel(aa=aa))
+      naa = np.sum(rp.aaid == aaid)
+      if naa == 0: continue
       rs = rotspace.sel(aa=aa)
       rotchi = np.stack([rs["x" + str(i + 1)] for i in range(nchi)], axis=1)
       assert rotchi.shape[0] == len(rs.lbl)

@@ -253,8 +253,8 @@ def make_and_dump_hier_score_tables_one(rp, ihier, xbin_base, cart_extent, ori_e
    sm.attr.ori_extent = ori_extent
    sm.attr.use_ss_key = arg.use_ss_key
 
-   log.info(f"{ihier} {smearrad} {exhalf} cart {cart_extent:6.2f} {cart_resl:6.2f}" +
-            f"ori {ori_extent:6.2f} {xbin.ori_resl:6.2f} nsmr {len(smearmap)/1e6:5.1f}M" +
+   log.info(f"{ihier} {smearrad} {exhalf} cart {cart_extent:6.2f} {cart_resl:6.2f} " +
+            f"ori {ori_extent:6.2f} {xbin.ori_resl:6.2f} nsmr {len(smearmap)/1e6:5.1f}M " +
             f"base {len(basemap)/1e3:5.1f}K xpnd {len(smearmap) / len(basemap):7.1f}")
 
    fname = arg.output_prefix + "%s_%s_%s_p%s_b%s_hier%i_%s_%i_%i.pickle" % (
