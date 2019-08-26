@@ -1,8 +1,8 @@
 import numpy as np, rpxdock as sd
 
-class GridHier:
+class ZeroDHier:
    def __init__(self, samples):
-      if isinstance(samples, GridHier):
+      if isinstance(samples, ZeroDHier):
          self.samples = samples.samples
       else:
          samples = np.asarray(samples)

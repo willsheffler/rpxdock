@@ -104,7 +104,7 @@ if __name__ == "__main__":
    body_c3_mono = rp.data.get_body('test_c3_mono')
 
    hscore = rp.data.small_hscore()
-   # hscore = rp.HierScore('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
+   # hscore = rp.RpxHier('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
 
    # hole.dump_pdb('ref.pdb', use_body_sym=True)
    test_plug_hier(hscore, plug, hole)

@@ -2,6 +2,14 @@ import numpy as np
 import rpxdock.homog as hm
 from rpxdock.geom import sym
 
+allowed_twocomp_architectures = """
+D22 D32 D42 D52 D62 D72 D82
+T32 T33 O32 O42 O43 I32 I52 I53
+T32D T23D T33D
+O32D O23D O42D O24D O43D O34D
+I32D I23D I52D I54D I53D I35D
+""".split()
+
 class DockSpec1CompCage:
    def __init__(self, spec):
       assert len(spec) == 2
@@ -10,6 +18,7 @@ class DockSpec1CompCage:
       self.sym = spec[0]
       self.num_components = 1
       self.nfold = int(spec[1])
+      self.is_dihedral = [False]
       assert self.sym in "TOI"
       self.axis = sym.axes[self.sym][self.nfold]
       self.axis_second = sym.axes_second[self.sym][self.nfold]
@@ -58,15 +67,15 @@ class DockSpec1CompCage:
 
 class DockSpec2CompCage:
    def __init__(self, spec):
-      assert len(spec) == 3
-      assert spec in "T32 T33 O32 O42 O43 I32 I52 I53".split()
-      self.spec = spec
+      self.spec = spec.upper()
+      assert self.spec in allowed_twocomp_architectures
+      assert len(self.spec) == 3 or self.spec.endswith('D')
       self.sym = spec[0]
       self.num_components = 2
+      self.is_dihedral = [False, self.spec.endswith('D')]
       self.nfold1 = int(spec[1])
       self.nfold2 = int(spec[2])
       self.nfold = np.array([self.nfold1, self.nfold2])
-      assert self.sym in "TOI"
       self.axis1 = sym.axes[self.sym][self.nfold1]
       self.axis2 = sym.axes[self.sym][self.nfold2]
       self.axis2 = sym.axes[self.sym][33] if spec == "T33" else self.axis2
@@ -163,6 +172,7 @@ class DockSpec3CompCage:
       self.num_components = 3
       self.symframes_ = sym.frames[self.sym]
       assert self.sym in "TOI"
+      self.is_dihedral = [False] * 3
       self.nfold = np.array([int(spec[1]), int(spec[2]), int(spec[3])], dtype='i')
       self.axis = np.array([sym.axes[self.sym][n] for n in self.nfold])
       self.axisperp = [

@@ -12,7 +12,7 @@ def rand_xform_sphere(n, radius, maxang=0):
    x[:, :3, 3] = t[:n]
    return x
 
-def test_hierscore(hscore, N=1000):
+def test_rpxhier(hscore, N=1000):
    # mean error rates are lower than what you might infer from thresholds below
 
    print("size base", len(hscore.base.score_map))
@@ -50,8 +50,8 @@ def test_hierscore(hscore, N=1000):
       avg_base_ptrb_bfrac.append(ptrb_bfrac)
       assert ptrb_olap > 0.65
       assert ptrb_bfrac > 0.65
-   assert np.mean(avg_base_ptrb_olap) > 0.78
-   assert np.mean(avg_base_ptrb_bfrac) > 0.79
+   assert np.mean(avg_base_ptrb_olap) > 0.77
+   assert np.mean(avg_base_ptrb_bfrac) > 0.78
 
    avg_recov = list()
    for i, hier in enumerate(hscore.hier):

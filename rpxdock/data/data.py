@@ -30,5 +30,5 @@ def small_respairscore():
 
 @lru_cache()
 def small_hscore():
-   from rpxdock import HierScore  # avoid cyclic import
-   return HierScore('small_ilv_h', hscore_data_dir=hscoredir)
+   from rpxdock import RpxHier  # avoid cyclic import
+   return RpxHier('small_ilv_h', hscore_data_dir=hscoredir)

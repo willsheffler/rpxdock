@@ -4,7 +4,7 @@ from time import perf_counter
 import numpy as np
 import xarray as xr
 import rpxdock
-from rpxdock.motif import HierScore
+from rpxdock.motif import RpxHier
 from rpxdock.util import GLOBALCACHE as HC
 from rpxdock.data import datadir
 from rpxdock.util import load, Bunch, load_threads
@@ -120,7 +120,7 @@ def threaded_load_hscore_and_bodies(hscore_files, body_files, nthread):
    with ProcessPoolExecutor(nthread) as exe:
       bodies = list(exe.map(load_body, body_files))
    loader.join()
-   hscore = HierScore(loader.result)
+   hscore = RpxHier(loader.result)
    return hscore, bodies
 
 def multiprocess_test(cli_args):
@@ -200,7 +200,7 @@ def server_test(cli_args):
    hscore_tables = HC(load_medium_hscore)
    # args = args.sub_(nout_debug=2, beam_size=2e4, max_bb_redundancy=3)
    # hscore_tables = HC(load_small_hscore)
-   hscore = HierScore(hscore_tables)
+   hscore = RpxHier(hscore_tables)
    holes = [
       ("C3_o42", HC(Body, "/home/sheffler/scaffolds/holes/C3_o42_Z_asym.pdb", sym=3)),
       ("C3_i52", HC(Body, "/home/sheffler/scaffolds/holes/C3_i52_Z_asym.pdb", sym=3)),
@@ -240,7 +240,7 @@ def hier_sample_test(cli_args):
    # args.output_prefix = "rpx"
 
    raise NotImplemented
-   hscore = HierScore(load_big_hscore())
+   hscore = RpxHier(load_big_hscore())
    args.wts.ncontact = 1.0
    args.wts.rpx = 1.0
    args.beam_size = 2e5
@@ -280,7 +280,7 @@ def load_big_hscore():
 def main():
    rpxdock.rosetta.rosetta_init()
    if len(sys.argv) is 1:
-      hscore = HierScore(load_threads(small_hscore_fnames))
+      hscore = RpxHier(load_threads(small_hscore_fnames))
       return quick_test_olig(hscore)
    parser = rpxdock.app.default_cli_parser()
    parser.add_argument("mode", default="quick_test")

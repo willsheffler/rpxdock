@@ -101,7 +101,7 @@ def test_compound_get_xforms():
       assert np.allclose(u1, u1b)
 
 def test_product_hier():
-   g = GridHier(rp.homog.rand_xform())
+   g = ZeroDHier(rp.homog.rand_xform())
    h = ProductHier(ch2, g)
    for resl in range(3):
       assert h.size(resl) == ch2.size(resl)
@@ -109,7 +109,7 @@ def test_product_hier():
       ok, cx = ch2.get_xforms(resl, np.arange(ch2.size(resl)))
       assert np.allclose(hx, cx @ g.samples[0])
 
-   g = GridHier(rp.homog.rand_xform(3))
+   g = ZeroDHier(rp.homog.rand_xform(3))
    assert g.ncell == 3
    h = ProductHier(ch2, g)
    for resl in range(3):
@@ -122,7 +122,7 @@ def test_product_hier():
             assert np.allclose(hx[k], cx[j] @ g.samples[i])
 
    assert g.ncell == 3
-   g = GridHier(np.stack([np.eye(4), np.eye(4), np.eye(4)]))
+   g = ZeroDHier(np.stack([np.eye(4), np.eye(4), np.eye(4)]))
    h = ProductHier(g, ch2)
    for resl in range(3):
       assert h.size(resl) == 3 * ch2.size(resl)
@@ -135,8 +135,8 @@ def test_product_hier():
                assert np.allclose(hx[idx], g.samples[jc] @ cx[ic * 2**resl + kh])
 
 def test_compound_product_hier():
-   g1 = GridHier(rp.homog.rand_xform())
-   g2 = GridHier(rp.homog.rand_xform())
+   g1 = ZeroDHier(rp.homog.rand_xform())
+   g2 = ZeroDHier(rp.homog.rand_xform())
    p1 = ProductHier(ch2, g1)
    p2 = ProductHier(ch2, g2)
    h = CompoundHier(p1, p2)

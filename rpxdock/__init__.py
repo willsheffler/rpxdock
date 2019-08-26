@@ -26,12 +26,14 @@ from rpxdock.app import options
 from rpxdock.body import Body
 from rpxdock.bvh import BVH
 from rpxdock.data import datadir
-from rpxdock.motif import HierScore, ResPairData, ResPairScore
+from rpxdock.motif import ResPairData, ResPairScore, Xmap
+from rpxdock.score import RpxHier
 from rpxdock.search import Result, hier_search, grid_search, concat_results
 from rpxdock.filter import filter_redundancy
 from rpxdock.io import dump_pdb_from_bodies
 from rpxdock.geom import symframes
-from rpxdock.sampling import ProductHier, GridHier, CompoundHier
+from rpxdock.sampling import ProductHier, ZeroDHier, CompoundHier
 from rpxdock.util.cache import GLOBALCACHE, CachedProxy
+from rpxdock.xbin import Xbin
 
 rootdir = os.path.dirname(__file__)

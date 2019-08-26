@@ -19,7 +19,7 @@ def main():
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **arg)
    logging.info(f'num base samples {sampler.size(0)}')
 
-   hscore = rp.CachedProxy(rp.HierScore(arg.hscore_files, **arg))
+   hscore = rp.CachedProxy(rp.RpxHier(arg.hscore_files, **arg))
 
    bodies = [[rp.Body(fn, **arg) for fn in inp] for inp in arg.inputs]
    assert len(bodies) == spec.num_components

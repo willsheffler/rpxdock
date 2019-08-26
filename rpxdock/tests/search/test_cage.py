@@ -98,8 +98,8 @@ if __name__ == '__main__':
    # rp.dump(body2, rp.data.bodydir + '/T33_dn2_asymB.pickle')
 
    hscore = rp.data.small_hscore()
-   # hscore = rp.HierScore('ilv_h', hscore_data_dir='/home/sheffler/data/rpx/hscore')
-   # hscore = rp.HierScore('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
+   # hscore = rp.RpxHier('ilv_h', hscore_data_dir='/home/sheffler/data/rpx/hscore')
+   # hscore = rp.RpxHier('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
 
    # body1 = rp.data.get_body('T33_dn2_asymA')
    # body2 = rp.data.get_body('T33_dn2_asymB')

@@ -45,7 +45,7 @@ def main():
    arg = get_opts()
    logging.info(f'weights: {arg.wts}')
 
-   hscore = rp.HierScore(arg.hscore_files, **arg)
+   hscore = rp.RpxHier(arg.hscore_files, **arg)
 
    if arg.other_bodies:
       score_twobody(hscore, **arg)
