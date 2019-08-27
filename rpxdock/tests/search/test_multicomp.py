@@ -1,4 +1,4 @@
-import concurrent, os, argparse, sys, numpy as np, rpxdock as rp
+import concurrent, os, argparse, sys, numpy as np, rpxdock as rp, pytest
 
 def get_arg(**kw):
    arg = rp.app.defaults()
@@ -26,8 +26,8 @@ def test_cage_hier_no_trim(hscore, body_cageA, body_cageB):
 
    spec = rp.search.DockSpec2CompCage('T33')
    sampler = rp.sampling.hier_multi_axis_sampler(spec, [50, 60])
-   result = rp.search.make_cage([body_cageA, body_cageB], spec, hscore, rp.hier_search, sampler,
-                                **arg)
+   result = rp.search.make_multicomp([body_cageA, body_cageB], spec, hscore, rp.hier_search,
+                                     sampler, **arg)
    # print(result)
    # result.dump_pdbs_top_score(hscore=hscore,
    # **arg.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
@@ -50,7 +50,7 @@ def test_cage_hier_trim(hscore, body_cageA_extended, body_cageB_extended):
    body_cageA_extended.trim_direction = "C"
    body_cageB_extended.trim_direction = "C"
    bodies = [body_cageA_extended, body_cageB_extended]
-   result = rp.search.make_cage(bodies, spec, hscore, rp.hier_search, sampler, **arg)
+   result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **arg)
 
    # print(result)
    # result = result.sel(model=result.resub[:, 0] != 219)
@@ -79,7 +79,26 @@ def test_cage_hier_3comp(hscore, bodyC4, bodyC3, bodyC2):
    bodies = [bodyC4, bodyC3, bodyC2]
    spec = rp.search.DockSpec3CompCage('O432')
    sampler = rp.sampling.hier_multi_axis_sampler(spec, [70, 90], flip_components=False)
-   result = rp.search.make_cage(bodies, spec, hscore, rp.hier_search, sampler, **arg)
+   result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **arg)
+
+   # result.dump_pdbs_top_score(hscore=hscore,
+   # **arg.sub(nout_top=10, output_prefix='test_cage_hier_3comp'))
+
+   # rp.dump(result, 'rpxdock/data/testdata/test_cage_hier_3comp.pickle')
+   ref = rp.data.get_test_data('test_cage_hier_3comp')
+   rp.search.assert_results_close(result, ref)
+
+@pytest.mark.skip
+def test_layer_hier_3comp(hscore, bodyC6, bodyC3, bodyC2):
+   arg = get_arg()
+   arg.wts.ncontact = 0.01
+   arg.beam_size = 10000
+   arg.iface_summary = np.median
+
+   bodies = [bodyC6, bodyC3, bodyC2]
+   spec = rp.search.DockSpec3CompLayer('P6_632')
+   sampler = rp.sampling.hier_multi_axis_sampler(spec, [70, 90], flip_components=False)
+   result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **arg)
 
    # result.dump_pdbs_top_score(hscore=hscore,
    # **arg.sub(nout_top=10, output_prefix='test_cage_hier_3comp'))
@@ -111,13 +130,6 @@ if __name__ == '__main__':
 
    C2 = rp.data.get_body('C2_REFS10_1')
    C3 = rp.data.get_body('C3_1na0-1_1')
-   C4 = rp.data.get_body('C4_1na0-G1_1')
-   test_cage_hier_3comp(hscore, C4, C3, C2)
-
-   # body1 = rp.Body('/home/sheffler/tmp/T33_dn2_asymA.pdb.gz')
-   # body2 = rp.Body('/home/sheffler/tmp/T33_dn2_asymB.pdb.gz')
-   # wts = rp.Bunch(ncontact=0.1, rpx=1.0)
-   # evaluator = rp.search.cage.CageEvaluatorNoTrim([body1, body2],
-   #                                                rp.search.DockSpec2CompCage('T33'), hscore,
-   #                                                wts=wts)
-   # print(evaluator(np.stack([np.eye(4), np.eye(4)]))[0])
+   # C4 = rp.data.get_body('C4_1na0-G1_1')
+   C6 = rp.data.get_body('C6_3H22')
+   test_layer_hier_3comp(hscore, C6, C3, C2)

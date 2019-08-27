@@ -20,7 +20,7 @@ _file_mappings = {
    "bvh.cpp": ["rpxdock/tests/bvh/test_bvh.py"],
    "bvh_nd.cpp": ["rpxdock/tests/bvh/test_bvh_nd.py"],
    "bvh.hpp": ["rpxdock/tests/bvh/test_bvh_nd.py"],
-   "dockspec.py": ["rpxdock/tests/search/test_gridslide.py"],
+   "dockspec.py": ["rpxdock/tests/search/test_multicomp.py"],
    "_orientations.hpp": ["rpxdock/sampling/orientations.py"],
    "_orientations.cpp": ["rpxdock/sampling/orientations.py"],
    "_orientations_test.cpp": ["rpxdock/sampling/orientations.py"],

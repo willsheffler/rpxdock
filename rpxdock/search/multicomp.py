@@ -1,8 +1,8 @@
 import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
 
-def make_cage(bodies, spec, hscore, search=hier_search, sampler=None, fixed_components=False,
-              **kw):
+def make_multicomp(bodies, spec, hscore, search=hier_search, sampler=None, fixed_components=False,
+                   **kw):
    arg = rp.Bunch(kw)
    t = rp.Timer().start()
    arg.nresl = len(hscore.hier) if arg.nresl is None else arg.nresl
@@ -15,7 +15,7 @@ def make_cage(bodies, spec, hscore, search=hier_search, sampler=None, fixed_comp
          bodies[i] = b.copy_xformed(rp.homog.align_vector([0, 0, 1], spec.axis[i]))
 
    dotrim = arg.max_trim and arg.trimmable_components and len(bodies) < 3
-   Evaluator = CageEvaluatorWithTrim if dotrim else CageEvaluator
+   Evaluator = MultiCompEvaluatorWithTrim if dotrim else MultiCompEvaluator
    evaluator = Evaluator(bodies, spec, hscore, **arg)
    xforms, scores, extra, stats = search(sampler, evaluator, **arg)
    ibest = rp.filter_redundancy(xforms, bodies, scores, **arg)
@@ -52,7 +52,7 @@ def make_cage(bodies, spec, hscore, search=hier_search, sampler=None, fixed_comp
       **data,
    )
 
-class CageEvaluatorBase:
+class MultiCompEvaluatorBase:
    def __init__(self, bodies, spec, hscore, wts=rp.Bunch(ncontact=0.1, rpx=1.0), **kw):
       self.arg = rp.Bunch(kw)
       self.hscore = hscore
@@ -62,7 +62,7 @@ class CageEvaluatorBase:
       self.arg.wts = wts
       self.bodies = [b.copy_with_sym(spec.nfold[i], spec.axis[i]) for i, b in enumerate(bodies)]
 
-class CageEvaluator(CageEvaluatorBase):
+class MultiCompEvaluator(MultiCompEvaluatorBase):
    def __init__(self, *arg, **kw):
       super().__init__(*arg, **kw)
 
@@ -81,7 +81,8 @@ class CageEvaluator(CageEvaluatorBase):
 
       # check clash, or get non-clash range
       for i in range(len(bod)):
-         ok[ok] &= bod[i].clash_ok(bod[i], xforms[ok, i], xnbr[i] @ xforms[ok, i], **arg)
+         if xnbr is not None:
+            ok[ok] &= bod[i].clash_ok(bod[i], xforms[ok, i], xnbr[i] @ xforms[ok, i], **arg)
          for j in range(i):
             ok[ok] &= bod[i].clash_ok(bod[j], xforms[ok, i], xforms[ok, j], **arg)
 
@@ -99,7 +100,7 @@ class CageEvaluator(CageEvaluatorBase):
 
       return scores, rp.Bunch()
 
-class CageEvaluatorWithTrim(CageEvaluatorBase):
+class MultiCompEvaluatorWithTrim(MultiCompEvaluatorBase):
    def __init__(self, *arg, trimmable_components="AB", **kw):
       super().__init__(*arg, **kw)
       self.trimmable_components = trimmable_components
@@ -141,14 +142,16 @@ class CageEvaluatorWithTrim(CageEvaluatorBase):
          ok[ok] &= trimok
 
          xa = x[ok, 0]
-         trimA2 = compA.intersect_range(compA, xa, xnbr[0] @ xa, **arg)
+         if xnbr is not None:
+            trimA2 = compA.intersect_range(compA, xa, xnbr[0] @ xa, **arg)
          trimA2, trimok2 = trim_ok(trimA2, compA.asym_body.nres, **arg)
          ok[ok] &= trimok2
          lbA[ok] = np.maximum(trimA1[0][trimok2], trimA2[0])
          ubA[ok] = np.minimum(trimA1[1][trimok2], trimA2[1])
 
          xb = x[ok, 1]
-         trimB = compB.intersect_range(compB, xb, xnbr[1] @ xb, **arg)
+         if xnbr is not None:
+            trimB = compB.intersect_range(compB, xb, xnbr[1] @ xb, **arg)
          trimB, trimok = trim_ok(trimB, compB.asym_body.nres, **arg)
          ok[ok] &= trimok
          lbB[ok], ubB[ok] = trimB
@@ -158,14 +161,16 @@ class CageEvaluatorWithTrim(CageEvaluatorBase):
          ok[ok] &= trimok
 
          xb = x[ok, 1]
-         trimB2 = compB.intersect_range(compB, xb, xnbr[1] @ xb, **arg)
+         if xnbr is not None:
+            trimB2 = compB.intersect_range(compB, xb, xnbr[1] @ xb, **arg)
          trimB2, trimok2 = trim_ok(trimB2, compB.asym_body.nres, **arg)
          ok[ok] &= trimok2
          lbB[ok] = np.maximum(trimB1[0][trimok2], trimB2[0])
          ubB[ok] = np.minimum(trimB1[1][trimok2], trimB2[1])
 
          xa = x[ok, 0]
-         trimA = compA.intersect_range(compA, xa, xnbr[0] @ xa, **arg)
+         if xnbr is not None:
+            trimA = compA.intersect_range(compA, xa, xnbr[0] @ xa, **arg)
          trimA, trimok = trim_ok(trimA, compA.asym_body.nres, **arg)
          ok[ok] &= trimok
          lbA[ok], ubA[ok] = trimA

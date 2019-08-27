@@ -77,32 +77,31 @@ class Result:
       which = self.top_each(nout_each)
       ndigijob = num_digits(len(which) - 1)
       dumped = set()
-      ndigmodel = max(np.max(num_digits(v)) for v in which.values())
+      ndigmdl = max(np.max(num_digits(v)) for v in which.values())
       for ijob, imodel in which.items():
-         dumped |= self.dump_pdbs(imodel, lbl=f'job{ijob:0{ndigijob}}_top', ndigmodel=ndigmodel,
-                                  **kw)
+         dumped |= self.dump_pdbs(imodel, lbl=f'job{ijob:0{ndigijob}}_top', ndigmdl=ndigmdl, **kw)
       return dumped
 
-   def dump_pdbs(self, which, ndigwhich=None, ndigmodel=None, lbl='', skip=[],
-                 output_prefix='rpx', **kw):
+   def dump_pdbs(self, which, ndigwhich=None, ndigmdl=None, lbl='', skip=[], output_prefix='rpx',
+                 **kw):
       if len(which) is 0: return set()
       if isinstance(which, abc.Mapping):
          raise ValueError('dump_pdbs takes sequence not mapping')
       if not output_prefix and 'output_prefix' in self.attrs:
          output_prefix = self.output_prefix
       if ndigwhich is None: ndigwhich = num_digits(len(which) - 1)
-      if ndigmodel is None: ndigmodel = num_digits(max(which))
+      if ndigmdl is None: ndigmdl = num_digits(max(which))
       dumped = set()
       for i, imodel in enumerate(which):
          assert not isinstance(imodel, np.ndarray) or len(imodel) == 1
          if not imodel in skip:
             dumped.add(int(imodel))
-            prefix_tmp = f'{output_prefix}_{lbl}{i:0{ndigwhich}}_{int(imodel):0{ndigmodel}}_'
+            prefix_tmp = f'{output_prefix}_{lbl}{i:0{ndigwhich}}_{int(imodel):0{ndigmdl}}_'
             self.dump_pdb(imodel, output_prefix=prefix_tmp, **kw)
       return dumped
 
-   def dump_pdb(self, imodel, output_prefix='', suffix='', fname=None, output_body='ALL', sym='',
-                sep='_', skip=[], hscore=None, **kw):
+   def dump_pdb(self, imodel, output_prefix='', output_suffix='', fname=None, output_body='ALL',
+                sym='', sep='_', skip=[], hscore=None, **kw):
       if not sym and 'sym' in self.attrs: sym = self.attrs['sym']
       sym = sym if sym else "C1"
       if not output_prefix and 'output_prefix' in self.attrs:
@@ -130,8 +129,8 @@ class Result:
             bodlab = [self.body_label_[i] for i in output_body]
             body_names = [bl + '_' + lbl for bl, lbl in zip(bodlab, body_names)]
          middle = '__'.join(body_names)
-         suffix = sep + suffix if suffix else ''
-         fname = output_prefix + middle + suffix + '.pdb'
+         output_suffix = sep + output_suffix if output_suffix else ''
+         fname = output_prefix + middle + output_suffix + '.pdb'
       log.info(f'dumping pdb {fname} score {self.scores.data[imodel]}')
       bfactor = None
       if hscore and len(bod) == 2:

@@ -30,9 +30,18 @@ def hier_axis_sampler(nfold, lb=25, ub=200, resl=10, angresl=10, axis=[0, 0, 1],
       samp = rp.ProductHier(samp, flip)
    return samp
 
-def hier_multi_axis_sampler(spec, cart_bounds=[25, 200], resl=10, angresl=10,
-                            flip_components=True, **kw):
+def hier_multi_axis_sampler(spec, *args, **kw):
+   if spec.spec.startswith('P'):
+      return hier_multi_axis_sampler_lattice(spec, *args, **kw)
+   else:
+      return hier_multi_axis_sampler_cage(spec, *args, **kw)
 
+def hier_multi_axis_sampler_lattice(spec, cart_bounds=[25, 200], resl=10, angresl=10,
+                                    flip_components=True, **kw):
+   assert 0
+
+def hier_multi_axis_sampler_cage(spec, cart_bounds=[25, 200], resl=10, angresl=10,
+                                 flip_components=True, **kw):
    if not (hasattr(spec, 'nfold') and hasattr(spec, 'axis') and hasattr(spec, 'xflip')):
       raise ValueError('spec must have nfold, axis and xflip')
    assert len(spec.nfold) == len(spec.axis) == len(spec.xflip)

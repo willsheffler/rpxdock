@@ -107,6 +107,10 @@ def bodyC4():
    return data.get_body('C4_1na0-G1_1')
 
 @pytest.fixture(scope="session")
+def bodyC6():
+   return data.get_body('C6_3H22')
+
+@pytest.fixture(scope="session")
 def body_tiny():
    return data.get_body('tiny')
 

@@ -234,3 +234,15 @@ class DockSpecMonomerToCyclic:
       newpos[:, 0, 3] = dx
       newpos[:, 1, 3] = dy
       return newpos.reshape(origshape)
+
+_layer_comp_center_directions = dict(P6_632=([0.86602540378, 0.0, 0], [0.86602540378, 0.5, 0]))
+
+class DockSpec3CompLayer(DockSpec3CompCage):
+   def __init__(self, spec):
+      spec = spec.upper()
+      assert spec.startswith('P')
+      self.spec = spec
+      self.sym = spec.split('_')[0]
+      self.nfolds = list(spec.split('_')[1])
+      self.directions = _layer_comp_center_directions[spec]
+      self.axis = [np.array([0, 0, 1])] * 3
