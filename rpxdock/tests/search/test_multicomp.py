@@ -94,17 +94,23 @@ def test_layer_hier_3comp(hscore, bodyC6, bodyC3, bodyC2):
    arg.wts.ncontact = 0.01
    arg.beam_size = 10000
    arg.iface_summary = np.median
+   arg.max_delta_h = 9e9
+   # arg.executor = None
+   # arg.nout_debug = 3
 
    bodies = [bodyC6, bodyC3, bodyC2]
    spec = rp.search.DockSpec3CompLayer('P6_632')
-   sampler = rp.sampling.hier_multi_axis_sampler(spec, [70, 90], flip_components=False)
+   sampler = rp.sampling.hier_multi_axis_sampler(spec, [[50, 100], [-10, 20], [-10, 20]],
+                                                 flip_components=False)
+   # sampler = rp.sampling.hier_multi_axis_sampler(spec, [[0, 300], [-10, 10], [-10, 10]],
+   # flip_components=False)
    result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **arg)
 
    # result.dump_pdbs_top_score(hscore=hscore,
-   # **arg.sub(nout_top=10, output_prefix='test_cage_hier_3comp'))
+   # **arg.sub(nout_top=10, output_prefix='test_layer_hier_3comp'))
 
-   # rp.dump(result, 'rpxdock/data/testdata/test_cage_hier_3comp.pickle')
-   ref = rp.data.get_test_data('test_cage_hier_3comp')
+   # rp.dump(result, 'rpxdock/data/testdata/test_layer_hier_3comp.pickle')
+   ref = rp.data.get_test_data('test_layer_hier_3comp')
    rp.search.assert_results_close(result, ref)
 
 if __name__ == '__main__':

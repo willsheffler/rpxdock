@@ -8,6 +8,7 @@ T32 T33 O32 O42 O43 I32 I52 I53
 T32D T23D T33D
 O32D O23D O42D O24D O43D O34D
 I32D I23D I52D I54D I53D I35D
+P6_632
 """.split()
 
 class DockSpec1CompCage:
@@ -15,6 +16,7 @@ class DockSpec1CompCage:
       assert len(spec) == 2
       assert spec in "T2 T3 O2 O3 O4 I2 I3 I5".split()
       self.spec = spec
+      self.type = 'cage'
       self.sym = spec[0]
       self.num_components = 1
       self.nfold = int(spec[1])
@@ -71,6 +73,7 @@ class DockSpec2CompCage:
       assert self.spec in allowed_twocomp_architectures
       assert len(self.spec) == 3 or self.spec.endswith('D')
       self.sym = spec[0]
+      self.type = 'cage'
       self.num_components = 2
       self.is_dihedral = [False, self.spec.endswith('D')]
       self.nfold1 = int(spec[1])
@@ -168,6 +171,7 @@ class DockSpec3CompCage:
       assert len(spec) == 4
       assert spec in "O432 I532".split()
       self.spec = spec
+      self.type = 'cage'
       self.sym = spec[0]
       self.num_components = 3
       self.symframes_ = sym.frames[self.sym]
@@ -194,6 +198,7 @@ class DockSpecMonomerToCyclic:
    def __init__(self, spec):
       assert len(spec) == 2
       assert spec[0] == "C"
+      self.type = 'cyclic'
       self.spec = spec
       self.num_components = 1
       self.nfold = int(spec[1])
@@ -235,14 +240,20 @@ class DockSpecMonomerToCyclic:
       newpos[:, 1, 3] = dy
       return newpos.reshape(origshape)
 
-_layer_comp_center_directions = dict(P6_632=([0.86602540378, 0.0, 0], [0.86602540378, 0.5, 0]))
+_layer_comp_center_directions = dict(P6_632=(np.array([0.86602540378, 0.5, 0, 0]),
+                                             np.array([0.86602540378, 0.0, 0, 0])))
 
 class DockSpec3CompLayer(DockSpec3CompCage):
    def __init__(self, spec):
       spec = spec.upper()
       assert spec.startswith('P')
       self.spec = spec
-      self.sym = spec.split('_')[0]
-      self.nfolds = list(spec.split('_')[1])
+      self.type = 'layer'
+      self.sym = spec
+      self.nfold = np.array(list(spec.split('_')[1]), dtype='i')
       self.directions = _layer_comp_center_directions[spec]
-      self.axis = [np.array([0, 0, 1])] * 3
+      self.axis = np.array([np.array([0, 0, 1])] * 3)
+      self.xflip = [hm.hrot([1, 0, 0], 180)] * 3
+      self.is_dihedral = [False, False, False]
+      self.num_components = 3
+      self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], 60), hm.hrot([0, 0, 1], 60)]

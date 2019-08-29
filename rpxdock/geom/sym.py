@@ -6,7 +6,7 @@ tetrahedral_frames = np.load(datadir + "/tetrahedral_frames.pickle", allow_pickl
 octahedral_frames = np.load(datadir + "/octahedral_frames.pickle", allow_pickle=True)
 icosahedral_frames = np.load(datadir + "/icosahedral_frames.pickle", allow_pickle=True)
 
-def symframes(sym, axis=[0, 0, 1]):
+def symframes(sym, positions=None, axis=[0, 0, 1]):
    if isinstance(sym, (int, np.int32, np.int64, np.uint32, np.uint64)):
       sym = int(sym)
    if isinstance(sym, int) or sym.startswith("C"):
@@ -18,6 +18,20 @@ def symframes(sym, axis=[0, 0, 1]):
       return octahedral_frames
    if sym.startswith("I"):
       return icosahedral_frames
+   if sym == 'P6_632':
+      c6 = hm.hrot(axis, np.arange(6) / 6 * 360)
+      c3 = hm.hrot(axis,
+                   np.arange(3) / 3 * 360, center=[positions[1, 0, 3], positions[1, 1, 3], 0])
+      c2 = hm.hrot(axis,
+                   np.arange(2) / 2 * 360, center=[positions[2, 0, 3], positions[2, 1, 3], 0])
+      frames = c6[None, None, :] @ c3[None, :, None] @ c2[:, None, None]
+      # frames = (c6[:, None, None, None] @ c2[None, :, None, None] @ c3[None, None, :, None]
+      # @ c6[None, None, None, :])
+      # frames = c3[None, :, None] @ c2[:, None, None]
+      # frames = np.concatenate([c6, c3, c2])
+      # frames = c6
+      # frames = np.eye(4)
+      return frames.reshape(-1, 4, 4)
 
 frames = dict(T=tetrahedral_frames, O=octahedral_frames, I=icosahedral_frames)
 

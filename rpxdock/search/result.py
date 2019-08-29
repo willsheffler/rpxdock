@@ -87,6 +87,8 @@ class Result:
       if len(which) is 0: return set()
       if isinstance(which, abc.Mapping):
          raise ValueError('dump_pdbs takes sequence not mapping')
+      if 'fname' in kw and kw['fname'] is not None:
+         raise ArgumentError('fname is not a valid argument for dump_pdbs, because multiple files')
       if not output_prefix and 'output_prefix' in self.attrs:
          output_prefix = self.output_prefix
       if ndigwhich is None: ndigwhich = num_digits(len(which) - 1)
@@ -139,8 +141,8 @@ class Result:
       bounds = np.tile([[-9e9], [9e9]], len(bod)).T
       if 'reslb' in self.data and 'resub' in self.data:
          bounds = np.stack([self.reslb[imodel], self.resub[imodel]], axis=-1)
-      rp.io.dump_pdb_from_bodies(fname, bod, symframes=rp.geom.symframes(sym), resbounds=bounds,
-                                 bfactor=bfactor, **kw)
+      rp.io.dump_pdb_from_bodies(fname, bod, symframes=rp.geom.symframes(
+         sym, positions=self.xforms[imodel]), resbounds=bounds, bfactor=bfactor, **kw)
 
    def __len__(self):
       return len(self.model)

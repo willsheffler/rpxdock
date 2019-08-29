@@ -48,7 +48,9 @@ _file_mappings = {
    "pybind_types.hpp": ["rpxdock/tests/util/test_pybind_types.py"],
    "xform_dist.cpp": ["rpxdock/tests/geom/test_geom.py"],
    # "hierscore.py": ["rpxdock/tests/search/test_plug.py"],
-   "component.py": ['rpxdock/tests/score/test_scorefunc.py']
+   "component.py": ['rpxdock/tests/score/test_scorefunc.py'],
+   "xform_hier.py": ['rpxdock/tests/search/test_multicomp.py'],
+   "lattice_hier.py": ['rpxdock/tests/search/test_multicomp.py']
 }
 _post = defaultdict(lambda: "")
 

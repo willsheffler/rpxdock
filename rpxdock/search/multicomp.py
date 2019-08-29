@@ -40,12 +40,14 @@ def make_multicomp(bodies, spec, hscore, search=hier_search, sampler=None, fixed
       ncontact=(["model"], ncontact.astype("f4")),
    )
    for k, v in extra.items():
-      if not isinstance(v, (list, tuple)) or len(v) > 3: v = ['model'], v
+      if not isinstance(v, (list, tuple)) or len(v) > 3:
+         v = ['model'], v
       data[k] = v
    for i in range(len(bodies)):
       data[f'disp{i}'] = (['model'], np.sum(xforms[:, i, :3, 3] * spec.axis[None, i, :3], axis=1))
       data[f'angle{i}'] = (['model'], rp.homog.angle_of(xforms[:, i]) * 180 / np.pi)
    default_label = [f'comp{c}' for c in 'ABCDEFD' [:len(bodies)]]
+
    return rp.Result(
       body_=None if arg.dont_store_body_in_results else bodies,
       body_label_=[] if arg.dont_store_body_in_results else default_label,
@@ -81,14 +83,27 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
 
       # check clash, or get non-clash range
       for i in range(len(bod)):
-         if xnbr is not None:
+         if xnbr[i] is not None:
             ok[ok] &= bod[i].clash_ok(bod[i], xforms[ok, i], xnbr[i] @ xforms[ok, i], **arg)
          for j in range(i):
             ok[ok] &= bod[i].clash_ok(bod[j], xforms[ok, i], xforms[ok, j], **arg)
 
+      if xnbr[0] is None and xnbr[1] is not None and xnbr[2] is not None:  # layer hack
+         inv = np.linalg.inv
+         ok[ok] &= bod[0].clash_ok(bod[1], xforms[ok, 0], xnbr[1] @ xforms[ok, 1], **arg)
+         ok[ok] &= bod[0].clash_ok(bod[2], xforms[ok, 0], xnbr[2] @ xforms[ok, 2], **arg)
+         ok[ok] &= bod[0].clash_ok(bod[1], xforms[ok, 0], xnbr[2] @ xforms[ok, 1], **arg)
+         ok[ok] &= bod[0].clash_ok(bod[2], xforms[ok, 0], xnbr[1] @ xforms[ok, 2], **arg)
+         ok[ok] &= bod[1].clash_ok(bod[2], xforms[ok, 1], xnbr[2] @ xforms[ok, 2], **arg)
+         ok[ok] &= bod[1].clash_ok(bod[2], xforms[ok, 1], xnbr[1] @ xforms[ok, 2], **arg)
+         ok[ok] &= bod[0].clash_ok(bod[1], xforms[ok, 0], inv(xnbr[1]) @ xforms[ok, 1], **arg)
+         # ok[ok] &= bod[0].clash_ok(bod[2], xforms[ok, 0], inv(xnbr[2]) @ xforms[ok, 2], **arg)
+         # ok[ok] &= bod[1].clash_ok(bod[2], xforms[ok, 1], inv(xnbr[2]) @ xforms[ok, 2], **arg)
+         ok[ok] &= bod[0].clash_ok(bod[2], xforms[ok, 0], inv(xnbr[1]) @ xforms[ok, 2], **arg)
+         ok[ok] &= bod[1].clash_ok(bod[2], xforms[ok, 1], inv(xnbr[1]) @ xforms[ok, 2], **arg)
+
       # score everything that didn't clash
       ifscore = list()
-
       for i in range(len(bod)):
          for j in range(i):
             ifscore.append(
@@ -198,12 +213,17 @@ def _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw):
       bodies[0].move_to(xforms[i, 0])
       bodies[1].move_to(xforms[i, 1])
       wrpx, wnct = (arg.wts.sub(rpx=1, ncontact=0), arg.wts.sub(rpx=0, ncontact=1))
-      scr, *lbub = evaluator(xforms[i], arg.nresl - 1, wrpx)
-      cnt, *lbub = evaluator(xforms[i], arg.nresl - 1, wnct)
+      scr, extra = evaluator(xforms[i], arg.nresl - 1, wrpx)
+      cnt, extra = evaluator(xforms[i], arg.nresl - 1, wnct)
       fn = arg.output_prefix + "_%02i.pdb" % iout
-      print(
-         f"{fn} score {scores[i]:7.3f} rpx {scr[0]:7.3f} cnt {cnt[0]:4}",
-         f"resi {lbub[0][0]}-{lbub[1][0]}",
-      )
-      rp.dump_pdb_from_bodies(fn, bodies, spec.symframes(), resbounds=[lbub])
+      lbub = [extra.lbub] if extra.lbub else []
+      if len(lbub) > 1:
+         print(
+            f"{fn} score {scores[i]:7.3f} rpx {scr[0]:7.3f} cnt {cnt[0]:4}",
+            f"resi {lbub[0][0]}-{lbub[1][0]}",
+         )
+      else:
+         print(f"{fn} score {scores[i]:7.3f} rpx {scr[0]:7.3f} cnt {cnt[0]:4}")
+      rp.dump_pdb_from_bodies(fn, bodies, rp.geom.symframes(spec.sym, xforms[iout]),
+                              resbounds=lbub)
    return t.total

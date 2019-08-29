@@ -2,7 +2,7 @@
 
 import logging, itertools, concurrent, tqdm, rpxdock as rp
 
-def get_tcdock_args():
+def get_rpxdock_args():
    arg = rp.options.get_cli_args()
    if not arg.architecture: raise ValueError("architecure must be specified")
    if not arg.cart_bounds: arg.cart_bounds = 0, 500
@@ -10,11 +10,18 @@ def get_tcdock_args():
    elif len(arg.cart_bounds) is not 2: raise ValueError('cart_bounds must be [lb, ub]')
    return arg
 
+def get_spec(arch):
+   if arch.startswith('P'):
+      spec = rp.search.DockSpec3CompLayer(arch)
+   else:
+      spec = rp.search.DockSpec2CompCage(arch)
+   return spec
+
 def main():
-   arg = get_tcdock_args()
+   arg = get_rpxdock_args()
    logging.info(f'weights: {arg.wts}')
 
-   spec = rp.search.DockSpec2CompCage(arg.architecture)
+   spec = get_spec(arg.architecture)
 
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **arg)
    logging.info(f'num base samples {sampler.size(0)}')
@@ -30,7 +37,8 @@ def main():
       futures = list()
       for ijob, bod in enumerate(itertools.product(*bodies)):
          futures.append(
-            pool.submit(rp.search.make_multicomp, bod, spec, hscore, rp.hier_search, sampler, **arg))
+            pool.submit(rp.search.make_multicomp, bod, spec, hscore, rp.hier_search, sampler,
+                        **arg))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
       for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
