@@ -5,9 +5,6 @@ import logging, itertools, concurrent, tqdm, rpxdock as rp
 def get_rpxdock_args():
    arg = rp.options.get_cli_args()
    if not arg.architecture: raise ValueError("architecure must be specified")
-   if not arg.cart_bounds: arg.cart_bounds = 0, 500
-   elif len(arg.cart_bounds) is 1: arg.cart_bounds = [0, arg.cart_bounds[0]]
-   elif len(arg.cart_bounds) is not 2: raise ValueError('cart_bounds must be [lb, ub]')
    return arg
 
 def get_spec(arch):

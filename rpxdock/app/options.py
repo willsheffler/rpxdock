@@ -232,6 +232,13 @@ def process_cli_args(arg):
    if arg.architecture:
       arg.architecture = arg.architecture.upper()
 
+   if not arg.cart_bounds: arg.cart_bounds = 0, 500
+   elif len(arg.cart_bounds) is 1: arg.cart_bounds = [0, arg.cart_bounds[0]]
+   tmp = list()
+   for i in range(0, len(arg.cart_bounds), 2):
+      tmp.append(arg.cart_bounds[i:i + 2])
+   arg.cart_bounds = tmp
+
    log.info(str(arg))
 
    return arg
