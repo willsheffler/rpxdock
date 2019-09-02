@@ -44,6 +44,8 @@ def hier_multi_axis_sampler(spec, cart_bounds=[25, 200], resl=10, angresl=10,
    if len(cart_bounds) is 2 and isinstance(cart_bounds[0], int):
       cart_bounds = np.array([cart_bounds] * spec.num_components)
    cart_bounds = np.array(cart_bounds)
+   assert len(cart_bounds) in (1, len(spec.nfold))
+   cart_bounds = np.tile(cart_bounds, [8, 1])  # for wrapping / repeating
 
    cart_nstep = np.ceil((cart_bounds[:, 1] - cart_bounds[:, 0]) / resl).astype('i')
 
