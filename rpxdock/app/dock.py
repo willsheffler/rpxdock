@@ -4,7 +4,7 @@ import logging, itertools, concurrent, tqdm, rpxdock as rp
 
 def get_rpxdock_args():
    arg = rp.options.get_cli_args()
-   if not arg.architecture: raise ValueError("architecure must be specified")
+   if not arg.architecture: raise ValueError("architecture must be specified")
    return arg
 
 def get_spec(arch):
@@ -14,16 +14,32 @@ def get_spec(arch):
       spec = rp.search.DockSpec2CompCage(arch)
    return spec
 
-def main():
-   arg = get_rpxdock_args()
-   logging.info(f'weights: {arg.wts}')
+def dock_cyclic(hscore, inputs, architecture, **kw):
+   arg = rp.Bunch(kw)
+   bodies = [rp.Body(inp, **arg) for inp in arg.inputs1]
 
+   exe = concurrent.futures.ProcessPoolExecutor
+   # exe = rp.util.InProcessExecutor
+   with exe(arg.ncpu) as pool:
+      futures = list()
+      for ijob, bod in enumerate(bodies):
+         futures.append(
+            pool.submit(rp.search.make_cyclic, bod, architecture.upper(), hscore, **arg))
+         futures[-1].ijob = ijob
+      result = [None] * len(futures)
+      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+         result[f.ijob] = f.result()
+   result = rp.concat_results(result)
+
+   # result = rp.search.make_cyclic(body, architecture.upper(), hscore, **arg)
+
+   return result
+
+def dock_multicomp(hscore, **kw):
+   arg = rp.Bunch(kw)
    spec = get_spec(arg.architecture)
-
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **arg)
    logging.info(f'num base samples {sampler.size(0)}')
-
-   hscore = rp.CachedProxy(rp.RpxHier(arg.hscore_files, **arg))
 
    bodies = [[rp.Body(fn, **arg) for fn in inp] for inp in arg.inputs]
    assert len(bodies) == spec.num_components
@@ -41,6 +57,18 @@ def main():
       for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
    result = rp.concat_results(result)
+   return result
+
+def main():
+   arg = get_rpxdock_args()
+   logging.info(f'weights: {arg.wts}')
+
+   hscore = rp.CachedProxy(rp.RpxHier(arg.hscore_files, **arg))
+
+   if arg.architecture.upper().startswith('C'):
+      result = dock_cyclic(hscore, **arg)
+   else:
+      result = dock_multicomp(hscore, **arg)
 
    print(result)
    if arg.dump_pdbs:
