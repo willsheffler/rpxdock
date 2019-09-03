@@ -17,6 +17,7 @@ dependencies:
  - yapf
  - pytest-sugar
  - pytest-xdist
+ - tabulate
  - pip
 
  - pip:
