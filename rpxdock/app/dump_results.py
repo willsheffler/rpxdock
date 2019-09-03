@@ -6,7 +6,8 @@ def main():
    for fn in arg.inputs:
       with open(fn, 'rb') as inp:
          result = _pickle.load(inp)
-         df = result.data.to_dataframe()
+         result = result.drop('xforms')
+         df = result.to_dataframe()
          # print(result)
          # print(result.to_dataframe().to_fwf())
          content = tabulate(df.values.tolist(), list(df.columns), tablefmt="plain")
