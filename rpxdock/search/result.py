@@ -103,7 +103,7 @@ class Result:
       return dumped
 
    def dump_pdb(self, imodel, output_prefix='', output_suffix='', fname=None, output_body='ALL',
-                sym='', sep='_', skip=[], hscore=None, **kw):
+                sym='', sep='_', skip=[], hscore=None, output_asym_only=False, **kw):
       if not sym and 'sym' in self.attrs: sym = self.attrs['sym']
       sym = sym if sym else "C1"
       if not output_prefix and 'output_prefix' in self.attrs:
@@ -141,8 +141,10 @@ class Result:
       bounds = np.tile([[-9e9], [9e9]], len(bod)).T
       if 'reslb' in self.data and 'resub' in self.data:
          bounds = np.stack([self.reslb[imodel], self.resub[imodel]], axis=-1)
-      rp.io.dump_pdb_from_bodies(fname, bod, symframes=rp.geom.symframes(
-         sym, positions=self.xforms[imodel]), resbounds=bounds, bfactor=bfactor, **kw)
+      symframes = rp.geom.symframes(sym, positions=self.xforms[imodel])
+      if output_asym_only: symframes = [np.eye(4)]
+      rp.io.dump_pdb_from_bodies(fname, bod, symframes=symframes, resbounds=bounds,
+                                 bfactor=bfactor, **kw)
 
    def __len__(self):
       return len(self.model)

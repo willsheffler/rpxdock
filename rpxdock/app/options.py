@@ -24,7 +24,7 @@ def add_argument_unless_exists(parser, *arg, **kw):
       pass
 
 def default_cli_parser(parent=None):
-   parser = parent if parent else argparse.ArgumentParser()
+   parser = parent if parent else argparse.ArgumentParser(allow_abbrev=False)
    addarg = add_argument_unless_exists(parser)
    addarg("--inputs", nargs="*", type=str, default=[],
           help='input structures for single component protocols')
@@ -83,6 +83,8 @@ def default_cli_parser(parent=None):
       help='number of top scoring output structurs for each individual dock. only happens if --dump_pdbs is also specfied. defaults to 1'
    )
    addarg("--dump_pdbs", action='store_true', default=False, help='activate output of pdb files.')
+   addarg("--output_asym_only", action='store_true', default=False,
+          help="dump only asym unit to pdbs")
    addarg("--suppress_dump_results", action='store_true', default=False,
           help="suppress the output of results files")
    addarg(
