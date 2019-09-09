@@ -58,7 +58,7 @@ def test_plug_hier_trim(hscore, plug, hole):
    rp.search.assert_results_close(result, ref)
 
 def test_plug_olig_hier(hscore, body_c3_mono, hole):
-   arg = testarg().sub(plug_fixed_olig=True)
+   arg = testarg().sub(plug_fixed_olig=True, max_trim=100)
    body_c3_mono.trim_direction = "C"
 
    # arg.output_prefix = "test_plug_olig_hier"
@@ -73,7 +73,7 @@ def test_plug_olig_hier(hscore, body_c3_mono, hole):
    rp.search.assert_results_close(result, ref)
 
 def test_plug_olig_grid(hscore, body_c3_mono, hole):
-   arg = testarg().sub(plug_fixed_olig=True)
+   arg = testarg().sub(plug_fixed_olig=True, max_trim=100)
 
    # arg.output_prefix = "test_plug_olig_grid"
    # arg.nout_debug = 10

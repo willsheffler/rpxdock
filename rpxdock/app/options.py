@@ -56,7 +56,7 @@ def default_cli_parser(parent=None):
       "--hscore_data_dir", default='/home/sheffler/data/rpx/hscore',
       help='default path to search for hcores_files. defaults to /home/sheffler/data/rpx/hscore')
    addarg(
-      "--max_trim", type=int, default=100,
+      "--max_trim", type=int, default=0,
       help='maximum allowed trimming of residues from docking components. specifying 0 will completely disable trimming, and may allow significantly shorter runtimes. defaults to 100.'
    )
    addarg(
