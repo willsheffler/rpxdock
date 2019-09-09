@@ -81,7 +81,7 @@ class DockSpec2CompCage:
       self.nfold = np.array([self.nfold1, self.nfold2])
       self.axis1 = sym.axes[self.sym][self.nfold1]
       self.axis2 = sym.axes[self.sym][self.nfold2]
-      self.axis2 = sym.axes[self.sym][33] if spec == "T33" else self.axis2
+      self.axis2 = sym.axes[self.sym][33] if spec.startswith('T33') else self.axis2
       self.axis = np.array([self.axis1, self.axis2])
       self.axisperp = hm.hcross(self.axis1, self.axis2)
       self.orig1 = hm.align_vector([0, 0, 1], self.axis1)

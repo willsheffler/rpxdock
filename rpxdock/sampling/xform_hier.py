@@ -39,8 +39,8 @@ def hier_multi_axis_sampler(spec, cart_bounds=[25, 200], resl=10, angresl=10,
       flip_components = [flip_components]
    if len(flip_components) is 1:
       flip_components = flip_components * len(spec.nfold)
-   for i, flip in enumerate(flip_components):
-      flip_components[i] = flip_components[i] and not spec.is_dihedral[i]
+   # for i, flip in enumerate(flip_components):
+   # flip_components[i] = flip_components[i] and not spec.is_dihedral[i]
    if len(cart_bounds) is 2 and isinstance(cart_bounds[0], int):
       cart_bounds = np.array([cart_bounds] * spec.num_components)
    cart_bounds = np.array(cart_bounds)
