@@ -1,8 +1,15 @@
 import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
 
-def make_multicomp(bodies, spec, hscore, search=hier_search, sampler=None, fixed_components=False,
-                   **kw):
+def make_multicomp(
+      bodies,
+      spec,
+      hscore,
+      search=hier_search,
+      sampler=None,
+      fixed_components=False,
+      **kw,
+):
    arg = rp.Bunch(kw)
    t = rp.Timer().start()
    arg.nresl = len(hscore.hier) if arg.nresl is None else arg.nresl
@@ -59,7 +66,6 @@ class MultiCompEvaluatorBase:
       self.arg = rp.Bunch(kw)
       self.hscore = hscore
       self.symrots = [rp.geom.symframes(n) for n in spec.nfold]
-      self.bodies = list(bodies)
       self.spec = spec
       self.arg.wts = wts
       self.bodies = [b.copy_with_sym(spec.nfold[i], spec.axis[i]) for i, b in enumerate(bodies)]
