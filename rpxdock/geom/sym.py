@@ -12,6 +12,13 @@ def symframes(sym, positions=None, axis=[0, 0, 1]):
    if isinstance(sym, int) or sym.startswith("C"):
       if not isinstance(sym, int): sym = int(sym[1:])
       return list(hm.hrot(axis, np.arange(sym) / sym * 360))
+   if sym.startswith("D"):
+      assert np.allclose(axis, [0, 0, 1])
+      assert sym[-1] == '2'
+      nsym = int(sym[1:-1])
+      frames_up = list(hm.hrot([0, 0, 1], np.arange(nsym) / nsym * 360))
+      frames_dn = list(hm.hrot([1, 0, 0], np.pi) @ frames_up)
+      return np.array(frames_up + frames_dn)
    if sym.startswith("T"):
       return tetrahedral_frames
    if sym.startswith("O"):
@@ -50,7 +57,21 @@ icosahedral_axes = {
    3: hm.hnormalized([0.934172, 0.000000, 0.356822]),
    5: hm.hnormalized([0.850651, 0.525731, 0.000000]),
 }
-axes = dict(T=tetrahedral_axes, O=octahedral_axes, I=icosahedral_axes)
+dihedral_axes = {
+   2: hm.hnormalized([1, 0, 0]),
+   22: hm.hnormalized([0, 0, 1]),
+   3: hm.hnormalized([0, 0, 1]),
+   4: hm.hnormalized([0, 0, 1]),
+   5: hm.hnormalized([0, 0, 1]),
+   6: hm.hnormalized([0, 0, 1]),
+   7: hm.hnormalized([0, 0, 1]),
+   8: hm.hnormalized([0, 0, 1]),
+   9: hm.hnormalized([0, 0, 1]),
+   10: hm.hnormalized([0, 0, 1]),
+   11: hm.hnormalized([0, 0, 1]),
+   12: hm.hnormalized([0, 0, 1]),
+}
+axes = dict(T=tetrahedral_axes, O=octahedral_axes, I=icosahedral_axes, D=dihedral_axes)
 
 to_neighbor_olig = dict(
    T={
@@ -68,9 +89,31 @@ to_neighbor_olig = dict(
       3: frames["I"][1],
       5: frames["I"][2]
    },
+   D22={
+      2: hm.hrot([0, 0, 1], 2 * np.pi / 2),
+      22: hm.hrot([1, 0, 0], 2 * np.pi / 2),
+   },
 )
 
 axes_second = {s: {k: to_neighbor_olig[s][k] @ v for k, v in axes[s].items()} for s in "TOI"}
+
+axes_second['D22'] = {
+   2: to_neighbor_olig['D22'][2] @ dihedral_axes[2],
+   22: to_neighbor_olig['D22'][22] @ dihedral_axes[22],
+}
+for i in range(3, 13):
+   to_neighbor_olig[f'D{i}2'] = {
+      2: hm.hrot([0, 0, 1], 2 * np.pi / i),
+      i: hm.hrot([1, 0, 0], np.pi),
+   }
+   axes_second[f'D{i}2'] = {
+      2: to_neighbor_olig[f'D{i}2'][2] @ dihedral_axes[2],
+      i: to_neighbor_olig[f'D{i}2'][i] @ dihedral_axes[i],
+   }
+
+# for i in range(2, 13):
+#    axes[f'D{i}'] = axes['D']
+#    axes_second[f'D{i}'] = axes_second['D']
 
 # tetrahedral_frames = np.array(
 # [

@@ -119,6 +119,12 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       scores = np.zeros(len(xforms))
       scores[ok] = arg.iface_summary(ifscore, axis=0)
 
+      # bod[0].pos = xforms[np.argmax(scores), 0]
+      # bod[1].pos = xforms[np.argmax(scores), 1]
+      # bod[0].dump_pdb('test0.pdb')
+      # bod[1].dump_pdb('test1.pdb')
+      # assert 0
+
       return scores, rp.Bunch()
 
 class MultiCompEvaluatorWithTrim(MultiCompEvaluatorBase):

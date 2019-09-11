@@ -39,7 +39,7 @@ def dock_multicomp(hscore, **kw):
    arg = rp.Bunch(kw)
    spec = get_spec(arg.architecture)
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **arg)
-   logging.info(f'num base samples {sampler.size(0)}')
+   logging.info(f'num base samples {sampler.size(0):,}')
 
    bodies = [[rp.Body(fn, **arg) for fn in inp] for inp in arg.inputs]
    assert len(bodies) == spec.num_components

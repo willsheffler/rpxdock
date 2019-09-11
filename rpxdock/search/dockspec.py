@@ -20,7 +20,7 @@ class DockSpec1CompCage:
       self.sym = spec[0]
       self.num_components = 1
       self.nfold = int(spec[1])
-      self.is_dihedral = [False]
+      self.comp_is_dihedral = [False]
       assert self.sym in "TOI"
       self.axis = sym.axes[self.sym][self.nfold]
       self.axis_second = sym.axes_second[self.sym][self.nfold]
@@ -72,31 +72,36 @@ class DockSpec2CompCage:
       self.spec = spec.upper()
       assert self.spec in allowed_twocomp_architectures
       assert len(self.spec) == 3 or self.spec.endswith('D')
-      self.sym = spec[0]
+      self.sym = spec if spec[0] == 'D' else spec[0]
       self.type = 'cage'
       self.num_components = 2
-      self.is_dihedral = [False, self.spec.endswith('D')]
+      self.comp_is_dihedral = [False, self.spec.endswith('D')]
       self.nfold1 = int(spec[1])
       self.nfold2 = int(spec[2])
       self.nfold = np.array([self.nfold1, self.nfold2])
-      self.axis1 = sym.axes[self.sym][self.nfold1]
-      self.axis2 = sym.axes[self.sym][self.nfold2]
-      self.axis2 = sym.axes[self.sym][33] if spec.startswith('T33') else self.axis2
+      self.axis1 = sym.axes[self.sym[0]][self.nfold1]
+      self.axis2 = sym.axes[self.sym[0]][self.nfold2]
+      self.axis2 = sym.axes[self.sym[0]][33] if spec.startswith('T33') else self.axis2
+      self.axis1 = sym.axes['D'][22] if spec.startswith('D22') else self.axis1
       self.axis = np.array([self.axis1, self.axis2])
       self.axisperp = hm.hcross(self.axis1, self.axis2)
       self.orig1 = hm.align_vector([0, 0, 1], self.axis1)
       self.orig2 = hm.align_vector([0, 0, 1], self.axis2)
       self.orig = np.array([self.orig1, self.orig2])
-      self.symframes_ = sym.frames[self.sym]
+      self.symframes_ = sym.symframes(self.sym)
       self.axis1_second = sym.axes_second[self.sym][self.nfold1]
       self.axis2_second = sym.axes_second[self.sym][self.nfold2]
-      self.axis_second = [self.axis1_second, self.axis2_second]
       self.to_neighbor_olig1 = sym.to_neighbor_olig[self.sym][self.nfold1]
       self.to_neighbor_olig2 = sym.to_neighbor_olig[self.sym][self.nfold2]
-      self.to_neighbor_olig = np.array([self.to_neighbor_olig1, self.to_neighbor_olig2])
-      if spec == "T33":
+      if spec == 'T33':
          self.axis2_second = sym.axes_second[self.sym][33]
          self.to_neighbor_olig2 = sym.to_neighbor_olig[self.sym][33]
+      if spec == 'D22':
+         self.axis1_second = sym.axes_second[self.sym][22]
+         self.to_neighbor_olig1 = sym.to_neighbor_olig[self.sym][22]
+      self.axis_second = [self.axis1_second, self.axis2_second]
+      self.to_neighbor_olig = np.array([self.to_neighbor_olig1, self.to_neighbor_olig2])
+
       self.compframes = np.array([sym.symframes(self.nfold[i], self.axis[i]) for i in [0, 1]])
       fax1 = hm.hcross(self.axis1, hm.hcross(self.axis1, self.axis2))
       fax2 = hm.hcross(self.axis2, hm.hcross(self.axis2, self.axis1))
@@ -176,7 +181,7 @@ class DockSpec3CompCage:
       self.num_components = 3
       self.symframes_ = sym.frames[self.sym]
       assert self.sym in "TOI"
-      self.is_dihedral = [False] * 3
+      self.comp_is_dihedral = [False] * 3
       self.nfold = np.array([int(spec[1]), int(spec[2]), int(spec[3])], dtype='i')
       self.axis = np.array([sym.axes[self.sym][n] for n in self.nfold])
       self.axisperp = [
@@ -254,6 +259,6 @@ class DockSpec3CompLayer(DockSpec3CompCage):
       self.directions = _layer_comp_center_directions[spec]
       self.axis = np.array([np.array([0, 0, 1])] * 3)
       self.xflip = [hm.hrot([1, 0, 0], 180)] * 3
-      self.is_dihedral = [False, False, False]
+      self.comp_is_dihedral = [False, False, False]
       self.num_components = 3
       self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], 60), hm.hrot([0, 0, 1], 60)]

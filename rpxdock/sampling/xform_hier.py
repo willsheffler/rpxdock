@@ -40,7 +40,7 @@ def hier_multi_axis_sampler(spec, cart_bounds=[25, 200], resl=10, angresl=10,
    if len(flip_components) is 1:
       flip_components = flip_components * len(spec.nfold)
    # for i, flip in enumerate(flip_components):
-   # flip_components[i] = flip_components[i] and not spec.is_dihedral[i]
+   # flip_components[i] = flip_components[i] and not spec.comp_is_dihedral[i]
    if len(cart_bounds) is 2 and isinstance(cart_bounds[0], int):
       cart_bounds = np.array([cart_bounds] * spec.num_components)
    cart_bounds = np.array(cart_bounds)
@@ -54,7 +54,7 @@ def hier_multi_axis_sampler(spec, cart_bounds=[25, 200], resl=10, angresl=10,
 
    samp = []
    for i in range(len(spec.nfold)):
-      if spec.is_dihedral[i]:
+      if spec.comp_is_dihedral[i]:
          s = LineHier(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], spec.axis[i])
       else:
          s = rp.sampling.RotCart1Hier_f4(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], 0,
