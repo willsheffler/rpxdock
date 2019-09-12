@@ -10,6 +10,8 @@ def get_rpxdock_args():
 def get_spec(arch):
    if arch.startswith('P'):
       spec = rp.search.DockSpec3CompLayer(arch)
+   elif len(arch) == 2:
+      spec = rp.search.DockSpec1CompCage(arch)
    else:
       spec = rp.search.DockSpec2CompCage(arch)
    return spec
@@ -24,7 +26,13 @@ def dock_cyclic(hscore, inputs, architecture, **kw):
       futures = list()
       for ijob, bod in enumerate(bodies):
          futures.append(
-            pool.submit(rp.search.make_cyclic, bod, architecture.upper(), hscore, **arg))
+            pool.submit(
+               rp.search.make_cyclic,
+               bod,
+               architecture.upper(),
+               hscore,
+               **arg,
+            ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
       for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
@@ -34,6 +42,37 @@ def dock_cyclic(hscore, inputs, architecture, **kw):
    # result = rp.search.make_cyclic(body, architecture.upper(), hscore, **arg)
 
    return result
+
+def dock_onecomp(hscore, **kw):
+   arg = rp.Bunch(kw)
+   spec = get_spec(arg.architecture)
+   # double normal resolution, cuz why not?
+   sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
+                                           axis=spec.axis, flipax=spec.flip_axis)
+   bodies = [rp.Body(inp, **arg) for inp in arg.inputs1]
+
+   exe = concurrent.futures.ProcessPoolExecutor
+   # exe = rp.util.InProcessExecutor
+   with exe(arg.ncpu) as pool:
+      futures = list()
+      for ijob, bod in enumerate(bodies):
+         futures.append(
+            pool.submit(
+               rp.search.make_onecomp,
+               bod,
+               spec,
+               hscore,
+               rp.hier_search,
+               sampler,
+               **arg,
+            ))
+         futures[-1].ijob = ijob
+      result = [None] * len(futures)
+      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+         result[f.ijob] = f.result()
+   result = rp.concat_results(result)
+   return result
+   # result = rp.search.make_onecomp(bodyC3, spec, hscore, rp.hier_search, sampler, **arg)
 
 def dock_multicomp(hscore, **kw):
    arg = rp.Bunch(kw)
@@ -64,9 +103,12 @@ def main():
    logging.info(f'weights: {arg.wts}')
 
    hscore = rp.CachedProxy(rp.RpxHier(arg.hscore_files, **arg))
+   arch = arg.architecture.upper()
 
-   if arg.architecture.upper().startswith('C'):
+   if arch.startswith('C'):
       result = dock_cyclic(hscore, **arg)
+   elif len(arch) == 2:
+      result = dock_onecomp(hscore, **arg)
    else:
       result = dock_multicomp(hscore, **arg)
 

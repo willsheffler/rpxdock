@@ -25,8 +25,19 @@ class DockSpec1CompCage:
       self.axis = sym.axes[self.sym][self.nfold]
       self.axis_second = sym.axes_second[self.sym][self.nfold]
 
+      # print(self.nfold)
+      # print(self.axis)
+      # print(self.axis_second)
+      # assert 0
+
       self.orig = hm.align_vector([0, 0, 1], self.axis)
       self.to_neighbor_olig = sym.to_neighbor_olig[self.sym][self.nfold]
+
+      # print(self.to_neighbor_olig)
+      # print(self.to_neighbor_olig @ self.axis)
+      # print(self.axis_second)
+      # assert 0
+
       self.orig_second = self.to_neighbor_olig @ self.orig
 
       cang = hm.angle(self.axis, self.axis_second)
@@ -34,6 +45,8 @@ class DockSpec1CompCage:
       self.slide_to_axis_displacement = np.sin(aang) / np.sin(cang)
 
       self.symframes_ = sym.frames[self.sym]
+
+      self.flip_axis = hm.hcross(self.axis, self.axis_second)
 
    def slide_dir(self):
       dirn = self.axis_second - self.axis

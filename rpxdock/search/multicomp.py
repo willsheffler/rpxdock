@@ -77,52 +77,51 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
    def __call__(self, xforms, iresl=-1, wts={}, **kw):
       arg = self.arg.sub(wts=wts)
       xeye = np.eye(4, dtype="f4")
-      bod = self.bodies
-      xforms = xforms.reshape(-1, xforms.shape[-3], 4, 4)
+      B = self.bodies
+      X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
       xnbr = self.spec.to_neighbor_olig
 
       # check for "flatness"
       delta_h = np.array(
-         [hm.hdot(xforms[:, i] @ bod[i].com(), self.spec.axis[i]) for i in range(len(bod))])
+         [hm.hdot(X[:, i] @ B[i].com(), self.spec.axis[i]) for i in range(len(B))])
       ok = np.max(np.abs(delta_h[None] - delta_h[:, None]), axis=(0, 1)) < arg.max_delta_h
-      # ok = np.repeat(True, len(xforms))
+      # ok = np.repeat(True, len(X))
 
       # check clash, or get non-clash range
-      for i in range(len(bod)):
+      for i in range(len(B)):
          if xnbr[i] is not None:
-            ok[ok] &= bod[i].clash_ok(bod[i], xforms[ok, i], xnbr[i] @ xforms[ok, i], **arg)
+            ok[ok] &= B[i].clash_ok(B[i], X[ok, i], xnbr[i] @ X[ok, i], **arg)
          for j in range(i):
-            ok[ok] &= bod[i].clash_ok(bod[j], xforms[ok, i], xforms[ok, j], **arg)
+            ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **arg)
 
       if xnbr[0] is None and xnbr[1] is not None and xnbr[2] is not None:  # layer hack
          inv = np.linalg.inv
-         ok[ok] &= bod[0].clash_ok(bod[1], xforms[ok, 0], xnbr[1] @ xforms[ok, 1], **arg)
-         ok[ok] &= bod[0].clash_ok(bod[2], xforms[ok, 0], xnbr[2] @ xforms[ok, 2], **arg)
-         ok[ok] &= bod[0].clash_ok(bod[1], xforms[ok, 0], xnbr[2] @ xforms[ok, 1], **arg)
-         ok[ok] &= bod[0].clash_ok(bod[2], xforms[ok, 0], xnbr[1] @ xforms[ok, 2], **arg)
-         ok[ok] &= bod[1].clash_ok(bod[2], xforms[ok, 1], xnbr[2] @ xforms[ok, 2], **arg)
-         ok[ok] &= bod[1].clash_ok(bod[2], xforms[ok, 1], xnbr[1] @ xforms[ok, 2], **arg)
-         ok[ok] &= bod[0].clash_ok(bod[1], xforms[ok, 0], inv(xnbr[1]) @ xforms[ok, 1], **arg)
-         # ok[ok] &= bod[0].clash_ok(bod[2], xforms[ok, 0], inv(xnbr[2]) @ xforms[ok, 2], **arg)
-         # ok[ok] &= bod[1].clash_ok(bod[2], xforms[ok, 1], inv(xnbr[2]) @ xforms[ok, 2], **arg)
-         ok[ok] &= bod[0].clash_ok(bod[2], xforms[ok, 0], inv(xnbr[1]) @ xforms[ok, 2], **arg)
-         ok[ok] &= bod[1].clash_ok(bod[2], xforms[ok, 1], inv(xnbr[1]) @ xforms[ok, 2], **arg)
+         ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[1] @ X[ok, 1], **arg)
+         ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], xnbr[2] @ X[ok, 2], **arg)
+         ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[2] @ X[ok, 1], **arg)
+         ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], xnbr[1] @ X[ok, 2], **arg)
+         ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], xnbr[2] @ X[ok, 2], **arg)
+         ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], xnbr[1] @ X[ok, 2], **arg)
+         ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], inv(xnbr[1]) @ X[ok, 1], **arg)
+         # ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], inv(xnbr[2]) @ X[ok, 2], **arg)
+         # ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[2]) @ X[ok, 2], **arg)
+         ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], inv(xnbr[1]) @ X[ok, 2], **arg)
+         ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[1]) @ X[ok, 2], **arg)
 
       # score everything that didn't clash
       ifscore = list()
-      for i in range(len(bod)):
+      for i in range(len(B)):
          for j in range(i):
-            ifscore.append(
-               self.hscore.scorepos(bod[j], bod[i], xforms[ok, j], xforms[ok, i], iresl, wts=wts))
+            ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
       # ifscore = np.stack(ifscore)
       # print(ifscore.shape)
-      scores = np.zeros(len(xforms))
+      scores = np.zeros(len(X))
       scores[ok] = arg.iface_summary(ifscore, axis=0)
 
-      # bod[0].pos = xforms[np.argmax(scores), 0]
-      # bod[1].pos = xforms[np.argmax(scores), 1]
-      # bod[0].dump_pdb('test0.pdb')
-      # bod[1].dump_pdb('test1.pdb')
+      # B[0].pos = X[np.argmax(scores), 0]
+      # B[1].pos = X[np.argmax(scores), 1]
+      # B[0].dump_pdb('test0.pdb')
+      # B[1].dump_pdb('test1.pdb')
       # assert 0
 
       return scores, rp.Bunch()
@@ -149,65 +148,65 @@ class MultiCompEvaluatorWithTrim(MultiCompEvaluatorBase):
 
    def eval_trim_one(self, trim_component, x, iresl=-1, wts={}, **kw):
       arg = self.arg.sub(wts=wts)
-      compA, compB = self.bodies
-      x = x.reshape(-1, 2, 4, 4)
+      B = self.bodies
+      X = x.reshape(-1, 2, 4, 4)
       xnbr = self.spec.to_neighbor_olig
 
       # check for "flatness"
-      d1 = hm.hdot(x[:, 0] @ compA.com(), self.spec.axis[0])
-      d2 = hm.hdot(x[:, 1] @ compB.com(), self.spec.axis[1])
+      d1 = hm.hdot(X[:, 0] @ B[0].com(), self.spec.axis[0])
+      d2 = hm.hdot(X[:, 1] @ B[1].com(), self.spec.axis[1])
       ok = abs(d1 - d2) < arg.max_delta_h
 
-      lbA = np.zeros(len(x), dtype='i4')
-      lbB = np.zeros(len(x), dtype='i4')
-      ubA = np.ones(len(x), dtype='i4') * (self.bodies[0].asym_body.nres - 1)
-      ubB = np.ones(len(x), dtype='i4') * (self.bodies[1].asym_body.nres - 1)
+      lbA = np.zeros(len(X), dtype='i4')
+      lbB = np.zeros(len(X), dtype='i4')
+      ubA = np.ones(len(X), dtype='i4') * (self.bodies[0].asym_body.nres - 1)
+      ubB = np.ones(len(X), dtype='i4') * (self.bodies[1].asym_body.nres - 1)
 
       if trim_component == 'A':
-         trimA1 = compA.intersect_range(compB, x[ok, 0], x[ok, 1], **arg)
-         trimA1, trimok = trim_ok(trimA1, compA.asym_body.nres, **arg)
+         trimA1 = B[0].intersect_range(B[1], X[ok, 0], X[ok, 1], **arg)
+         trimA1, trimok = trim_ok(trimA1, B[0].asym_body.nres, **arg)
          ok[ok] &= trimok
 
-         xa = x[ok, 0]
+         xa = X[ok, 0]
          if xnbr is not None:
-            trimA2 = compA.intersect_range(compA, xa, xnbr[0] @ xa, **arg)
-         trimA2, trimok2 = trim_ok(trimA2, compA.asym_body.nres, **arg)
+            trimA2 = B[0].intersect_range(B[0], xa, xnbr[0] @ xa, **arg)
+         trimA2, trimok2 = trim_ok(trimA2, B[0].asym_body.nres, **arg)
          ok[ok] &= trimok2
          lbA[ok] = np.maximum(trimA1[0][trimok2], trimA2[0])
          ubA[ok] = np.minimum(trimA1[1][trimok2], trimA2[1])
 
-         xb = x[ok, 1]
+         xb = X[ok, 1]
          if xnbr is not None:
-            trimB = compB.intersect_range(compB, xb, xnbr[1] @ xb, **arg)
-         trimB, trimok = trim_ok(trimB, compB.asym_body.nres, **arg)
+            trimB = B[1].intersect_range(B[1], xb, xnbr[1] @ xb, **arg)
+         trimB, trimok = trim_ok(trimB, B[1].asym_body.nres, **arg)
          ok[ok] &= trimok
          lbB[ok], ubB[ok] = trimB
       elif trim_component == 'B':
-         trimB1 = compB.intersect_range(compA, x[ok, 1], x[ok, 0], **arg)
-         trimB1, trimok = trim_ok(trimB1, compB.asym_body.nres, **arg)
+         trimB1 = B[1].intersect_range(B[0], X[ok, 1], X[ok, 0], **arg)
+         trimB1, trimok = trim_ok(trimB1, B[1].asym_body.nres, **arg)
          ok[ok] &= trimok
 
-         xb = x[ok, 1]
+         xb = X[ok, 1]
          if xnbr is not None:
-            trimB2 = compB.intersect_range(compB, xb, xnbr[1] @ xb, **arg)
-         trimB2, trimok2 = trim_ok(trimB2, compB.asym_body.nres, **arg)
+            trimB2 = B[1].intersect_range(B[1], xb, xnbr[1] @ xb, **arg)
+         trimB2, trimok2 = trim_ok(trimB2, B[1].asym_body.nres, **arg)
          ok[ok] &= trimok2
          lbB[ok] = np.maximum(trimB1[0][trimok2], trimB2[0])
          ubB[ok] = np.minimum(trimB1[1][trimok2], trimB2[1])
 
-         xa = x[ok, 0]
+         xa = X[ok, 0]
          if xnbr is not None:
-            trimA = compA.intersect_range(compA, xa, xnbr[0] @ xa, **arg)
-         trimA, trimok = trim_ok(trimA, compA.asym_body.nres, **arg)
+            trimA = B[0].intersect_range(B[0], xa, xnbr[0] @ xa, **arg)
+         trimA, trimok = trim_ok(trimA, B[0].asym_body.nres, **arg)
          ok[ok] &= trimok
          lbA[ok], ubA[ok] = trimA
       else:
          raise ValueError('trim_component invalid')
 
       # score everything that didn't clash
-      bounds = lbA[ok], ubA[ok], compA.asym_body.nres, lbB[ok], ubB[ok], compB.asym_body.nres
-      scores = np.zeros(len(x))
-      scores[ok] = self.hscore.scorepos(body1=compA, body2=compB, pos1=x[ok, 0], pos2=x[ok, 1],
+      bounds = lbA[ok], ubA[ok], B[0].asym_body.nres, lbB[ok], ubB[ok], B[1].asym_body.nres
+      scores = np.zeros(len(X))
+      scores[ok] = self.hscore.scorepos(body1=B[0], body2=B[1], pos1=X[ok, 0], pos2=X[ok, 1],
                                         iresl=iresl, bounds=bounds, **arg)
 
       # if np.sum(ok):
