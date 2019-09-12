@@ -17,6 +17,7 @@ def main():
          for i in range(len(result.bodies[0])):
             compnames = np.array([bs[i].pdbfile for bs in result.bodies])
             df['comp%i' % (i + 1)] = compnames[df['ijob']]
+         df['rank'] = np.arange(len(result), dtype='i')
 
          content = tabulate(df.values.tolist(), list(df.columns), tablefmt="plain")
          print(content)
