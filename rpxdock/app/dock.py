@@ -89,8 +89,15 @@ def dock_multicomp(hscore, **kw):
       futures = list()
       for ijob, bod in enumerate(itertools.product(*bodies)):
          futures.append(
-            pool.submit(rp.search.make_multicomp, bod, spec, hscore, rp.hier_search, sampler,
-                        **arg))
+            pool.submit(
+               rp.search.make_multicomp,
+               bod,
+               spec,
+               hscore,
+               rp.hier_search,
+               sampler,
+               **arg,
+            ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
       for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):

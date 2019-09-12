@@ -80,11 +80,21 @@ class OneCompEvaluator:
       ok = np.ones(len(xforms), dtype='bool')
       if arg.max_trim > 0:
          trim = body.intersect_range(body, X[ok], Xsym[ok], **arg)
+         print(trim)
          trim, trimok = rp.search.trim_ok(trim, body.nres, **arg)
+         print(trim)
          ok[ok] &= trimok
       else:
          ok[ok] &= body.clash_ok(body, X[ok], Xsym[ok], **arg)
          trim = [0], [body.nres - 1]
+
+      if iresl == 4:
+         i = 0
+         body.pos = X[i]
+         body.dump_pdb('topscore1.pdb')
+         body.pos = Xsym[i]
+         body.dump_pdb('topscore2.pdb')
+         assert 0
 
       # score everything that didn't clash
       scores = np.zeros(len(X))
@@ -95,14 +105,5 @@ class OneCompEvaluator:
       lb = np.zeros(len(scores), dtype="i4")
       ub = np.ones(len(scores), dtype="i4") * (body.nres - 1)
       if trim: lb[ok], ub[ok] = trim[0], trim[1]
-
-      # if iresl == 4:
-      #    i = np.argmax(scores)
-      #    print(scores[i])
-      #    body.pos = X[i]
-      #    body.dump_pdb('topscore1.pdb')
-      #    body.pos = Xsym[i]
-      #    body.dump_pdb('topscore2.pdb')
-      #    assert 0
 
       return scores, rp.Bunch(reslb=lb, resub=ub)

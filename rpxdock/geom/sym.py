@@ -90,8 +90,11 @@ to_neighbor_olig = dict(
       5: frames["I"][2]
    },
    D22={
-      2: hm.hrot([0, 0, 1], 2 * np.pi / 2),
-      22: hm.hrot([1, 0, 0], 2 * np.pi / 2),
+      2: hm.hrot([0, 0, 1], np.pi),
+      22: hm.hrot([1, 0, 0], np.pi),
+   },
+   D2={
+      2: hm.hrot([0, 1, 0], np.pi),
    },
 )
 
@@ -101,8 +104,19 @@ axes_second['D22'] = {
    2: to_neighbor_olig['D22'][2] @ dihedral_axes[2],
    22: to_neighbor_olig['D22'][22] @ dihedral_axes[22],
 }
+axes_second['D2'] = {
+   2: to_neighbor_olig['D2'][2] @ dihedral_axes[2],
+}
 for i in range(3, 13):
    to_neighbor_olig[f'D{i}2'] = {
+      2: hm.hrot([0, 0, 1], 2 * np.pi / i),
+      i: hm.hrot([1, 0, 0], np.pi),
+   }
+   axes_second[f'D{i}2'] = {
+      2: to_neighbor_olig[f'D{i}2'][2] @ dihedral_axes[2],
+      i: to_neighbor_olig[f'D{i}2'][i] @ dihedral_axes[i],
+   }
+   to_neighbor_olig[f'D{i}'] = {
       2: hm.hrot([0, 0, 1], 2 * np.pi / i),
       i: hm.hrot([1, 0, 0], np.pi),
    }

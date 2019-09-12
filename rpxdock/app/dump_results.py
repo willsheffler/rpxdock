@@ -3,9 +3,13 @@ from tabulate import tabulate
 
 def main():
    arg = rp.options.get_cli_args()
+
    for fn in arg.inputs:
       with open(fn, 'rb') as inp:
          result = _pickle.load(inp)
+
+         result.dump_pdbs_top_score(**arg)
+
          result.data = result.drop('xforms')
          df = result.data.to_dataframe()
          # print(result.to_dataframe().to_fwf())

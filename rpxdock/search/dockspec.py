@@ -14,14 +14,14 @@ P6_632
 class DockSpec1CompCage:
    def __init__(self, spec):
       assert len(spec) == 2
-      assert spec in "T2 T3 O2 O3 O4 I2 I3 I5".split()
+      assert spec in "T2 T3 O2 O3 O4 I2 I3 I5 D2 D3 D4 D5 D6 D8".split()
       self.spec = spec
       self.type = 'cage'
       self.sym = spec[0]
       self.num_components = 1
       self.nfold = int(spec[1])
       self.comp_is_dihedral = [False]
-      assert self.sym in "TOI"
+      assert self.sym in "TOID"
       self.axis = sym.axes[self.sym][self.nfold]
       self.axis_second = sym.axes_second[self.sym][self.nfold]
 
