@@ -51,6 +51,7 @@ _file_mappings = {
    "component.py": ['rpxdock/tests/score/test_scorefunc.py'],
    "xform_hier.py": ['rpxdock/tests/search/test_multicomp.py'],
    "lattice_hier.py": ['rpxdock/tests/search/test_multicomp.py'],
+   "basic.py": ["rpxdock/tests/search/test_onecomp.py"],
    "dockspec.py": ["rpxdock/tests/search/test_onecomp.py"],
 }
 _post = defaultdict(lambda: "")

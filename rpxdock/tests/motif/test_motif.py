@@ -86,7 +86,7 @@ def test_pair_key(respairdat):
    assert np.all(kij == kij2)
    assert np.all(kji == kji2)
 
-@pytest.mark.slow
+# @pytest.mark.slow
 def test_respairdat_addrots(respairdat):
    rotspace = get_rotamer_space()
    add_rots_to_respairdat(respairdat, rotspace)

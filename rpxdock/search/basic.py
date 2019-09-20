@@ -4,8 +4,8 @@ import numpy as np
 from rpxdock import Bunch
 
 def grid_search(sampler, evaluator, **kw):
-   if (not isinstance(sampler, np.ndarray) or sampler.ndim not in (3, 4)
-       or sampler.shape[-2:] != (4, 4)):
+   if (not isinstance(sampler, np.ndarray) or sampler.ndim not in (3, 4) or sampler.shape[-2:] !=
+       (4, 4)):
       raise ValueError('sampler for grid_search should be array of samples')
    xforms = sampler
    scores, extra, t = evaluate_positions(evaluator, xforms, **kw)
@@ -42,6 +42,7 @@ def evaluate_positions_executor(executor, evaluator, xforms, **kw):
 
 def trim_ok(trim, nres, max_trim, **kw):
    ntrim = trim[0] + nres - trim[1] - 1
+   # print(nres, max_trim)
    # print('foooo', ntrim, trim[0], trim[1])
    trimok = ntrim <= max_trim
    trimok &= trim[0] >= 0

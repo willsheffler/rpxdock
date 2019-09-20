@@ -3,7 +3,7 @@ from rpxdock.util import cpu_count, Bunch
 
 log = logging.getLogger(__name__)
 
-_iface_summary_methods = dict(min=np.min, sum=np.sum, median=np.median)
+_iface_summary_methods = dict(min=np.min, sum=np.sum, median=np.median, mean=np.mean, max=np.max)
 
 def str2bool(v):
    if isinstance(v, bool):
@@ -169,7 +169,7 @@ def default_cli_parser(parent=None):
       "--architecture", type=str, default=None,
       help='architecture to be produced by docking. Can be cage I32, O43, T32 or Cx for cyclic. No default value'
    )
-   addarg("--trimmable_components", default="",
+   addarg("--trimmable_components", default="ABCDEFGHIJKLMNOPQRSTUVWXYZ",
           help='specify which components "ABC" etc are trimmable.')
    addarg(
       "--flip_components", nargs='+', default=[True], type=str2bool,
@@ -240,6 +240,8 @@ def process_cli_args(arg):
    for i in range(0, len(arg.cart_bounds), 2):
       tmp.append(arg.cart_bounds[i:i + 2])
    arg.cart_bounds = tmp
+
+   arg.trimmable_components = arg.trimmable_components.upper()
 
    log.info(str(arg))
 

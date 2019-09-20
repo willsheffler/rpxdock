@@ -143,6 +143,7 @@ class Result:
          bounds = np.stack([self.reslb[imodel], self.resub[imodel]], axis=-1)
       symframes = rp.geom.symframes(sym, positions=self.xforms[imodel])
       if output_asym_only: symframes = [np.eye(4)]
+      print(sym, len(symframes))
       rp.io.dump_pdb_from_bodies(fname, bod, symframes=symframes, resbounds=bounds,
                                  bfactor=bfactor, **kw)
 

@@ -34,7 +34,7 @@ def test_summary():
       timer.checkpoint('foo')
 
    times = timer.report_dict(summary=sum)
-   assert numpy.allclose(times['foo'], 0.06, atol=0.01)
+   assert numpy.allclose(times['foo'], 0.06, atol=0.02)
 
    times = timer.report_dict(summary=numpy.mean)
    assert numpy.allclose(times['foo'], 0.02, atol=0.01)

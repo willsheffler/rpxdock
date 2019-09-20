@@ -13,7 +13,7 @@ def make_multicomp(
    arg = rp.Bunch(kw)
    t = rp.Timer().start()
    arg.nresl = len(hscore.hier) if arg.nresl is None else arg.nresl
-   arg.output_prefix = arg.output_prefix if arg.output_prefix else spec.spec
+   arg.output_prefix = arg.output_prefix if arg.output_prefix else spec.arch
 
    assert len(bodies) == spec.num_components
    bodies = list(bodies)
@@ -22,7 +22,7 @@ def make_multicomp(
          bodies[i] = b.copy_xformed(rp.homog.align_vector([0, 0, 1], spec.axis[i]))
 
    dotrim = arg.max_trim and arg.trimmable_components and len(bodies) < 3
-   Evaluator = MultiCompEvaluatorWithTrim if dotrim else MultiCompEvaluator
+   Evaluator = TwoCompEvaluatorWithTrim if dotrim else MultiCompEvaluator
    evaluator = Evaluator(bodies, spec, hscore, **arg)
    xforms, scores, extra, stats = search(sampler, evaluator, **arg)
    ibest = rp.filter_redundancy(xforms, bodies, scores, **arg)
@@ -40,7 +40,7 @@ def make_multicomp(
    ncontact, *_ = evaluator(xforms, arg.nresl - 1, wnct)
    data = dict(
       attrs=dict(arg=arg, stats=stats, ttotal=t.total, tdump=tdump,
-                 output_prefix=arg.output_prefix, output_body='all', sym=spec.spec),
+                 output_prefix=arg.output_prefix, output_body='all', sym=spec.arch),
       scores=(["model"], scores[ibest].astype("f4")),
       xforms=(["model", "comp", "hrow", "hcol"], xforms),
       rpx=(["model"], rpx.astype("f4")),
@@ -126,13 +126,13 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
 
       return scores, rp.Bunch()
 
-class MultiCompEvaluatorWithTrim(MultiCompEvaluatorBase):
+class TwoCompEvaluatorWithTrim(MultiCompEvaluatorBase):
    def __init__(self, *arg, trimmable_components="AB", **kw):
       super().__init__(*arg, **kw)
       self.trimmable_components = trimmable_components
 
    def __call__(self, *arg, **kw):
-      if self.trimmable_components.upper() in ("AB", "BA"):
+      if 'A' in self.trimmable_components and 'B' in self.trimmable_components:
          sa, lba, uba = self.eval_trim_one('A', *arg, **kw)
          sb, lbb, ubb = self.eval_trim_one('B', *arg, **kw)
          ia = (sa > sb).reshape(-1, 1)

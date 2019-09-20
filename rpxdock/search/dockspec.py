@@ -12,16 +12,22 @@ P6_632
 """.split()
 
 class DockSpec1CompCage:
-   def __init__(self, spec):
-      assert len(spec) == 2
-      assert spec in "T2 T3 O2 O3 O4 I2 I3 I5 D2 D3 D4 D5 D6 D8".split()
-      self.spec = spec
+   def __init__(self, arch):
+      assert len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_')
+      assert arch[:2] in "T2 T3 O2 O3 O4 I2 I3 I5 D2 D3 D4 D5 D6 D8".split()
+      if arch[0] == 'D':
+         assert arch[2] == '_'
+         self.sym = arch[:2]
+         self.nfold = int(arch[3])
+      else:
+         self.sym = arch[0]
+         self.nfold = int(arch[1])
+
+      self.arch = arch
       self.type = 'cage'
-      self.sym = spec[0]
       self.num_components = 1
-      self.nfold = int(spec[1])
+
       self.comp_is_dihedral = [False]
-      assert self.sym in "TOID"
       self.axis = sym.axes[self.sym][self.nfold]
       self.axis_second = sym.axes_second[self.sym][self.nfold]
 
@@ -44,9 +50,11 @@ class DockSpec1CompCage:
       aang = (np.pi - cang) / 2.0
       self.slide_to_axis_displacement = np.sin(aang) / np.sin(cang)
 
-      self.symframes_ = sym.frames[self.sym]
+      self.symframes_ = sym.symframes(self.sym)
 
       self.flip_axis = hm.hcross(self.axis, self.axis_second)
+
+      # print(self.sym, self.nfold)
 
    def slide_dir(self):
       dirn = self.axis_second - self.axis
@@ -81,21 +89,21 @@ class DockSpec1CompCage:
       return newpos.reshape(origshape)
 
 class DockSpec2CompCage:
-   def __init__(self, spec):
-      self.spec = spec.upper()
-      assert self.spec in allowed_twocomp_architectures
-      assert len(self.spec) == 3 or self.spec.endswith('D')
-      self.sym = spec if spec[0] == 'D' else spec[0]
+   def __init__(self, arch):
+      self.arch = arch.upper()
+      assert self.arch in allowed_twocomp_architectures
+      assert len(self.arch) == 3 or self.arch.endswith('D')
+      self.sym = arch if arch[0] == 'D' else arch[0]
       self.type = 'cage'
       self.num_components = 2
-      self.comp_is_dihedral = [False, self.spec.endswith('D')]
-      self.nfold1 = int(spec[1])
-      self.nfold2 = int(spec[2])
+      self.comp_is_dihedral = [False, self.arch.endswith('D')]
+      self.nfold1 = int(arch[1])
+      self.nfold2 = int(arch[2])
       self.nfold = np.array([self.nfold1, self.nfold2])
       self.axis1 = sym.axes[self.sym[0]][self.nfold1]
       self.axis2 = sym.axes[self.sym[0]][self.nfold2]
-      self.axis2 = sym.axes[self.sym[0]][33] if spec.startswith('T33') else self.axis2
-      self.axis1 = sym.axes['D'][22] if spec.startswith('D22') else self.axis1
+      self.axis2 = sym.axes[self.sym[0]][33] if arch.startswith('T33') else self.axis2
+      self.axis1 = sym.axes['D'][22] if arch.startswith('D22') else self.axis1
       self.axis = np.array([self.axis1, self.axis2])
       self.axisperp = hm.hcross(self.axis1, self.axis2)
       self.orig1 = hm.align_vector([0, 0, 1], self.axis1)
@@ -106,10 +114,10 @@ class DockSpec2CompCage:
       self.axis2_second = sym.axes_second[self.sym][self.nfold2]
       self.to_neighbor_olig1 = sym.to_neighbor_olig[self.sym][self.nfold1]
       self.to_neighbor_olig2 = sym.to_neighbor_olig[self.sym][self.nfold2]
-      if spec == 'T33':
+      if arch == 'T33':
          self.axis2_second = sym.axes_second[self.sym][33]
          self.to_neighbor_olig2 = sym.to_neighbor_olig[self.sym][33]
-      if spec == 'D22':
+      if arch == 'D22':
          self.axis1_second = sym.axes_second[self.sym][22]
          self.to_neighbor_olig1 = sym.to_neighbor_olig[self.sym][22]
       self.axis_second = [self.axis1_second, self.axis2_second]
@@ -121,7 +129,7 @@ class DockSpec2CompCage:
       self.xflip = hm.hrot([fax1, fax2], np.pi)
 
    def __str__(self):
-      return f'{self.spec} axis1 {self.axis1[:3]} axis2 {self.axis2[:3]}'
+      return f'{self.arch} axis1 {self.axis1[:3]} axis2 {self.axis2[:3]}'
 
    def slide_dir(self, angles):
       axisdelta = self.axis2 - self.axis1
@@ -185,17 +193,17 @@ class DockSpec2CompCage:
       return (pos1.reshape(origshape), pos2.reshape(origshape))
 
 class DockSpec3CompCage:
-   def __init__(self, spec):
-      assert len(spec) == 4
-      assert spec in "O432 I532".split()
-      self.spec = spec
+   def __init__(self, arch):
+      assert len(arch) == 4
+      assert arch in "O432 I532".split()
+      self.arch = arch
       self.type = 'cage'
-      self.sym = spec[0]
+      self.sym = arch[0]
       self.num_components = 3
       self.symframes_ = sym.frames[self.sym]
       assert self.sym in "TOI"
       self.comp_is_dihedral = [False] * 3
-      self.nfold = np.array([int(spec[1]), int(spec[2]), int(spec[3])], dtype='i')
+      self.nfold = np.array([int(arch[1]), int(arch[2]), int(arch[3])], dtype='i')
       self.axis = np.array([sym.axes[self.sym][n] for n in self.nfold])
       self.axisperp = [
          hm.hcross(self.axis[1], self.axis[2]),
@@ -213,13 +221,13 @@ class DockSpec3CompCage:
       ], np.pi)
 
 class DockSpecMonomerToCyclic:
-   def __init__(self, spec):
-      assert len(spec) == 2
-      assert spec[0] == "C"
+   def __init__(self, arch):
+      assert len(arch) == 2
+      assert arch[0] == "C"
       self.type = 'cyclic'
-      self.spec = spec
+      self.arch = arch
       self.num_components = 1
-      self.nfold = int(spec[1])
+      self.nfold = int(arch[1])
       assert self.nfold > 1
       self.angle = 2 * np.pi / self.nfold
 
@@ -262,14 +270,14 @@ _layer_comp_center_directions = dict(P6_632=(np.array([0.86602540378, 0.5, 0, 0]
                                              np.array([0.86602540378, 0.0, 0, 0])))
 
 class DockSpec3CompLayer(DockSpec3CompCage):
-   def __init__(self, spec):
-      spec = spec.upper()
-      assert spec.startswith('P')
-      self.spec = spec
+   def __init__(self, arch):
+      arch = arch.upper()
+      assert arch.startswith('P')
+      self.arch = arch
       self.type = 'layer'
-      self.sym = spec
-      self.nfold = np.array(list(spec.split('_')[1]), dtype='i')
-      self.directions = _layer_comp_center_directions[spec]
+      self.sym = arch
+      self.nfold = np.array(list(arch.split('_')[1]), dtype='i')
+      self.directions = _layer_comp_center_directions[arch]
       self.axis = np.array([np.array([0, 0, 1])] * 3)
       self.xflip = [hm.hrot([1, 0, 0], 180)] * 3
       self.comp_is_dihedral = [False, False, False]

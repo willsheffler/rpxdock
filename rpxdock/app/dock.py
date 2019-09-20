@@ -10,7 +10,7 @@ def get_rpxdock_args():
 def get_spec(arch):
    if arch.startswith('P'):
       spec = rp.search.DockSpec3CompLayer(arch)
-   elif len(arch) == 2:
+   elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
       spec = rp.search.DockSpec1CompCage(arch)
    else:
       spec = rp.search.DockSpec2CompCage(arch)
@@ -110,11 +110,11 @@ def main():
    logging.info(f'weights: {arg.wts}')
 
    hscore = rp.CachedProxy(rp.RpxHier(arg.hscore_files, **arg))
-   arch = arg.architecture.upper()
+   arch = arg.architecture
 
    if arch.startswith('C'):
       result = dock_cyclic(hscore, **arg)
-   elif len(arch) == 2:
+   elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
       result = dock_onecomp(hscore, **arg)
    else:
       result = dock_multicomp(hscore, **arg)

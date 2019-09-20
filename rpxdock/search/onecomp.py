@@ -13,15 +13,14 @@ def make_onecomp(
    arg = rp.Bunch(kw)
    t = rp.Timer().start()
    arg.nresl = len(hscore.hier) if arg.nresl is None else arg.nresl
-   arg.output_prefix = arg.output_prefix if arg.output_prefix else spec.spec
+   arg.output_prefix = arg.output_prefix if arg.output_prefix else spec.arch
 
    assert isinstance(body, rp.Body)
    if not fixed_components:
       body = body.copy_xformed(rp.homog.align_vector([0, 0, 1], spec.axis))
 
    dotrim = arg.max_trim and arg.trimmable_components
-   Evaluator = OneCompEvaluatorWithTrim if dotrim else OneCompEvaluator
-   evaluator = Evaluator(body, spec, hscore, **arg)
+   evaluator = OneCompEvaluator(body, spec, hscore, **arg)
    xforms, scores, extra, stats = search(sampler, evaluator, **arg)
    ibest = rp.filter_redundancy(xforms, body, scores, **arg)
    # tdump = _debug_dump_cage(xforms, body, spec, scores, ibest, evaluator, **arg)
@@ -38,7 +37,7 @@ def make_onecomp(
    ncontact, *_ = evaluator(xforms, arg.nresl - 1, wnct)
    data = dict(
       attrs=dict(arg=arg, stats=stats, ttotal=t.total, output_prefix=arg.output_prefix,
-                 output_body='all', sym=spec.spec),
+                 output_body='all', sym=spec.arch),
       scores=(["model"], scores[ibest].astype("f4")),
       xforms=(["model", "hrow", "hcol"], xforms),
       rpx=(["model"], rpx.astype("f4")),
@@ -80,21 +79,19 @@ class OneCompEvaluator:
       ok = np.ones(len(xforms), dtype='bool')
       if arg.max_trim > 0:
          trim = body.intersect_range(body, X[ok], Xsym[ok], **arg)
-         print(trim)
          trim, trimok = rp.search.trim_ok(trim, body.nres, **arg)
-         print(trim)
          ok[ok] &= trimok
       else:
          ok[ok] &= body.clash_ok(body, X[ok], Xsym[ok], **arg)
          trim = [0], [body.nres - 1]
 
-      if iresl == 4:
-         i = 0
-         body.pos = X[i]
-         body.dump_pdb('topscore1.pdb')
-         body.pos = Xsym[i]
-         body.dump_pdb('topscore2.pdb')
-         assert 0
+      # if iresl == 4:
+      #    i = 0
+      #    body.pos = X[i]
+      #    body.dump_pdb('topscore1.pdb')
+      #    body.pos = Xsym[i]
+      #    body.dump_pdb('topscore2.pdb')
+      #    assert 0
 
       # score everything that didn't clash
       scores = np.zeros(len(X))

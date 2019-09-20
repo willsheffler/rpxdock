@@ -14,8 +14,10 @@ def symframes(sym, positions=None, axis=[0, 0, 1]):
       return list(hm.hrot(axis, np.arange(sym) / sym * 360))
    if sym.startswith("D"):
       assert np.allclose(axis, [0, 0, 1])
-      assert sym[-1] == '2'
-      nsym = int(sym[1:-1])
+      if '_' not in sym:
+         nsym = int(sym[1:])
+      else:
+         nsym = int(sym[1:sym.find('_')])
       frames_up = list(hm.hrot([0, 0, 1], np.arange(nsym) / nsym * 360))
       frames_dn = list(hm.hrot([1, 0, 0], np.pi) @ frames_up)
       return np.array(frames_up + frames_dn)
@@ -72,6 +74,8 @@ dihedral_axes = {
    12: hm.hnormalized([0, 0, 1]),
 }
 axes = dict(T=tetrahedral_axes, O=octahedral_axes, I=icosahedral_axes, D=dihedral_axes)
+for i in range(2, 13):
+   axes[f'D{i}'] = axes['D']
 
 to_neighbor_olig = dict(
    T={
@@ -107,23 +111,19 @@ axes_second['D22'] = {
 axes_second['D2'] = {
    2: to_neighbor_olig['D2'][2] @ dihedral_axes[2],
 }
+
 for i in range(3, 13):
-   to_neighbor_olig[f'D{i}2'] = {
-      2: hm.hrot([0, 0, 1], 2 * np.pi / i),
-      i: hm.hrot([1, 0, 0], np.pi),
-   }
-   axes_second[f'D{i}2'] = {
-      2: to_neighbor_olig[f'D{i}2'][2] @ dihedral_axes[2],
-      i: to_neighbor_olig[f'D{i}2'][i] @ dihedral_axes[i],
-   }
    to_neighbor_olig[f'D{i}'] = {
       2: hm.hrot([0, 0, 1], 2 * np.pi / i),
       i: hm.hrot([1, 0, 0], np.pi),
    }
-   axes_second[f'D{i}2'] = {
-      2: to_neighbor_olig[f'D{i}2'][2] @ dihedral_axes[2],
-      i: to_neighbor_olig[f'D{i}2'][i] @ dihedral_axes[i],
+   to_neighbor_olig[f'D{i}2'] = to_neighbor_olig[f'D{i}']
+
+   axes_second[f'D{i}'] = {
+      2: to_neighbor_olig[f'D{i}'][2] @ dihedral_axes[2],
+      i: to_neighbor_olig[f'D{i}'][i] @ dihedral_axes[i],
    }
+   axes_second[f'D{i}2'] = axes_second[f'D{i}']
 
 # for i in range(2, 13):
 #    axes[f'D{i}'] = axes['D']
