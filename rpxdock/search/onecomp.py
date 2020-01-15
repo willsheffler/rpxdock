@@ -12,7 +12,7 @@ def make_onecomp(
 ):
    arg = rp.Bunch(kw)
    t = rp.Timer().start()
-   arg.nresl = len(hscore.hier) if arg.nresl is None else arg.nresl
+   arg.nresl = hscore.nresl if arg.nresl is None else arg.nresl
    arg.output_prefix = arg.output_prefix if arg.output_prefix else spec.arch
 
    assert isinstance(body, rp.Body)
@@ -47,7 +47,7 @@ def make_onecomp(
       if not isinstance(v, (list, tuple)) or len(v) > 3:
          v = ['model'], v
       data[k] = v
-   data['disp'] = (['model'], np.sum(xforms[:, :3, 3] * spec.axis[None, :3], axis=1))
+   data['disp'] = (['model'], np.sum(xforms[:, :3, 3] * spec.axis[None, :3], axis=-1).squeeze())
    data['angle'] = (['model'], rp.homog.angle_of(xforms[:]) * 180 / np.pi)
    default_label = ['compA']
 

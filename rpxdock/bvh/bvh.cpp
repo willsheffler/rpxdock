@@ -322,7 +322,9 @@ Vx<bool> bvh_isect_vec(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
   for (size_t i = 0; i < n; ++i) {
     size_t i1 = x1.size() == 1 ? 0 : i;
     size_t i2 = x2.size() == 1 ? 0 : i;
-    BVHIsectQuery<F> query(mindist, x1[i1].inverse() * x2[i2]);
+    X3<F> xi1 = x1[i1];
+    X3<F> x11inv = xi1.inverse();
+    BVHIsectQuery<F> query(mindist, x11inv * x2[i2]);
     rpxdock::bvh::BVIntersect(bvh1, bvh2, query);
     out[i] = query.result;
   }

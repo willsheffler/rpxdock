@@ -85,7 +85,8 @@ def test_body_copy_sym(body_tiny):
    c2 = body_tiny.copy_with_sym('C2')
    rot = hm.hrot([0, 0, 1], np.pi)
    rotated = rot @ body_tiny.coord[:, :, :, None]
-   assert np.allclose(rotated.squeeze(), c2.coord[14:28])
+   # assert np.allclose(rotated.squeeze(), c2.coord[14:28])
+   assert np.allclose(rotated.squeeze(), c2.coord[21:])
 
 def test_body_copy_xform(body_tiny):
    x = hm.hrot([1, 1, 1], np.pi / 3) @ hm.htrans([1, 0, 0])

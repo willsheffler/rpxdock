@@ -181,6 +181,9 @@ def default_cli_parser(parent=None):
    )
    addarg("--use_orig_coords", action='store_true', default=False,
           help='remember and output the original sidechains from the input structures')
+   addarg("--primary_iface_cut", default=None, help='score cut for helix primary interface')
+   addarg("--symframe_num_helix_repeats", default=10,
+          help='number of helix repeat frames to dump')
 
    parser.has_rpxdock_args = True
    return parser

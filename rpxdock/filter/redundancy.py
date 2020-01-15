@@ -2,9 +2,12 @@ import logging, numpy as np, rpxdock as rp
 
 log = logging.getLogger(__name__)
 
-def filter_redundancy(xforms, body, scores, **kw):
+def filter_redundancy(xforms, body, scores, categories=None, **kw):
    arg = rp.Bunch(kw)
    if len(scores) == 0: return []
+
+   if categories is None:
+      categories = np.repeat(0, len(scores))
 
    ibest = np.argsort(-scores)
    if arg.max_bb_redundancy <= 0:
@@ -21,6 +24,9 @@ def filter_redundancy(xforms, body, scores, **kw):
 
    ncen = crd.shape[1]
    crd = crd.reshape(-1, 4 * ncen)
+
+   # sneaky way to do categories
+   crd += (categories[ibest[:nclust]] * 1_000_000)[:, None]
 
    keep = rp.cluster.cookie_cutter(crd, arg.max_bb_redundancy * np.sqrt(ncen))
    assert len(np.unique(keep)) == len(keep)

@@ -8,8 +8,21 @@ def get_rpxdock_args():
    return arg
 
 def get_spec(arch):
+   arch = arch.upper()
    if arch.startswith('P'):
-      spec = rp.search.DockSpec3CompLayer(arch)
+      sym = arch.split('_')[0]
+      component_nfold = arch.split('_')[1]
+      ismirror = sym[-1] == 'M'
+      if len(component_nfold) == 1 and ismirror:
+         spec = rp.search.DockSpec1CompMirrorLayer(arch)
+      elif len(component_nfold) == 1:
+         spec = rp.search.DockSpec1CompLayer(arch)
+      elif len(component_nfold) == 2:
+         spec = rp.search.DockSpec2CompLayer(arch)
+      elif len(component_nfold) == 3:
+         spec = rp.search.DockSpec3CompLayer(arch)
+      else:
+         raise ValueError('number of conponents must be 1, 2 or 3')
    elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
       spec = rp.search.DockSpec1CompCage(arch)
    else:
@@ -47,8 +60,11 @@ def dock_onecomp(hscore, **kw):
    arg = rp.Bunch(kw)
    spec = get_spec(arg.architecture)
    # double normal resolution, cuz why not?
-   sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
-                                           axis=spec.axis, flipax=spec.flip_axis)
+   if spec.type == 'mirrorlayer':
+      sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **arg)
+   else:
+      sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
+                                              axis=spec.axis, flipax=spec.flip_axis)
    bodies = [rp.Body(inp, **arg) for inp in arg.inputs1]
 
    exe = concurrent.futures.ProcessPoolExecutor
@@ -112,9 +128,11 @@ def main():
    hscore = rp.CachedProxy(rp.RpxHier(arg.hscore_files, **arg))
    arch = arg.architecture
 
+   sym, comp = arch.split('_')
+
    if arch.startswith('C'):
       result = dock_cyclic(hscore, **arg)
-   elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
+   elif len(arch) == 2 or len(comp) == 1 or (arch[0] == 'D' and arch[2] == '_'):
       result = dock_onecomp(hscore, **arg)
    else:
       result = dock_multicomp(hscore, **arg)

@@ -6,7 +6,7 @@ log = logging.getLogger(__name__)
 
 def make_plugs(plug, hole, hscore, search=hier_search, sampler=None, **kw):
    arg = rp.Bunch(kw)
-   arg.nresl = len(hscore.hier) if arg.nresl is None else arg.nresl
+   arg.nresl = hscore.actual_nresl if arg.nresl is None else arg.nresl
    arg.output_prefix = "plug" if arg.output_prefix is None else arg.output_prefix
 
    t = rp.Timer().start()

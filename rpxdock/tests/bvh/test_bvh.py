@@ -639,12 +639,10 @@ def test_collect_pairs_range_sym():
       rpairs, rlbub = bvh.bvh_collect_pairs_range_vec(bvh1, bvh2, pos1, pos2, mindist, *bounds)
       assert len(rlbub) == len(pos1)
       assert np.all(
-         np.logical_or(
-            np.logical_and(100 <= rpairs[:, 0], rpairs[:, 0] <= 400),
-            np.logical_and(600 <= rpairs[:, 0], rpairs[:, 0] <= 900)))
-      filt_pairs = pairs[np.logical_or(
-         np.logical_and(100 <= pairs[:, 0], pairs[:, 0] <= 400),
-         np.logical_and(600 <= pairs[:, 0], pairs[:, 0] <= 900))]
+         np.logical_or(np.logical_and(100 <= rpairs[:, 0], rpairs[:, 0] <= 400),
+                       np.logical_and(600 <= rpairs[:, 0], rpairs[:, 0] <= 900)))
+      filt_pairs = pairs[np.logical_or(np.logical_and(100 <= pairs[:, 0], pairs[:, 0] <= 400),
+                                       np.logical_and(600 <= pairs[:, 0], pairs[:, 0] <= 900))]
       assert np.allclose(np.unique(filt_pairs, axis=1), np.unique(rpairs, axis=1))
 
       bounds = [100], [400], len(xyz1) // 2, [20], [180], len(xyz1) // 5
@@ -652,18 +650,16 @@ def test_collect_pairs_range_sym():
 
       def awful(p):
          return np.logical_and(
-            np.logical_or(
-               np.logical_and(100 <= p[:, 0], p[:, 0] <= 400),
-               np.logical_and(600 <= p[:, 0], p[:, 0] <= 900)),
+            np.logical_or(np.logical_and(100 <= p[:, 0], p[:, 0] <= 400),
+                          np.logical_and(600 <= p[:, 0], p[:, 0] <= 900)),
             np.logical_or(
                np.logical_and(+20 <= p[:, 1], p[:, 1] <= 180),
                np.logical_or(
                   np.logical_and(220 <= p[:, 1], p[:, 1] <= 380),
                   np.logical_or(
                      np.logical_and(420 <= p[:, 1], p[:, 1] <= 580),
-                     np.logical_or(
-                        np.logical_and(620 <= p[:, 1], p[:, 1] <= 780),
-                        np.logical_and(820 <= p[:, 1], p[:, 1] <= 980))))))
+                     np.logical_or(np.logical_and(620 <= p[:, 1], p[:, 1] <= 780),
+                                   np.logical_and(820 <= p[:, 1], p[:, 1] <= 980))))))
 
       assert len(rlbub) == len(pos1)
       assert np.all(awful(rpairs))
@@ -1080,7 +1076,7 @@ if __name__ == "__main__":
 
    # test_bvh_isect_cpp()
    # test_bvh_isect_fixed()
-   # test_bvh_isect()
+   test_bvh_isect()
    # test_bvh_isect_fixed_range()
    # test_bvh_min_cpp()
    # test_bvh_min_dist_fixed()
@@ -1098,7 +1094,7 @@ if __name__ == "__main__":
    # test_slide_collect_pairs()
    # test_bvh_accessors()
    # test_bvh_isect_range()
-   test_bvh_isect_range_ids()
+   # test_bvh_isect_range_ids()
    # test_bvh_isect_range_lb_ub(N1=10, N2=20)
    # import tempfile
    # test_bvh_pickle(tempfile.mkdtemp())

@@ -67,6 +67,10 @@ def body():
    return data.get_body('DHR14')
 
 @pytest.fixture(scope="session")
+def body2():
+   return data.get_body('top7')
+
+@pytest.fixture(scope="session")
 def plug():
    return data.get_body('dhr64')
 

@@ -19,8 +19,15 @@ class LineHier:
       self.axis = state[3]
       self.hier1d = rp.sampling.CartHier1D_f4([state[0]], [state[1]], [state[2]])
 
-def hier_axis_sampler(nfold, lb=25, ub=200, resl=10, angresl=10, axis=[0, 0, 1], flipax=[0, 1,
-                                                                                         0]):
+def hier_axis_sampler(
+      nfold,
+      lb=25,
+      ub=200,
+      resl=10,
+      angresl=10,
+      axis=[0, 0, 1],
+      flipax=[0, 1, 0],
+):
    cart_nstep = int(np.ceil((ub - lb) / resl))
    ang = 360 / nfold
    ang_nstep = int(np.ceil(ang / angresl))
@@ -30,8 +37,14 @@ def hier_axis_sampler(nfold, lb=25, ub=200, resl=10, angresl=10, axis=[0, 0, 1],
       samp = rp.ProductHier(samp, flip)
    return samp
 
-def hier_multi_axis_sampler(spec, cart_bounds=[25, 200], resl=10, angresl=10,
-                            flip_components=True, **kw):
+def hier_multi_axis_sampler(
+      spec,
+      cart_bounds=[25, 200],
+      resl=10,
+      angresl=10,
+      flip_components=True,
+      **kw,
+):
    if not (hasattr(spec, 'nfold') and hasattr(spec, 'axis') and hasattr(spec, 'xflip')):
       raise ValueError('spec must have nfold, axis and xflip')
    assert len(spec.nfold) == len(spec.axis) == len(spec.xflip)
@@ -63,13 +76,30 @@ def hier_multi_axis_sampler(spec, cart_bounds=[25, 200], resl=10, angresl=10,
 
    for i, s in enumerate(samp):
       if flip_components[i]:
-         samp[i] = rp.ProductHier(s, rp.ZeroDHier([np.eye(4), spec.xflip[i]]))
+         samp[i] = rp.sampling.ProductHier(s, rp.ZeroDHier([np.eye(4), spec.xflip[i]]))
 
    if spec.type == 'layer':
       sampler = rp.sampling.LatticeHier(samp, spec.directions)
    else:
-      sampler = rp.CompoundHier(*samp)
+      sampler = rp.sampling.CompoundHier(*samp)
 
    sampler.attrs = dict(spec=spec, cart_bounds=cart_bounds, resl=resl, angresl=angresl,
                         flip_components=flip_components)
    return sampler
+
+def hier_mirror_lattice_sampler(
+      spec,
+      cart_bounds=[0, 100],
+      resl=10,
+      angresl=10,
+      flip_components=True,
+      **kw,
+):
+   cart_bounds = np.array(cart_bounds)
+   cart_nstep = np.ceil((cart_bounds[:, 1] - cart_bounds[:, 0]) / resl).astype('i')
+   ang = 360 / spec.nfold
+   ang_nstep = np.ceil(ang / angresl).astype('i')
+   sampcell = LineHier(cart_bounds[0, 0], cart_bounds[0, 1], cart_nstep[0], [1, 0, 0])
+   sampaxis = rp.sampling.RotCart1Hier_f4(cart_bounds[1, 0], cart_bounds[1, 1], cart_nstep[1], 0,
+                                          ang[0], ang_nstep[0], [0, 0, 1])
+   return rp.sampling.ProductHier(sampcell, sampaxis)

@@ -12,7 +12,7 @@ def make_multicomp(
 ):
    arg = rp.Bunch(kw)
    t = rp.Timer().start()
-   arg.nresl = len(hscore.hier) if arg.nresl is None else arg.nresl
+   arg.nresl = hscore.actual_nresl if arg.nresl is None else arg.nresl
    arg.output_prefix = arg.output_prefix if arg.output_prefix else spec.arch
 
    assert len(bodies) == spec.num_components
@@ -24,7 +24,10 @@ def make_multicomp(
    dotrim = arg.max_trim and arg.trimmable_components and len(bodies) < 3
    Evaluator = TwoCompEvaluatorWithTrim if dotrim else MultiCompEvaluator
    evaluator = Evaluator(bodies, spec, hscore, **arg)
+
+   # do search
    xforms, scores, extra, stats = search(sampler, evaluator, **arg)
+
    ibest = rp.filter_redundancy(xforms, bodies, scores, **arg)
    tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **arg)
 

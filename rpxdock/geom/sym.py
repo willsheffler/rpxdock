@@ -1,18 +1,21 @@
-import numpy as np
-from rpxdock.data import datadir
+import numpy as np, rpxdock as rp
 from rpxdock import homog as hm
 
-tetrahedral_frames = np.load(datadir + "/tetrahedral_frames.pickle", allow_pickle=True)
-octahedral_frames = np.load(datadir + "/octahedral_frames.pickle", allow_pickle=True)
-icosahedral_frames = np.load(datadir + "/icosahedral_frames.pickle", allow_pickle=True)
+tetrahedral_frames = np.load(rp.data.datadir + "/tetrahedral_frames.pickle", allow_pickle=True)
+octahedral_frames = np.load(rp.data.datadir + "/octahedral_frames.pickle", allow_pickle=True)
+icosahedral_frames = np.load(rp.data.datadir + "/icosahedral_frames.pickle", allow_pickle=True)
 
-def symframes(sym, positions=None, axis=[0, 0, 1]):
+def symframes(sym, pos=None, axis=[0, 0, 1], **kw):
+   arg = rp.Bunch(kw)
+   if isinstance(sym, np.ndarray):
+      assert len(sym) == 1
+      sym = sym[0]
    if isinstance(sym, (int, np.int32, np.int64, np.uint32, np.uint64)):
       sym = int(sym)
    if isinstance(sym, int) or sym.startswith("C"):
       if not isinstance(sym, int): sym = int(sym[1:])
-      return list(hm.hrot(axis, np.arange(sym) / sym * 360))
-   if sym.startswith("D"):
+      return np.array(list(hm.hrot(axis, np.arange(sym) / sym * 360)))
+   elif sym.startswith("D"):
       assert np.allclose(axis, [0, 0, 1])
       if '_' not in sym:
          nsym = int(sym[1:])
@@ -21,18 +24,24 @@ def symframes(sym, positions=None, axis=[0, 0, 1]):
       frames_up = list(hm.hrot([0, 0, 1], np.arange(nsym) / nsym * 360))
       frames_dn = list(hm.hrot([1, 0, 0], np.pi) @ frames_up)
       return np.array(frames_up + frames_dn)
-   if sym.startswith("T"):
+   elif sym.startswith("T"):
       return tetrahedral_frames
-   if sym.startswith("O"):
+   elif sym.startswith("O"):
       return octahedral_frames
-   if sym.startswith("I"):
+   elif sym.startswith("I"):
       return icosahedral_frames
-   if sym == 'P6_632':
+   elif sym.startswith('H'):
+      assert len(sym) == 2
+      nfold = int(sym[1])
+      frames = [np.eye(4)]
+      for i in range(int(np.floor(arg.symframe_num_helix_repeats / 2))):
+         frames.append(pos @ frames[-1])
+      frames += [np.linalg.inv(x) for x in frames[1:]]
+      return np.array(frames)
+   elif sym == 'P6_632':
       c6 = hm.hrot(axis, np.arange(6) / 6 * 360)
-      c3 = hm.hrot(axis,
-                   np.arange(3) / 3 * 360, center=[positions[1, 0, 3], positions[1, 1, 3], 0])
-      c2 = hm.hrot(axis,
-                   np.arange(2) / 2 * 360, center=[positions[2, 0, 3], positions[2, 1, 3], 0])
+      c3 = hm.hrot(axis, np.arange(3) / 3 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
+      c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[pos[2, 0, 3], pos[2, 1, 3], 0])
       frames = c6[None, None, :] @ c3[None, :, None] @ c2[:, None, None]
       # frames = (c6[:, None, None, None] @ c2[None, :, None, None] @ c3[None, None, :, None]
       # @ c6[None, None, None, :])
@@ -41,6 +50,14 @@ def symframes(sym, positions=None, axis=[0, 0, 1]):
       # frames = c6
       # frames = np.eye(4)
       return frames.reshape(-1, 4, 4)
+   elif sym == 'P4M_4':
+      c4a = hm.hrot(axis, np.arange(4) / 4 * 360)
+      c4b = hm.hrot(axis, np.arange(4) / 4 * 360, center=[pos[0, 3], pos[1, 3], 0])
+      c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[pos[0, 3] / 2, pos[1, 3] / 2, 0])
+      frames = c4a[None, None, :] @ c2[None, :, None] @ c4b[:, None, None]
+      return frames.reshape(-1, 4, 4)
+   else:
+      raise NotImplementedError
 
 frames = dict(T=tetrahedral_frames, O=octahedral_frames, I=icosahedral_frames)
 

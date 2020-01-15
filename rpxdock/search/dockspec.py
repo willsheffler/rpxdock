@@ -8,7 +8,6 @@ T32 T33 O32 O42 O43 I32 I52 I53
 T32D T23D T33D
 O32D O23D O42D O24D O43D O34D
 I32D I23D I52D I54D I53D I35D
-P6_632
 """.split()
 
 class DockSpec1CompCage:
@@ -54,6 +53,7 @@ class DockSpec1CompCage:
 
       self.flip_axis = hm.hcross(self.axis, self.axis_second)
 
+      self.nfold = np.array([self.nfold])
       # print(self.sym, self.nfold)
 
    def slide_dir(self):
@@ -266,13 +266,32 @@ class DockSpecMonomerToCyclic:
       newpos[:, 1, 3] = dy
       return newpos.reshape(origshape)
 
-_layer_comp_center_directions = dict(P6_632=(np.array([0.86602540378, 0.5, 0, 0]),
-                                             np.array([0.86602540378, 0.0, 0, 0])))
+_layer_comp_center_directions = dict(
+   P6_632=(np.array([0.86602540378, 0.5, 0, 0]), np.array([0.86602540378, 0.0, 0, 0])),
+   P4M_4=(np.array([1, 0, 0]), ),
+)
 
-class DockSpec3CompLayer(DockSpec3CompCage):
+class DockSpec1CompMirrorLayer:
    def __init__(self, arch):
       arch = arch.upper()
       assert arch.startswith('P')
+      self.arch = arch
+      self.type = 'mirrorlayer'
+      self.sym = arch
+      self.nfold = np.array(list(arch.split('_')[1]), dtype='i')
+      self.directions = _layer_comp_center_directions[arch]
+      self.axis = np.array([np.array([0, 0, 1])] * 1)
+      self.xflip = [hm.hrot([1, 0, 0], 180)] * 1
+      self.comp_is_dihedral = [False]
+      self.num_components = 1
+      ang = 360 / self.nfold[0]
+      self.to_neighbor_olig = [hm.hrot([0, 0, 1], ang)]
+
+class DockSpec3CompLayer:
+   def __init__(self, arch):
+      arch = arch.upper()
+      assert arch.startswith('P')
+      assert 3 == len(arch.split('_')[1])
       self.arch = arch
       self.type = 'layer'
       self.sym = arch
@@ -282,4 +301,5 @@ class DockSpec3CompLayer(DockSpec3CompCage):
       self.xflip = [hm.hrot([1, 0, 0], 180)] * 3
       self.comp_is_dihedral = [False, False, False]
       self.num_components = 3
-      self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], 60), hm.hrot([0, 0, 1], 60)]
+      ang = 360 / self.nfold[0]
+      self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], ang), hm.hrot([0, 0, 1], ang)]

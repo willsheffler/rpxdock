@@ -5,7 +5,7 @@ log = logging.getLogger(__name__)
 def hier_search(sampler, evaluator, **kw):
    arg = rp.Bunch(kw)
    neval, indices, scores = list(), None, None
-   nresl = arg.nresl if arg.nresl else len(evaluator.hscore)
+   nresl = arg.nresl if arg.nresl else evaluator.hscore.actual_nresl
    for iresl in range(arg.nresl):
       indices, xforms = expand_samples(iresl, sampler, indices, scores, **arg)
       scores, extra, t = rp.search.evaluate_positions(**arg.sub(vars()))

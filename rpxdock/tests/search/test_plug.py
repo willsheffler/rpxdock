@@ -39,6 +39,7 @@ def test_plug_hier(hscore, plug, hole):
 def test_plug_hier_trim(hscore, plug, hole):
    arg = testarg()
    arg.max_trim = 200
+   arg.output_prefix = 'plug'
 
    # arg.output_prefix = "test_plug_hier_trim"
    # arg.nout_debug = 10
@@ -107,7 +108,7 @@ if __name__ == "__main__":
    # hscore = rp.RpxHier('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
 
    # hole.dump_pdb('ref.pdb', use_body_sym=True)
-   test_plug_hier(hscore, plug, hole)
+   # test_plug_hier(hscore, plug, hole)
    test_plug_hier_trim(hscore, plug, hole)
-   test_plug_olig_hier(hscore, body_c3_mono, hole)
-   test_plug_olig_grid(hscore, body_c3_mono, hole)
+   # test_plug_olig_hier(hscore, body_c3_mono, hole)
+   # test_plug_olig_grid(hscore, body_c3_mono, hole)

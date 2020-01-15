@@ -33,7 +33,17 @@ def evaluate_positions_executor(executor, evaluator, xforms, **kw):
    # futures = [f for f in as_completed(futures)]
    results = [f.result() for f in sorted(futures, key=lambda x: x.idx)]
    scores = np.concatenate([r[0] for r in results])
-   extra = {k: np.concatenate([r[1][k] for r in results]) for k in results[0][1]}
+   extra = dict()
+   first_scores, first_extras = results[0]
+   for k in first_extras:
+      if isinstance(first_extras[k], np.ndarray):
+         extra[k] = np.concatenate([r[1][k] for r in results])
+      elif isinstance(first_extras[k], tuple) and isinstance(first_extras[k][1], np.ndarray):
+         extra[k] = first_extras[k][0], np.concatenate([r[1][k][1] for r in results])
+      else:
+         print(k, first_extras[k])
+         assert all(r[1][k] == first_extras[k] for r in results)
+         extra[k] = first_extras[k]
    return scores, extra
 
 # def trim_atom_to_res_numbering(trim, nres, max_trim, **kw):

@@ -33,6 +33,12 @@ class RpxHier:
          assert all(self.use_ss == h.attr.cli_args.use_ss_key for h in self.hier)
       else:
          raise ValueError('RpxHier expects filenames or ResPairScore+[Xmap*]')
+      # append extra copies of highest resl score to use for higher res search steps
+      self.actual_nresl = len(self.hier)
+      for i in range(10):
+         self.hier.append(self.hier[-1])
+      self.cart_extent = [h.attr.cart_extent for h in self.hier]
+      self.ori_extent = [h.attr.ori_extent for h in self.hier]
       self.max_pair_dist = [max_pair_dist + h.attr.cart_extent for h in self.hier]
       self.map_pairs_multipos = xu.ssmap_pairs_multipos if self.use_ss else xu.map_pairs_multipos
       self.map_pairs = xu.ssmap_of_selected_pairs if self.use_ss else xu.map_of_selected_pairs
@@ -62,13 +68,18 @@ class RpxHier:
       m /= 2
       return m
 
-   def score_matrix_inter(self, bodyA, bodyB, wts, symframes=[np.eye(4)], iresl=-1):
+   def score_matrix_inter(self, bodyA, bodyB, wts, symframes=[np.eye(4)], iresl=-1, **kw):
       m = np.zeros((len(bodyA), len(bodyB)), dtype='f4')
-      for xsym in symframes.astype('f4'):
-         pairs, lbub = rp.bvh.bvh_collect_pairs_vec(bodyA.bvh_cen, bodyB.bvh_cen, bodyA.pos,
-                                                    xsym @ bodyB.pos, self.max_pair_dist[iresl])
+      for xsym in symframes[1:].astype('f4'):
+         pairs, lbub = rp.bvh.bvh_collect_pairs_vec(
+            bodyA.bvh_cen,
+            bodyB.bvh_cen,
+            bodyA.pos,
+            xsym @ bodyB.pos,
+            self.max_pair_dist[iresl],
+         )
          assert len(lbub) is 1
-         pairs = bodyA.filter_pairs(pairs, self.score_only_sspair, other=bodyB)
+         pairs = bodyA.filter_pairs(pairs, self.score_only_sspair, other=bodyB, **kw)
          xmap = self.hier[iresl]
          ssstub = bodyA.ssid, bodyB.ssid, bodyA.pos @ bodyA.stub, xsym @ bodyB.pos @ bodyB.stub
          if not self.use_ss: ssstub = ssstub[2:]
@@ -113,6 +124,8 @@ class RpxHier:
       # print(bounds[2], bounds[5])
       pairs, lbub = rp.bvh.bvh_collect_pairs_range_vec(body1.bvh_cen, body2.bvh_cen, pos1, pos2,
                                                        self.max_pair_dist[iresl], *bounds)
+
+      # pairs, lbub = body1.filter_pairs(pairs, self.score_only_sspair, other=body2, lbub=lbub)
 
       if bounds: assert len(bounds[0]) in (1, len(lbub))
       # if len(bounds[0]) > 1:

@@ -38,6 +38,9 @@ class Body:
       self.init_coords(sym, symaxis)
 
    def init_coords(self, sym, symaxis, xform=np.eye(4)):
+      if isinstance(sym, np.ndarray):
+         assert len(sym) == 1
+         sym = sym[0]
       if isinstance(sym, (int, np.int32, np.int64, np.uint32, np.uint64)):
          sym = "C%i" % sym
       self.sym = sym
@@ -172,7 +175,10 @@ class Body:
       if debug:
          ok = np.logical_and(trim[0] >= 0, trim[1] >= 0)
          xotherok = xother[ok] if xother.ndim == 3 else xother
-         clash, ids = rp.bvh.bvh_isect_fixed_range_vec(self.bvh_bb, other.bvh_bb, xself[ok],
+         xselfok = xself[ok] if xself.ndim == 3 else xself
+         # print(xselfok.shape, trim[0].shape, trim[0][ok].shape)
+         # print(xotherok.shape, trim[1].shape, trim[1][ok].shape)
+         clash, ids = rp.bvh.bvh_isect_fixed_range_vec(self.bvh_bb, other.bvh_bb, xselfok,
                                                        xotherok, mindis, trim[0][ok], trim[1][ok])
          # print(np.sum(clash) / len(clash))
          assert not np.any(clash)
@@ -239,7 +245,7 @@ class Body:
       b.asym_body = b
       return b
 
-   def filter_pairs(self, pairs, score_only_sspair, other=None, sanity_check=True):
+   def filter_pairs(self, pairs, score_only_sspair, other=None, lbub=None, sanity_check=True):
       if not other: other = self
       if not score_only_sspair: return pairs
       ss0 = self.ss[pairs[:, 0]]
@@ -258,4 +264,7 @@ class Body:
          for s in set(sspair):
             assert s in score_only_sspair or (s[1] + s[0]) in score_only_sspair
       log.debug(f'filter_pairs {len(pairs)} to {np.sum(ok)}')
-      return pairs[ok]
+      if lbub:
+         assert 0
+      else:
+         return pairs[ok]

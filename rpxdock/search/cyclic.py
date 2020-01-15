@@ -12,7 +12,7 @@ def make_cyclic(monomer, sym, hscore, search=hier_search, sampler=None, **kw):
    arg = rp.Bunch(kw)
    t = rp.Timer().start()
    sym = "C%i" % i if isinstance(sym, int) else sym
-   arg.nresl = len(hscore.hier) if arg.nresl is None else arg.nresl
+   arg.nresl = hscore.actual_nresl if arg.nresl is None else arg.nresl
    arg.output_prefix = arg.output_prefix if arg.output_prefix else sym
 
    if sampler is None: sampler = _default_samplers[search](monomer, hscore)
