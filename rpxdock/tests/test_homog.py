@@ -151,9 +151,8 @@ def test_intersect_planes():
          np.array([[0, 0, 1], [0, 0, 0, 0]]).T,
          np.array([[0, 0, 1], [0, 0, 0, 1]]).T)
    with pytest.raises(ValueError):
-      intersect_planes(
-         np.array(9 * [[[0, 0], [0, 0], [0, 0], [1, 0]]]),
-         np.array(2 * [[[0, 0], [0, 0], [0, 0], [1, 0]]]))
+      intersect_planes(np.array(9 * [[[0, 0], [0, 0], [0, 0], [1, 0]]]),
+                       np.array(2 * [[[0, 0], [0, 0], [0, 0], [1, 0]]]))
 
    # isct, sts = intersect_planes(np.array(9 * [[[0, 0, 0, 1], [1, 0, 0, 0]]]),
    # np.array(9 * [[[0, 0, 0, 1], [1, 0, 0, 0]]]))
@@ -375,5 +374,164 @@ def test_align_vectors_una_case():
    assert np.allclose(x @ ax1, tax1, atol=1e-2)
    assert np.allclose(x @ ax2, tax2, atol=1e-2)
 
+def rotation_around_dof_for_target_angle(target_angle, dof_angle, fix_to_dof_angle):
+   assert fix_to_dof_angle < np.pi / 2
+   assert dof_angle < np.pi / 2
+   assert target_angle < np.pi
+
+   hdof = np.sin(dof_angle)
+   l_dof = np.cos(dof_angle)
+   h_tgt = np.sin(target_angle)
+   l_tgt = np.cos(target_angle)
+   # print('l_dof', l_dof)
+   # print('l_tgt', l_tgt)
+   xdof = np.sin(fix_to_dof_angle) * l_dof
+   ydof = np.cos(fix_to_dof_angle) * l_dof
+   assert np.allclose(np.sqrt(xdof**2 + ydof**2), l_dof)
+   ytgt = np.cos(target_angle)
+   slope = -np.tan(np.pi / 2 - fix_to_dof_angle)
+
+   # print('ytgt', ytgt, 'xdof', xdof, 'ydof', ydof)
+
+   yhat = ytgt
+   xhat = xdof + (ytgt - ydof) * slope
+   lhat = np.sqrt(xhat**2 + yhat**2)
+   hhat = np.sqrt(1.0 - lhat**2)
+   ahat = np.arcsin(hhat / hdof)
+
+   # print('xhat', xhat, 'yhat', yhat, 'slope', slope, 'lhat', lhat, 'hhat', hhat, 'ahat', ahat)
+
+   assert np.all(lhat < 1.0001)
+
+   # print('ytgt', ytgt)
+   # print('xdof', xdof)
+   # print('ydof', ydof)
+   # print('xhat', xhat)
+   # print('yhat', yhat)
+   # print('ahat', ahat, np.degrees(ahat))
+
+   return ahat
+
+def calc_dihedral_angle(p1, p2, p3, p4):
+   p1, p2, p3, p4 = hpoint(p1), hpoint(p2), hpoint(p3), hpoint(p4)
+   p1, p2, p3, p4 = p1.reshape(4), p2.reshape(4), p3.reshape(4), p4.reshape(4)
+   # Calculate coordinates for vectors q1, q2 and q3
+   q1 = np.subtract(p2, p1)  # b - a
+   q2 = np.subtract(p3, p2)  # c - b
+   q3 = np.subtract(p4, p3)  # d - c
+
+   # print('q1', q1, q1.shape)
+   # print('q2', q2, q2.shape)
+   # print('q3', q3, q3.shape)
+
+   # Calculate cross vectors
+   q1_x_q2 = hcross(q1, q2)
+   q2_x_q3 = hcross(q2, q3)
+
+   # print('425', q1_x_q2)
+   # print('425', q2_x_q3)
+
+   # Calculate normal vectors
+   n1 = hnormalized(q1_x_q2)
+   n2 = hnormalized(q2_x_q3)
+
+   # Calculate unit vectors
+   u1 = n2
+   u3 = hnormalized(q2)
+   u2 = hcross(u3, u1)
+
+   cos_theta = np.sum(n1 * u1)
+   sin_theta = np.sum(n1 * u2)
+   theta = -np.arctan2(sin_theta, cos_theta)
+   return theta
+
+def test_calc_dihedral_angle():
+   dang = calc_dihedral_angle(
+      [1.0, 0.0, 0.0],
+      [0.0, 0.0, 0.0],
+      [0.0, 1.0, 0.0],
+      [0.0, 0.0, 1.0],
+   )
+   assert np.allclose(dang, -np.pi / 2)
+   dang = calc_dihedral_angle(
+      [1.0, 0.0, 0.0],
+      [0.0, 0.0, 0.0],
+      [0.0, 1.0, 0.0],
+      [1.0, 0.0, 1.0],
+   )
+   assert np.allclose(dang, -np.pi / 4)
+   dang = calc_dihedral_angle(
+      [1.0, 0.0, 0.0, 1.0],
+      [0.0, 0.0, 0.0, 1.0],
+      [0.0, 1.0, 0.0, 1.0],
+      [1.0, 0.0, 1.0, 1.0],
+   )
+   assert np.allclose(dang, -np.pi / 4)
+
+def test_align_vector_dof_dihedral_rand_single():
+   fix = np.array([1.0, 0, 0, 0])
+   mov = rand_unit(1)
+   dof = rand_unit(1)
+   if dof[0, 0] < 0: dof = -dof
+   if angle(dof, mov) > np.pi / 2: mov = -mov
+   # target_angle = np.random.uniform(0, np.pi / 2)
+   target_angle = angle(mov, fix)
+   dof_angle = angle(mov, dof)
+   # print(dof)
+   # print(mov)
+   # print('dof_angle', np.degrees(dof_angle))
+   fix_to_dof_angle = angle(fix, dof)
+
+   if target_angle + dof_angle < fix_to_dof_angle: return
+   # if dof_angle > np.pi / 2: return
+
+   # print('ta', np.degrees(target_angle), 'da', np.degrees(dof_angle), 'fda',
+   # np.degrees(fix_to_dof_angle))
+
+   axis = hcross(fix, dof)
+   mov_in_plane = (hrot(axis, -dof_angle) @ dof[..., None]).reshape(1, 4)
+   # could rotate so mov is in plane as close to fix as possible
+   # if hdot(mov_in_plane, fix) < 0:
+   # mov_in_plane = (hrot(axis, np.py + dof_angle) @ dof[..., None]).reshape(1, 4)
+
+   test = calc_dihedral_angle(fix, [0.0, 0.0, 0.0, 0.0], dof, mov_in_plane)
+   assert np.allclose(test, 0) or np.allclose(test, np.pi)
+   dang = calc_dihedral_angle(fix, [0.0, 0.0, 0.0, 0.0], dof, mov)
+
+   ahat = rotation_around_dof_for_target_angle(target_angle, dof_angle, fix_to_dof_angle)
+
+   # print('result', 'ta', np.degrees(target_angle), 'da', np.degrees(dof_angle), 'fda',
+   # np.degrees(fix_to_dof_angle), dang, ahat, abs(abs(dang) - abs(ahat)))
+   close1 = np.allclose(abs(dang), abs(ahat), atol=1e-5)
+   close2 = np.allclose(abs(dang), np.pi - abs(ahat), atol=1e-5)
+   assert close1 or close2
+
+def test_align_vector_dof_dihedral_rand():
+   for i in range(100):
+      # print(i)
+      test_align_vector_dof_dihedral_rand_single()
+
+def test_align_vector_dof_dihedral_basic():
+   target_angle = np.radians(30)
+   dof_angle = np.radians(30)
+   fix_to_dof_angle = np.radians(60)
+   ahat = rotation_around_dof_for_target_angle(target_angle, dof_angle, fix_to_dof_angle)
+   assert np.allclose(ahat, 0)
+
+   target_angle = np.radians(30)
+   dof_angle = np.radians(30)
+   fix_to_dof_angle = np.radians(30)
+   ahat = rotation_around_dof_for_target_angle(target_angle, dof_angle, fix_to_dof_angle)
+   assert np.allclose(ahat, 1.088176213364169)
+
+   target_angle = np.radians(45)
+   dof_angle = np.radians(30)
+   fix_to_dof_angle = np.radians(60)
+   ahat = rotation_around_dof_for_target_angle(target_angle, dof_angle, fix_to_dof_angle)
+   assert np.allclose(ahat, 0.8853828498391183)
+
 if __name__ == '__main__':
-   test_line_line_closest_points()
+   test_calc_dihedral_angle()
+   test_align_vector_dof_dihedral_basic()
+   test_align_vector_dof_dihedral_rand()
+   # test_line_line_closest_points()

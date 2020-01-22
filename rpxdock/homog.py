@@ -8,8 +8,7 @@ def quat_to_upper_half(quat):
    ineg0 = (quat[..., 0] < 0)
    ineg1 = (quat[..., 0] == 0) * (quat[..., 1] < 0)
    ineg2 = (quat[..., 0] == 0) * (quat[..., 1] == 0) * (quat[..., 2] < 0)
-   ineg3 = (
-      (quat[..., 0] == 0) * (quat[..., 1] == 0) * (quat[..., 2] == 0) * (quat[..., 3] < 0))
+   ineg3 = ((quat[..., 0] == 0) * (quat[..., 1] == 0) * (quat[..., 2] == 0) * (quat[..., 3] < 0))
    # print(ineg0.shape)
    # print(ineg1.shape)
    # print(ineg2.shape)
@@ -122,13 +121,11 @@ def is_broadcastable(shp1, shp2):
    return True
 
 def fast_axis_of(xforms):
-   return np.stack(
-      (xforms[..., 2, 1] - xforms[..., 1, 2], xforms[..., 0, 2] - xforms[..., 2, 0],
-       xforms[..., 1, 0] - xforms[..., 0, 1], np.zeros(xforms.shape[:-2])), axis=-1)
+   return np.stack((xforms[..., 2, 1] - xforms[..., 1, 2], xforms[..., 0, 2] - xforms[..., 2, 0],
+                    xforms[..., 1, 0] - xforms[..., 0, 1], np.zeros(xforms.shape[:-2])), axis=-1)
 
 def is_homog_xform(xforms):
-   return ((xforms.shape[-2:] == (4, 4))
-           and (np.allclose(1, np.linalg.det(xforms[..., :3, :3])))
+   return ((xforms.shape[-2:] == (4, 4)) and (np.allclose(1, np.linalg.det(xforms[..., :3, :3])))
            and (np.allclose(xforms[..., 3, :], [0, 0, 0, 1])))
 
 def hinv(xforms):
@@ -207,8 +204,8 @@ def rot(axis, angle, degrees='auto', dtype='f8', shape=(3, 3)):
 def hrot(axis, angle, center=None, dtype='f8', **args):
    axis = np.array(axis, dtype=dtype)
    angle = np.array(angle, dtype=dtype)
-   center = (np.array([0, 0, 0], dtype=dtype)
-             if center is None else np.array(center, dtype=dtype))
+   center = (np.array([0, 0, 0], dtype=dtype) if center is None else np.array(
+      center, dtype=dtype))
    r = rot(axis, angle, dtype=dtype, shape=(4, 4), **args)
    x, y, z = center[..., 0], center[..., 1], center[..., 2]
    r[..., 0, 3] = x - r[..., 0, 0] * x - r[..., 0, 1] * y - r[..., 0, 2] * z
@@ -376,8 +373,8 @@ def point_in_plane(plane, pt):
 
 def ray_in_plane(plane, ray):
    assert ray.shape[-2:] == (4, 2)
-   return (point_in_plane(plane, ray[..., :3, 0]) * point_in_plane(
-      plane, ray[..., :3, 0] + ray[..., :3, 1]))
+   return (point_in_plane(plane, ray[..., :3, 0]) *
+           point_in_plane(plane, ray[..., :3, 0] + ray[..., :3, 1]))
 
 def intersect_planes(plane1, plane2):
    """intersect_Planes: find the 3D intersection of two planes
