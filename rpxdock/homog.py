@@ -533,3 +533,100 @@ def align_vectors(a1, a2, b1, b2):
    X = Xaround @ Xmiddle
    assert (angle(b1, a1) + angle(b2, a2)) + 0.001 >= (angle(b1, X @ a1) + angle(b2, X @ a2))
    return X
+
+def calc_dihedral_angle(p1, p2, p3, p4):
+   p1, p2, p3, p4 = hpoint(p1), hpoint(p2), hpoint(p3), hpoint(p4)
+   p1, p2, p3, p4 = p1.reshape(4), p2.reshape(4), p3.reshape(4), p4.reshape(4)
+   # Calculate coordinates for vectors q1, q2 and q3
+   q1 = np.subtract(p2, p1)  # b - a
+   q2 = np.subtract(p3, p2)  # c - b
+   q3 = np.subtract(p4, p3)  # d - c
+   q1_x_q2 = hcross(q1, q2)
+   q2_x_q3 = hcross(q2, q3)
+   n1 = hnormalized(q1_x_q2)
+   n2 = hnormalized(q2_x_q3)
+   u1 = n2
+   u3 = hnormalized(q2)
+   u2 = hcross(u3, u1)
+   cos_theta = np.sum(n1 * u1)
+   sin_theta = np.sum(n1 * u2)
+   theta = -np.arctan2(sin_theta, cos_theta)
+   return theta
+
+def rotation_around_dof_for_target_angle(target_angle, dof_angle, fix_to_dof_angle):
+   assert fix_to_dof_angle < np.pi / 2
+   assert dof_angle < np.pi / 2
+   assert target_angle < np.pi
+
+   if target_angle + dof_angle < fix_to_dof_angle:
+      return np.array([-12345.0])
+
+   hdof = np.sin(dof_angle)
+   l_dof = np.cos(dof_angle)
+   h_tgt = np.sin(target_angle)
+   l_tgt = np.cos(target_angle)
+   # print('l_dof', l_dof)
+   # print('l_tgt', l_tgt)
+   xdof = np.sin(fix_to_dof_angle) * l_dof
+   ydof = np.cos(fix_to_dof_angle) * l_dof
+   assert np.allclose(np.sqrt(xdof**2 + ydof**2), l_dof)
+   ytgt = np.cos(target_angle)
+   slope = -np.tan(np.pi / 2 - fix_to_dof_angle)
+
+   # print('ytgt', ytgt, 'xdof', xdof, 'ydof', ydof)
+
+   yhat = ytgt
+   xhat = xdof + (ytgt - ydof) * slope
+   lhat = np.sqrt(xhat**2 + yhat**2)
+   if lhat > 0.999999:
+      if lhat > 1.000001:
+         return np.array([-12345.0])
+      else:
+         return np.array([0.0])
+
+   hhat = np.sqrt(1.0 - lhat**2)
+   ahat = np.arcsin(hhat / hdof)
+
+   # print('xhat', xhat, 'yhat', yhat, 'slope', slope, 'lhat', lhat, 'hhat', hhat, 'ahat', ahat)
+
+   # print('ytgt', ytgt)
+   # print('xdof', xdof)
+   # print('ydof', ydof)
+   # print('xhat', xhat)
+   # print('yhat', yhat)
+   # print('ahat', ahat, np.degrees(ahat))
+
+   return ahat
+
+def xform_around_dof_for_vector_target_angle(fix, mov, dof, target_angle):
+   if hdot(dof, fix) < 0:
+      dof = -dof
+   if angle(dof, mov) > np.pi / 2:
+      mov = -mov
+   dang = calc_dihedral_angle(fix, [0.0, 0.0, 0.0, 0.0], dof, mov)
+   assert angle(dof, mov) <= np.pi / 2
+   ahat = rotation_around_dof_for_target_angle(target_angle, angle(mov, dof), angle(fix, dof))
+   if ahat == -12345.0:
+      return []
+   elif ahat == 0:
+      mov1 = (hrot(dof, 0.000 - dang) @ mov[..., None]).reshape(1, 4)
+      mov2 = (hrot(dof, np.pi - dang) @ mov[..., None]).reshape(1, 4)
+      if np.allclose(angle(fix, mov1), target_angle):
+         return [hrot(dof, np.pi - dang)]
+         return
+      elif np.allclose(angle(fix, mov1), target_angle):
+         return [hrot(dof, np.pi - dang)]
+      else:
+         return []
+   else:
+      angles = [-dang + ahat, -dang - ahat, np.pi - dang + ahat, np.pi - dang - ahat]
+      moves = [(hrot(dof, ang + 0.000) @ mov[..., None]).reshape(1, 4) for ang in angles]
+      assert (np.allclose(angle(moves[0], fix), angle(moves[1], fix))
+              or np.allclose(angle(moves[2], fix), angle(moves[3], fix)))
+
+      if np.allclose(angle(moves[0], fix), target_angle):
+         return [hrot(dof, angles[0]), hrot(dof, angles[1])]
+      elif np.allclose(angle(moves[2], fix), target_angle):
+         return [hrot(dof, angles[2]), hrot(dof, angles[3])]
+      else:
+         return []

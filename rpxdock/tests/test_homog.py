@@ -1,5 +1,6 @@
 import pytest, numpy as np
 from rpxdock.homog import *
+import rpxdock.homog as hm
 from rpxdock.geom import sym
 
 def test_sym():
@@ -374,77 +375,6 @@ def test_align_vectors_una_case():
    assert np.allclose(x @ ax1, tax1, atol=1e-2)
    assert np.allclose(x @ ax2, tax2, atol=1e-2)
 
-def rotation_around_dof_for_target_angle(target_angle, dof_angle, fix_to_dof_angle):
-   assert fix_to_dof_angle < np.pi / 2
-   assert dof_angle < np.pi / 2
-   assert target_angle < np.pi
-
-   hdof = np.sin(dof_angle)
-   l_dof = np.cos(dof_angle)
-   h_tgt = np.sin(target_angle)
-   l_tgt = np.cos(target_angle)
-   # print('l_dof', l_dof)
-   # print('l_tgt', l_tgt)
-   xdof = np.sin(fix_to_dof_angle) * l_dof
-   ydof = np.cos(fix_to_dof_angle) * l_dof
-   assert np.allclose(np.sqrt(xdof**2 + ydof**2), l_dof)
-   ytgt = np.cos(target_angle)
-   slope = -np.tan(np.pi / 2 - fix_to_dof_angle)
-
-   # print('ytgt', ytgt, 'xdof', xdof, 'ydof', ydof)
-
-   yhat = ytgt
-   xhat = xdof + (ytgt - ydof) * slope
-   lhat = np.sqrt(xhat**2 + yhat**2)
-   hhat = np.sqrt(1.0 - lhat**2)
-   ahat = np.arcsin(hhat / hdof)
-
-   # print('xhat', xhat, 'yhat', yhat, 'slope', slope, 'lhat', lhat, 'hhat', hhat, 'ahat', ahat)
-
-   assert np.all(lhat < 1.0001)
-
-   # print('ytgt', ytgt)
-   # print('xdof', xdof)
-   # print('ydof', ydof)
-   # print('xhat', xhat)
-   # print('yhat', yhat)
-   # print('ahat', ahat, np.degrees(ahat))
-
-   return ahat
-
-def calc_dihedral_angle(p1, p2, p3, p4):
-   p1, p2, p3, p4 = hpoint(p1), hpoint(p2), hpoint(p3), hpoint(p4)
-   p1, p2, p3, p4 = p1.reshape(4), p2.reshape(4), p3.reshape(4), p4.reshape(4)
-   # Calculate coordinates for vectors q1, q2 and q3
-   q1 = np.subtract(p2, p1)  # b - a
-   q2 = np.subtract(p3, p2)  # c - b
-   q3 = np.subtract(p4, p3)  # d - c
-
-   # print('q1', q1, q1.shape)
-   # print('q2', q2, q2.shape)
-   # print('q3', q3, q3.shape)
-
-   # Calculate cross vectors
-   q1_x_q2 = hcross(q1, q2)
-   q2_x_q3 = hcross(q2, q3)
-
-   # print('425', q1_x_q2)
-   # print('425', q2_x_q3)
-
-   # Calculate normal vectors
-   n1 = hnormalized(q1_x_q2)
-   n2 = hnormalized(q2_x_q3)
-
-   # Calculate unit vectors
-   u1 = n2
-   u3 = hnormalized(q2)
-   u2 = hcross(u3, u1)
-
-   cos_theta = np.sum(n1 * u1)
-   sin_theta = np.sum(n1 * u2)
-   theta = -np.arctan2(sin_theta, cos_theta)
-   return theta
-
 def test_calc_dihedral_angle():
    dang = calc_dihedral_angle(
       [1.0, 0.0, 0.0],
@@ -468,37 +398,29 @@ def test_calc_dihedral_angle():
    )
    assert np.allclose(dang, -np.pi / 4)
 
-def test_align_vector_dof_dihedral_rand_single():
-   fix = np.array([1.0, 0, 0, 0])
-   mov = rand_unit(1)
-   dof = rand_unit(1)
-   if dof[0, 0] < 0: dof = -dof
+def test_align_lines_dof_dihedral_rand_single():
+   fix, mov, dof = rand_unit(3)
+
+   if angle(fix, dof) > np.pi / 2: dof = -dof
    if angle(dof, mov) > np.pi / 2: mov = -mov
-   # target_angle = np.random.uniform(0, np.pi / 2)
    target_angle = angle(mov, fix)
    dof_angle = angle(mov, dof)
-   # print(dof)
-   # print(mov)
-   # print('dof_angle', np.degrees(dof_angle))
    fix_to_dof_angle = angle(fix, dof)
 
    if target_angle + dof_angle < fix_to_dof_angle: return
-   # if dof_angle > np.pi / 2: return
-
-   # print('ta', np.degrees(target_angle), 'da', np.degrees(dof_angle), 'fda',
-   # np.degrees(fix_to_dof_angle))
 
    axis = hcross(fix, dof)
    mov_in_plane = (hrot(axis, -dof_angle) @ dof[..., None]).reshape(1, 4)
    # could rotate so mov is in plane as close to fix as possible
    # if hdot(mov_in_plane, fix) < 0:
-   # mov_in_plane = (hrot(axis, np.py + dof_angle) @ dof[..., None]).reshape(1, 4)
+   #    mov_in_plane = (hrot(axis, np.py + dof_angle) @ dof[..., None]).reshape(1, 4)
 
    test = calc_dihedral_angle(fix, [0.0, 0.0, 0.0, 0.0], dof, mov_in_plane)
    assert np.allclose(test, 0) or np.allclose(test, np.pi)
    dang = calc_dihedral_angle(fix, [0.0, 0.0, 0.0, 0.0], dof, mov)
 
    ahat = rotation_around_dof_for_target_angle(target_angle, dof_angle, fix_to_dof_angle)
+   # print(ahat, dang, abs(dang) + abs(ahat))
 
    # print('result', 'ta', np.degrees(target_angle), 'da', np.degrees(dof_angle), 'fda',
    # np.degrees(fix_to_dof_angle), dang, ahat, abs(abs(dang) - abs(ahat)))
@@ -506,12 +428,42 @@ def test_align_vector_dof_dihedral_rand_single():
    close2 = np.allclose(abs(dang), np.pi - abs(ahat), atol=1e-5)
    assert close1 or close2
 
-def test_align_vector_dof_dihedral_rand():
+def test_align_lines_dof_dihedral_rand_3D():
+   num_sol_found, num_total, num_no_sol, max_sol = [0] * 4
    for i in range(100):
-      # print(i)
-      test_align_vector_dof_dihedral_rand_single()
+      target_angle = np.random.uniform(0, np.pi)
+      fix, mov, dof = rand_unit(3)
 
-def test_align_vector_dof_dihedral_basic():
+      if hdot(dof, fix) < 0:
+         dof = -dof
+      if angle(dof, mov) > np.pi / 2:
+         mov = -mov
+
+      if line_angle(fix, dof) > line_angle(mov, dof) + target_angle:
+         continue
+      if target_angle > line_angle(mov, dof) + line_angle(fix, dof):
+         continue
+
+      solutions = xform_around_dof_for_vector_target_angle(fix, mov, dof, target_angle)
+      if solutions is None:
+         continue
+
+      num_sol_found += 0 < len(solutions)
+      max_sol = np.maximum(max_sol, target_angle)
+      num_total += 1
+
+      for sol in solutions:
+         assert np.allclose(target_angle, angle(fix, sol @ mov), atol=1e-5)
+
+   print(num_total, num_sol_found, num_no_sol, np.degrees(max_sol))
+   assert (num_sol_found) / num_total > 0.6
+
+def test_align_lines_dof_dihedral_rand(n=100):
+   for i in range(n):
+      # print(i)
+      test_align_lines_dof_dihedral_rand_single()
+
+def test_align_lines_dof_dihedral_basic():
    target_angle = np.radians(30)
    dof_angle = np.radians(30)
    fix_to_dof_angle = np.radians(60)
@@ -530,8 +482,123 @@ def test_align_vector_dof_dihedral_basic():
    ahat = rotation_around_dof_for_target_angle(target_angle, dof_angle, fix_to_dof_angle)
    assert np.allclose(ahat, 0.8853828498391183)
 
+def align_lines_slide_second(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2):
+   ## make sure to align with smaller axis choice
+   if hm.angle(ax1, ax2) > np.pi / 2:
+      ax2 = -ax2
+   if hm.angle(ta1, ta2) > np.pi / 2:
+      ta2 = -ta2
+   assert np.allclose(angle(ta1, ta2), angle(ax1, ax2))
+   if abs(hm.angle(ta1, ta2)) < 0.1:
+      assert 0
+      # vector delta between pt2 and pt1
+      d = hm.proj_perp(ax1, pt2 - pt1)
+      Xalign = hm.align_vectors(ax1, d, ta1, sl2)  # align d to Y axis
+      Xalign[..., :, 3] = -Xalign @ pt1
+      cell_dist = (Xalign @ pt2)[..., 1]
+   else:
+      try:
+         Xalign = hm.align_vectors(ax1, ax2, ta1, ta2)
+         # print(Xalign @ ax1, ta1)
+         # assert np.allclose(Xalign @ ax1, ta1, atol=0.0001)
+         # assert np.allclose(Xalign @ ax2, ta2, atol=0.0001)
+         # print(Xalign)
+      except AssertionError as e:
+         print("align_vectors error")
+         print("   ", ax1)
+         print("   ", ax2)
+         print("   ", ta1)
+         print("   ", ta2)
+         raise e
+      Xalign[..., :, 3] = -Xalign @ pt1  ## move pt1 to origin
+      Xalign[..., 3, 3] = 1
+      cen2_0 = Xalign @ pt2  # moving pt2 by Xalign
+      D = np.stack([ta1[:3], sl2[:3], ta2[:3]]).T
+      A1offset, cell_dist, _ = np.linalg.inv(D) @ cen2_0[:3]
+      # print(A1offset, cell_dist)
+      Xalign[..., :, 3] = Xalign[..., :, 3] - (A1offset * ta1)
+
+   return Xalign
+
+def test_place_lines_to_isect_F432():
+   ta1 = hnormalized([0., 1., 0., 0.])
+   tp1 = np.array([0., 0., 0., 1])
+   ta2 = hnormalized([0., -0.5, 0.5, 0.])
+   tp2 = np.array([-1, 1, 1, 1.])
+   sl2 = hnormalized(tp2 - tp1)
+
+   for i in range(100):
+      Xptrb = rand_xform(cart_sd=0)
+      # Xptrb = hrot([1, 2, 3], 1.2224)
+      ax1 = Xptrb @ np.array([0., 1., 0., 0.])
+      pt1 = Xptrb @ np.array([0., 0., 0., 1.])
+      ax2 = Xptrb @ np.array([0., -0.5, 0.5, 0.])
+      pt2 = Xptrb @ hnormalized(np.array([-1.0, 1.0, 1.0, 1.]))
+
+      Xalign = align_lines_slide_second(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2)
+      xp1, xa1 = Xalign @ pt1, Xalign @ ax1
+      xp2, xa2 = Xalign @ pt2, Xalign @ ax2
+      assert np.allclose(Xalign[3, 3], 1.0)
+
+      # print('ax1', xa1, ta1)
+      # print('ax2', xa2, ta2)
+      # print('pt1', xp1)
+      # print('pt2', xp2)
+
+      assert np.allclose(line_angle(xa1, xa2), line_angle(ta1, ta2))
+      assert np.allclose(line_angle(xa1, ta1), 0.0, atol=0.001)
+      assert np.allclose(line_angle(xa2, ta2), 0.0, atol=0.001)
+      isect_error = line_line_distance_pa(xp2, xa2, [0, 0, 0, 1], sl2)
+      assert np.allclose(isect_error, 0, atol=0.001)
+
+def test_place_lines_to_isect_onecase():
+   tp1 = np.array([+0, +0, +0, 1])
+   ta1 = np.array([+1, +1, +1, 0])
+   ta2 = np.array([+1, +1, -1, 0])
+   sl2 = np.array([+0, +1, +1, 0])
+   pt1 = np.array([+0, +0, +0, 1])
+   ax1 = np.array([+1, +1, +1, 0])
+   pt2 = np.array([+1, +2, +1, 1])
+   ax2 = np.array([+1, +1, -1, 0])
+   ta1 = hnormalized(ta1)
+   ta2 = hnormalized(ta2)
+   sl2 = hnormalized(sl2)
+   ax1 = hnormalized(ax1)
+   ax2 = hnormalized(ax2)
+
+   Xalign = align_lines_slide_second(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2)
+   isect_error = line_line_distance_pa(Xalign @ pt2, Xalign @ ax2, [0, 0, 0, 1], sl2)
+   assert np.allclose(isect_error, 0, atol=0.001)
+
+def test_place_lines_to_isect_F432_null():
+   ta1 = np.array([0., 1., 0., 0.])
+   tp1 = np.array([0., 0., 0., 1.])
+   ta2 = np.array([0., -0.5, 0.5, 0.])
+   tp2 = np.array([-0.57735, 0.57735, 0.57735, 1.])
+   sl2 = tp2 - tp1
+
+   ax1 = np.array([0., 1., 0., 0.])
+   pt1 = np.array([0., 0., 0., 1.])
+   ax2 = np.array([0., -0.5, 0.5, 0.])
+   pt2 = np.array([-0.57735, 0.57735, 0.57735, 1.])
+
+   Xalign = align_lines_slide_second(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2)
+   assert np.allclose(Xalign[3, 3], 1.0)
+
+   xp1, xa1 = Xalign @ pt1, Xalign @ ax1
+   xp2, xa2 = Xalign @ pt2, Xalign @ ax2
+   assert np.allclose(line_angle(xa1, xa2), line_angle(ta1, ta2))
+   assert np.allclose(line_angle(xa1, ta1), 0.0)
+   assert np.allclose(line_angle(xa2, ta2), 0.0, atol=0.001)
+   isect_error = line_line_distance_pa(xp2, xa2, [0, 0, 0, 1], sl2)
+   assert np.allclose(isect_error, 0, atol=0.001)
+
 if __name__ == '__main__':
-   test_calc_dihedral_angle()
-   test_align_vector_dof_dihedral_basic()
-   test_align_vector_dof_dihedral_rand()
+   # test_calc_dihedral_angle()
+   # test_align_lines_dof_dihedral_basic()
+   # test_align_lines_dof_dihedral_rand(10)
+   # test_align_lines_dof_dihedral_rand_3D()
    # test_line_line_closest_points()
+   test_place_lines_to_isect_onecase()
+   test_place_lines_to_isect_F432_null()
+   test_place_lines_to_isect_F432()
