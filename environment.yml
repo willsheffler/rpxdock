@@ -1,7 +1,7 @@
 name: rpxdock
 channels:
  - conda-forge
- - https://conda.anaconda.org/t/IuO94WfD-JCG/rosettacommons
+ - https://pose:foldtree@conda.graylab.jhu.edu
 dependencies:
  - python>=3.7
  - pyrosetta=2018.52

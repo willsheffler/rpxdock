@@ -1,4 +1,4 @@
-import numpy as np
+import numpy as np, itertools as it, functools as ft
 
 def is_valid_quat_rot(quat):
    assert quat.shape[-1] == 4
@@ -555,8 +555,8 @@ def calc_dihedral_angle(p1, p2, p3, p4):
 
 def rotation_around_dof_for_target_angle(target_angle, dof_angle, fix_to_dof_angle):
    assert fix_to_dof_angle < np.pi / 2
-   assert dof_angle < np.pi / 2
-   assert target_angle < np.pi
+   assert dof_angle <= np.pi / 2 + 0.00001
+   assert target_angle <= np.pi
 
    if target_angle + dof_angle < fix_to_dof_angle:
       return np.array([-12345.0])
@@ -604,7 +604,7 @@ def xform_around_dof_for_vector_target_angle(fix, mov, dof, target_angle):
    if angle(dof, mov) > np.pi / 2:
       mov = -mov
    dang = calc_dihedral_angle(fix, [0.0, 0.0, 0.0, 0.0], dof, mov)
-   assert angle(dof, mov) <= np.pi / 2
+   assert angle(dof, mov) <= np.pi / 2 + 0.000001
    ahat = rotation_around_dof_for_target_angle(target_angle, angle(mov, dof), angle(fix, dof))
    if ahat == -12345.0:
       return []
@@ -630,3 +630,52 @@ def xform_around_dof_for_vector_target_angle(fix, mov, dof, target_angle):
          return [hrot(dof, angles[2]), hrot(dof, angles[3])]
       else:
          return []
+
+def align_lines_isect_axis2(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2):
+   ## make sure to align with smaller axis choice
+   assert np.allclose(np.linalg.norm(tp1[..., :3]), 0.0)
+   if angle(ax1, ax2) > np.pi / 2:
+      ax2 = -ax2
+   if angle(ta1, ta2) > np.pi / 2:
+      ta2 = -ta2
+   assert np.allclose(angle(ta1, ta2), angle(ax1, ax2))
+   if abs(angle(ta1, ta2)) < 0.1:
+      assert 0, 'case not tested'
+      # vector delta between pt2 and pt1
+      d = proj_perp(ax1, pt2 - pt1)
+      Xalign = align_vectors(ax1, d, ta1, sl2)  # align d to Y axis
+      Xalign[..., :, 3] = -Xalign @ pt1
+      slide_dist = (Xalign @ pt2)[..., 1]
+   else:
+      try:
+         Xalign = align_vectors(ax1, ax2, ta1, ta2)
+         # print(Xalign @ ax1, ta1)
+         # assert np.allclose(Xalign @ ax1, ta1, atol=0.0001)
+         # assert np.allclose(Xalign @ ax2, ta2, atol=0.0001)
+         # print(Xalign)
+      except AssertionError as e:
+         print("align_vectors error")
+         print("   ", ax1)
+         print("   ", ax2)
+         print("   ", ta1)
+         print("   ", ta2)
+         raise e
+      Xalign[..., :, 3] = -Xalign @ pt1  ## move pt1 to origin
+      Xalign[..., 3, 3] = 1
+      cen2_0 = Xalign @ pt2  # moving pt2 by Xalign
+      D = np.stack([ta1[:3], sl2[:3], ta2[:3]]).T
+      A1offset, slide_dist, _ = np.linalg.inv(D) @ cen2_0[:3]
+      # print(A1offset, slide_dist)
+      Xalign[..., :, 3] = Xalign[..., :, 3] - (A1offset * ta1)
+
+   return Xalign, slide_dist
+
+def expand_xforms(G, N=3, c=hpoint([1, 3, 10]), maxrad=9e9):
+   seenit = set()
+   for Xs in it.chain(G, *(it.product(G, repeat=n) for n in range(2, N + 1))):
+      X = Xs if isinstance(Xs, np.ndarray) else ft.reduce(np.matmul, Xs)
+      if np.linalg.norm(X @ c - c) > maxrad: continue
+      key = tuple(np.around(X @ c) + 0.1)
+      if key not in seenit:
+         seenit.add(key)
+         yield X

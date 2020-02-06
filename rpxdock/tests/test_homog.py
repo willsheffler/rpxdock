@@ -1,4 +1,4 @@
-import pytest, numpy as np
+import pytest, numpy as np, itertools as it, functools as ft
 from rpxdock.homog import *
 import rpxdock.homog as hm
 from rpxdock.geom import sym
@@ -482,44 +482,6 @@ def test_align_lines_dof_dihedral_basic():
    ahat = rotation_around_dof_for_target_angle(target_angle, dof_angle, fix_to_dof_angle)
    assert np.allclose(ahat, 0.8853828498391183)
 
-def align_lines_slide_second(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2):
-   ## make sure to align with smaller axis choice
-   if hm.angle(ax1, ax2) > np.pi / 2:
-      ax2 = -ax2
-   if hm.angle(ta1, ta2) > np.pi / 2:
-      ta2 = -ta2
-   assert np.allclose(angle(ta1, ta2), angle(ax1, ax2))
-   if abs(hm.angle(ta1, ta2)) < 0.1:
-      assert 0
-      # vector delta between pt2 and pt1
-      d = hm.proj_perp(ax1, pt2 - pt1)
-      Xalign = hm.align_vectors(ax1, d, ta1, sl2)  # align d to Y axis
-      Xalign[..., :, 3] = -Xalign @ pt1
-      cell_dist = (Xalign @ pt2)[..., 1]
-   else:
-      try:
-         Xalign = hm.align_vectors(ax1, ax2, ta1, ta2)
-         # print(Xalign @ ax1, ta1)
-         # assert np.allclose(Xalign @ ax1, ta1, atol=0.0001)
-         # assert np.allclose(Xalign @ ax2, ta2, atol=0.0001)
-         # print(Xalign)
-      except AssertionError as e:
-         print("align_vectors error")
-         print("   ", ax1)
-         print("   ", ax2)
-         print("   ", ta1)
-         print("   ", ta2)
-         raise e
-      Xalign[..., :, 3] = -Xalign @ pt1  ## move pt1 to origin
-      Xalign[..., 3, 3] = 1
-      cen2_0 = Xalign @ pt2  # moving pt2 by Xalign
-      D = np.stack([ta1[:3], sl2[:3], ta2[:3]]).T
-      A1offset, cell_dist, _ = np.linalg.inv(D) @ cen2_0[:3]
-      # print(A1offset, cell_dist)
-      Xalign[..., :, 3] = Xalign[..., :, 3] - (A1offset * ta1)
-
-   return Xalign
-
 def test_place_lines_to_isect_F432():
    ta1 = hnormalized([0., 1., 0., 0.])
    tp1 = np.array([0., 0., 0., 1])
@@ -529,13 +491,12 @@ def test_place_lines_to_isect_F432():
 
    for i in range(100):
       Xptrb = rand_xform(cart_sd=0)
-      # Xptrb = hrot([1, 2, 3], 1.2224)
       ax1 = Xptrb @ np.array([0., 1., 0., 0.])
       pt1 = Xptrb @ np.array([0., 0., 0., 1.])
       ax2 = Xptrb @ np.array([0., -0.5, 0.5, 0.])
       pt2 = Xptrb @ hnormalized(np.array([-1.0, 1.0, 1.0, 1.]))
 
-      Xalign = align_lines_slide_second(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2)
+      Xalign, delta = align_lines_isect_axis2(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2)
       xp1, xa1 = Xalign @ pt1, Xalign @ ax1
       xp2, xa2 = Xalign @ pt2, Xalign @ ax2
       assert np.allclose(Xalign[3, 3], 1.0)
@@ -566,7 +527,7 @@ def test_place_lines_to_isect_onecase():
    ax1 = hnormalized(ax1)
    ax2 = hnormalized(ax2)
 
-   Xalign = align_lines_slide_second(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2)
+   Xalign, delta = align_lines_isect_axis2(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2)
    isect_error = line_line_distance_pa(Xalign @ pt2, Xalign @ ax2, [0, 0, 0, 1], sl2)
    assert np.allclose(isect_error, 0, atol=0.001)
 
@@ -582,7 +543,7 @@ def test_place_lines_to_isect_F432_null():
    ax2 = np.array([0., -0.5, 0.5, 0.])
    pt2 = np.array([-0.57735, 0.57735, 0.57735, 1.])
 
-   Xalign = align_lines_slide_second(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2)
+   Xalign, delta = align_lines_isect_axis2(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2)
    assert np.allclose(Xalign[3, 3], 1.0)
 
    xp1, xa1 = Xalign @ pt1, Xalign @ ax1
@@ -593,12 +554,26 @@ def test_place_lines_to_isect_F432_null():
    isect_error = line_line_distance_pa(xp2, xa2, [0, 0, 0, 1], sl2)
    assert np.allclose(isect_error, 0, atol=0.001)
 
+def test_expand_xforms_basic():
+   x1 = hrot([0, 0, 1], np.pi)
+   x2 = hrot([1, 1, 1], np.pi * 2 / 3, [1, 0, 0])
+   xgen = x1, x2
+   frames = expand_xforms(xgen)
+   points = np.stack([x @ [1, 0, 0, 1] for x in frames])
+
+   correct = np.array([(-1.0, 0.0, 0.0, 1), (1.0, 0.0, 0.0, 1), (1.0, -0.0, 0.0, 1),
+                       (-1.0, 0.0, 0.0, 1), (1.0, -2.0, 0.0, 1), (1.0, 0.0, 0.0, 1),
+                       (-1.0, 2.0, 0.0, 1), (-1.0, 0.0, 0.0, 1), (1.0, -2.0, 0.0, 1),
+                       (1.0, -0.0, -2.0, 1)])
+   assert np.allclose(correct, points)
+
 if __name__ == '__main__':
    # test_calc_dihedral_angle()
    # test_align_lines_dof_dihedral_basic()
    # test_align_lines_dof_dihedral_rand(10)
    # test_align_lines_dof_dihedral_rand_3D()
    # test_line_line_closest_points()
-   test_place_lines_to_isect_onecase()
-   test_place_lines_to_isect_F432_null()
-   test_place_lines_to_isect_F432()
+   # test_place_lines_to_isect_onecase()
+   # test_place_lines_to_isect_F432_null()
+   # test_place_lines_to_isect_F432()
+   test_expand_xforms_basic()
