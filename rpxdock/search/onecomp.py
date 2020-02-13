@@ -12,7 +12,7 @@ def make_onecomp(
 ):
    arg = rp.Bunch(kw)
    t = rp.Timer().start()
-   arg.nresl = hscore.nresl if arg.nresl is None else arg.nresl
+   arg.nresl = hscore.actual_nresl if arg.nresl is None else arg.nresl
    arg.output_prefix = arg.output_prefix if arg.output_prefix else spec.arch
 
    assert isinstance(body, rp.Body)

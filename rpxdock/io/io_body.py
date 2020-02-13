@@ -18,6 +18,7 @@ def make_pdb_from_bodies(
       bfactor=None,
       occupancy=None,
       use_orig_coords=False,
+      warn_on_chain_overflow=True,
       **kw,
 ):
    if symframes is None and use_body_sym is None:
@@ -56,7 +57,7 @@ def make_pdb_from_bodies(
    bodies = [bodies] if isinstance(bodies, Body) else bodies
    s = ""
    ia = startatm
-   max_resno = np.repeat(int(-9e9), len(chain_letters))
+   # max_resno = np.repeat(int(-9e9), len(chain_letters))
    for isym, xsym in enumerate(symframes):
       for ibody, body in enumerate(bodies):
          com = xsym @ body.pos[:, 3]
@@ -80,9 +81,11 @@ def make_pdb_from_bodies(
             if ic >= len(chain_letters):
                if no_duplicate_chains:
                   break
-               if no_duplicate_reschain_pairs:
-                  resno = max_resno[c] + 1
-            max_resno[c] = max(resno, max_resno[c])
+               ic -= len(chain_letters)
+
+            #    if no_duplicate_reschain_pairs:
+            #       resno = max_resno[c] + 1
+            # max_resno[c] = max(resno, max_resno[c])
             cletter = chain_letters[c]
             occ = 1 if occupancy is None else occupancy[resno]
             bfac = 0 if bfactor is None else bfactor[ibody][resno % len(bfactor[ibody])]
@@ -127,31 +130,32 @@ def make_pdb_from_bodies(
          s += "TER\n"
          startchain += nchain
    startatm = ia
-   if start[1] > len(chain_letters):
-      if no_duplicate_chains:
-         print(
-            "WARNING: too many chains for a pdb",
-            start[1] - len(chain_letters),
-            "of",
-            len(chain_letters),
-            "duplicates removed",
-         )
-      elif no_duplicate_reschain_pairs:
-         print(
-            "WARNING: too many chains for a pdb",
-            start[1] - len(chain_letters),
-            "of",
-            len(chain_letters),
-            "duplicate chains with offset resi",
-         )
-      else:
-         print(
-            "WARNING: too many chains for a pdb",
-            start[1] - len(chain_letters),
-            "of",
-            len(chain_letters),
-            "will be duplicate chain/resi pairs",
-         )
+   if warn_on_chain_overflow:
+      if start[1] > len(chain_letters):
+         if no_duplicate_chains:
+            print(
+               "WARNING: too many chains for a pdb",
+               start[1] - len(chain_letters),
+               "of",
+               len(chain_letters),
+               "duplicates removed",
+            )
+         elif no_duplicate_reschain_pairs:
+            print(
+               "WARNING: too many chains for a pdb",
+               start[1] - len(chain_letters),
+               "of",
+               len(chain_letters),
+               "duplicate chains with offset resi",
+            )
+         else:
+            print(
+               "WARNING: too many chains for a pdb",
+               start[1] - len(chain_letters),
+               "of",
+               len(chain_letters),
+               "will be duplicate chain/resi pairs",
+            )
    return s, (startatm, startchain)
 
 def dump_pdb_from_bodies(fname, *args, **kw):

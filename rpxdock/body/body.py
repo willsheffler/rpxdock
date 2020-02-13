@@ -73,6 +73,7 @@ class Body:
       self.stub = rp.motif.bb_stubs(self.coord)
       ids = np.repeat(np.arange(self.nres, dtype=np.int32), self.coord.shape[1])
       self.bvh_bb = rp.BVH(self.coord[..., :3].reshape(-1, 3), [], ids)
+      self.bvh_bb_atomno = rp.BVH(self.coord[..., :3].reshape(-1, 3), [])
       self.allcen = self.stub[:, :, 3]
       which_cen = np.repeat(False, len(self.ss))
       for ss in "EHL":
@@ -200,6 +201,9 @@ class Body:
       n = len(self.coord) // self.nfold if asym else len(self.coord)
       return (self.pos @ self.coord[:n, :, :, None]).squeeze()
 
+   def positioned_coord_atomno(self, i):
+      return self.pos @ self.coord.reshape(-1, 4)[i]
+
    def positioned_cen(self, asym=False):
       n = len(self.stub) // self.nfold if asym else len(self.stub)
       cen = self.stub[:n, :, 3]
@@ -208,13 +212,19 @@ class Body:
    def positioned_orig_coords(self):
       return [(self.pos @ x[..., None]).squeeze() for x in self.orig_coords]
 
-   def contact_pairs(self, other, maxdis, buf=None):
+   def contact_pairs(self, other, maxdis, buf=None, use_bb=False, atomno=False):
       if not buf:
          buf = np.empty((10000, 2), dtype="i4")
-      p, o = rp.bvh.bvh_collect_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis,
-                                      buf)
-      assert not o
-      return p
+      pairs, overflow = rp.bvh.bvh_collect_pairs(
+         self.bvh_bb_atomno if atomno else (self.bvh_bb if use_bb else self.bvh_cen),
+         other.bvh_bb_atomno if atomno else (other.bvh_bb if use_bb else other.bvh_cen),
+         self.pos,
+         other.pos,
+         maxdis,
+         buf,
+      )
+      assert not overflow
+      return pairs
 
    def contact_count(self, other, maxdis):
       return rp.bvh.bvh_count_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis)
@@ -223,6 +233,11 @@ class Body:
       # import needs to be here to avoid cyclic import
       from rpxdock.io.io_body import dump_pdb_from_bodies
       return dump_pdb_from_bodies(fname, [self], **kw)
+
+   def str_pdb(self, **kw):
+      # import needs to be here to avoid cyclic import
+      from rpxdock.io.io_body import dump_pdb_from_bodies
+      return rp.io.make_pdb_from_bodies([self], **kw)
 
    def copy(self):
       b = copy.copy(self)

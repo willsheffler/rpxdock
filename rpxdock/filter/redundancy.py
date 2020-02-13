@@ -2,8 +2,10 @@ import logging, numpy as np, rpxdock as rp
 
 log = logging.getLogger(__name__)
 
-def filter_redundancy(xforms, body, scores, categories=None, **kw):
+def filter_redundancy(xforms, body, scores=None, categories=None, every_nth=10, **kw):
    arg = rp.Bunch(kw)
+   if scores is None:
+      scores = np.repeat(0, len(xforms))
    if len(scores) == 0: return []
 
    if categories is None:
@@ -13,13 +15,13 @@ def filter_redundancy(xforms, body, scores, categories=None, **kw):
    if arg.max_bb_redundancy <= 0:
       return ibest
 
-   nclust = arg.max_cluster if arg.max_cluster else int(arg.beam_size) // 10
+   nclust = arg.max_cluster if arg.max_cluster else int(arg.beam_size) // every_nth
 
    if xforms.ndim == 3:
-      crd = xforms[ibest[:nclust], None] @ body.cen[::10, :, None]
+      crd = xforms[ibest[:nclust], None] @ body.cen[::every_nth, :, None]
    else:
-      crd0 = xforms[ibest[:nclust], 0, None] @ body[0].cen[::10, :, None]
-      crd1 = xforms[ibest[:nclust], 1, None] @ body[1].cen[::10, :, None]
+      crd0 = xforms[ibest[:nclust], 0, None] @ body[0].cen[::every_nth, :, None]
+      crd1 = xforms[ibest[:nclust], 1, None] @ body[1].cen[::every_nth, :, None]
       crd = np.concatenate([crd0, crd1], axis=1)
 
    ncen = crd.shape[1]

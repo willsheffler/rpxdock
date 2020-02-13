@@ -670,12 +670,15 @@ def align_lines_isect_axis2(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2):
 
    return Xalign, slide_dist
 
-def expand_xforms(G, N=3, c=hpoint([1, 3, 10]), maxrad=9e9):
+def expand_xforms(G, N=3, redundant_point=hpoint([1, 3, 10]), maxrad=9e9):
+   # print('redundant_point', redundant_point)
    seenit = set()
+   seenit.add(tuple(np.around(redundant_point).astype('i')[:3]))
    for Xs in it.chain(G, *(it.product(G, repeat=n) for n in range(2, N + 1))):
       X = Xs if isinstance(Xs, np.ndarray) else ft.reduce(np.matmul, Xs)
-      if np.linalg.norm(X @ c - c) > maxrad: continue
-      key = tuple(np.around(X @ c) + 0.1)
+      if np.linalg.norm(X @ redundant_point - redundant_point) > maxrad: continue
+      key = tuple(np.around(X @ redundant_point).astype('i')[:3])
+      # print(key, X @ redundant_point)
       if key not in seenit:
          seenit.add(key)
          yield X

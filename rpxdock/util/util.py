@@ -17,6 +17,15 @@ def dump(thing, f):
    with open(f, "wb") as out:
       return _pickle.dump(thing, out)
 
+def dump_str(string, f):
+   d = os.path.dirname(f)
+   if d: os.makedirs(d, exist_ok=True)
+   if isinstance(string, (list, tuple)):
+      string = '\n'.join(string)
+   with open(f, "wb") as out:
+      out.write(string.encode())
+      out.write(b'\n')
+
 def num_digits(n):
    isarray = isinstance(n, np.ndarray)
    if not isarray: n = np.array([n])
