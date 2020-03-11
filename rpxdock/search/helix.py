@@ -75,24 +75,28 @@ class HelixEvaluator:
 
    def __call__(self, xforms, iresl=-1, wts={}, **kw):
       arg = self.arg.sub(wts=wts)
-      harg = arg.helix_args
       xeye = np.eye(4, dtype="f4")
       body = self.body.copy()
       body2 = self.body.copy()
       xforms = xforms.reshape(-1, 4, 4)
       cart_extent = self.hscore.cart_extent[iresl]
       ori_extent = self.hscore.ori_extent[iresl]
+      if not arg.helix_max_delta_z:
+         helix_max_delta_z = body.radius_max() * 2 / arg.helix_min_isecond
+      else:
+         helix_max_delta_z = arg.helix_max_delta_z
+      helix_max_iclash = int(arg.helix_max_isecond * 1.2 + 3)
 
-      assert arg.symframe_num_helix_repeats >= harg.max_isecond
+      assert arg.symframe_num_helix_repeats >= arg.helix_max_isecond
 
       axis, ang = hm.axis_angle_of(xforms)
       ang = ang * 180 / np.pi
 
-      aok = np.logical_and(ang >= harg.min_primary_angle - ori_extent,
-                           ang <= harg.max_primary_angle + ori_extent)
+      aok = np.logical_and(ang >= arg.helix_min_primary_angle - ori_extent,
+                           ang <= arg.helix_max_primary_angle + ori_extent)
       dhelix = np.abs(hm.hdot(axis, xforms[:, :, 3]))
-      dok = np.logical_and(dhelix >= harg.min_delta_z - cart_extent,
-                           dhelix <= harg.max_delta_z + cart_extent)
+      dok = np.logical_and(dhelix >= arg.helix_min_delta_z - cart_extent,
+                           dhelix <= helix_max_delta_z + cart_extent)
       ok = np.logical_and(dok, aok)
       # ok = np.tile(True, len(xforms))
 
@@ -100,39 +104,39 @@ class HelixEvaluator:
       ok[ok] = body.clash_ok(body2, xforms[ok], xeye, **arg)
       scores[ok, 0] = self.hscore.scorepos(body, body, xforms[ok], xeye, iresl, **arg)
 
-      ok[ok] &= scores[ok, 0] >= harg.min_primary_score
-      ok[ok] &= scores[ok, 0] <= harg.max_primary_score
+      ok[ok] &= scores[ok, 0] >= arg.helix_min_primary_score
+      ok[ok] &= scores[ok, 0] <= arg.helix_max_primary_score
 
       which2 = None
-      # only check for 2ndary interaction when resolution is at least harg.iresl_second_shift
-      if iresl < harg.iresl_second_shift:
+      # only check for 2ndary interaction when resolution is at least arg.helix_iresl_second_shift
+      if iresl < arg.helix_iresl_second_shift:
          scores = scores[:, 0]
       else:
          xforms2 = xforms
-         for i in range(2, harg.max_iclash):
+         for i in range(2, helix_max_iclash):
             xforms2 = xforms @ xforms2
             ok[ok] = body.clash_ok(body2, xforms2[ok], xeye, **arg)
          xforms2 = xforms
-         scores2 = np.zeros((harg.max_isecond, len(xforms)))
-         for i2 in range(2, harg.max_isecond):
+         scores2 = np.zeros((arg.helix_max_isecond, len(xforms)))
+         for i2 in range(2, arg.helix_max_isecond):
             xforms2 = xforms @ xforms2
-            if i2 < harg.min_isecond: continue
+            if i2 < arg.helix_min_isecond: continue
             scores2[i2, ok] = self.hscore.scorepos(
                body,
                body2,
                xforms2[ok],
                xeye,
-               iresl - harg.iresl_second_shift,
+               iresl - arg.helix_iresl_second_shift,
                **arg,
             )
 
          # xforms2 = xforms
-         # scores2 = np.zeros((harg.max_isecond, len(xforms)))
-         # for i2 in range(2, harg.max_isecond):
+         # scores2 = np.zeros((arg.helix_max_isecond, len(xforms)))
+         # for i2 in range(2, arg.helix_max_isecond):
          #    xforms2 = xforms @ xforms2
          #    ok[ok] = body.clash_ok(body, xforms2[ok], xeye, **arg)  # it was you!
          #    scores2[i2, ok] = self.hscore.scorepos(body, body, xforms2[ok], xeye, iresl, **arg)
-         # for i in range(harg.max_isecond, harg.max_iclash):
+         # for i in range(arg.helix_max_isecond, helix_max_iclash):
          #    xforms2 = xforms @ xforms2
          #    ok[ok] = body.clash_ok(body, xforms2[ok], xeye, **arg)
 
@@ -143,7 +147,7 @@ class HelixEvaluator:
          # summary depends on iresl stage, final is min score like before
          minsc = np.min(scores, axis=1)
          maxsc = np.max(scores, axis=1)
-         mix0 = (iresl - harg.iresl_second_shift + 1)
+         mix0 = (iresl - arg.helix_iresl_second_shift + 1)
          mix = 0.5**mix0
          # print(iresl, mix0, mix)
          assert 0 <= mix <= 1

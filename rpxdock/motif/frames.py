@@ -20,6 +20,31 @@ def ss_to_ssid(ss):
    ssid[ss == "L"] = 2
    return ssid
 
+def _convert_point(point):
+   if not isinstance(point, np.ndarray):
+      point = np.array([[point[0], point[1], point[2], 1]])
+   return point
+
+def stub_from_points(cen, pa=None, pb=None, dtype="f4"):
+   cen = _convert_point(cen)
+   pa = _convert_point(pa)
+   pb = _convert_point(pb)
+   assert len(cen) == len(pa) == len(pb)
+   assert cen.ndim == pa.ndim == pb.ndim == 2
+   stub = np.zeros((len(cen), 4, 4), dtype=dtype)
+   stub[:, 3, 3] = 1
+   e1 = cen[:, :3] - pa[:, :3]
+   e1 /= np.linalg.norm(e1, axis=1)[:, None]
+   e3 = np.cross(e1, pb[:, :3] - pa[:, :3])
+   e3 /= np.linalg.norm(e3, axis=1)[:, None]
+   e2 = np.cross(e3, e1)
+   stub[:, :3, 0] = e1
+   stub[:, :3, 1] = e2
+   stub[:, :3, 2] = e3
+   stub[:, :3, 3] = cen[:, :3]
+   assert np.allclose(np.linalg.det(stub), 1)
+   return stub
+
 def bb_stubs(n, ca=None, c=None, dtype="f4"):
    if ca is None:
       assert n.ndim == 3
@@ -27,6 +52,9 @@ def bb_stubs(n, ca=None, c=None, dtype="f4"):
       ca = n[:, 1, :3]
       c = n[:, 2, :3]
       n = n[:, 0, :3]
+   n = _convert_point(n)
+   ca = _convert_point(ca)
+   c = _convert_point(c)
 
    assert len(n) == len(ca) == len(c)
    assert n.ndim == ca.ndim == c.ndim == 2

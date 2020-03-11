@@ -162,6 +162,14 @@ def default_cli_parser(parent=None):
       "--cart_bounds", default=[], type=float, nargs='+',
       help='cartesian bounds for various protocols. should probably be replaced with some more general mechanism. no default as protocols specific'
    )
+   addarg(
+      "--cart_resl", default=10.0, type=float,
+      help='resolution of top level cartesian, sometimes ignored, and resl is taken from hscore data instead. default 10'
+   )
+   addarg(
+      "--ori_resl", default=30.0, type=float,
+      help='resolution of top level orientation, sometimes ignored, and resl is taken from hscore data instead. default 30'
+   )
    addarg("--grid_resolution_cart_angstroms", type=float, default=1)
    addarg("--grid_resolution_ori_degrees", type=float, default=1)
    # tcdock
@@ -188,8 +196,8 @@ def default_cli_parser(parent=None):
    parser.has_rpxdock_args = True
    return parser
 
-def get_cli_args(argv=None):
-   parser = default_cli_parser()
+def get_cli_args(argv=None, parent=None):
+   parser = default_cli_parser(parent)
    argv = sys.argv[1:] if argv is None else argv
    argv = make_argv_with_atfiles(argv)
    arg = parser.parse_args(argv)

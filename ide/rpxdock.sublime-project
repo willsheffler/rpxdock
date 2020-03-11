@@ -16,7 +16,13 @@
    	{
 			"name": "test_cage",
 			"shell_cmd" : "cd $folder; CC='ccache gcc' PYTHONPATH=. python rpxdock/tests/search/test_cage.py &> sublime_build.log"
+		},
+   	{
+			"name": "helix_beta",
+			"shell_cmd" : "cd $folder; python rpxdock/app/pilot/helix_beta.py --inputs1 rpxdock/data/pdb/DHR14.pdb.gz --cart_bounds 0 100 -100 100 -100 100 --dump_pdbs &> sublime_build.log"
 		}
+
+		
 
 
 	],
