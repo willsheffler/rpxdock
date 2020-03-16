@@ -93,6 +93,7 @@ class Result:
          output_prefix = self.output_prefix
       if ndigwhich is None: ndigwhich = num_digits(len(which) - 1)
       if ndigmdl is None: ndigmdl = num_digits(max(which))
+
       dumped = set()
       for i, imodel in enumerate(which):
          assert not isinstance(imodel, np.ndarray) or len(imodel) == 1

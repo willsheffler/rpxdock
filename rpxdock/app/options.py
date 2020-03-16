@@ -23,7 +23,7 @@ def add_argument_unless_exists(parser, *arg, **kw):
    except argparse.ArgumentError:
       pass
 
-def default_cli_parser(parent=None):
+def default_cli_parser(parent=None, **kw):
    parser = parent if parent else argparse.ArgumentParser(allow_abbrev=False)
    addarg = add_argument_unless_exists(parser)
    addarg("--inputs", nargs="*", type=str, default=[],
@@ -196,12 +196,13 @@ def default_cli_parser(parent=None):
    parser.has_rpxdock_args = True
    return parser
 
-def get_cli_args(argv=None, parent=None):
-   parser = default_cli_parser(parent)
+def get_cli_args(argv=None, parent=None, **kw):
+   parser = default_cli_parser(parent, **kw)
    argv = sys.argv[1:] if argv is None else argv
-   argv = make_argv_with_atfiles(argv)
-   arg = parser.parse_args(argv)
-   return process_cli_args(arg)
+   argv = make_argv_with_atfiles(argv, **kw)
+   options = parser.parse_args(argv)
+   options = process_cli_args(options, **kw)
+   return options
 
 def defaults():
    return get_cli_args([])
@@ -216,49 +217,55 @@ def set_loglevel(loglevel):
    logging.getLogger().setLevel(level=numeric_level)
    log.info(f'set loglevel to {numeric_level}')
 
-def process_cli_args(arg):
-   arg = Bunch(arg)
+def process_cli_args(options, **kw):
+   options = Bunch(options)
+   arg = Bunch(kw)
 
-   if not arg.inputs:
-      if arg.inputs1:
-         arg.inputs.append(arg.inputs1)
-         if arg.inputs2:
-            arg.inputs.append(arg.inputs2)
-            if arg.inputs3:
-               arg.inputs.append(arg.inputs3)
+   if not options.inputs:
+      if options.inputs1:
+         options.inputs.append(options.inputs1)
+         if options.inputs2:
+            options.inputs.append(options.inputs2)
+            if options.inputs3:
+               options.inputs.append(options.inputs3)
 
-   arg.iface_summary = _iface_summary_methods[arg.iface_summary]
+   options.iface_summary = _iface_summary_methods[options.iface_summary]
 
-   _extract_weights(arg)
+   _extract_weights(options)
 
-   set_loglevel(arg.loglevel)
+   set_loglevel(options.loglevel)
 
-   arg.score_only_aa = arg.score_only_aa.upper()
-   arg.score_only_ss = arg.score_only_ss.upper()
+   options.score_only_aa = options.score_only_aa.upper()
+   options.score_only_ss = options.score_only_ss.upper()
 
-   d = os.path.dirname(arg.output_prefix)
+   d = os.path.dirname(options.output_prefix)
    if d: os.makedirs(d, exist_ok=True)
 
-   _process_arg_sspair(arg)
-   arg.trim_direction = arg.trim_direction.upper()
+   _process_arg_sspair(options)
+   options.trim_direction = options.trim_direction.upper()
 
-   if arg.architecture:
-      arg.architecture = arg.architecture.upper()
+   if options.architecture:
+      options.architecture = options.architecture.upper()
 
-   if not arg.cart_bounds: arg.cart_bounds = 0, 500
-   elif len(arg.cart_bounds) is 1: arg.cart_bounds = [0, arg.cart_bounds[0]]
+   if not arg.dont_set_default_cart_bounds:
+      options.cart_bounds = process_cart_bounds(options.cart_bounds)
+
+   options.trimmable_components = options.trimmable_components.upper()
+
+   log.info(str(options))
+
+   return options
+
+def process_cart_bounds(cart_bounds):
+   if not cart_bounds: cart_bounds = 0, 500
+   elif len(cart_bounds) is 1: cart_bounds = [0, cart_bounds[0]]
    tmp = list()
-   for i in range(0, len(arg.cart_bounds), 2):
-      tmp.append(arg.cart_bounds[i:i + 2])
-   arg.cart_bounds = tmp
+   for i in range(0, len(cart_bounds), 2):
+      tmp.append(cart_bounds[i:i + 2])
+   cart_bounds = tmp
+   return cart_bounds
 
-   arg.trimmable_components = arg.trimmable_components.upper()
-
-   log.info(str(arg))
-
-   return arg
-
-def make_argv_with_atfiles(argv=None):
+def make_argv_with_atfiles(argv=None, **kw):
    if argv is None: argv = sys.argv[1:]
    for a in argv.copy():
       if not a.startswith('@'): continue

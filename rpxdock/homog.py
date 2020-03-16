@@ -154,7 +154,11 @@ def axis_angle_of(xforms):
       return axis_angle_of_3x3(xforms)
    axis = fast_axis_of(xforms)
    four_sin2 = np.sum(axis**2, axis=-1)
-   axis = axis / np.linalg.norm(axis, axis=-1)[..., np.newaxis]
+   nonzero = np.logical_not(np.logical_and(-0.000001 < four_sin2, four_sin2 < 0.000001))
+   axis_nonzero = axis[nonzero]
+   axis_nonzero = axis_nonzero / np.linalg.norm(axis_nonzero, axis=-1)[..., np.newaxis]
+   axis[nonzero] = axis_nonzero
+   axis[~nonzero] = [0, 0, 1, 0]
    sin_angl = np.clip(np.sqrt(four_sin2 / 4), -1, 1)
    cos_angl = np.clip(np.trace(xforms, axis1=-1, axis2=-2) / 2 - 1, -1, 1)
    # tr = 1 + 2*cos
