@@ -67,25 +67,25 @@ def test_hcross():
 
 def test_axis_angle_of():
    ax, an = axis_angle_of(hrot([10, 10, 0], np.pi))
-   assert 1e-5 > abs(ax[0] - ax[1])
-   assert 1e-5 > abs(ax[2])
+   assert 1e-5 > np.abs(ax[0] - ax[1])
+   assert 1e-5 > np.abs(ax[2])
    ax, an = axis_angle_of(hrot([0, 1, 0], np.pi))
-   assert 1e-5 > abs(ax[0])
-   assert 1e-5 > abs(ax[1]) - 1
-   assert 1e-5 > abs(ax[2])
+   assert 1e-5 > np.abs(ax[0])
+   assert 1e-5 > np.abs(ax[1]) - 1
+   assert 1e-5 > np.abs(ax[2])
 
    ax, an = axis_angle_of(hrot([0, 1, 0], np.pi * 0.25))
    print(ax, an)
    assert np.allclose(ax, [0, 1, 0, 0], atol=1e-5)
-   assert 1e-5 > abs(an - np.pi * 0.25)
+   assert 1e-5 > np.abs(an - np.pi * 0.25)
    ax, an = axis_angle_of(hrot([0, 1, 0], np.pi * 0.75))
    print(ax, an)
    assert np.allclose(ax, [0, 1, 0, 0], atol=1e-5)
-   assert 1e-5 > abs(an - np.pi * 0.75)
+   assert 1e-5 > np.abs(an - np.pi * 0.75)
 
    ax, an = axis_angle_of(hrot([1, 0, 0], np.pi / 2))
    print(np.pi / an)
-   assert 1e-5 > abs(an - np.pi / 2)
+   assert 1e-5 > np.abs(an - np.pi / 2)
 
 def test_axis_angle_of_rand():
    shape = (
