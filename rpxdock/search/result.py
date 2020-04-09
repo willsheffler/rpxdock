@@ -10,6 +10,7 @@ class Result:
       if isinstance(body_, rp.Body): body_ = [body_]
       self.bodies = [body_]
       self.body_label_ = body_label_ if body_label_ else ['body%i' % i for i in range(len(body_))]
+      self.pdb_extra = None
       if len(self.body_label_) != len(body_):
          raise ValueError('body_label_ must match number of bodies')
       if data_or_file:
@@ -152,6 +153,9 @@ class Result:
       if output_asym_only: symframes = [np.eye(4)]
       rp.io.dump_pdb_from_bodies(fname, bod, symframes=symframes, resbounds=bounds,
                                  bfactor=bfactor, **kw)
+      if self.pdb_extra is not None:
+         with open(fname, 'a') as out:
+            out.write(self.pdb_extra[int(imodel)])
       if hasattr(self.data, 'helix_n_to_primary'):
          symframes = symframes[np.array(
             [0, self.data.helix_n_to_primary[imodel], self.data.helix_n_to_secondry[imodel]])]
@@ -193,6 +197,11 @@ def concat_results(results, **kw):
    r.data['ijob'] = (['model'], ijob)
    r.data.attrs = OrderedDict(dockinfo=allattrs, **common)
    r.body_label_ = results[0].body_label_
+   if results[0].pdb_extra is not None:
+      r.pdb_extra = list()
+      for x in results:
+         assert len(x.pdb_extra) == len(x.data.scores)
+         r.pdb_extra.extend(x.pdb_extra)
    return r
 
 def dummy_result(size=1000):
