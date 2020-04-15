@@ -6,6 +6,7 @@
 // '../util/global_rng.hpp', 'bvh.hpp', 'bvh_algo.hpp', '../util/numeric.hpp']
 //
 // cfg['parallel'] = False
+
 setup_pybind11(cfg)
     // %>
     // */
@@ -15,8 +16,8 @@ setup_pybind11(cfg)
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
-#include "iostream"
 
+#include "iostream"
 #include "miniball/Seb.h"
 #include "rpxdock/bvh/bvh.hpp"
 #include "rpxdock/geom/primitive.hpp"

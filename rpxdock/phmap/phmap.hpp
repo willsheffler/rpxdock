@@ -1,8 +1,13 @@
 #pragma once
+/** \file */
 
 #include <parallel_hashmap/phmap.h>
 
 namespace rpxdock {
+/**
+\namespace rpxdock::phmap
+\brief namespace for phmap wrapper and related utils
+*/
 namespace phmap {
 
 template <typename K, typename V>

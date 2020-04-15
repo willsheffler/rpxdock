@@ -1,13 +1,18 @@
-/*cppimport
+/*/*cppimport
 <%
+
+
 cfg['include_dirs'] = ['../..']
 cfg['compiler_args'] = ['-std=c++17', '-w']
 cfg['dependencies'] = ['dilated_int.hpp']
 
 cfg['parallel'] = False
+
+
 setup_pybind11(cfg)
 %>
 */
+/** \file */
 
 /// @brief  Z-order or Morton style indexing utilities for arbitrary dimension
 /// @author will sheffler

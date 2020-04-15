@@ -1,24 +1,38 @@
-/*cppimport
+/*/*cppimport
 <%
+
+
 cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['../util/types.hpp']
 
 cfg['parallel'] = False
+
+
 setup_pybind11(cfg)
 %>
 */
+/** \file */
 
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+
 #include <Eigen/Dense>
 #include <iostream>
 
 namespace py = pybind11;
 
 namespace rpxdock {
+/**
+\namespace rpxdock::cluster
+\brief namespace for clustering stuff
+*/
 namespace cluster {
+/**
+\namespace rpxdock::cluster::cookie_cutter
+\brief namespace for cookie_cutter style clustering
+*/
 namespace cookie_cutter {
 
 using namespace Eigen;

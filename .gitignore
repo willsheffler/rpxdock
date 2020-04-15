@@ -87,3 +87,8 @@ _khash_ffi.c
 
 *.pdb.pickle
 *.pdb*_v*.pickle
+
+doc/doxyoutput
+doc/_build
+doc/cppapi
+

@@ -53,6 +53,7 @@
 // The weights are normalized such that sum weight = ntot.
 
 #pragma once
+/** \file */
 
 #include <Eigen/Dense>
 #include <cassert>

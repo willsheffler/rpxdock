@@ -2,6 +2,8 @@
 
 #pragma once
 
+/** \file */
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <Eigen/StdVector>
@@ -12,7 +14,15 @@
 #include "rpxdock/geom/primitive.hpp"
 #include "rpxdock/util/types.hpp"
 
+/**
+\namespace rpxdock
+\brief top level namespace
+*/
 namespace rpxdock {
+/**
+\namespace rpxdock::bvh
+\brief Bounding volume hierarchy namespace
+*/
 namespace bvh {
 
 using namespace geom;

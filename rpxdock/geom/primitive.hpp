@@ -1,7 +1,9 @@
 #pragma once
+/** \file */
 
 #include <iostream>
 #include <vector>
+
 #include "rpxdock/util/types.hpp"
 
 namespace rpxdock {

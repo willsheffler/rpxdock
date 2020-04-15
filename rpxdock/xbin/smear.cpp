@@ -1,14 +1,19 @@
-/*cppimport
+/*/*cppimport
 <%
+
+
 cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['xbin.hpp', '../phmap/phmap.hpp', 'smear.hpp',
 '../geom/bcc.hpp']
 
 cfg['parallel'] = False
+
+
 setup_pybind11(cfg)
 %>
 */
+/** \file */
 
 #include "rpxdock/xbin/smear.hpp"
 

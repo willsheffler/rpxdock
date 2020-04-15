@@ -4,6 +4,9 @@ __version__ = "0.1"
 
 import os
 
+#os.environ["CC"] = "clang"
+#os.environ["CXX"] = "clang"
+
 from rpxdock.util import Bunch, Timer, load, dump
 from rpxdock import app
 from rpxdock import body

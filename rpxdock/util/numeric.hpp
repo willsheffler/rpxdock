@@ -1,4 +1,5 @@
 #pragma once
+/** \file */
 
 #include "rpxdock/util/types.hpp"
 namespace rpxdock {

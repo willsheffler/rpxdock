@@ -1,24 +1,29 @@
-/*cppimport
+/*/*cppimport
 <%
+
+
 cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = []
 
 cfg['parallel'] = False
+
+
 setup_pybind11(cfg)
 %>
 */
+/** \file */
+
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
-
 #include <pybind11/stl.h>
+
 #include <algorithm>
 #include <iostream>
 #include <limits>
 
 #include "parallel_hashmap/phmap.h"
-
 #include "rpxdock/util/Timer.hpp"
 #include "rpxdock/util/pybind_types.hpp"
 
@@ -28,6 +33,10 @@ using namespace Eigen;
 namespace py = pybind11;
 
 namespace rpxdock {
+/**
+\namespace rpxdock::motif
+\brief namespace for rpx ("motif") scoring utils
+*/
 namespace motif {
 
 using namespace util;

@@ -1,13 +1,18 @@
-/*cppimport
+/*/*cppimport
 <%
+
+
 cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w']
 cfg['dependencies'] = ['pybind_types.hpp']
 
 cfg['parallel'] = False
+
+
 setup_pybind11(cfg)
 %>
 */
+/** \file */
 
 #include "rpxdock/util/pybind_types.hpp"
 

@@ -1,22 +1,28 @@
-/*cppimport
+/*/*cppimport
 <%
+
+
 cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['phmap.hpp']
 
 cfg['parallel'] = False
+
+
 setup_pybind11(cfg)
 %>
 */
+/** \file */
 
 #include "rpxdock/phmap/phmap.hpp"
-#include "rpxdock/util/types.hpp"
-
-#include <iostream>
 
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+
+#include <iostream>
+
+#include "rpxdock/util/types.hpp"
 namespace py = pybind11;
 using namespace pybind11::literals;
 
@@ -158,11 +164,12 @@ void bind_phmap(const py::module &m, std::string name) {
       .def("items_array", &PHMap_items_array<K, V>, "num"_a = -1)
       .def("__eq__", &PHMap_eq<K, V>)
       .def_readwrite("default", &THIS::default_)
-      .def("items",
-           [](THIS const &c) {
-             return py::make_iterator(c.phmap_.begin(), c.phmap_.end());
-           },
-           py::keep_alive<0, 1>())
+      .def(
+          "items",
+          [](THIS const &c) {
+            return py::make_iterator(c.phmap_.begin(), c.phmap_.end());
+          },
+          py::keep_alive<0, 1>())
       .def(py::pickle(
           [](THIS const &map) {  // __getstate__
             py::tuple tup = PHMap_items_array(map);

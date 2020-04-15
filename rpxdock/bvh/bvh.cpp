@@ -1,5 +1,7 @@
-/*cppimport
+/*/*cppimport
 <%
+
+
 cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
@@ -7,16 +9,20 @@ cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
 '../util/pybind_types.hpp']
 
 cfg['parallel'] = False
+
+
 setup_pybind11(cfg)
 %>
 */
+/** \file */
+
+#include "rpxdock/bvh/bvh.hpp"
 
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
-#include "iostream"
 
-#include "rpxdock/bvh/bvh.hpp"
+#include "iostream"
 #include "rpxdock/util/Timer.hpp"
 #include "rpxdock/util/assertions.hpp"
 #include "rpxdock/util/global_rng.hpp"

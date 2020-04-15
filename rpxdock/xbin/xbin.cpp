@@ -1,5 +1,7 @@
-/*cppimport
+/*/*cppimport
 <%
+
+
 cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['../geom/bcc.hpp','../util/assertions.hpp',
@@ -7,9 +9,14 @@ cfg['dependencies'] = ['../geom/bcc.hpp','../util/assertions.hpp',
 '../util/pybind_types.hpp']
 
 cfg['parallel'] = False
+
+
 setup_pybind11(cfg)
 %>
 */
+/** \file */
+
+#include "rpxdock/xbin/xbin.hpp"
 
 #include <iostream>
 #include <string>
@@ -21,7 +28,6 @@ setup_pybind11(cfg)
 #include "rpxdock/util/numeric.hpp"
 #include "rpxdock/util/pybind_types.hpp"
 #include "rpxdock/util/types.hpp"
-#include "rpxdock/xbin/xbin.hpp"
 
 using namespace pybind11::literals;
 using namespace Eigen;

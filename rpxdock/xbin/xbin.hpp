@@ -1,4 +1,5 @@
 #pragma once
+/** \file */
 
 #include "rpxdock/geom/bcc.hpp"
 #include "rpxdock/util/numeric.hpp"
@@ -9,6 +10,11 @@
 // #include <boost/utility/binary.hpp>
 
 namespace rpxdock {
+/**
+\namespace rpxdock::xbin
+\brief namespace for hashmap based 6D xform indexing using 6D BCC and BT24cell
+bins
+*/
 namespace xbin {
 
 using namespace util;

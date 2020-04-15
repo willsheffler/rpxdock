@@ -1,21 +1,29 @@
-/*cppimport
+/*/*cppimport
 <%
+
+
 cfg['include_dirs'] = ['../..', '../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['../extern/miniball/Seb.h',
 '../extern/miniball/Seb-inl.h', '../util/Timer.hpp']
 
 cfg['parallel'] = False
+
+
 setup_pybind11(cfg)
 %>
 */
+/** \file */
+
 // Original Authors: Martin Kutz <kutz@math.fu-berlin.de>,
 //                   Kaspar Fischer <kf@iaeth.ch>
 
 #include "rpxdock/geom/miniball.hpp"
+
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+
 #include "rpxdock/util/Timer.hpp"
 #include "rpxdock/util/assertions.hpp"
 

@@ -1,4 +1,5 @@
 #pragma once
+/** \file */
 
 #include "miniball/Seb.h"
 #include "rpxdock/util/types.hpp"

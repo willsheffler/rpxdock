@@ -1,6 +1,7 @@
 // based on Eigen unsupported bvh KDTree
 
 #pragma once
+/** \file */
 
 namespace rpxdock {
 namespace bvh {
