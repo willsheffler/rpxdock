@@ -138,6 +138,7 @@ class Result:
          fname = output_prefix + middle + output_suffix + '.pdb'
       log.info(f'dumping pdb {fname} score {self.scores.data[imodel]}')
       bfactor = None
+      # hscore scores residue pairs and puts bfactor in pdb
       if hscore and len(bod) == 2:
          sm = hscore.score_matrix_inter(
             bod[0],
