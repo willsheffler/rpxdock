@@ -3,6 +3,13 @@ import logging, itertools, numpy as np, rpxdock as rp
 log = logging.getLogger(__name__)
 
 def hier_search(sampler, evaluator, **kw):
+   '''
+   :param sampler:
+   :param evaluator:
+   :param kw:
+   :return:
+   gets positions and scores and stuff for sampling
+   '''
    arg = rp.Bunch(kw)
    neval, indices, scores = list(), None, None
    nresl = arg.nresl if arg.nresl else evaluator.hscore.actual_nresl
