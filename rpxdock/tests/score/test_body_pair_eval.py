@@ -1,18 +1,18 @@
 import pytest
 from rpxdock.score import *
 
-class BadComp(ScoreComponent):
+class BadComp(BodyPairEvalComponent):
    def __init__(self):
       super().__init__()
 
-class BadScoreComp(ScoreComponent):
+class BadScoreComp(BodyPairEvalComponent):
    def __init__(self):
       super().__init__()
 
    def score(self):
       pass
 
-class BadScoreComp2(ScoreComponent):
+class BadScoreComp2(BodyPairEvalComponent):
    score_types = ['foo']
 
    def __init__(self):
@@ -21,7 +21,7 @@ class BadScoreComp2(ScoreComponent):
    def trim(self):
       pass
 
-class BadScoreComp2(ScoreComponent):
+class BadScoreComp5(BodyPairEvalComponent):
    score_types = ['foo', 'bar']
 
    def __init__(self):
@@ -30,7 +30,7 @@ class BadScoreComp2(ScoreComponent):
    def trim(self):
       pass
 
-class BadScoreComp3(ScoreComponent):
+class BadScoreComp3(BodyPairEvalComponent):
    score_types = ['foo']
 
    def __init__(self):
@@ -39,7 +39,7 @@ class BadScoreComp3(ScoreComponent):
    def trim(self):
       pass
 
-class BadScoreComp4(ScoreComponent):
+class BadScoreComp4(BodyPairEvalComponent):
    score_types = [1]
 
    def __init__(self):
@@ -48,27 +48,42 @@ class BadScoreComp4(ScoreComponent):
    def score(self):
       pass
 
-class FilterComp(ScoreComponent):
+class FilterComp(BodyPairEvalComponent):
    def __init__(self, name=None, priority=0):
       super().__init__(name=name, priority=priority)
 
    def filter(self):
       pass
 
-class TrimComp(ScoreComponent):
+class TrimComp(BodyPairEvalComponent):
    def __init__(self):
       super().__init__()
 
    def trim(self):
       pass
 
-class ScoreComp(ScoreComponent):
+class ScoreComp(BodyPairEvalComponent):
    score_types = ['foo']
 
    def __init__(self):
       super().__init__()
 
    def score(self):
+      pass
+
+class AllComp(BodyPairEvalComponent):
+   score_types = ['foo']
+
+   def __init__(self):
+      super().__init__()
+
+   def score(self):
+      pass
+
+   def trim(self):
+      pass
+
+   def filter(self):
       pass
 
 def test_score_component_base():
@@ -82,6 +97,8 @@ def test_score_component_base():
       BadScoreComp3()
    with pytest.raises(TypeError):
       BadScoreComp4()
+   with pytest.raises(TypeError):
+      BadScoreComp5()
    f = FilterComp()
    t = TrimComp()
    s = ScoreComp()
@@ -93,7 +110,7 @@ def test_score_function():
    f4 = FilterComp('fc1', 1)
    t = TrimComp()
    s = ScoreComp()
-   func = ScoreFunction([f1, f2, f3, f4, t, t, s])
+   func = BodyPairEvaluator([f1, f2, f3, f4, t, t, s])
    assert len(func.filters) is 4
    assert len(func.trimmers) is 2
    assert len(func.scorefuncs) is 1

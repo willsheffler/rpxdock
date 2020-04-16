@@ -1,7 +1,5 @@
 /*/*cppimport
 <%
-
-
 cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
@@ -9,7 +7,6 @@ cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
 '../util/pybind_types.hpp']
 
 cfg['parallel'] = False
-
 
 setup_pybind11(cfg)
 %>

@@ -8,6 +8,21 @@ Contents:
 
 This shoud be an rpxdock summary!
 
+TODO
+----
+
+- framework for multiple actors for:
+ - filter
+ - trim
+ - score
+ - examples
+  - termini orientation
+  - intra interface
+- postfilter framework
+ - ss count??? (maybe in filtering if efficient)
+- only certain residues
+
+
 Indices and tables
 ==================
 

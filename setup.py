@@ -26,11 +26,15 @@ REQUIRED = [
    'xarray==0.11.3',
    'pandas==0.24.2',
    'pytest',
-   'pytest-sugar',
-   'pytest-xdist',
    'tqdm',
    'homog',
    'cppimport',
+   'breathe',
+   'cffi',
+   'tabulate',
+   'sphinx',
+   'breathe',
+   'exhale',
 ]
 
 # What packages are optional?

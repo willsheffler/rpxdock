@@ -31,8 +31,8 @@ import os
 extensions = [
    'sphinx.ext.autodoc',
    'sphinx.ext.viewcode',
-   'breathe',
-   'exhale',
+   #  'breathe',
+   #  'exhale',
 ]
 
 # Setup the breathe extension
