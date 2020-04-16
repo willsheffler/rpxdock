@@ -13,7 +13,7 @@ class BadScoreComp(BodyPairEvalComponent):
       pass
 
 class BadScoreComp2(BodyPairEvalComponent):
-   score_types = ['foo']
+   score_fields = ['foo']
 
    def __init__(self):
       super().__init__()
@@ -22,7 +22,7 @@ class BadScoreComp2(BodyPairEvalComponent):
       pass
 
 class BadScoreComp5(BodyPairEvalComponent):
-   score_types = ['foo', 'bar']
+   score_fields = ['foo', 'bar']
 
    def __init__(self):
       super().__init__()
@@ -31,7 +31,7 @@ class BadScoreComp5(BodyPairEvalComponent):
       pass
 
 class BadScoreComp3(BodyPairEvalComponent):
-   score_types = ['foo']
+   score_fields = ['foo']
 
    def __init__(self):
       super().__init__()
@@ -40,7 +40,7 @@ class BadScoreComp3(BodyPairEvalComponent):
       pass
 
 class BadScoreComp4(BodyPairEvalComponent):
-   score_types = [1]
+   score_fields = [1]
 
    def __init__(self):
       super().__init__()
@@ -63,7 +63,7 @@ class TrimComp(BodyPairEvalComponent):
       pass
 
 class ScoreComp(BodyPairEvalComponent):
-   score_types = ['foo']
+   score_fields = ['foo']
 
    def __init__(self):
       super().__init__()
@@ -72,7 +72,7 @@ class ScoreComp(BodyPairEvalComponent):
       pass
 
 class AllComp(BodyPairEvalComponent):
-   score_types = ['foo']
+   score_fields = ['foo']
 
    def __init__(self):
       super().__init__()
@@ -115,6 +115,9 @@ def test_score_function():
    assert len(func.trimmers) is 2
    assert len(func.scorefuncs) is 1
    assert func.filters == [f4, f2, f3, f1]
+
+   with pytest.raises(TypeError):
+      BodyPairEvaluator([ScoreComp(), ScoreComp()])
 
 def main():
    test_score_component_base()
