@@ -29,14 +29,19 @@ def get_spec(arch):
       spec = rp.search.DockSpec2CompCage(arch)
    return spec
 
+## All dock_cyclic, dock_onecomp, and dock_multicomp do similar things
 def dock_cyclic(hscore, inputs, architecture, **kw):
+   ## bunch is a dictionary of things
    arg = rp.Bunch(kw)
+   ## bodies hold all pose info and axis intersect info
    bodies = [rp.Body(inp, **arg) for inp in arg.inputs1]
 
+   ## start the parallel processes
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
    with exe(arg.ncpu) as pool:
       futures = list()
+      # where the magic happens
       for ijob, bod in enumerate(bodies):
          futures.append(
             pool.submit(
@@ -122,17 +127,20 @@ def dock_multicomp(hscore, **kw):
    return result
 
 def main():
+   # What gets all the shit done
    arg = get_rpxdock_args()
    logging.info(f'weights: {arg.wts}')
 
    hscore = rp.CachedProxy(rp.RpxHier(arg.hscore_files, **arg))
    arch = arg.architecture
 
-   sym, comp = arch.split('_')
+   # TODO commit to master AK
+   #sym, comp = arch.split('_')
 
+   # TODO: redefine archs WHS or others with a monster list of if statements
    if arch.startswith('C'):
       result = dock_cyclic(hscore, **arg)
-   elif len(arch) == 2 or len(comp) == 1 or (arch[0] == 'D' and arch[2] == '_'):
+   elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
       result = dock_onecomp(hscore, **arg)
    else:
       result = dock_multicomp(hscore, **arg)
