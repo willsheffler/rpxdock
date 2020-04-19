@@ -32,7 +32,7 @@ REQUIRED = [
    'breathe',
    'cffi',
    'tabulate',
-   'sphinx',
+   'sphinx>3',
    'breathe',
    'exhale',
 ]
