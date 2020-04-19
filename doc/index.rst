@@ -1,26 +1,30 @@
+.. _index_page:
+
 Welcome to rpxdock documentation!
 ==================================
 
-Contents:
-
 .. toctree::
    :maxdepth: 2
+   :caption: Table of Contents
 
-This shoud be an rpxdock summary!
+   intro
+   installation
+   tutorials/index
+   concepts/index
+   applications
+   todo
+   apidoc/modules
 
-TODO
-----
+.. contents:: :local:
 
-- framework for multiple actors for:
- - filter
- - trim
- - score
- - examples
-  - termini orientation
-  - intra interface
-- postfilter framework
- - ss count??? (maybe in filtering if efficient)
-- only certain residues
+.. _index_summary:
+
+
+Summary
+=============
+
+Rpxdock (as well as the ambitious vaporware scheme, and the conceptually related rifdock) is a multi-scale model of protein structure suited to global search of conformation space. rpxdock utilizes a novel transform-based objective function which [[Projects:rpxdock:Scoring#Accuracy|retains some of the power of fullatom force-fields]], while avoiding a costly and difficult-to-optimize fullatom model. The rpxdock model is carefully crafted to allow both [[Projects:rpxdock:Pair Decomposition|pair]] and [[Projects:rpxdock:Hierarchical Grid|hierarchical]] decomposition of all underlying DOFs, opening the door to [[Projects:rpxdock:Pair Decomposition#Hierarchical Packing| new optimization techniques]]. Early prototypes of rpxdock are currently in use in the baker lab, and [[Projects:rpxdock#Applications|generally perform well]].
+
 
 
 Indices and tables

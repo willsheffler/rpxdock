@@ -5,6 +5,7 @@ Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 4
 
    rpxdock.tests.app
    rpxdock.tests.bvh

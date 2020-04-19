@@ -424,8 +424,8 @@ def test_align_lines_dof_dihedral_rand_single():
 
    # print('result', 'ta', np.degrees(target_angle), 'da', np.degrees(dof_angle), 'fda',
    # np.degrees(fix_to_dof_angle), dang, ahat, abs(abs(dang) - abs(ahat)))
-   close1 = np.allclose(abs(dang), abs(ahat), atol=1e-5)
-   close2 = np.allclose(abs(dang), np.pi - abs(ahat), atol=1e-5)
+   close1 = np.allclose(abs(dang), abs(ahat), atol=1e-3)
+   close2 = np.allclose(abs(dang), np.pi - abs(ahat), atol=1e-3)
    assert close1 or close2
 
 def test_align_lines_dof_dihedral_rand_3D():
