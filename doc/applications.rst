@@ -1,3 +1,5 @@
+.. _applications_page:
+
 Applications
 ==================
 

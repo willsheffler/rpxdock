@@ -23,6 +23,7 @@ For use in array-ified main docking
 - trim
 - score
 - examples
+
  - termini orientation
  - intra interface
 

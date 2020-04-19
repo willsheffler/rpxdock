@@ -1,4 +1,4 @@
-.. _pair_decompotion_page:
+.. _pair_decomposition_page:
 
 Pair Decomposition (Packing) Ideas
 ========================================
@@ -10,6 +10,8 @@ Pair decomposition of score calculations is a key concept for combinatorial opti
 This notion is highly complimentary with hierarchical search. At each stage of the search hierarchy, a pair-decomposition and optimization procedure is applied to the states listed for evaluation in that phase of the hierarchy.
 
 The pair-decomposition of energies, which is the basis for "packer" type algorithms, should be universally applicable for faster energy calculations in all systems with more than two bodies (or two + symmetry), provided sampling is all on a predefined grid. So I'm thinking this should be build into some kind of universal energy caching data structure. (It would even be of use in folding-type kinematics, you could al least have your N to N+1 and N to N+2 interactions precomputed and never have to repeat them. And/or do some type of annealing/DEE on the local interactions and see what you get globally... branch and bound won't be possible, but it may still work well) To do this requires adding a little more facility to the CompositeGrid and kinematics to extract the degrees of freedom that place individual bodies and pairs of bodies, but it should be possible to do it in a general manner. Sorting out the indexing will likely be a headache.
+
+.. _hierarchical_packing:
 
 Hierarchical Packing
 ----------------------------------
@@ -31,11 +33,11 @@ In rosetta design, we generally include "extra" rotamers when packing. These ext
 
 If you wanted to take advantage of these closely-related rotamers to reduce the calculation, you could do something like this:
 
-*Pack with no extra rotamers using a very soft score function.
-*take the top 10,000 solutions produced by the packer and for only the rotamers involved in those top 10,000 solutions, add +-1 SD rotamers.
-*now repack with this expanded-subset of rotmers with a lightly soft energy function.
-*Again take the top 10,000 solutions. Make a new rotamer set with only rotamers involved in those solutions, and add in +-0.5 SD rotamers.
-*now repack with the standard hard energy function.
+- Pack with no extra rotamers using a very soft score function.
+- take the top 10,000 solutions produced by the packer and for only the rotamers involved in those top 10,000 solutions, add +-1 SD rotamers.
+- now repack with this expanded-subset of rotmers with a lightly soft energy function.
+- Again take the top 10,000 solutions. Make a new rotamer set with only rotamers involved in those solutions, and add in +-0.5 SD rotamers.
+- now repack with the standard hard energy function.
 
 Hopefully this gives some feeling for how hierarchical packing will work in scheme. I'm not sure how well this would work without carefully "softening" the energy function in Rosetta. In scheme  score functions of the appropriate "covering radius" can easily be generated. Probably best with bounding energies.
 
@@ -56,7 +58,3 @@ We need a "Packer" that can emit a large set of top solutions efficiently. DEE w
 
 Bollox to DEE and clever algorithms, Monte Carlo with some quenching and a small taboo list seems to work great. Try a billion substitutions, keep the top million things you see, done in 60 seconds.
 
- Indexing 
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-[[ Projects:Scheme:Hierarchical Grid#Indexing Challenges ]]
