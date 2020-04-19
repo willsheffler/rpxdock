@@ -35,6 +35,7 @@ REQUIRED = [
    'sphinx>3',
    'breathe',
    'exhale',
+   'sphinx_rtd_theme>=0.3.1',
 ]
 
 # What packages are optional?
