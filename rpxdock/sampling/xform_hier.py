@@ -28,6 +28,16 @@ def hier_axis_sampler(
       axis=[0, 0, 1],
       flipax=[0, 1, 0],
 ):
+   '''
+   :param nfold: architecture stuff
+   :param lb:
+   :param ub:
+   :param resl:
+   :param angresl:
+   :param axis: sample z axis
+   :param flipax: flip subunits
+   :return: "arrays of pos" to check for a given search resolution where pos are represented by matrices
+   '''
    cart_nstep = int(np.ceil((ub - lb) / resl))
    ang = 360 / nfold
    ang_nstep = int(np.ceil(ang / angresl))
@@ -95,11 +105,23 @@ def hier_mirror_lattice_sampler(
       flip_components=True,
       **kw,
 ):
+   '''
+   setting cartesian bounds as opposed to lower/upper bounds
+   :param spec:
+   :param cart_bounds:
+   :param resl:
+   :param angresl:
+   :param flip_components:
+   :param kw:
+   :return:
+   '''
    cart_bounds = np.array(cart_bounds)
    cart_nstep = np.ceil((cart_bounds[:, 1] - cart_bounds[:, 0]) / resl).astype('i')
    ang = 360 / spec.nfold
    ang_nstep = np.ceil(ang / angresl).astype('i')
+   # sampling cell type of xtal
    sampcell = LineHier(cart_bounds[0, 0], cart_bounds[0, 1], cart_nstep[0], [1, 0, 0])
+   # sampling axis of cage within "context of xtal"
    sampaxis = rp.sampling.RotCart1Hier_f4(cart_bounds[1, 0], cart_bounds[1, 1], cart_nstep[1], 0,
                                           ang[0], ang_nstep[0], [0, 0, 1])
    return rp.sampling.ProductHier(sampcell, sampaxis)

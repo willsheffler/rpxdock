@@ -63,13 +63,16 @@ def dock_cyclic(hscore, inputs, architecture, **kw):
 
 def dock_onecomp(hscore, **kw):
    arg = rp.Bunch(kw)
+   # for 1comp, len(arch) == 2
    spec = get_spec(arg.architecture)
    # double normal resolution, cuz why not?
+   # mirrorlayer for 1comp xtals and stuff with P architectures
    if spec.type == 'mirrorlayer':
       sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **arg)
    else:
       sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
                                               axis=spec.axis, flipax=spec.flip_axis)
+   # pose info and axes that intersect
    bodies = [rp.Body(inp, **arg) for inp in arg.inputs1]
 
    exe = concurrent.futures.ProcessPoolExecutor
