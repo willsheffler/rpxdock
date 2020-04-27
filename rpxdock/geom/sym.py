@@ -9,6 +9,9 @@ icosahedral_frames = np.load(datadir + "/icosahedral_frames.pickle", allow_pickl
 def symframes(sym, positions=None, axis=[0, 0, 1]):
    if isinstance(sym, (int, np.int32, np.int64, np.uint32, np.uint64)):
       sym = int(sym)
+   if isinstance(sym, np.ndarray):
+      assert len(sym) == 1
+      sym = int(sym[0])
    if isinstance(sym, int) or sym.startswith("C"):
       if not isinstance(sym, int): sym = int(sym[1:])
       return list(hm.hrot(axis, np.arange(sym) / sym * 360))
@@ -41,6 +44,39 @@ def symframes(sym, positions=None, axis=[0, 0, 1]):
       # frames = c6
       # frames = np.eye(4)
       return frames.reshape(-1, 4, 4)
+      
+
+
+   if  sym[:2] == 'P4':          # all options of P4 (1, 2, and 3 components assemblies 
+      if len(sym)==4:            # case of one component 
+         if sym[2]=="_":         # case when the components have symilar vertical orientation, plane symmetry p4 and 2 DOFs: rotation and cell spacing  
+            c4 = hm.hrot(axis, np.arange(4) / 4 * 360)   
+            c4b = hm.hrot(axis, np.arange(4) / 4 * 360, center=[positions[0, 0, 3], positions[0, 1, 3], 0])
+            frames = c4[ None, :] @ c4b[ :, None] # @ c2[:, None, None]
+         if symp[2]=="m":        # case of checkmate like vertical orientation, plane symmetry p4m and 3 DOFs: rotation, cell spacing, and vertical translation 
+            c4 = hm.hrot(axis, np.arange(4) / 4 * 360)   
+            c4b = hm.hrot(axis, np.arange(4) / 4 * 360, center=[positions[0, 0, 3], positions[0, 1, 3], 0])
+            frames = c4[ None, :] @ c4b[ :, None] 
+         return frames.reshape(-1, 4, 4)
+
+
+      if len(sym)==5:            # This is for 2 component P4 designs (4 DOFs) - 2 rottions, 1 z translation, 1 cell spacing , should allow fliping one of the components (2 times more options)
+         c4 = hm.hrot(axis, np.arange(4) / 4 * 360)
+         c42 = hm.hrot(axis, np.arange(int(sym[5])) / int(sym[5]) * 360, center=[positions[1, 0, 3], positions[1, 1, 3], 0])
+         frames = c4[ None, :] @ c42[ :, None] 
+         return frames.reshape(-1, 4, 4)
+
+
+      if len(sym)==6:            # This is for 3 component P4 designs (6 DOFs) - 3 rottions, 2 z translation, 1 cell spacing , should allow fliping two of the components (4 times more options)
+         c4 = hm.hrot(axis, np.arange(4) / 4 * 360)
+         c4b = hm.hrot(axis, np.arange(4) / 4 * 360, center=[positions[1, 0, 3], positions[1, 1, 3], 0])
+         c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[positions[2, 0, 3], positions[2, 1, 3], 0])
+         frames = c4[None, None, :] @ c4b[None, :, None] @ c2[:, None, None]
+         return frames.reshape(-1, 4, 4)
+
+
+
+
 
 frames = dict(T=tetrahedral_frames, O=octahedral_frames, I=icosahedral_frames)
 

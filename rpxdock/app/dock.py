@@ -1,15 +1,21 @@
 #! /home/sheffler/.conda/envs/rpxdock/bin/python
 
-import logging, itertools, concurrent, tqdm, rpxdock as rp
+import logging,sys, itertools, concurrent, tqdm, rpxdock as rp
 
 def get_rpxdock_args():
    arg = rp.options.get_cli_args()
    if not arg.architecture: raise ValueError("architecture must be specified")
    return arg
 
+def localSymNum(Parch):
+   return len(Parch)-Parch.find("_")-1
 def get_spec(arch):
-   if arch.startswith('P'):
+   if arch.startswith('P') and localSymNum(arch)==3: # three components
       spec = rp.search.DockSpec3CompLayer(arch)
+   elif arch.startswith('P') and localSymNum(arch)==2: # two components 
+      spec = rp.search.DockSpec2CompLayer(arch)
+   elif arch.startswith('P') and localSymNum(arch)==1: # one component 
+      spec = rp.search.DockSpec1CompLayer(arch)
    elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
       spec = rp.search.DockSpec1CompCage(arch)
    else:
@@ -47,11 +53,12 @@ def dock_onecomp(hscore, **kw):
    arg = rp.Bunch(kw)
    spec = get_spec(arg.architecture)
    # double normal resolution, cuz why not?
-   sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
-                                           axis=spec.axis, flipax=spec.flip_axis)
+   sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=2,  axis=spec.axis, flipax=None) # by default this is going to be flipted , add  flipax=None to not allow that.   flipax=spec.flip_axis)
+   print("in single component: ",arg.architecture, spec , "samples: ",sampler) 
    bodies = [rp.Body(inp, **arg) for inp in arg.inputs1]
-
+   print("number of bodies: ",len(bodies),type(bodies),bodies) # ; sys.exit(0)
    exe = concurrent.futures.ProcessPoolExecutor
+   print("After exe = concurrent.futures.ProcessPoolExecutor")
    # exe = rp.util.InProcessExecutor
    with exe(arg.ncpu) as pool:
       futures = list()
@@ -78,9 +85,13 @@ def dock_multicomp(hscore, **kw):
    arg = rp.Bunch(kw)
    spec = get_spec(arg.architecture)
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **arg)
+   print("in multi component: ",arg.architecture, spec , "samples: ",sampler) 
+
    logging.info(f'num base samples {sampler.size(0):,}')
 
    bodies = [[rp.Body(fn, **arg) for fn in inp] for inp in arg.inputs]
+
+   print("number of bodies: ",len(bodies),type(bodies)) ; sys.exit(0)
    assert len(bodies) == spec.num_components
 
    exe = concurrent.futures.ProcessPoolExecutor
@@ -108,18 +119,22 @@ def dock_multicomp(hscore, **kw):
 def main():
    arg = get_rpxdock_args()
    logging.info(f'weights: {arg.wts}')
-
    hscore = rp.CachedProxy(rp.RpxHier(arg.hscore_files, **arg))
    arch = arg.architecture
 
-   if arch.startswith('C'):
+   #print("arch: ",arch,arg.hscore) ; print("arg.wts: ",arg.wts) ; sys.exit(0)
+   if arch.startswith('C'):                     # cyclic docking 
       result = dock_cyclic(hscore, **arg)
+   elif arch.startswith('P') and localSymNum(arch)==1 :                  # array docking - single component  P4_4 p4m p4    P4_44 P4_ 42 p4 P4_442
+      result = dock_onecomp(hscore,  **arg)
+   elif arch.startswith('P') and localSymNum(arch)>1 :                   # array docking - attempt to generalize layers docking in arbitrary number of components 2-4 
+      result = dock_multicomp(hscore,  **arg)
    elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
       result = dock_onecomp(hscore, **arg)
    else:
       result = dock_multicomp(hscore, **arg)
 
-   print(result)
+   print("result: ",result)
    if arg.dump_pdbs:
       result.dump_pdbs_top_score(hscore=hscore, **arg)
       result.dump_pdbs_top_score_each(hscore=hscore, **arg)

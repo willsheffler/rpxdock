@@ -55,6 +55,53 @@ class DockSpec1CompCage:
       self.flip_axis = hm.hcross(self.axis, self.axis_second)
 
       # print(self.sym, self.nfold)
+class DockSpec1CompLayerDef:
+   def __init__(self, arch):
+      assert len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_')
+      assert arch[:2] in "P2 P3 P4 P6".split()
+      if arch[0] == 'P':
+         assert arch[2] == '_'
+         self.sym = arch[:2]
+         self.nfold = int(arch[3])
+      else:
+         self.sym = arch[0]
+         self.nfold = int(arch[1])
+
+      self.arch = arch
+      self.type = 'layer'
+      self.num_components = 1
+
+      self.comp_is_dihedral = [False]
+      self.axis = sym.axes[self.sym][self.nfold]
+      self.axis_second = sym.axes_second[self.sym][self.nfold]
+
+      # print(self.nfold)
+      # print(self.axis)
+      # print(self.axis_second)
+      # assert 0
+
+      self.orig = hm.align_vector([0, 0, 1], self.axis)
+      self.to_neighbor_olig = sym.to_neighbor_olig[self.sym][self.nfold]
+
+      # print(self.to_neighbor_olig)
+      # print(self.to_neighbor_olig @ self.axis)
+      # print(self.axis_second)
+      # assert 0
+
+      self.orig_second = self.to_neighbor_olig @ self.orig
+
+      cang = hm.angle(self.axis, self.axis_second)
+      aang = (np.pi - cang) / 2.0
+      self.slide_to_axis_displacement = np.sin(aang) / np.sin(cang)
+
+      self.symframes_ = sym.frames[self.sym] # sym.symframes(self.sym)
+
+      self.flip_axis = hm.hcross(self.axis, self.axis_second)
+
+
+
+
+
 
    def slide_dir(self):
       dirn = self.axis_second - self.axis
@@ -267,7 +314,50 @@ class DockSpecMonomerToCyclic:
       return newpos.reshape(origshape)
 
 _layer_comp_center_directions = dict(P6_632=(np.array([0.86602540378, 0.5, 0, 0]),
-                                             np.array([0.86602540378, 0.0, 0, 0])))
+                                             np.array([0.86602540378, 0.0, 0, 0]))
+                                    ,P4_442=(np.array([0, 0.5, 0, 0]),
+                                             np.array([0.5, 0.0, 0, 0])) 
+                                    ,P4_4=(np.array([0, 0.5, 0, 0]),
+                                             np.array([0.5, 0.0, 0, 0]))  )
+######################################################################################################
+
+class DockSpec1CompLayer(DockSpec1CompLayerDef):
+   def __init__(self, arch):
+      arch = arch.upper()
+      assert arch.startswith('P')
+      print("in DockSpec1CompLayer: ", arch )
+      self.arch = arch
+      self.type = 'layer'
+      self.sym = arch
+      self.nfold = np.array(list(arch.split('_')[1]), dtype='i')
+      self.directions = _layer_comp_center_directions[arch]
+      print("in DockSpec1CompLayer: ", arch ,_layer_comp_center_directions[arch])
+      self.axis = np.array([np.array([0, 0, 1])] * 1)
+      self.xflip = [hm.hrot([1, 0, 0], 180)] * 1
+      self.comp_is_dihedral = [False]
+      self.num_components = 1
+      self.to_neighbor_olig = [hm.hrot([0, 0, 1], 90)]
+
+
+class DockSpec2CompLayer(DockSpec2CompCage):
+   def __init__(self, arch):
+      arch = arch.upper()
+      assert arch.startswith('P')
+      self.arch = arch
+      self.type = 'layer'
+      self.sym = arch
+      self.nfold = np.array(list(arch.split('_')[1]), dtype='i')
+      self.directions = _layer_comp_center_directions[arch]
+      self.axis = np.array([np.array([0, 0, 1])] * 3)
+      self.xflip = [hm.hrot([1, 0, 0], 180)] * 3
+      self.comp_is_dihedral = [False, False, False]
+      self.num_components = 2
+      self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], 60), hm.hrot([0, 0, 1], 60)]
+
+
+
+
+######################################################################################################
 
 class DockSpec3CompLayer(DockSpec3CompCage):
    def __init__(self, arch):
@@ -283,3 +373,16 @@ class DockSpec3CompLayer(DockSpec3CompCage):
       self.comp_is_dihedral = [False, False, False]
       self.num_components = 3
       self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], 60), hm.hrot([0, 0, 1], 60)]
+
+
+
+
+
+
+
+
+
+
+
+
+

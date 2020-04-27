@@ -19,12 +19,12 @@ class LineHier:
       self.axis = state[3]
       self.hier1d = rp.sampling.CartHier1D_f4([state[0]], [state[1]], [state[2]])
 
-def hier_axis_sampler(nfold, lb=25, ub=200, resl=10, angresl=10, axis=[0, 0, 1], flipax=[0, 1,
-                                                                                         0]):
+def hier_axis_sampler(nfold, lb=25, ub=200, resl=10, angresl=10, axis=[0, 0, 1], flipax=[0, 1,0]): 
    cart_nstep = int(np.ceil((ub - lb) / resl))
    ang = 360 / nfold
    ang_nstep = int(np.ceil(ang / angresl))
-   samp = rp.sampling.RotCart1Hier_f4(lb, ub, cart_nstep, 0, ang, ang_nstep, axis[:3])
+   print("in hier_axis_sampler: ", lb, ub, cart_nstep, 0, ang[0], ang_nstep, axis[0], type(lb), type(ub), type(cart_nstep), type(0), type(ang[0]), type(ang_nstep), type(axis[0]))
+   samp = rp.sampling.RotCart1Hier_f4(lb, ub, cart_nstep, 0, ang[0], ang_nstep, axis[0]) # fix input ang and axis to ang[0] and axis[0] 
    if flipax is not None:
       flip = rp.ZeroDHier([np.eye(4), rp.homog.hrot(flipax, 180)])
       samp = rp.ProductHier(samp, flip)

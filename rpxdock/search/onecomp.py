@@ -51,6 +51,11 @@ def make_onecomp(
    data['angle'] = (['model'], rp.homog.angle_of(xforms[:]) * 180 / np.pi)
    default_label = ['compA']
 
+   for k,v in data.items():
+      print(k)
+      print(v)
+      print()
+
    return rp.Result(
       body_=None if arg.dont_store_body_in_results else [body],
       body_label_=[] if arg.dont_store_body_in_results else default_label,
@@ -65,7 +70,7 @@ class OneCompEvaluator:
       self.symrot = rp.geom.symframes(spec.nfold)
       self.spec = spec
       self.arg.wts = wts
-      self.body = body.copy_with_sym(spec.nfold, spec.axis)
+      self.body = body.copy_with_sym(spec.nfold[0], spec.axis)
       self.trimmable_components = trimmable_components
 
    def __call__(self, xforms, iresl=-1, wts={}, **kw):
