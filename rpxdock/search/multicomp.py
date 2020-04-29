@@ -112,6 +112,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[1]) @ X[ok, 2], **arg)
 
       # score everything that didn't clash
+      # TODO maybe add inter/intra-face scoring here? QD WHS
       ifscore = list()
       for i in range(len(B)):
          for j in range(i):
@@ -119,7 +120,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       # ifscore = np.stack(ifscore)
       # print(ifscore.shape)
       scores = np.zeros(len(X))
-      scores[ok] = arg.iface_summary(ifscore, axis=0)
+      scores[ok] = arg.iface_summary(ifscore, axis=0) # summarize iface scores
 
       # B[0].pos = X[np.argmax(scores), 0]
       # B[1].pos = X[np.argmax(scores), 1]

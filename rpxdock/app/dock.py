@@ -29,14 +29,19 @@ def get_spec(arch):
       spec = rp.search.DockSpec2CompCage(arch)
    return spec
 
+## All dock_cyclic, dock_onecomp, and dock_multicomp do similar things
 def dock_cyclic(hscore, inputs, architecture, **kw):
+   ## bunch is a dictionary of things
    arg = rp.Bunch(kw)
+   ## bodies hold all pose info and axis intersect info
    bodies = [rp.Body(inp, **arg) for inp in arg.inputs1]
 
+   ## start the parallel processes
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
    with exe(arg.ncpu) as pool:
       futures = list()
+      # where the magic happens
       for ijob, bod in enumerate(bodies):
          futures.append(
             pool.submit(
@@ -58,13 +63,16 @@ def dock_cyclic(hscore, inputs, architecture, **kw):
 
 def dock_onecomp(hscore, **kw):
    arg = rp.Bunch(kw)
+   # for 1comp, len(arch) == 2
    spec = get_spec(arg.architecture)
    # double normal resolution, cuz why not?
+   # mirrorlayer for 1comp xtals and stuff with P architectures
    if spec.type == 'mirrorlayer':
       sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **arg)
    else:
       sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
                                               axis=spec.axis, flipax=spec.flip_axis)
+   # pose info and axes that intersect
    bodies = [rp.Body(inp, **arg) for inp in arg.inputs1]
 
    exe = concurrent.futures.ProcessPoolExecutor
@@ -122,17 +130,20 @@ def dock_multicomp(hscore, **kw):
    return result
 
 def main():
+   # What gets all the shit done
    arg = get_rpxdock_args()
    logging.info(f'weights: {arg.wts}')
 
    hscore = rp.CachedProxy(rp.RpxHier(arg.hscore_files, **arg))
    arch = arg.architecture
 
-   sym, comp = arch.split('_')
+   # TODO commit to master AK
+   #sym, comp = arch.split('_')
 
+   # TODO: redefine archs WHS or others with a monster list of if statements
    if arch.startswith('C'):
       result = dock_cyclic(hscore, **arg)
-   elif len(arch) == 2 or len(comp) == 1 or (arch[0] == 'D' and arch[2] == '_'):
+   elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
       result = dock_onecomp(hscore, **arg)
    else:
       result = dock_multicomp(hscore, **arg)
