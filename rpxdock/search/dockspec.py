@@ -303,3 +303,22 @@ class DockSpec3CompLayer:
       self.num_components = 3
       ang = 360 / self.nfold[0]
       self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], ang), hm.hrot([0, 0, 1], ang)]
+'''
+class DockSpecPlug:
+   def __init__(self, arch):
+      assert len(arch) == 7
+      assert arch[5] == "C"
+      self.type = 'plug'
+      self.arch = arch.split('_')[1]
+      self.num_components = 1
+      self.nfold = int(arch[6])
+      assert self.nfold > 1
+      self.angle = 2 * np.pi / self.nfold
+
+      self.orig = np.eye(4)
+      self.to_neighbor_monomer = hm.hrot([0, 0, 1], self.angle)
+      self.orig_second = self.to_neighbor_monomer @ self.orig
+
+      self.symframes_ = [hm.hrot([0, 0, 1], self.angle * i) for i in range(self.nfold)]
+      self.tan_half_vertex = np.tan((np.pi - self.angle) / 2)
+'''

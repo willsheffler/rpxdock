@@ -1,6 +1,6 @@
 import logging
-import numpy as np, xarray as xr, rpxdock as rp
-from rpxdock.search import hier_search
+import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
+from rpxdock.search import hier_search, trim_ok
 
 log = logging.getLogger(__name__)
 
