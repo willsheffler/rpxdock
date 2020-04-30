@@ -1,6 +1,7 @@
 #! /home/sheffler/.conda/envs/rpxdock/bin/python
 
 import logging, itertools, concurrent, tqdm, rpxdock as rp
+import numpy as np
 
 def get_rpxdock_args():
    arg = rp.options.get_cli_args()
@@ -67,11 +68,20 @@ def dock_onecomp(hscore, **kw):
    spec = get_spec(arg.architecture)
    # double normal resolution, cuz why not?
    # mirrorlayer for 1comp xtals and stuff with P architectures
-   if spec.type == 'mirrorlayer':
-      sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **arg)
+   if arg.docking_method == 'grid':
+      cart = np.arange(-10.5, 10.6)
+      ang = np.arange(-60, 60.1, 10) 
+      sampler = rp.sampling.grid_sym_axis(cart, ang, axis=spec.axis, flip=spec.flip)
+      search = rp.grid_search
    else:
-      sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
+      if spec.type == 'mirrorlayer':
+         sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **arg)
+      else:
+         sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
                                               axis=spec.axis, flipax=spec.flip_axis)
+   
+      search=rp.hier_search
+
    # pose info and axes that intersect
    bodies = [rp.Body(inp, **arg) for inp in arg.inputs1]
 
@@ -86,7 +96,7 @@ def dock_onecomp(hscore, **kw):
                bod,
                spec,
                hscore,
-               rp.hier_search,
+               search,
                sampler,
                **arg,
             ))
@@ -94,6 +104,7 @@ def dock_onecomp(hscore, **kw):
       result = [None] * len(futures)
       for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
+   
    result = rp.concat_results(result)
    return result
    # result = rp.search.make_onecomp(bodyC3, spec, hscore, rp.hier_search, sampler, **arg)
