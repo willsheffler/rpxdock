@@ -21,6 +21,7 @@ def make_multicomp(
       for i, b in enumerate(bodies):
          bodies[i] = b.copy_xformed(rp.homog.align_vector([0, 0, 1], spec.axis[i]))
 
+   dotrim = arg.max_trim and arg.trimmable_components and len(bodies) < 3
    Evaluator = TwoCompEvaluatorWithTrim if dotrim else MultiCompEvaluator
    evaluator = Evaluator(bodies, spec, hscore, **arg)
 

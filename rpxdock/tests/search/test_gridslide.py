@@ -42,7 +42,7 @@
 #       pos2 = spec.placements_second(pos)
 #       for i, norig in enumerate(npair):
 #          body.move_to(pos[i])
-#          body2.move_to(pos2[i])plug
+#          body2.move_to(pos2[i])
 #          n = body.contact_count(body2, contact_dis)
 #          assert n == norig
 #
