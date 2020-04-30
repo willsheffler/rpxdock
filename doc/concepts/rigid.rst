@@ -3,12 +3,10 @@
 Rigid Body Representations
 =============================
 
-**this is out of date, concepts are similar, but constructs in rpxdock are named and behave differently**
-
 
 Basic element of structure is a "rigid" chunk of protein structure called a Rose. This "rigid" structure may actually be a family of related conformations, if a proper hierarchical decomposition of conformations can be made.
 
-Kinematic model is Roses and SymElems placed by a "scene tree" type structure called a Bouquet. All DOFs, including transforms which place entities in the tree, helical symmetry DOFs, and Rose conformations, are managed by hierarchal nested grids called :ref:`Nests <sampling_nest>`. Here is a silly example:
+Kinematic model is Roses and SymElems placed by a "scene tree" type structure called a Bouquet. All DOFs, including transforms which place entities in the tree, helical symmetry DOFs, and Rose conformations, are managed by hierarchal nested grids called [[Projects:Scheme:Hierarchical Grid|Nests]]. Here is a silly example:
 
 Scheme Bouquet Illustration
 

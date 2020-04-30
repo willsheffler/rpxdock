@@ -41,8 +41,6 @@ The above illustration of  the core of protein G shows two LF residue pairs that
 
 The middle panel above illustrates a representation of the residues with a full xyz coordinate frame. With such a 6D representation, these cases can be easily distinguished.
 
-.. _rpx_accuracy:
-
 Accuracy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -65,12 +63,10 @@ Note2: design here is done without any layer design, so this is somewhat artific
 Flexibility
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is a highly general scoring model. The "scorable" elements of a body are made up of a coordinate frames, or :ref:`actors`, which may represent any arbitrary functional group. By using different Petals and different ways of building score tables, we can apply Scheme to just about any protein modeling problem that involves searching conformation space (and maybe other problem domains too).
+This is a highly general scoring model. The "scorable" elements of a body are made up of a set of polymorphic [[Projects:Scheme:Scoring#Petals|Petals]] objects, which may represent any arbitrary functional group. By using different Petals and different ways of building score tables, we can apply Scheme to just about any protein modeling problem that involves searching conformation space (and maybe other problem domains too).
 
 .. image:: /img/Scheme_scoring_example_applications.png
    :width: 800px
-
-.. _actors:
 
 Actors
 -----------------
