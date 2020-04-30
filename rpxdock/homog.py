@@ -367,6 +367,11 @@ def rand_xform(shape=(), cart_cen=0, cart_sd=1):
    x[..., :3, 3] = np.random.randn(*shape, 3) * cart_sd + cart_cen
    return x
 
+def proj(u, v):
+   u = np.asanyarray(u)
+   v = np.asanyarray(v)
+   return hdot(u, v)[..., None] / hnorm2(u)[..., None] * u
+
 def proj_perp(u, v):
    u = np.asanyarray(u)
    v = np.asanyarray(v)
@@ -381,15 +386,17 @@ def ray_in_plane(plane, ray):
            point_in_plane(plane, ray[..., :3, 0] + ray[..., :3, 1]))
 
 def intersect_planes(plane1, plane2):
+   """intersect two planes
+
+   :param plane1: first plane represented by ray
+   :type plane2: np.array shape=(..., 4, 2) 
+
+   :param plane1: second planes represented by rays
+   :type plane2: np.array shape=(..., 4, 2) 
+
+   :return: line: np.array shape=(...,4,2), status: int (0 = intersection returned, 1 = no intersection, 2 = the two planes coincide)
    """
-intersect_Planes: find the 3D intersection of two planes
-       Input:  two planes represented by rays shape=(..., 4, 2)
-       Output: L = the intersection line (when it exists)
-       Return: rays shape=(...,4,2), status
-               0 = intersection returned
-               1 = disjoint (no intersection)
-               2 = the two planes coincide
-    """
+
    if not is_valid_rays(plane1): raise ValueError('invalid plane1')
    if not is_valid_rays(plane2): raise ValueError('invalid plane2')
    shape1, shape2 = np.array(plane1.shape), np.array(plane2.shape)
@@ -639,12 +646,10 @@ def xform_around_dof_for_vector_target_angle(fix, mov, dof, target_angle):
 def align_lines_isect_axis2(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2):
    ## make sure to align with smaller axis choice
    assert np.allclose(np.linalg.norm(tp1[..., :3]), 0.0)
-   if angle(ax1, ax2) > np.pi / 2:
-      ax2 = -ax2
-   if angle(ta1, ta2) > np.pi / 2:
-      ta2 = -ta2
+   if angle(ax1, ax2) > np.pi / 2: ax2 = -ax2
+   if angle(ta1, ta2) > np.pi / 2: ta2 = -ta2
    assert np.allclose(angle(ta1, ta2), angle(ax1, ax2))
-   if abs(angle(ta1, ta2)) < 0.1:
+   if abs(angle(ta1, ta2)) < 0.01:
       assert 0, 'case not tested'
       # vector delta between pt2 and pt1
       d = proj_perp(ax1, pt2 - pt1)
@@ -683,7 +688,62 @@ def expand_xforms(G, N=3, redundant_point=hpoint([1, 3, 10]), maxrad=9e9):
       X = Xs if isinstance(Xs, np.ndarray) else ft.reduce(np.matmul, Xs)
       if np.linalg.norm(X @ redundant_point - redundant_point) > maxrad: continue
       key = tuple(np.around(X @ redundant_point).astype('i')[:3])
-      # print(key, X @ redundant_point)
       if key not in seenit:
          seenit.add(key)
          yield X
+
+def scale_translate_lines_isect_lines(pt1, ax1, pt2, ax2, tp1, ta1, tp2, ta2):
+   _pt1 = hpoint(pt1.copy())
+   _ax1 = hnormalized(ax1.copy())
+   _pt2 = hpoint(pt2.copy())
+   _ax2 = hnormalized(ax2.copy())
+   _tp1 = hpoint(tp1.copy())
+   _ta1 = hnormalized(ta1.copy())
+   _tp2 = hpoint(tp2.copy())
+   _ta2 = hnormalized(ta2.copy())
+
+   if abs(angle(_ax1, _ax2) - angle(_ta1, _ta2)) > 0.00001:
+      _ta2 = -_ta2
+   assert np.allclose(line_angle(_ax1, _ax2), line_angle(_ta1, _ta2))
+
+   # scale target frame to match input line separation
+   d1 = line_line_distance_pa(_pt1, _ax1, _pt2, _ax2)
+   d2 = line_line_distance_pa(_tp1, _ta1, _tp2, _ta2)
+   scale = np.array([d1 / d2, d1 / d2, d1 / d2, 1])
+   _tp1 *= scale
+   _tp2 *= scale
+
+   # compute rotation to align line pairs, check "handedness" and correct if necessary
+   xalign = align_vectors(_ax1, _ax2, _ta1, _ta2)
+   a, b = line_line_closest_points_pa(_pt1, _ax1, _pt2, _ax2)
+   c, d = line_line_closest_points_pa(_tp1, _ta1, _tp2, _ta2)
+   _shift1 = xalign @ (b - a)
+   _shift2 = d - c
+   if hdot(_shift1, _shift2) < 0:
+      if np.allclose(angle(_ax1, _ax2), np.pi / 2):
+         xalign = align_vectors(-_ax1, _ax2, _ta1, _ta2)
+      else:
+         return None, None
+
+   _pt1 = xalign @ _pt1
+   _ax1 = xalign @ _ax1
+   _pt2 = xalign @ _pt2
+   _ax2 = xalign @ _ax2
+
+   assert np.allclose(_ax1, _ta1) or np.allclose(-_ax1, _ta1)
+   assert np.allclose(_ax2, _ta2)
+
+   # move to overlap pa1,_ta1
+   delta1 = _tp1 - _pt1
+   _pt1 += delta1
+   _pt2 += delta1
+
+   a, b = line_line_closest_points_pa(_pt2, _ax1, _tp2, _ta2)
+   delta2 = (a + b) / 2 - _pt2
+   _pt1 += delta2
+   _pt2 += delta2
+
+   xalign[:, 3] = delta1 + delta2
+   xalign[3, 3] = 1
+
+   return xalign, scale

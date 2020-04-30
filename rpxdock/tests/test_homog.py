@@ -1,13 +1,17 @@
-import pytest, numpy as np, itertools as it, functools as ft
+import rpxdock as rp, pytest, numpy as np, itertools as it, functools as ft
+
 from rpxdock.homog import *
 import rpxdock.homog as hm
-from rpxdock.geom import sym
 
 def test_sym():
-   assert sym.tetrahedral_frames.shape == (12, 4, 4)
-   assert sym.octahedral_frames.shape == (24, 4, 4)
-   assert sym.icosahedral_frames.shape == (60, 4, 4)
-   x = np.concatenate([sym.tetrahedral_frames, sym.octahedral_frames, sym.icosahedral_frames])
+   assert rp.geom.sym.tetrahedral_frames.shape == (12, 4, 4)
+   assert rp.geom.sym.octahedral_frames.shape == (24, 4, 4)
+   assert rp.geom.sym.icosahedral_frames.shape == (60, 4, 4)
+   x = np.concatenate([
+      rp.geom.sym.tetrahedral_frames,
+      rp.geom.sym.octahedral_frames,
+      rp.geom.sym.icosahedral_frames,
+   ])
    assert np.all(x[..., 3, 3] == 1)
    assert np.all(x[..., 3, :3] == 0)
    assert np.all(x[..., :3, 3] == 0)
@@ -424,8 +428,11 @@ def test_align_lines_dof_dihedral_rand_single():
 
    # print('result', 'ta', np.degrees(target_angle), 'da', np.degrees(dof_angle), 'fda',
    # np.degrees(fix_to_dof_angle), dang, ahat, abs(abs(dang) - abs(ahat)))
-   close1 = np.allclose(abs(dang), abs(ahat), atol=1e-3)
-   close2 = np.allclose(abs(dang), np.pi - abs(ahat), atol=1e-3)
+   atol = 1e-5 if 0.01 < abs(dang) < 3.14 else 1e-3
+   close1 = np.allclose(abs(dang), abs(ahat), atol=atol)
+   close2 = np.allclose(abs(dang), np.pi - abs(ahat), atol=atol)
+   if not close1 or close2:
+      print('ERROR', abs(dang), abs(ahat), np.pi - abs(ahat))
    assert close1 or close2
 
 def test_align_lines_dof_dihedral_rand_3D():
@@ -566,6 +573,158 @@ def test_expand_xforms_basic():
                        (-1.0, 0.0, 0.0, 1), (1.0, -2.0, 0.0, 1), (1.0, -0.0, -2.0, 1)])
    assert np.allclose(correct, points)
 
+def _vaildate_test_scale_translate_lines_isect_lines(samp, xalign, scale, i):
+   assert xalign is not None
+   assert scale is not None
+   pt1, ax1, pt2, ax2, tp1, ta1, tp2, ta2 = samp
+   ok_ax1 = (np.allclose(xalign @ ax1, ta1, atol=1e-5)
+             or np.allclose(xalign @ -ax1, ta1, atol=1e-5))
+   ok_ax2 = (np.allclose(xalign @ ax2, ta2, atol=1e-5)
+             or np.allclose(xalign @ -ax2, ta2, atol=1e-5))
+
+   ok_pt1 = np.allclose(xalign @ pt1, scale * tp1)
+   if not ok_pt1:
+      offset1 = hm.hnormalized(xalign @ pt1 - scale * tp1)
+      ok_pt1 = (np.allclose(offset1, ta1, atol=1e-3) or np.allclose(offset1, -ta1, atol=1e-3))
+   ok_pt2 = np.allclose(xalign @ pt2, scale * tp2)
+   if not ok_pt2:
+      offset2 = hm.hnormalized(xalign @ pt2 - scale * tp2)
+      ok_pt2 = (np.allclose(offset2, ta2, atol=1e-3) or np.allclose(offset2, -ta2, atol=1e-3))
+   if not (ok_ax1 and ok_ax2 and ok_pt1 and ok_pt2):
+      if not ok_ax1: print('fail ax1 on %i' % i)
+      if not ok_ax2: print('fail ax2 on %i' % i)
+      if not ok_pt1: print('fail pt1 on %i' % i)
+      if not ok_pt2: print('fail pt2 on %i' % i)
+      print(repr(samp))
+      if True:
+         rays = np.array([
+            hm.hray(xalign @ pt1, xalign @ ax1),
+            hm.hray(xalign @ pt2, xalign @ ax2),
+            hm.hray(scale * tp1, scale * ta1),
+            hm.hray(scale * tp2, scale * ta2),
+         ])
+         colors = [(1, 0, 0), (0, 0, 1), (0.8, 0.5, 0.5), (0.5, 0.5, 0.8)]
+         rp.viz.showme(rays, colors=colors, block=False)
+      assert ok_ax1 and ok_ax2 and ok_pt1 and ok_pt2
+
+def test_scale_translate_lines_isect_lines_p4132():
+   samps = list()
+   for i in range(30):
+      pt1 = np.array([-40, 0, -40, 1], dtype='d')
+      ax1 = np.array([-1, -1, 1, 0], dtype='d')
+      pt2 = np.array([-20, -20, -20, 1], dtype='d')
+      ax2 = np.array([0, -1, -1, 0], dtype='d')
+
+      tp1 = np.array([-0.5, 0, -0.5, 1], dtype='d')
+      ta1 = np.array([-1, -1, 1, 0], dtype='d')
+      tp2 = np.array([-0.125, -0.125, -0.125, 1], dtype='d')
+      ta2 = np.array([0, -1, -1, 0], dtype='d')
+
+      ax1 = hnormalized(ax1)
+      ax2 = hnormalized(ax2)
+      ta1 = hnormalized(ta1)
+      ta2 = hnormalized(ta2)
+      tmp = hm.rand_vec() * 30
+      pt1 += tmp
+      pt2 += tmp
+      pt1 += ax1 * hm.rand_vec() * 30
+      pt2 += ax2 * hm.rand_vec() * 30
+      xtest = hm.rand_xform()
+      pt1 = xtest @ pt1
+      ax1 = xtest @ ax1
+      pt2 = xtest @ pt2
+      ax2 = xtest @ ax2
+      samps.append((pt1, ax1, pt2, ax2, tp1, ta1, tp2, ta2))
+
+   # from numpy import array
+   # samps = [(array([44.83313235, 54.92005006, -21.4824442,
+   #                  1.]), array([-0.40516428, -0.41266195, 0.81581372,
+   #                               0.]), array([16.22902529, 0.36515706, 18.20013359, 1.]),
+   #           array([-0.87280016, 0.4402107, -0.21079474, 0.]), array([-0.5, 0., -0.5, 1.]),
+   #           array([-0.57735027, -0.57735027, 0.57735027, 0.]), array(
+   #              [-0.125, -0.125, -0.125, 1.]), array([0., -0.70710678, -0.70710678, 0.]))]
+
+   for i, samp in enumerate(samps):
+      xalign, scale = hm.scale_translate_lines_isect_lines(*samp)
+      _vaildate_test_scale_translate_lines_isect_lines(samp, xalign, scale, i)
+
+def test_scale_translate_lines_isect_lines_nonorthog():
+   nsamp = 30
+   samps = list()
+   for i in range(nsamp):
+      pt1 = np.array([-40, 0, -40, 1], dtype='d')
+      ax1 = np.array([1, 1, 1, 0], dtype='d')
+      pt2 = np.array([-20, -20, -20, 1], dtype='d')
+      ax2 = np.array([0, 1, 1, 0], dtype='d')
+
+      tp1 = np.array([-0.5, 0, -0.5, 1], dtype='d')
+      ta1 = np.array([1, 1, 1, 0], dtype='d')
+      tp2 = np.array([-0.125, -0.125, -0.125, 1], dtype='d')
+      ta2 = np.array([0, 1, 1, 0], dtype='d')
+
+      ax1 = hnormalized(ax1)
+      ax2 = hnormalized(ax2)
+      ta1 = hnormalized(ta1)
+      ta2 = hnormalized(ta2)
+      tmp = hm.rand_vec() * 30
+      pt1 += tmp
+      pt2 += tmp
+      pt1 += ax1 * hm.rand_vec() * 30
+      pt2 += ax2 * hm.rand_vec() * 30
+      xtest = hm.rand_xform()
+      pt1 = xtest @ pt1
+      ax1 = xtest @ ax1
+      pt2 = xtest @ pt2
+      ax2 = xtest @ ax2
+      samps.append((pt1, ax1, pt2, ax2, tp1, ta1, tp2, ta2))
+
+   # from numpy import array
+   # samps = [(array([9.9106826, 32.13286237, -17.17714398,
+   #                  1.]), array([-0.75428055, -0.53955273, 0.37409049,
+   #                               0.]), array([16.67226665, 9.12240355, -10.38776327, 1.]),
+   #           array([-0.23706077, -0.78614464, 0.57077035, 0.]), array([-0.5, 0., -0.5, 1.]),
+   #           array([0.57735027, 0.57735027, 0.57735027, 0.]), array(
+   #              [-0.125, -0.125, -0.125, 1.]), array([0., 0.70710678, 0.70710678, 0.]))]
+
+   ok = 0
+   for i, samp in enumerate(samps):
+
+      xalign, scale = hm.scale_translate_lines_isect_lines(*samp)
+      if xalign is not None:
+         ok += 1
+         _vaildate_test_scale_translate_lines_isect_lines(samp, xalign, scale, i)
+      else:
+         pass
+
+   assert ok > nsamp * 0.75
+
+def test_scale_translate_lines_isect_lines_arbitrary():
+   samps = list()
+   for i in range(30):
+      tp1 = hm.rand_point()
+      ta1 = hm.rand_unit()
+      tp2 = hm.rand_point()
+      ta2 = hm.rand_unit()
+      rx = hm.rand_xform()
+      pt1 = rx @ tp1
+      ax1 = rx @ ta1
+      pt2 = rx @ tp2
+      ax2 = rx @ ta2
+
+      samps.append((pt1, ax1, pt2, ax2, tp1, ta1, tp2, ta2))
+
+   # from numpy import array
+   # samps = [(array([9.75754336, 11.94442093, -27.9587031,
+   #                  1.]), array([-0.34856845, 0.5450748, 0.76249164,
+   #                               0.]), array([35.97908368, -17.0049886, 37.47481606, 1.]),
+   #           array([-0.67119914, 0.0327908, 0.74055147, 0.]), array([-0.5, 0., -0.5, 1.]),
+   #           array([0.57735027, 0.57735027, 0.57735027, 0.]), array(
+   #              [-0.125, -0.125, -0.125, 1.]), array([0., 0.70710678, 0.70710678, 0.]))]
+
+   for i, samp in enumerate(samps):
+      xalign, scale = hm.scale_translate_lines_isect_lines(*samp)
+      _vaildate_test_scale_translate_lines_isect_lines(samp, xalign, scale, i)
+
 if __name__ == '__main__':
    # test_calc_dihedral_angle()
    # test_align_lines_dof_dihedral_basic()
@@ -575,4 +734,8 @@ if __name__ == '__main__':
    # test_place_lines_to_isect_onecase()
    # test_place_lines_to_isect_F432_null()
    # test_place_lines_to_isect_F432()
-   test_expand_xforms_basic()
+   # test_expand_xforms_basic()
+
+   test_scale_translate_lines_isect_lines_p4132()
+   test_scale_translate_lines_isect_lines_nonorthog()
+   test_scale_translate_lines_isect_lines_arbitrary()

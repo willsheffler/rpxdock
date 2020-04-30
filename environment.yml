@@ -9,15 +9,15 @@ dependencies:
  - matplotlib
  - pandas=0.24.2
  - xarray=0.11.3
- - pytest
- - pytest-faulthandler
  - ipython
  - cffi
  - tqdm
  - yapf
+ - tabulate
+ - pytest
+ - pytest-repeat
  - pytest-sugar
  - pytest-xdist
- - tabulate
  - sphinx>=2.0
  - doxygen
  - pip

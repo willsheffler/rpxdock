@@ -45,7 +45,7 @@ class Timer:
       self.checkpoints = collections.defaultdict(list)
       return self
 
-   def checkpoint(self, name='none', verbose=False):
+   def checkpoint(self, name='untracked', verbose=False):
       t = time.perf_counter()
       self.checkpoints[name].append(t - self.last)
       self.last = t
