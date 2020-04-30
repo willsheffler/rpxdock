@@ -1,6 +1,7 @@
 #! /home/sheffler/.conda/envs/rpxdock/bin/python
 
 import logging, itertools, concurrent, tqdm, rpxdock as rp
+import numpy as np
 
 def get_rpxdock_args():
    arg = rp.options.get_cli_args()
@@ -70,7 +71,10 @@ def dock_onecomp(hscore, **kw):
    if arg.docking_method == 'grid':
       cart = np.arange(-10.5, 10.6)
       ang = np.arange(-60, 60.1, 10)
-      sampler = rp.sampling.grid_sym_axis(cart, ang, axis=spec.axis, flip=spec.flip)
+      if arg.flip_components == "":
+         sampler = rp.sampling.grid_sym_axis(cart, ang, axis=spec.axis)
+      else:
+         sampler = rp.sampling.grid_sym_axis(cart, ang, axis = [0,0,1], flip = [1,0,0])
       search = rp.grid_search
    else:
       if spec.type == 'mirrorlayer':
