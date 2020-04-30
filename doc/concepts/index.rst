@@ -43,7 +43,7 @@ Pair Decomposition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All scores should be pair-decomposable. In combination with the gridded ridged body kinematic model, this allows any system with more than two rigid bodies to be optimized by precomputing pair-energy tables. By analogy to the packer, each rigid body is like a "residue" and each sampled position of a rigid body is like a "rotamer." 
-:ref:`[More Info] <pair_decompotion_page>`
+:ref:`[More Info] <pair_decomposition_page>`
 
 
 Ensemble Energy Evaluation 
