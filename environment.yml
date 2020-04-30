@@ -18,10 +18,12 @@ dependencies:
  - pytest-sugar
  - pytest-xdist
  - tabulate
+ - sphinx>=2.0
+ - doxygen
  - pip
-
  - pip:
    - homog >= 0.1.10
    - xbin >= 0.1.5
    - cppimport
-
+   - breathe>=4.13.0
+   - exhale

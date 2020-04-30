@@ -381,9 +381,10 @@ def ray_in_plane(plane, ray):
            point_in_plane(plane, ray[..., :3, 0] + ray[..., :3, 1]))
 
 def intersect_planes(plane1, plane2):
-   """intersect_Planes: find the 3D intersection of two planes
+   """
+intersect_Planes: find the 3D intersection of two planes
        Input:  two planes represented by rays shape=(..., 4, 2)
-       Output: *L = the intersection line (when it exists)
+       Output: L = the intersection line (when it exists)
        Return: rays shape=(...,4,2), status
                0 = intersection returned
                1 = disjoint (no intersection)

@@ -1,9 +1,14 @@
 #pragma once
+/** \file */
 
 #include <Eigen/Geometry>
 #include <limits>
 
 namespace rpxdock {
+/**
+\namespace rpxdock::util
+\brief namespace for utils like timers, basic mathy stuff, etc
+*/
 namespace util {
 
 // RowMajor to match numpy

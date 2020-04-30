@@ -21,7 +21,6 @@ def make_multicomp(
       for i, b in enumerate(bodies):
          bodies[i] = b.copy_xformed(rp.homog.align_vector([0, 0, 1], spec.axis[i]))
 
-   dotrim = arg.max_trim and arg.trimmable_components and len(bodies) < 3
    Evaluator = TwoCompEvaluatorWithTrim if dotrim else MultiCompEvaluator
    evaluator = Evaluator(bodies, spec, hscore, **arg)
 
@@ -112,7 +111,6 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[1]) @ X[ok, 2], **arg)
 
       # score everything that didn't clash
-      # TODO maybe add inter/intra-face scoring here? QD WHS
       ifscore = list()
       for i in range(len(B)):
          for j in range(i):
@@ -120,7 +118,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       # ifscore = np.stack(ifscore)
       # print(ifscore.shape)
       scores = np.zeros(len(X))
-      scores[ok] = arg.iface_summary(ifscore, axis=0) # summarize iface scores
+      scores[ok] = arg.iface_summary(ifscore, axis=0)
 
       # B[0].pos = X[np.argmax(scores), 0]
       # B[1].pos = X[np.argmax(scores), 1]

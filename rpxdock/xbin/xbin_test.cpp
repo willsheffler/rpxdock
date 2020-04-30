@@ -1,17 +1,25 @@
-/*cppimport
+/*/*cppimport
 <%
+
+
 cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w']
 cfg['dependencies'] = ['xbin.hpp', '../util/assertions.hpp',
 '../util/global_rng.hpp']
 
 cfg['parallel'] = False
+
+
 setup_pybind11(cfg)
 %>
 */
+/** \file */
+
+#include "rpxdock/xbin/xbin.hpp"
+
+#include <pybind11/pybind11.h>
 
 #include <Eigen/Geometry>
-
 #include <random>
 #include <unordered_set>
 
@@ -19,9 +27,6 @@ setup_pybind11(cfg)
 #include "rpxdock/util/assertions.hpp"
 #include "rpxdock/util/global_rng.hpp"
 #include "rpxdock/util/types.hpp"
-#include "rpxdock/xbin/xbin.hpp"
-
-#include <pybind11/pybind11.h>
 namespace py = pybind11;
 
 namespace rpxdock {

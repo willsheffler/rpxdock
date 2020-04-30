@@ -1,21 +1,29 @@
-/*cppimport
+/*/*cppimport
 <%
+
+
 cfg['include_dirs'] = ['../..', '../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
 cfg['dependencies'] = ['../util/dilated_int.hpp', '../util/numeric.hpp',
 'xform_hierarchy.hpp']
 
 cfg['parallel'] = False
+
+
 setup_pybind11(cfg)
 %>
 */
+/** \file */
 
 #include "rpxdock/sampling/xform_hierarchy.hpp"
+
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+
 #include <algorithm>
 #include <iostream>
+
 #include "rpxdock/util/pybind_types.hpp"
 
 namespace py = pybind11;

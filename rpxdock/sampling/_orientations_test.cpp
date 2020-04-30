@@ -1,24 +1,30 @@
-/*cppimport
+/*/*cppimport
 <%
+
+
 cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w']
 cfg['dependencies'] = ['_orientations.hpp']
 
 cfg['parallel'] = False
+
+
 setup_pybind11(cfg)
 %>
 */
+/** \file */
 
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
 
-#include <Eigen/Dense>
-#include <iostream>
-#include "rpxdock/sampling/_orientations.hpp"
-#include "rpxdock/util/assertions.hpp"
-
 #include <sys/param.h>
 #include <unistd.h>
+
+#include <Eigen/Dense>
+#include <iostream>
+
+#include "rpxdock/sampling/_orientations.hpp"
+#include "rpxdock/util/assertions.hpp"
 
 namespace rpxdock {
 namespace sampling {

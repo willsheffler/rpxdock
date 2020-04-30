@@ -138,7 +138,6 @@ class Result:
          fname = output_prefix + middle + output_suffix + '.pdb'
       log.info(f'dumping pdb {fname} score {self.scores.data[imodel]}')
       bfactor = None
-      # hscore scores residue pairs and puts bfactor in pdb
       if hscore and len(bod) == 2:
          sm = hscore.score_matrix_inter(
             bod[0],
@@ -223,6 +222,8 @@ def assert_results_close(r, s, n=-1):
    if set(r.keys()) != set(s.keys()):
       print(list(r.keys()))
       print(list(s.keys()))
+   print(list(r.keys()))
+   print(list(s.keys()))
    assert set(r.keys()) == set(s.keys()), 'results must have same fields'
    assert np.allclose(r.scores[:n], s.scores[:n])
    assert np.allclose(r.xforms[:n], s.xforms[:n], atol=1e-3)

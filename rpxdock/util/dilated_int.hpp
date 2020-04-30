@@ -1,4 +1,4 @@
-/// @file   utility/zorder/dilated_int.hh
+/// @file   util/dilated_int.hpp
 /// @brief  Z-order or Morton style indexing utilities for arbitrary dimension
 /// @author will sheffler
 

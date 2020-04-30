@@ -1,11 +1,18 @@
 #pragma once
+/** \file */
 
 #include <iostream>
+
 #include "rpxdock/util/dilated_int.hpp"
 #include "rpxdock/util/numeric.hpp"
 #include "rpxdock/util/types.hpp"
 
 namespace rpxdock {
+/**
+\namespace rpxdock::sampling
+\brief namespace for hierarchical and other sampling grids
+*/
+
 namespace sampling {
 
 using namespace util;

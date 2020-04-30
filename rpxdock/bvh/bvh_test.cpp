@@ -1,14 +1,19 @@
-/*cppimport
+/*/*cppimport
 <%
+
+
 cfg['include_dirs'] = ['../..','../extern']
 cfg['compiler_args'] = ['-std=c++17', '-w']
 cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
 '../util/global_rng.hpp']
 
 cfg['parallel'] = False
+
+
 setup_pybind11(cfg)
 %>
 */
+/** \file */
 
 #include <pybind11/pybind11.h>
 namespace py = pybind11;

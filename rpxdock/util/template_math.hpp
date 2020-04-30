@@ -3,6 +3,7 @@
 /// @author will sheffler
 
 #pragma once
+/** \file */
 
 #include <stdint.h>
 

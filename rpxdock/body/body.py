@@ -3,8 +3,6 @@ import os, copy, numpy as np, rpxdock, logging, rpxdock as rp
 log = logging.getLogger(__name__)
 _CLASHRAD = 1.75
 
-#TODO add masking somewhere in this script by take them out of pose when checking for scoring WHS YH
-
 class Body:
    def __init__(self, pdb_or_pose, sym="C1", symaxis=[0, 0, 1], **kw):
       arg = rpxdock.Bunch(kw)
@@ -166,18 +164,6 @@ class Body:
 
    def intersect_range(self, other, xself=None, xother=None, mindis=2 * _CLASHRAD, max_trim=100,
                        nasym1=None, debug=False, **kw):
-      '''
-      :param other:
-      :param xself: body1 pos
-      :param xother: body2 pos
-      :param mindis: clash distance
-      :param max_trim: max n of residues to trim (similar to ntrim and ctrim)
-      :param nasym1: n res in asu
-      :param debug:
-      :param kw:
-      :return: takes bvh (bounding volume hierarchies) written in c++, and subdivides spheres to check for intersection
-      among smaller and smaller spheres (basically evaluates intersection between clouds of points)
-      '''
       if nasym1 is None: nasym1 = self.asym_body.nres
       xself = self.pos if xself is None else xself
       xother = other.pos if xother is None else xother

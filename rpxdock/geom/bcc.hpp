@@ -1,4 +1,5 @@
 #pragma once
+/** \file */
 
 #include "rpxdock/util/numeric.hpp"
 #include "rpxdock/util/str.hpp"
@@ -7,6 +8,10 @@
 #include <iostream>
 
 namespace rpxdock {
+/**
+\namespace rpxdock::geom
+\brief namespace for geometry utils like spheres and bcc grids
+*/
 namespace geom {
 
 using util::mod;
@@ -133,10 +138,14 @@ struct BCC {
     return 3 * sqr(2 * rad + exhalf) + 1;
   }
 
-  template <typename Iiter>
-  std::enable_if_t<DIM == 6> neighbors_6_3(I index, Iiter &iter, int rad,
-                                           bool exhalf, bool oddlast3,
-                                           bool sphere) const noexcept {
+  // template <typename Iiter>
+  // std::enable_if_t<DIM != 6> neighbors_6_3(I index, Iiter &iter, int rad,
+  //                                          bool exhalf, bool oddlast3,
+  //                                          bool sphere) const noexcept {}
+
+  template <typename Iiter, typename = std::enable_if_t<DIM == 6>>
+  void neighbors_6_3(I index, Iiter &iter, int rad, bool exhalf, bool oddlast3,
+                     bool sphere) const noexcept {
     bool odd = index & 1;
     In idx0 = mod((In)((index >> 1) / nside_prefsum_), nside_);
     In idx;
@@ -196,10 +205,17 @@ struct BCC {
       }
     }
   }
-  template <typename Iiter>
-  std::enable_if_t<DIM == 3> neighbors_3(I index, Iiter &iter, int const rad,
-                                         bool const exhalf,
-                                         bool const sphere) const noexcept {
+  // template <typename Iiter>
+  // std::enable_if_t<DIM != 3> neighbors_3(I index, Iiter &iter, int const rad,
+  //                                        bool const exhalf,
+  //                                        bool const sphere) const noexcept {}
+  // template <typename Iiter, typename = std::enable_if_t<DIM != 3>>
+  // void neighbors_3(I index, Iiter &iter, int const rad, bool const exhalf,
+  //                  bool const sphere) const noexcept {}
+
+  template <typename Iiter, typename = std::enable_if_t<DIM == 3>>
+  void neighbors_3(I index, Iiter &iter, int const rad, bool const exhalf,
+                   bool const sphere) const noexcept {
     bool odd = index & 1;
     In idx0 = mod((In)((index >> 1) / nside_prefsum_), nside_);
     In idx;

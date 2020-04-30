@@ -1,10 +1,11 @@
 #pragma once
+/** \file */
+
+#include <set>
 
 #include "rpxdock/phmap/phmap.hpp"
 #include "rpxdock/util/types.hpp"
 #include "rpxdock/xbin/xbin.hpp"
-
-#include <set>
 
 namespace rpxdock {
 namespace xbin {

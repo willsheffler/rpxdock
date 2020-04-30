@@ -10,42 +10,31 @@ def make_onecomp(
       fixed_components=False,
       **kw,
 ):
-   '''
-   :param body: pose info
-   :param spec: architecture info
-   :param hscore: motif stuff
-   :param search: type of search
-   :param sampler: defined as None, but we feed it hier_axis_sampler
-   :param fixed_components: whether one component is fixed
-   :param kw: all default variables we are bringing in
-   :return:
-   '''
    arg = rp.Bunch(kw)
    t = rp.Timer().start()
-   arg.nresl = hscore.actual_nresl if arg.nresl is None else arg.nresl # number of steps in hier search
+   arg.nresl = hscore.actual_nresl if arg.nresl is None else arg.nresl
    arg.output_prefix = arg.output_prefix if arg.output_prefix else spec.arch
 
    assert isinstance(body, rp.Body)
    if not fixed_components:
-      body = body.copy_xformed(rp.homog.align_vector([0, 0, 1], spec.axis)) # align body axis of symmetry to z axis
+      body = body.copy_xformed(rp.homog.align_vector([0, 0, 1], spec.axis))
 
-   dotrim = arg.max_trim and arg.trimmable_components # maximum of residues and which component to trim
-   evaluator = OneCompEvaluator(body, spec, hscore, **arg) #initiate instance of evaluator (set up geom and score)
-   xforms, scores, extra, stats = search(sampler, evaluator, **arg) #search stuff given pos and scores of evaluator and get positions, scores, and other stuff
-   ibest = rp.filter_redundancy(xforms, body, scores, **arg) #orders results from best to worst and checks for redundancy by score
-   # tdump = _debug_dump_cage(xforms, body, spec, scores, ibest, evaluator, **arg) # debugging, but is commented out in this case?
+   dotrim = arg.max_trim and arg.trimmable_components
+   evaluator = OneCompEvaluator(body, spec, hscore, **arg)
+   xforms, scores, extra, stats = search(sampler, evaluator, **arg)
+   ibest = rp.filter_redundancy(xforms, body, scores, **arg)
+   # tdump = _debug_dump_cage(xforms, body, spec, scores, ibest, evaluator, **arg)
 
-   # spitting out random shit. we don't really care, compute time stats and crap
    if arg.verbose:
       print(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f}")
       print("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
       print("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
 
-   xforms = xforms[ibest] # best transforms from the evaluator
-   wrpx = arg.wts.sub(rpx=1, ncontact=0) # rpx score weights
-   wnct = arg.wts.sub(rpx=0, ncontact=1) # ncontact weights
-   rpx, extra = evaluator(xforms, arg.nresl - 1, wrpx) # gives actual rpxscore
-   ncontact, *_ = evaluator(xforms, arg.nresl - 1, wnct) # gets actual ncontacts
+   xforms = xforms[ibest]
+   wrpx = arg.wts.sub(rpx=1, ncontact=0)
+   wnct = arg.wts.sub(rpx=0, ncontact=1)
+   rpx, extra = evaluator(xforms, arg.nresl - 1, wrpx)
+   ncontact, *_ = evaluator(xforms, arg.nresl - 1, wnct)
    data = dict(
       attrs=dict(arg=arg, stats=stats, ttotal=t.total, output_prefix=arg.output_prefix,
                  output_body='all', sym=spec.arch),
@@ -54,8 +43,6 @@ def make_onecomp(
       rpx=(["model"], rpx.astype("f4")),
       ncontact=(["model"], ncontact.astype("f4")),
    )
-
-   # put additional geom stuff into data
    for k, v in extra.items():
       if not isinstance(v, (list, tuple)) or len(v) > 3:
          v = ['model'], v
@@ -71,14 +58,6 @@ def make_onecomp(
    )
 
 class OneCompEvaluator:
-   '''
-   Takes a monomer position, generates a sym neighbor, and checks for clashes between the sym neighbors
-   For trimming: does trimming thing and finds intersection until overlap isn't too overlappy/clashy anymore
-   xforms: body.pos
-   xsym: xforms of symmetrically related copy
-   those two things get checked for intersections and clashes and scored by scorepos
-   Does not check for flatness like Cyclic, because cages aren't flat.
-   '''
    def __init__(self, body, spec, hscore, wts=rp.Bunch(ncontact=0.1, rpx=1.0),
                 trimmable_components="AB", **kw):
       self.arg = rp.Bunch(kw)
@@ -118,16 +97,6 @@ class OneCompEvaluator:
       scores = np.zeros(len(X))
       bounds = (*trim, -1, *trim, -1)
       scores[ok] = sfxn(body, body, X[ok], Xsym[ok], iresl, bounds, **arg)
-
-      '''
-      bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
-      sfxn: hscore.scorepos scores stuff from the hscore that got passed 
-         takes two pos of bodies (the same monomer in this case)
-         xforms: not clashing xforms 
-         iresl: stage of hierarchical search (grid spacing: 4A --> 2A --> 1A --> 0.5A --> 0.25A)
-         sampling at highest resl probably 0.6A due to ori + cart
-         returns score # for each "dock"
-      '''
 
       # record ranges used
       lb = np.zeros(len(scores), dtype="i4")
