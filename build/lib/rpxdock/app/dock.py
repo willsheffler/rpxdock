@@ -69,8 +69,8 @@ def dock_onecomp(hscore, **kw):
    # double normal resolution, cuz why not?
    # mirrorlayer for 1comp xtals and stuff with P architectures
    if arg.docking_method == 'grid':
-      cart = np.arange(-20.5, 20.6)
-      ang = np.arange(-60, 60.1, 10)
+      cart = np.arange(-200.5, 200.6)
+      ang = np.arange(-60, 60.1, 1)
       if arg.flip_components is None:
          sampler = rp.sampling.grid_sym_axis(cart, ang, axis = spec.axis)
       else:
