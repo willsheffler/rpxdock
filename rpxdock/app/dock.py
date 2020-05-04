@@ -128,7 +128,7 @@ def main():
    hscore = rp.CachedProxy(rp.RpxHier(arg.hscore_files, **arg))
    arch = arg.architecture
 
-   sym, comp = arch.split('_')
+   #sym, comp = arch.split('_')
 
    if arch.startswith('C'):
       result = dock_cyclic(hscore, **arg)
