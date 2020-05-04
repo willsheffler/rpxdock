@@ -119,14 +119,22 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       # ifscore = np.stack(ifscore)
       # print(ifscore.shape)
       scores = np.zeros(len(X))
-      scores[ok] = arg.iface_summary(ifscore, axis=0)
 
       # B[0].pos = X[np.argmax(scores), 0]
       # B[1].pos = X[np.argmax(scores), 1]
       # B[0].dump_pdb('test0.pdb')
       # B[1].dump_pdb('test1.pdb')
       # assert 0
-
+      if args.score_self:
+         scores_self = np.zeros((len(B), len(X))
+         scores_not_self = np.zeros((len(B)**2-len(B), len(X))
+         scores_self[ok] = ifscore[::(len(B) + 1)]
+         scores_not_self[ok] = ifscore[::-(len(B) + 1)]
+         scores[ok] = arg.iface_summary(ifscore, axis=0)
+         return (*scores_self, *scores_not_self, scores, rp.Bunch())
+      else:
+         scores[ok] = arg.iface_summary(ifscore, axis=0)
+         return scores, rp.Bunch()
       return scores, rp.Bunch()
 
 class TwoCompEvaluatorWithTrim(MultiCompEvaluatorBase):
