@@ -132,7 +132,7 @@ def main():
 
    if arch.startswith('C'):
       result = dock_cyclic(hscore, **arg)
-   elif len(arch) == 2 or len(comp) == 1 or (arch[0] == 'D' and arch[2] == '_'):
+   elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
       result = dock_onecomp(hscore, **arg)
    else:
       result = dock_multicomp(hscore, **arg)
