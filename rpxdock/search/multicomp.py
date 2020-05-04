@@ -56,6 +56,15 @@ def make_multicomp(
    for i in range(len(bodies)):
       data[f'disp{i}'] = (['model'], np.sum(xforms[:, i, :3, 3] * spec.axis[None, i, :3], axis=1))
       data[f'angle{i}'] = (['model'], rp.homog.angle_of(xforms[:, i]) * 180 / np.pi)
+      #TODO: Quinton: Add arg back in
+      #if args.score_self:
+      data[f'self_score_comp{i}'] = (['model'], score_self[i])
+      for j in range(len(bodies) - 1):
+         if j < i:
+            j_num = j
+         else:
+            j_num = j + 1
+            data[f'cross_comp_score_{i}{j_num}'] = (['model'], scores_not_self[3*i + j])
    default_label = [f'comp{c}' for c in 'ABCDEFD' [:len(bodies)]]
 
    return rp.Result(
@@ -125,17 +134,19 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       # B[0].dump_pdb('test0.pdb')
       # B[1].dump_pdb('test1.pdb')
       # assert 0
-      if args.score_self:
+      #TODO: Quinton: Add args back in
+      #if args.score_self:
+         print("Is this working")
          scores_self = np.zeros((len(B), len(X))
          scores_not_self = np.zeros((len(B)**2-len(B), len(X))
          scores_self[ok] = ifscore[::(len(B) + 1)]
          scores_not_self[ok] = ifscore[::-(len(B) + 1)]
          scores[ok] = arg.iface_summary(ifscore, axis=0)
          return (*scores_self, *scores_not_self, scores, rp.Bunch())
-      else:
-         scores[ok] = arg.iface_summary(ifscore, axis=0)
-         return scores, rp.Bunch()
-      return scores, rp.Bunch()
+      #else:
+      #   scores[ok] = arg.iface_summary(ifscore, axis=0)
+      #   return scores, rp.Bunch()
+      #return scores, rp.Bunch()
 
 class TwoCompEvaluatorWithTrim(MultiCompEvaluatorBase):
    def __init__(self, *arg, trimmable_components="AB", **kw):
