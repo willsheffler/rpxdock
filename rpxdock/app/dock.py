@@ -74,7 +74,7 @@ def dock_onecomp(hscore, **kw):
       if arg.flip_components is None:
          sampler = rp.sampling.grid_sym_axis(cart, ang, axis = spec.axis)
       else:
-         sampler = rp.sampling.grid_sym_axis(cart, ang, axis = [0,0,1], flip = arg.flip_components)
+         sampler = rp.sampling.grid_sym_axis(cart, ang, axis = [0,0,1], flip = [1,0,0])
       search = rp.grid_search
    else:
       if spec.type == 'mirrorlayer':
