@@ -5,14 +5,14 @@ _CLASHRAD = 1.75
 
 class Body:
    def __init__(self, pdb_or_pose, sym="C1", symaxis=[0, 0, 1], **kw):
-      arg = rpxdock.Bunch(kw)
+      kw = rpxdock.Bunch(kw)
 
       # pose stuff
       pose = pdb_or_pose
       if isinstance(pdb_or_pose, str):
          import rpxdock.rosetta.triggers_init as ros
          self.pdbfile = pdb_or_pose
-         if arg.posecache:
+         if kw.posecache:
             pose = ros.get_pose_cached(pdb_or_pose)
          else:
             pose = ros.pose_from_file(pdb_or_pose)
@@ -24,20 +24,21 @@ class Body:
       self.coord = rp.rosetta.get_bb_coords(pose)
       self.set_asym_body(pose, sym, **kw)
 
-      self.label = arg.label
+      self.label = kw.label
       if self.label is None and self.pdbfile:
          self.label = os.path.basename(self.pdbfile.replace('.gz', '').replace('.pdb', ''))
       if self.label is None: self.label = 'unk'
-      self.components = arg.components if arg.components else []
-      self.score_only_ss = arg.score_only_ss if arg.score_only_ss else "EHL"
+      self.components = kw.components if kw.components else []
+      self.score_only_ss = kw.score_only_ss if kw.score_only_ss else "EHL"
       self.ssid = rp.motif.ss_to_ssid(self.ss)
       self.chain = np.repeat(0, self.seq.shape[0])
       self.resno = np.arange(len(self.seq))
-      self.trim_direction = arg.trim_direction if arg.trim_direction else 'NC'
+      self.trim_direction = kw.trim_direction if kw.trim_direction else 'NC'
 
-      self.init_coords(sym, symaxis)
+      self.init_coords(sym, symaxis, **kw)
 
-   def init_coords(self, sym, symaxis, xform=np.eye(4)):
+   def init_coords(self, sym, symaxis, xform=np.eye(4), ignored_aas='CGP', **kw):
+      kw = rp.Bunch(kw)
       if isinstance(sym, np.ndarray):
          assert len(sym) == 1
          sym = sym[0]
@@ -79,7 +80,7 @@ class Body:
       for ss in "EHL":
          if ss in self.score_only_ss:
             which_cen |= self.ss == ss
-      which_cen &= ~np.isin(self.seq, ["G", "C", "P"])
+      which_cen &= ~np.isin(self.seq, [list(ignored_aas)])
       self.which_cen = which_cen
       self.bvh_cen = rp.BVH(self.allcen[:, :3], which_cen)
       self.cen = self.allcen[which_cen]
