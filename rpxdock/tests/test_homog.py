@@ -92,13 +92,7 @@ def test_axis_angle_of():
    assert 1e-5 > np.abs(an - np.pi / 2)
 
 def test_axis_angle_of_rand():
-   shape = (
-      4,
-      5,
-      6,
-      7,
-      8,
-   )
+   shape = (4, 5, 6, 7, 8)
    axis = hnormalized(np.random.randn(*shape, 3))
    angl = np.random.random(shape) * np.pi / 2
    rot = hrot(axis, angl, dtype='f8')

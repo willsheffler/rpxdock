@@ -205,12 +205,12 @@ def rot(axis, angle, degrees='auto', dtype='f8', shape=(3, 3)):
    rot3[..., 2, 2] = aa + dd - bb - cc
    return rot3
 
-def hrot(axis, angle, center=None, dtype='f8', **args):
+def hrot(axis, angle, center=None, dtype='f8', **kws):
    axis = np.array(axis, dtype=dtype)
    angle = np.array(angle, dtype=dtype)
    center = (np.array([0, 0, 0], dtype=dtype) if center is None else np.array(
       center, dtype=dtype))
-   r = rot(axis, angle, dtype=dtype, shape=(4, 4), **args)
+   r = rot(axis, angle, dtype=dtype, shape=(4, 4), **kws)
    x, y, z = center[..., 0], center[..., 1], center[..., 2]
    r[..., 0, 3] = x - r[..., 0, 0] * x - r[..., 0, 1] * y - r[..., 0, 2] * z
    r[..., 1, 3] = y - r[..., 1, 0] * x - r[..., 1, 1] * y - r[..., 1, 2] * z

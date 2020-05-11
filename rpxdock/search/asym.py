@@ -22,29 +22,29 @@ def asym_get_sample_hierarchy(body, hscore, extent=100):
    return xh
 
 def make_asym(bodies, hscore, sampler, search=hier_search, **kw):
-   arg = rp.Bunch(kw)
-   arg.nresl = hscore.actual_nresl if arg.nresl is None else arg.nresl
-   arg.output_prefix = arg.output_prefix if arg.output_prefix else sym
+   kw = rp.Bunch(kw)
+   kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
+   kw.output_prefix = kw.output_prefix if kw.output_prefix else sym
    t = rp.Timer().start()
    assert sampler is not None, 'sampler is required'
 
-   evaluator = AsymEvaluator(bodies, hscore, **arg)
-   xforms, scores, extra, stats = search(sampler, evaluator, **arg)
-   ibest = rp.filter_redundancy(xforms, bodies[1], scores, **arg)
+   evaluator = AsymEvaluator(bodies, hscore, **kw)
+   xforms, scores, extra, stats = search(sampler, evaluator, **kw)
+   ibest = rp.filter_redundancy(xforms, bodies[1], scores, **kw)
 
-   if arg.verbose:
+   if kw.verbose:
       print(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
       print("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
       print("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
 
    xforms = xforms[ibest]
-   wrpx = arg.wts.sub(rpx=1, ncontact=0)
-   wnct = arg.wts.sub(rpx=0, ncontact=1)
-   rpx, extra = evaluator(xforms, arg.nresl - 1, wrpx)
-   ncontact, _ = evaluator(xforms, arg.nresl - 1, wnct)
+   wrpx = kw.wts.sub(rpx=1, ncontact=0)
+   wnct = kw.wts.sub(rpx=0, ncontact=1)
+   rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
+   ncontact, _ = evaluator(xforms, kw.nresl - 1, wnct)
    return rp.Result(
-      body_=None if arg.dont_store_body_in_results else bodies,
-      attrs=dict(arg=arg, stats=stats, ttotal=t.total),
+      body_=None if kw.dont_store_body_in_results else bodies,
+      attrs=dict(arg=kw, stats=stats, ttotal=t.total),
       scores=(["model"], scores[ibest].astype("f4")),
       xforms=(["model", "hrow", "hcol"], xforms),
       rpx=(["model"], rpx.astype("f4")),
@@ -55,30 +55,30 @@ def make_asym(bodies, hscore, sampler, search=hier_search, **kw):
 
 class AsymEvaluator:
    def __init__(self, bodies, hscore, **kw):
-      self.arg = rp.Bunch(kw)
+      self.kw = rp.Bunch(kw)
       self.bodies = bodies
       self.hscore = hscore
 
    def __call__(self, xforms, iresl=-1, wts={}, **kw):
-      arg = self.arg.sub(wts=wts)
+      kw = self.kw.sub(wts=wts)
       xeye = np.eye(4, dtype="f4")
       body1, body2 = self.bodies
       xforms = xforms.reshape(-1, 4, 4)
 
       # check clash, or get non-clash range
-      if arg.max_trim > 0:
-         trim = body2.intersect_range(body1, xeye, xforms, **arg)
-         trim, trimok = rp.search.trim_ok(trim, body2.nres, **arg)
+      if kw.max_trim > 0:
+         trim = body2.intersect_range(body1, xeye, xforms, **kw)
+         trim, trimok = rp.search.trim_ok(trim, body2.nres, **kw)
          ok = trimok
       else:
-         ok = body1.clash_ok(body2, xforms, xeye, **arg)
+         ok = body1.clash_ok(body2, xforms, xeye, **kw)
          trim = [0], [body2.nres - 1]
 
       # score everything that didn't clash
       scores = np.zeros(len(xforms))
       bounds = (*trim, -1, *trim, -1)
-      scores[ok] = self.hscore.scorepos(body1, body2, xforms[ok], xeye, iresl, bounds, **arg)
-      # scores[ok] = self.hscore.scorepos(body1, body2, xeye, xforms[ok], iresl, bounds, **arg)
+      scores[ok] = self.hscore.scorepos(body1, body2, xforms[ok], xeye, iresl, bounds, **kw)
+      # scores[ok] = self.hscore.scorepos(body1, body2, xeye, xforms[ok], iresl, bounds, **kw)
 
       # record ranges used
       lb = np.zeros(len(scores), dtype="i4")

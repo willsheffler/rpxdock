@@ -47,13 +47,13 @@ def quick_test_olig(hscore, cli_args=dict()):
    if args.nout_debug: dump_pdb_from_bodies("test_hole.pdb", [hole], symframes(hole.sym))
 
    hsamp = RotCart1Hier_f4(-120, 120, 20, 0, 120, 12, [0, 0, 1])
-   result1 = make_plugs(plug, hole, hscore, hsamp, **args)
+   result1 = make_plugs(plug, hole, hscore, hsamp, **kws)
 
    # should match hsamp resl4 grid
    gcart = np.linspace(-119.625, 119.625, 20 * 16)
    gang = np.linspace(0.3125, 119.6875, 12 * 16)
    xgrid = grid_sym_axis(gcart, gang)
-   result2 = make_plugs(plug, hole, hscore, xgrid, search=grid_search, **args)
+   result2 = make_plugs(plug, hole, hscore, xgrid, search=grid_search, **kws)
 
    assert np.allclose(result1.scores[0], result2.scores[0])
 
@@ -87,7 +87,7 @@ def quick_test(hscore, cli_args=dict()):
          _pickle.dump([plug, hole], out)
    dump_pdb_from_bodies("test_hole.pdb", [hole], symframes(hole.sym))
    sampler = make_sampler(plug, hole, hscore)
-   result = make_plugs(plug, hole, hscore, sampler, **args)
+   result = make_plugs(plug, hole, hscore, sampler, **kws)
    print(result)
 
 def multiprocess_helper(ihole, iplug, make_sampler, args):
@@ -99,7 +99,7 @@ def multiprocess_helper(ihole, iplug, make_sampler, args):
    sampler = make_sampler(plug, hole, hscore)
    if args.nthread > 1:
       args.executor = ThreadPoolExecutor(args.nthread)
-   result = make_plugs(plug, hole, hscore, sampler, output_prefix=tag, **args)
+   result = make_plugs(plug, hole, hscore, sampler, output_prefix=tag, **kws)
    result.attrs['ihole'] = ihole
    result.attrs['iplug'] = iplug
    if args.executor:
@@ -221,7 +221,7 @@ def server_test(cli_args):
          plug = HC(Body, fname, n=0)
          pre = htag + "_" + ptag
          sampler = make_sampler(plug, hole, hscore)
-         make_plugs(plug, hole, hscore, sampler, output_prefix=pre, **args)
+         make_plugs(plug, hole, hscore, sampler, output_prefix=pre, **kws)
 
 def hier_sample_test(cli_args):
    args = rpxdock.app.defaults()
@@ -248,8 +248,8 @@ def hier_sample_test(cli_args):
    args.multi_iface_summary = np.sum
    args.output_prefix = "ncontact_over_rpx_sum"
    smapler = plug_get_sample_hierarchy(plug, hole, hscore)
-   # make_plugs(plug, hole, hscore, **args)
-   __make_plugs_hier_sample_test__(plug, hole, hscore, **args)
+   # make_plugs(plug, hole, hscore, **kws)
+   __make_plugs_hier_sample_test__(plug, hole, hscore, **kws)
 
 # @click.command()
 # @click.argument("MODE", default="quick_test")

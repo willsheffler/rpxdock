@@ -3,17 +3,17 @@ from rpxdock import Timer
 
 def test_timer():
    with Timer() as timer:
-      time.sleep(0.01)
-      timer.checkpoint('foo')
-      time.sleep(0.03)
-      timer.checkpoint('bar')
       time.sleep(0.02)
+      timer.checkpoint('foo')
+      time.sleep(0.06)
+      timer.checkpoint('bar')
+      time.sleep(0.04)
       timer.checkpoint('baz')
 
    times = timer.report_dict()
-   assert numpy.allclose(times['foo'], 0.01, atol=0.05)
-   assert numpy.allclose(times['bar'], 0.03, atol=0.05)
-   assert numpy.allclose(times['baz'], 0.02, atol=0.05)
+   assert numpy.allclose(times['foo'], 0.02, atol=0.05)
+   assert numpy.allclose(times['bar'], 0.06, atol=0.05)
+   assert numpy.allclose(times['baz'], 0.04, atol=0.05)
 
    times = timer.report_dict(order='longest')
    assert list(times.keys()) == ['total', 'bar', 'baz', 'foo']

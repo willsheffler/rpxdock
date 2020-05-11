@@ -6,7 +6,7 @@ octahedral_frames = np.load(rp.data.datadir + "/octahedral_frames.pickle", allow
 icosahedral_frames = np.load(rp.data.datadir + "/icosahedral_frames.pickle", allow_pickle=True)
 
 def symframes(sym, pos=None, axis=[0, 0, 1], **kw):
-   arg = rp.Bunch(kw)
+   kw = rp.Bunch(kw)
    if isinstance(sym, np.ndarray):
       assert len(sym) == 1
       sym = sym[0]
@@ -34,7 +34,7 @@ def symframes(sym, pos=None, axis=[0, 0, 1], **kw):
       assert len(sym) == 2
       nfold = int(sym[1])
       frames = [np.eye(4)]
-      for i in range(int(np.floor(arg.symframe_num_helix_repeats / 2))):
+      for i in range(int(np.floor(kw.symframe_num_helix_repeats / 2))):
          frames.append(pos @ frames[-1])
       frames += [np.linalg.inv(x) for x in frames[1:]]
       return np.array(frames)

@@ -3,14 +3,14 @@ import logging, itertools, numpy as np, rpxdock as rp
 log = logging.getLogger(__name__)
 
 def hier_search(sampler, evaluator, **kw):
-   arg = rp.Bunch(kw)
+   kw = rp.Bunch(kw)
    neval, indices, scores = list(), None, None
-   nresl = arg.nresl if arg.nresl else evaluator.hscore.actual_nresl
-   for iresl in range(arg.nresl):
-      indices, xforms = expand_samples(iresl, sampler, indices, scores, **arg)
-      scores, extra, t = rp.search.evaluate_positions(**arg.sub(vars()))
+   nresl = kw.nresl if kw.nresl else evaluator.hscore.actual_nresl
+   for iresl in range(kw.nresl):
+      indices, xforms = expand_samples(iresl, sampler, indices, scores, **kw)
+      scores, extra, t = rp.search.evaluate_positions(**kw.sub(vars()))
       neval.append((t, len(scores)))
-      log.info(f"{arg.output_prefix} iresl {iresl} ntot {len(scores):11,} " +
+      log.info(f"{kw.output_prefix} iresl {iresl} ntot {len(scores):11,} " +
                f"nonzero {np.sum(scores > 0):5,}")
    stats = rp.Bunch(ntot=sum(x[1] for x in neval), neval=neval)
    return xforms, scores, extra, stats

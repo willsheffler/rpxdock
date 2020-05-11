@@ -1,6 +1,5 @@
 import sys, os, argparse, functools, logging, glob, numpy as np, rpxdock as rp
 
-
 log = logging.getLogger(__name__)
 
 _iface_summary_methods = dict(min=np.min, sum=np.sum, median=np.median, mean=np.mean, max=np.max)
@@ -43,7 +42,7 @@ def default_cli_parser(parent=None, **kw):
    addarg("--allowed_residues3", nargs="*", type=str, default=[],
           help='allowed residues for third component for 3+ component protocols')
    addarg(
-      "--ncpu", type=int, default=cpu_count(),
+      "--ncpu", type=int, default=rp.util.cpu_count(),
       help='number of cpu cores available. defaults to all cores or cores available according to slurm allocation'
    )
    addarg(
@@ -250,7 +249,7 @@ def process_cli_args(options, **kw):
    if options.architecture:
       options.architecture = options.architecture.upper()
 
- rp.  if not kw.dorp.nt_set_default_cart_bounds:
+   if kw.dont_set_default_cart_bounds:
       options.cart_bounds = process_cart_bounds(options.cart_bounds)
 
    options.trimmable_components = options.trimmable_components.upper()
@@ -341,32 +340,32 @@ def make_argv_with_atfiles(argv=None, **kw):
          argv = newargs + argv
    return argv
 
-def _extract_weights(arg):
+def _extract_weights(kw):
    pref = 'weight_'
    wts = rp.Bunch()
    todel = list()
-   for k in arg:
+   for k in kw:
       if k.startswith(pref):
          wtype = k.replace(pref, '')
-         wts[wtype] = arg[k]
+         wts[wtype] = kw[k]
          todel.append(k)
    for k in todel:
-      del arg[k]
-   arg.wts = wts
+      del kw[k]
+   kw.wts = wts
 
 def parse_list_of_strtuple(s):
    if isinstance(s, list):
       s = ",".join("(%s)" % a for a in s)
-   arg = eval(s)
-   if isinstance(arg, tuple) and len(arg) == 2 and isinstance(arg[0], int):
-      arg = [arg]
-   return arg
+   kw = eval(s)
+   if isinstance(kw, tuple) and len(kw) == 2 and isinstance(kw[0], int):
+      kw = [kw]
+   return kw
 
-def _process_arg_sspair(arg):
-   arg.score_only_sspair = [''.join(sorted(p)) for p in arg.score_only_sspair]
-   arg.score_only_sspair = sorted(set(arg.score_only_sspair))
-   if any(len(p) != 2 for p in arg.score_only_sspair):
+def _process_arg_sspair(kw):
+   kw.score_only_sspair = [''.join(sorted(p)) for p in kw.score_only_sspair]
+   kw.score_only_sspair = sorted(set(kw.score_only_sspair))
+   if any(len(p) != 2 for p in kw.score_only_sspair):
       raise argparse.ArgumentError(None, '--score_only_sspair accepts two letter SS pairs')
-   if (any(p[0] not in "EHL" for p in arg.score_only_sspair)
-       or any(p[1] not in "EHL" for p in arg.score_only_sspair)):
+   if (any(p[0] not in "EHL" for p in kw.score_only_sspair)
+       or any(p[1] not in "EHL" for p in kw.score_only_sspair)):
       raise argparse.ArgumentError(None, '--score_only_sspair accepts only EHL')
