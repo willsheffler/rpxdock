@@ -130,6 +130,61 @@ def dock_multicomp(hscore, **kw):
    result = rp.concat_results(result)
    return result
 
+def dock_plug(hscore, **kw):
+   arg = rp.Bunch(kw)
+   arg.plug_fixed_olig = True
+
+   arch = arg.architecture
+   #arg.sym = arch.split('_')[1]
+   arg.nfold = int(arch.split('_')[1][-1])
+
+   cb = arg.cart_bounds[0]
+   if not cb: cb = [-100, 100]
+   if arg.docking_method.lower() == 'grid':
+      search = rp.grid_search
+      crt_smap = np.arange(cb[0], cb[1] + 0.001, arg.grid_resolution_cart_angstroms)
+      ori_samp = np.arange(-180 / arg.nfold, 180 / arg.nfold - 0.001,
+                           arg.grid_resolution_ori_degrees)
+      sampler = rp.sampling.grid_sym_axis(crt_smap, ori_samp, axis=[0, 0, 1], flip=[0, 1, 0])
+      logging.info(f'docking samples per splice {len(sampler)}')
+   elif arg.docking_method.lower() == 'hier':
+      search = rp.hier_search
+      sampler = rp.sampling.hier_axis_sampler(arg.nfold, lb=cb[0], ub=cb[1])
+      logging.info(f'docking possible samples per splice {sampler.size(4)}')
+   else:
+      raise ValueError(f'unknown search dock_method {arg.dock_method}')
+
+   logging.info(f'num base samples {sampler.size(0):,}')
+
+   plug_bodies = [rp.Body(inp, which_ss="H", **arg) for inp in arg.inputs1]
+   hole_bodies = [rp.Body(inp, sym=3, which_ss="H", **arg) for inp in arg.inputs2]
+
+   #assert len(bodies) == spec.num_components
+
+   exe = concurrent.futures.ProcessPoolExecutor
+   # exe = rp.util.InProcessExecutor
+   with exe(arg.ncpu) as pool:
+      futures = list()
+      for ijob, bod in enumerate(itertools.product(hole_bodies)):
+         hole = hole_bodies[ijob]
+         plug = plug_bodies[ijob]
+         futures.append(
+            pool.submit(
+               rp.search.make_plugs,
+               plug,
+               hole,
+               hscore,
+               search,
+               sampler,
+               **arg,
+            ))
+         futures[-1].ijob = ijob
+      result = [None] * len(futures)
+      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+         result[f.ijob] = f.result()
+   result = rp.concat_results(result)
+   return result
+
 def main():
    # What gets all the shit done
    arg = get_rpxdock_args()
@@ -146,6 +201,8 @@ def main():
       result = dock_cyclic(hscore, **arg)
    elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
       result = dock_onecomp(hscore, **arg)
+   elif arch.startswith('PLUG'):
+      result = dock_plug(hscore, **arg)
    else:
       result = dock_multicomp(hscore, **arg)
 
