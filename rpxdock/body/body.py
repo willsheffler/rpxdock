@@ -4,7 +4,14 @@ log = logging.getLogger(__name__)
 _CLASHRAD = 1.75
 
 class Body:
-   def __init__(self, pdb_or_pose, sym="C1", symaxis=[0, 0, 1], **kw):
+   def __init__(
+      self,
+      pdb_or_pose,
+      sym="C1",
+      symaxis=[0, 0, 1],
+      allowed_res=None,
+      **kw,
+   ):
       kw = rpxdock.Bunch(kw)
 
       # pose stuff
@@ -34,7 +41,12 @@ class Body:
       self.chain = np.repeat(0, self.seq.shape[0])
       self.resno = np.arange(len(self.seq))
       self.trim_direction = kw.trim_direction if kw.trim_direction else 'NC'
-
+      if allowed_res is None:
+         self.allowed_residues = np.ones(len(self.seq), dtype='?')
+      else:
+         self.allowed_residues = np.zeros(len(self.seq), dtype='?')
+         for i in allowed_res(self, **kw):
+            self.allowed_residues[i - 1] = True
       self.init_coords(sym, symaxis, **kw)
 
    def init_coords(self, sym, symaxis, xform=np.eye(4), ignored_aas='CGP', **kw):
@@ -81,9 +93,19 @@ class Body:
          if ss in self.score_only_ss:
             which_cen |= self.ss == ss
       which_cen &= ~np.isin(self.seq, [list(ignored_aas)])
-      self.which_cen = which_cen
-      self.bvh_cen = rp.BVH(self.allcen[:, :3], which_cen)
-      self.cen = self.allcen[which_cen]
+
+      if not hasattr(self, 'allowed_residues'):
+         self.allowed_residues = np.ones(len(self.seq), dtype='?')
+      allowed_res = self.allowed_residues
+      nallow = len(self.allowed_residues)
+      if nallow > len(self.ss):
+         allowed_res = self.allowed_residues[:len(self.ss)]
+      elif nallow < len(self.ss):
+         allowed_res = np.tile(self.allowed_residues, len(self.ss) // nallow)
+      self.which_cen = which_cen & allowed_res
+
+      self.bvh_cen = rp.BVH(self.allcen[:, :3], self.which_cen)
+      self.cen = self.allcen[self.which_cen]
       self.pos = np.eye(4, dtype="f4")
       self.pcavals, self.pcavecs = rp.util.numeric.pca_eig(self.cen)
 

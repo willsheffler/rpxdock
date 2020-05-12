@@ -14,6 +14,14 @@ def str2bool(v):
    else:
       raise argparse.ArgumentTypeError('Boolean value expected.')
 
+def parse_list_of_strtuple(s):
+   if isinstance(s, list):
+      s = ",".join("(%s)" % a for a in s)
+   kw = eval(s)
+   if isinstance(kw, tuple) and len(kw) == 2 and isinstance(kw[0], int):
+      kw = [kw]
+   return kw
+
 def add_argument_unless_exists(parser, *arg, **kw):
    if not (arg or kw):
       return functools.partial(add_argument_unless_exists, parser)
@@ -229,7 +237,7 @@ def process_cli_args(options, **kw):
    options = rp.Bunch(options)
    kw = rp.Bunch(kw)
 
-   options = process_inputs(options, **kw)
+   options = _process_inputs(options, **kw)
 
    options.iface_summary = _iface_summary_methods[options.iface_summary]
 
@@ -250,7 +258,7 @@ def process_cli_args(options, **kw):
       options.architecture = options.architecture.upper()
 
    if kw.dont_set_default_cart_bounds:
-      options.cart_bounds = process_cart_bounds(options.cart_bounds)
+      options.cart_bounds = _process_cart_bounds(options.cart_bounds)
 
    options.trimmable_components = options.trimmable_components.upper()
 
@@ -258,7 +266,7 @@ def process_cli_args(options, **kw):
 
    return options
 
-def process_inputs(opt, **kw):
+def _process_inputs(opt, read_allowed_res_files=True, **kw):
 
    if opt.inputs:
       msg = "--inputs%i cant be used if --inputs is specified"
@@ -305,6 +313,12 @@ def process_inputs(opt, **kw):
    if len(opt.allowed_residues2) is 0: opt.allowed_residues2 = [None] * len(opt.inputs2)
    if len(opt.allowed_residues3) is 0: opt.allowed_residues3 = [None] * len(opt.inputs3)
 
+   if read_allowed_res_files:
+      opt.allowed_residues = [_read_allowed_res_file(_) for _ in opt.allowed_residues]
+      opt.allowed_residues1 = [_read_allowed_res_file(_) for _ in opt.allowed_residues1]
+      opt.allowed_residues2 = [_read_allowed_res_file(_) for _ in opt.allowed_residues2]
+      opt.allowed_residues3 = [_read_allowed_res_file(_) for _ in opt.allowed_residues3]
+
    if not opt.inputs:
       if opt.inputs1:
          opt.inputs.append(opt.inputs1)
@@ -318,7 +332,37 @@ def process_inputs(opt, **kw):
 
    return opt
 
-def process_cart_bounds(cart_bounds):
+def _default_residue_selector(spec):
+   static = set()
+   dynamic = list()
+   for r in spec.split():
+      if r.count(':'):
+         lb, ub = [int(x) for x in r.split(':')]
+         if lb < 0 or ub < 0:
+            dynamic.append((lb, ub))
+         else:
+            for i in range(lb, ub + 1):
+               static.add(i)
+      else:
+         static.add(int(r))
+
+   def inner(body, **kw):
+      residues = {r for r in static if r <= len(body)}
+      for (lb, ub) in dynamic:
+         if lb < 0: lb = len(body) + 1 + lb
+         if ub < 0: ub = len(body) + 1 + ub
+         for i in range(max(1, lb), min(len(body), ub) + 1):
+            residues.add(i)
+      return residues
+
+   return inner
+
+def _read_allowed_res_file(fname):
+   if fname is None: return None
+   with open(fname) as inp:
+      return _default_residue_selector(inp.read())
+
+def _process_cart_bounds(cart_bounds):
    if not cart_bounds: cart_bounds = 0, 500
    elif len(cart_bounds) is 1: cart_bounds = [0, cart_bounds[0]]
    tmp = list()
@@ -352,14 +396,6 @@ def _extract_weights(kw):
    for k in todel:
       del kw[k]
    kw.wts = wts
-
-def parse_list_of_strtuple(s):
-   if isinstance(s, list):
-      s = ",".join("(%s)" % a for a in s)
-   kw = eval(s)
-   if isinstance(kw, tuple) and len(kw) == 2 and isinstance(kw[0], int):
-      kw = [kw]
-   return kw
 
 def _process_arg_sspair(kw):
    kw.score_only_sspair = [''.join(sorted(p)) for p in kw.score_only_sspair]

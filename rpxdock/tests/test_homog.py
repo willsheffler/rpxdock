@@ -97,8 +97,8 @@ def test_axis_angle_of_rand():
    angl = np.random.random(shape) * np.pi / 2
    rot = hrot(axis, angl, dtype='f8')
    ax, an = axis_angle_of(rot)
-   assert np.allclose(axis, ax, rtol=1e-4)  # very loose to allow very rare cases
-   assert np.allclose(angl, an, rtol=1e-4)
+   assert np.allclose(axis, ax, atol=1e-4, rtol=1e-4)  # very loose to allow very rare cases
+   assert np.allclose(angl, an, atol=1e-4, rtol=1e-4)
 
 def test_is_valid_rays():
    assert not is_valid_rays([[0, 1], [0, 0], [0, 0], [0, 0]])

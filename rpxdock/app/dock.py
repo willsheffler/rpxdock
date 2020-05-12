@@ -31,8 +31,10 @@ def get_spec(arch):
 
 def dock_cyclic(hscore, inputs, architecture, **kw):
    kw = rp.Bunch(kw)
-   bodies = [rp.Body(inp, **kw) for inp in kw.inputs1]
-
+   bodies = [
+      rp.Body(inp, allowed_res=allowedres, **kw)
+      for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)
+   ]
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
    with exe(kw.ncpu) as pool:
@@ -65,8 +67,10 @@ def dock_onecomp(hscore, **kw):
    else:
       sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
                                               axis=spec.axis, flipax=spec.flip_axis)
-   bodies = [rp.Body(inp, **kw) for inp in kw.inputs1]
-
+   bodies = [
+      rp.Body(inp, allowed_res=allowedres, **kw)
+      for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)
+   ]
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
    with exe(kw.ncpu) as pool:
@@ -96,7 +100,9 @@ def dock_multicomp(hscore, **kw):
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
    logging.info(f'num base samples {sampler.size(0):,}')
 
-   bodies = [[rp.Body(fn, **kw) for fn in inp] for inp in kw.inputs]
+   bodies = [[rp.Body(fn, allowed_res=ar2**kw)
+              for fn, ar2 in zip(inp, ar)]
+             for inp, ar in zip(kw.inputs, kw.allowed_residues)]
    assert len(bodies) == spec.num_components
 
    exe = concurrent.futures.ProcessPoolExecutor
