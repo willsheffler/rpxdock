@@ -127,7 +127,11 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       # B[1].dump_pdb('test1.pdb')
       # assert 0
 
-      return scores, rp.Bunch()
+      resub = np.tile([len(B[0]), len(B[1])], len(scores)).reshape(-1, 2)
+      extra = rp.Bunch(reslb=(['model', 'component'], np.zeros((len(scores), 2), dtype='i')),
+                       resub=(['model', 'component'], resub))
+
+      return scores, extra
 
 class TwoCompEvaluatorWithTrim(MultiCompEvaluatorBase):
    def __init__(self, *arg, trimmable_components="AB", **kw):
