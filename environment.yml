@@ -3,8 +3,8 @@ channels:
  - conda-forge
  - https://pose:foldtree@conda.graylab.jhu.edu
 dependencies:
- - python>=3.7
- - pyrosetta=2018.52
+ - python<3.8
+ - pyrosetta
  - numpy=1.16.3
  - matplotlib
  - pandas=0.24.2

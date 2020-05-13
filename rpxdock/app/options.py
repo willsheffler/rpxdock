@@ -1,4 +1,4 @@
-import sys, os, argparse, functools, logging, glob, numpy as np, rpxdock as rp
+import sys, os, argparse, functools, logging, glob, numpy as np, rpxdock as rp, functools as ft
 
 log = logging.getLogger(__name__)
 
@@ -332,35 +332,61 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
 
    return opt
 
-def _default_residue_selector(spec):
-   static = set()
-   dynamic = list()
-   for r in spec.split():
-      if r.count(':'):
-         lb, ub = [int(x) for x in r.split(':')]
-         if lb < 0 or ub < 0:
-            dynamic.append((lb, ub))
+class DefaultResidueSelector:
+   def __init__(self, spec):
+      static = set()
+      dynamic = list()
+      for r in spec.split():
+         if r.count(':'):
+            lb, ub = [int(x) for x in r.split(':')]
+            if lb < 0 or ub < 0:
+               dynamic.append((lb, ub))
+            else:
+               for i in range(lb, ub + 1):
+                  static.add(i)
          else:
-            for i in range(lb, ub + 1):
-               static.add(i)
-      else:
-         static.add(int(r))
+            static.add(int(r))
+      self.static = static
+      self.dynamic = dynamic
 
-   def inner(body, **kw):
-      residues = {r for r in static if r <= len(body)}
-      for (lb, ub) in dynamic:
+   def __call__(self, body, **kw):
+      residues = {r for r in self.static if r <= len(body)}
+      for (lb, ub) in self.dynamic:
          if lb < 0: lb = len(body) + 1 + lb
          if ub < 0: ub = len(body) + 1 + ub
          for i in range(max(1, lb), min(len(body), ub) + 1):
             residues.add(i)
       return residues
 
-   return inner
+# def _default_residue_selector(spec):
+#    static = set()
+#    dynamic = list()
+#    for r in spec.split():
+#       if r.count(':'):
+#          lb, ub = [int(x) for x in r.split(':')]
+#          if lb < 0 or ub < 0:
+#             dynamic.append((lb, ub))
+#          else:
+#             for i in range(lb, ub + 1):
+#                static.add(i)
+#       else:
+#          static.add(int(r))
+#
+#    def inner(body, **kw):
+#       residues = {r for r in static if r <= len(body)}
+#       for (lb, ub) in dynamic:
+#          if lb < 0: lb = len(body) + 1 + lb
+#          if ub < 0: ub = len(body) + 1 + ub
+#          for i in range(max(1, lb), min(len(body), ub) + 1):
+#             residues.add(i)
+#       return residues
+#
+#    return inner
 
 def _read_allowed_res_file(fname):
    if fname is None: return None
    with open(fname) as inp:
-      return _default_residue_selector(inp.read())
+      return DefaultResidueSelector(inp.read())
 
 def _process_cart_bounds(cart_bounds):
    if not cart_bounds: cart_bounds = 0, 500
