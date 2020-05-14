@@ -66,9 +66,8 @@ def dock_onecomp(hscore, **kw):
    spec = get_spec(kw.architecture)
    # double normal resolution, cuz why not?
    if kw.docking_method == 'grid':
-#      cart = np.arange(-300.5, 300.6)
-#      ang = np.arange(-180/int(arg.architecture[1]), 180/int(arg.architecture[1])+0.1, 1)
-      sampler = rp.sampling.grid_sym_axis(cart=np.range(kw.cart[0], kw.cart[1]), ang=np.arrange(0, 360/ spec.nfold), axis = spec.axis, flip=list(spec.flip_axis[:3]))
+      print(spec.flip_axis, spec.nfold, kw.cart_bounds, spec.axis)
+      sampler = rp.sampling.grid_sym_axis(cart=np.arange(kw.cart_bounds[0], kw.cart_bounds[1]), ang=np.arange(0, 360/ spec.nfold), axis = spec.axis, flip=list(spec.flip_axis[:3]))
       search = rp.grid_search
    else:
       if spec.type == 'mirrorlayer':
@@ -153,9 +152,9 @@ def main():
 
    # TODO: redefine archs WHS or others with a monster list of if statements
    if arch.startswith('C'):
-      result = dock_cyclic(hscore, **arg)
+      result = dock_cyclic(hscore, **kw)
    elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
-      result = dock_onecomp(hscore, **arg)
+      result = dock_onecomp(hscore, **kw)
    else:
       result = dock_multicomp(hscore, **kw)
 
