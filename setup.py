@@ -26,15 +26,17 @@ REQUIRED = [
    'xarray==0.11.3',
    'pandas==0.24.2',
    'pytest',
+   'pytest-repeat',
    'tqdm',
    'homog',
    'cppimport',
    'breathe',
    'cffi',
    'tabulate',
-   'sphinx',
+   'sphinx>3',
    'breathe',
    'exhale',
+   'sphinx_rtd_theme>=0.3.1',
 ]
 
 # What packages are optional?

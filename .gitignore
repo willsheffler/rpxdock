@@ -70,6 +70,7 @@ target/
 dask-worker-space
 
 *~
+._*
 
 *.o
 

@@ -1,5 +1,4 @@
-import sys, os, argparse, functools, logging, glob, numpy as np
-from rpxdock.util import cpu_count, Bunch
+import sys, os, argparse, functools, logging, glob, numpy as np, rpxdock as rp, functools as ft
 
 log = logging.getLogger(__name__)
 
@@ -14,6 +13,14 @@ def str2bool(v):
       return False
    else:
       raise argparse.ArgumentTypeError('Boolean value expected.')
+
+def parse_list_of_strtuple(s):
+   if isinstance(s, list):
+      s = ",".join("(%s)" % a for a in s)
+   kw = eval(s)
+   if isinstance(kw, tuple) and len(kw) == 2 and isinstance(kw[0], int):
+      kw = [kw]
+   return kw
 
 def add_argument_unless_exists(parser, *arg, **kw):
    if not (arg or kw):
@@ -33,9 +40,17 @@ def default_cli_parser(parent=None, **kw):
    addarg("--inputs2", nargs="*", type=str, default=[],
           help='input structures for second component for 2+ component protocols')
    addarg("--inputs3", nargs="*", type=str, default=[],
-          help='input structurs for third component for 3+ component protocols')
+          help='input structures for third component for 3+ component protocols')
+   addarg("--allowed_residues", nargs="*", type=str, default=[],
+          help='allowed residues list for single component protocols')
+   addarg("--allowed_residues1", nargs="*", type=str, default=[],
+          help='allowed residues list for single component protocols')
+   addarg("--allowed_residues2", nargs="*", type=str, default=[],
+          help='allowed residues list for second component for 2+ component protocols')
+   addarg("--allowed_residues3", nargs="*", type=str, default=[],
+          help='allowed residues for third component for 3+ component protocols')
    addarg(
-      "--ncpu", type=int, default=cpu_count(),
+      "--ncpu", type=int, default=rp.util.cpu_count(),
       help='number of cpu cores available. defaults to all cores or cores available according to slurm allocation'
    )
    addarg(
@@ -95,7 +110,7 @@ def default_cli_parser(parent=None, **kw):
           help='minimum distance allowed between heavy atoms')
    addarg(
       "--beam_size", type=int, default=100000,
-      help='Maximum number of samples for each stage of a hierarchical search protocol (except the first, coarsest stage, which must sample all available positions. This is the most important parameter for determining rumtime (aside from number of input structures). defaults to 50,000'
+      help='Maximum number of samples for each stage of a hierarchical search protocol (except the first, coarsest stage, which must sample all available positions. This is the most important parameter for determining rumtime (aside from number of allowed residues list). defaults to 50,000'
    )
    addarg(
       "--max_bb_redundancy", type=float, default=3.0,
@@ -192,20 +207,21 @@ def default_cli_parser(parent=None, **kw):
    addarg("--primary_iface_cut", default=None, help='score cut for helix primary interface')
    addarg("--symframe_num_helix_repeats", default=10,
           help='number of helix repeat frames to dump')
+   addarg("--ignored_aas", default='CGP', help='Amino acids to ignore in scoring')
 
    parser.has_rpxdock_args = True
    return parser
 
-def get_cli_args(argv=None, parent=None, **kw):
+def get_cli_args(argv=None, parent=None, process_args=True, **kw):
    parser = default_cli_parser(parent, **kw)
    argv = sys.argv[1:] if argv is None else argv
    argv = make_argv_with_atfiles(argv, **kw)
-   options = parser.parse_args(argv)
-   options = process_cli_args(options, **kw)
+   options = rp.Bunch(parser.parse_args(argv))
+   if process_args: options = process_cli_args(options, **kw)
    return options
 
-def defaults():
-   return get_cli_args([])
+def defaults(**kw):
+   return get_cli_args([], **kw)
 
 def set_loglevel(loglevel):
    try:
@@ -218,16 +234,10 @@ def set_loglevel(loglevel):
    log.info(f'set loglevel to {numeric_level}')
 
 def process_cli_args(options, **kw):
-   options = Bunch(options)
-   arg = Bunch(kw)
+   options = rp.Bunch(options)
+   kw = rp.Bunch(kw)
 
-   if not options.inputs:
-      if options.inputs1:
-         options.inputs.append(options.inputs1)
-         if options.inputs2:
-            options.inputs.append(options.inputs2)
-            if options.inputs3:
-               options.inputs.append(options.inputs3)
+   options = _process_inputs(options, **kw)
 
    options.iface_summary = _iface_summary_methods[options.iface_summary]
 
@@ -247,8 +257,8 @@ def process_cli_args(options, **kw):
    if options.architecture:
       options.architecture = options.architecture.upper()
 
-   if not arg.dont_set_default_cart_bounds:
-      options.cart_bounds = process_cart_bounds(options.cart_bounds)
+   if kw.dont_set_default_cart_bounds:
+      options.cart_bounds = _process_cart_bounds(options.cart_bounds)
 
    options.trimmable_components = options.trimmable_components.upper()
 
@@ -256,7 +266,129 @@ def process_cli_args(options, **kw):
 
    return options
 
-def process_cart_bounds(cart_bounds):
+def _process_inputs(opt, read_allowed_res_files=True, **kw):
+
+   if opt.inputs:
+      msg = "--inputs%i cant be used if --inputs is specified"
+      assert not opt.inputs1, msg % 1
+      assert not opt.inputs2, msg % 2
+      assert not opt.inputs3, msg % 3
+   if not opt.inputs1:
+      msg = "--inputs%i can only be used if --inputs1 is specified"
+      assert not opt.inputs2, msg % 2
+      assert not opt.inputs3, msg % 3
+   if not opt.inputs2:
+      msg = "--inputs%i can only be used if --inputs2 is specified"
+      assert not opt.inputs3, msg % 3
+
+   msg = 'allowed_residues must be a single file or match number of inputs'
+   assert len(opt.allowed_residues) in (0, 1, len(opt.inputs)), msg
+   msg = 'allowed_residues1 must be a single file or match number of inputs1'
+   assert len(opt.allowed_residues1) in (0, 1, len(opt.inputs1)), msg
+   msg = 'allowed_residues2 must be a single file or match number of inputs2'
+   assert len(opt.allowed_residues2) in (0, 1, len(opt.inputs2)), msg
+   msg = 'allowed_residues3 must be a single file or match number of inputs3'
+   assert len(opt.allowed_residues3) in (0, 1, len(opt.inputs3)), msg
+
+   if not opt.inputs:
+      msg = '--allowed_residues cant be used if --inputs not used'
+      assert len(opt.allowed_residues) is 0, msg
+   if not opt.inputs1:
+      msg = '--allowed_residues1 cant be used if --inputs1 not used'
+      assert len(opt.allowed_residues1) is 0, msg
+   if not opt.inputs2:
+      msg = '--allowed_residues2 cant be used if --inputs2 not used'
+      assert len(opt.allowed_residues2) is 0, msg
+   if not opt.inputs3:
+      msg = '--allowed_residues3 cant be used if --inputs3 not used'
+      assert len(opt.allowed_residues3) is 0, msg
+
+   if len(opt.allowed_residues) is 1: opt.allowed_residues *= len(opt.inputs)
+   if len(opt.allowed_residues1) is 1: opt.allowed_residues1 *= len(opt.inputs1)
+   if len(opt.allowed_residues2) is 1: opt.allowed_residues2 *= len(opt.inputs2)
+   if len(opt.allowed_residues3) is 1: opt.allowed_residues3 *= len(opt.inputs3)
+
+   if len(opt.allowed_residues) is 0: opt.allowed_residues = [None] * len(opt.inputs)
+   if len(opt.allowed_residues1) is 0: opt.allowed_residues1 = [None] * len(opt.inputs1)
+   if len(opt.allowed_residues2) is 0: opt.allowed_residues2 = [None] * len(opt.inputs2)
+   if len(opt.allowed_residues3) is 0: opt.allowed_residues3 = [None] * len(opt.inputs3)
+
+   if read_allowed_res_files:
+      opt.allowed_residues = [_read_allowed_res_file(_) for _ in opt.allowed_residues]
+      opt.allowed_residues1 = [_read_allowed_res_file(_) for _ in opt.allowed_residues1]
+      opt.allowed_residues2 = [_read_allowed_res_file(_) for _ in opt.allowed_residues2]
+      opt.allowed_residues3 = [_read_allowed_res_file(_) for _ in opt.allowed_residues3]
+
+   if not opt.inputs:
+      if opt.inputs1:
+         opt.inputs.append(opt.inputs1)
+         opt.allowed_residues.append(opt.allowed_residues1)
+         if opt.inputs2:
+            opt.inputs.append(opt.inputs2)
+            opt.allowed_residues.append(opt.allowed_residues2)
+            if opt.inputs3:
+               opt.inputs.append(opt.inputs3)
+               opt.allowed_residues.append(opt.allowed_residues3)
+
+   return opt
+
+class DefaultResidueSelector:
+   def __init__(self, spec):
+      static = set()
+      dynamic = list()
+      for r in spec.split():
+         if r.count(':'):
+            lb, ub = [int(x) for x in r.split(':')]
+            if lb < 0 or ub < 0:
+               dynamic.append((lb, ub))
+            else:
+               for i in range(lb, ub + 1):
+                  static.add(i)
+         else:
+            static.add(int(r))
+      self.static = static
+      self.dynamic = dynamic
+
+   def __call__(self, body, **kw):
+      residues = {r for r in self.static if r <= len(body)}
+      for (lb, ub) in self.dynamic:
+         if lb < 0: lb = len(body) + 1 + lb
+         if ub < 0: ub = len(body) + 1 + ub
+         for i in range(max(1, lb), min(len(body), ub) + 1):
+            residues.add(i)
+      return residues
+
+# def _default_residue_selector(spec):
+#    static = set()
+#    dynamic = list()
+#    for r in spec.split():
+#       if r.count(':'):
+#          lb, ub = [int(x) for x in r.split(':')]
+#          if lb < 0 or ub < 0:
+#             dynamic.append((lb, ub))
+#          else:
+#             for i in range(lb, ub + 1):
+#                static.add(i)
+#       else:
+#          static.add(int(r))
+#
+#    def inner(body, **kw):
+#       residues = {r for r in static if r <= len(body)}
+#       for (lb, ub) in dynamic:
+#          if lb < 0: lb = len(body) + 1 + lb
+#          if ub < 0: ub = len(body) + 1 + ub
+#          for i in range(max(1, lb), min(len(body), ub) + 1):
+#             residues.add(i)
+#       return residues
+#
+#    return inner
+
+def _read_allowed_res_file(fname):
+   if fname is None: return None
+   with open(fname) as inp:
+      return DefaultResidueSelector(inp.read())
+
+def _process_cart_bounds(cart_bounds):
    if not cart_bounds: cart_bounds = 0, 500
    elif len(cart_bounds) is 1: cart_bounds = [0, cart_bounds[0]]
    tmp = list()
@@ -278,32 +410,24 @@ def make_argv_with_atfiles(argv=None, **kw):
          argv = newargs + argv
    return argv
 
-def _extract_weights(arg):
+def _extract_weights(kw):
    pref = 'weight_'
-   wts = Bunch()
+   wts = rp.Bunch()
    todel = list()
-   for k in arg:
+   for k in kw:
       if k.startswith(pref):
          wtype = k.replace(pref, '')
-         wts[wtype] = arg[k]
+         wts[wtype] = kw[k]
          todel.append(k)
    for k in todel:
-      del arg[k]
-   arg.wts = wts
+      del kw[k]
+   kw.wts = wts
 
-def parse_list_of_strtuple(s):
-   if isinstance(s, list):
-      s = ",".join("(%s)" % a for a in s)
-   arg = eval(s)
-   if isinstance(arg, tuple) and len(arg) == 2 and isinstance(arg[0], int):
-      arg = [arg]
-   return arg
-
-def _process_arg_sspair(arg):
-   arg.score_only_sspair = [''.join(sorted(p)) for p in arg.score_only_sspair]
-   arg.score_only_sspair = sorted(set(arg.score_only_sspair))
-   if any(len(p) != 2 for p in arg.score_only_sspair):
+def _process_arg_sspair(kw):
+   kw.score_only_sspair = [''.join(sorted(p)) for p in kw.score_only_sspair]
+   kw.score_only_sspair = sorted(set(kw.score_only_sspair))
+   if any(len(p) != 2 for p in kw.score_only_sspair):
       raise argparse.ArgumentError(None, '--score_only_sspair accepts two letter SS pairs')
-   if (any(p[0] not in "EHL" for p in arg.score_only_sspair)
-       or any(p[1] not in "EHL" for p in arg.score_only_sspair)):
+   if (any(p[0] not in "EHL" for p in kw.score_only_sspair)
+       or any(p[1] not in "EHL" for p in kw.score_only_sspair)):
       raise argparse.ArgumentError(None, '--score_only_sspair accepts only EHL')
