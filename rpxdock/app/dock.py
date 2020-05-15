@@ -66,7 +66,7 @@ def dock_onecomp(hscore, **kw):
    spec = get_spec(kw.architecture)
    # double normal resolution, cuz why not?
    if kw.docking_method == 'grid':
-      sampler = rp.sampling.grid_sym_axis(cart=np.arange(kw.cart_bounds[0], kw.cart_bounds[1]), ang=np.arange(0, 360/ spec.nfold), axis = spec.axis, flip=list(spec.flip_axis[:3]))
+      sampler = rp.sampling.grid_sym_axis(cart=np.arange(kw.cart_bounds[0], kw.cart_bounds[1], kw.grid_resolution_cart_angstroms), ang=np.arange(0, 360/ spec.nfold, kw.grid_resolution_ori_degrees), axis = spec.axis, flip=list(spec.flip_axis[:3]))
       search = rp.grid_search
    else:
       if spec.type == 'mirrorlayer':
