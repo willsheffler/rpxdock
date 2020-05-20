@@ -42,7 +42,7 @@ def make_multicomp(
    wrpx = arg.wts.sub(rpx=1, ncontact=0)
    wnct = arg.wts.sub(rpx=0, ncontact=1)
    rpx, extra = evaluator(xforms, arg.nresl - 1, wrpx)
-   ncontact, *_ = evaluator(xforms, arg.nresl - 1, wnct)
+   ncontact, ncont_extra = evaluator(xforms, arg.nresl - 1, wnct)
    data = dict(
       attrs=dict(arg=arg, stats=stats, ttotal=t.total, tdump=tdump,
                  output_prefix=arg.output_prefix, output_body='all', sym=spec.arch),
@@ -55,6 +55,11 @@ def make_multicomp(
       if not isinstance(v, (list, tuple)) or len(v) > 3:
          v = ['model'], v
       data[k] = v
+   if arg.score_self:
+      for k, v in ncont_extra.items():
+         if not isinstance(v, (list, tuple)) or len(v) > 3:
+            v = ['model', v]
+         data[f"ncont_{k}"] = v
    for i in range(len(bodies)):
       data[f'disp{i}'] = (['model'], np.sum(xforms[:, i, :3, 3] * spec.axis[None, i, :3], axis=1))
       data[f'angle{i}'] = (['model'], rp.homog.angle_of(xforms[:, i]) * 180 / np.pi)
@@ -135,6 +140,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          s_ifscore = list()
          ns_ifscore = list()
          logging.debug("stepping into scoring")
+         #TO DO: The multiple loops could be simplified into a single loop.
          for i in range(len(B)):
             for j in range(i + 1):
                logging.debug(f"scoring body {i} against body {j}")
