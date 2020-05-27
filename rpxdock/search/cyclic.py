@@ -28,28 +28,24 @@ def make_cyclic(monomer, sym, hscore, search=hier_search, sampler=None, **kw):
    sampler enumerates positions
    search is usually hier_search but grid_search is also available
    '''
-   arg = rp.Bunch(kw) #options
+   kw = rp.Bunch(kw)
    t = rp.Timer().start()
    sym = "C%i" % i if isinstance(sym, int) else sym
-   arg.nresl = hscore.actual_nresl if arg.nresl is None else arg.nresl #number of steps in hier search
-   arg.output_prefix = arg.output_prefix if arg.output_prefix else sym
+   kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
+   kw.output_prefix = kw.output_prefix if kw.output_prefix else sym
 
-   if sampler is None: sampler = _default_samplers[search](monomer, hscore) #checks list of pos for monomer
-   evaluator = CyclicEvaluator(monomer, sym, hscore, **arg) #initiate instance of evaluator (set up geom and score)
-   xforms, scores, extra, stats = search(sampler, evaluator, **arg) #search stuff given pos and scores of evaluator and get positions, scores, and other stuff
-   ibest = rp.filter_redundancy(xforms, monomer, scores, **arg) #orders results from best to worst and checks for redundancy by score
-   tdump = _debug_dump_cyclic(xforms, monomer, sym, scores, ibest, evaluator, **arg)
+   if sampler is None: sampler = _default_samplers[search](monomer, hscore)
+   evaluator = CyclicEvaluator(monomer, sym, hscore, **kw)
+   xforms, scores, extra, stats = search(sampler, evaluator, **kw)
+   ibest = rp.filter_redundancy(xforms, monomer, scores, **kw)
+   tdump = _debug_dump_cyclic(xforms, monomer, sym, scores, ibest, evaluator, **kw)
 
-   if arg.verbose:
+   if kw.verbose:
       print(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
       print("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
       print("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
 
    xforms = xforms[ibest]
-   wrpx = arg.wts.sub(rpx=1, ncontact=0) # compute weighted rpx
-   wnct = arg.wts.sub(rpx=0, ncontact=1) # compute weighted ncontact
-   rpx, extra = evaluator(xforms, arg.nresl - 1, wrpx) # reevaluate scores as components
-   ncontact, _ = evaluator(xforms, arg.nresl - 1, wnct)
 
    '''
    dump pickle: (multidimensional pandas df) 
@@ -61,9 +57,13 @@ def make_cyclic(monomer, sym, hscore, search=hier_search, sampler=None, **kw):
    ncontact: ncontact score
    reslb/ub: lowerbound/upperbound of trimming
    '''
+   wrpx = kw.wts.sub(rpx=1, ncontact=0)
+   wnct = kw.wts.sub(rpx=0, ncontact=1)
+   rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
+   ncontact, _ = evaluator(xforms, kw.nresl - 1, wnct)
    return rp.Result(
-      body_=None if arg.dont_store_body_in_results else [monomer],
-      attrs=dict(arg=arg, stats=stats, ttotal=t.total, tdump=tdump, sym=sym),
+      body_=None if kw.dont_store_body_in_results else [monomer],
+      attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, sym=sym),
       scores=(["model"], scores[ibest].astype("f4")),
       xforms=(["model", "hrow", "hcol"], xforms),
       rpx=(["model"], rpx.astype("f4")),
@@ -81,35 +81,34 @@ class CyclicEvaluator:
    those two things get checked for intersections and clashes and scored by scorepos
    '''
    def __init__(self, body, sym, hscore, **kw):
-      self.arg = rp.Bunch(kw)
+      self.kw = rp.Bunch(kw)
       self.body = body
       self.hscore = hscore
       self.symrot = hm.hrot([0, 0, 1], 360 / int(sym[1:]), degrees=True)
 
    # __call__ gets called if class if called like a fcn
    def __call__(self, xforms, iresl=-1, wts={}, **kw):
-      arg = self.arg.sub(wts=wts)
+      kw = self.kw.sub(wts=wts)
       xeye = np.eye(4, dtype="f4")
       body, sfxn = self.body, self.hscore.scorepos
       xforms = xforms.reshape(-1, 4, 4)  # body.pos
       xsym = self.symrot @ xforms # symmetrized version of xforms
 
       # check for "flatness"
-      ok = np.abs((xforms @ body.pcavecs[0])[:, 2]) <= self.arg.max_longaxis_dot_z
+      ok = np.abs((xforms @ body.pcavecs[0])[:, 2]) <= self.kw.max_longaxis_dot_z
 
       # check clash, or get non-clash range
-      if arg.max_trim > 0:
-         trim = body.intersect_range(body, xforms[ok], xsym[ok], **arg) # what residues can you have w/o clashing
-         trim, trimok = rp.search.trim_ok(trim, body.nres, **arg)
-         ok[ok] &= trimok # given an array of pos/xforms, filter out pos/xforms that clash
+      if kw.max_trim > 0:
+         trim = body.intersect_range(body, xforms[ok], xsym[ok], **kw)
+         trim, trimok = rp.search.trim_ok(trim, body.nres, **kw)
+         ok[ok] &= trimok
       else:
-         ok[ok] &= body.clash_ok(body, xforms[ok], xsym[ok], **arg) # if no trim, just checks for clashes (intersecting)
-         trim = [0], [body.nres - 1]  # no trimming
+         ok[ok] &= body.clash_ok(body, xforms[ok], xsym[ok], **kw)
+         trim = [0], [body.nres - 1]
 
       # score everything that didn't clash
       scores = np.zeros(len(xforms))
       bounds = (*trim, -1, *trim, -1)
-      scores[ok] = sfxn(body, body, xforms[ok], xsym[ok], iresl, bounds, **arg)
       '''
       bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
       sfxn: hscore.scorepos scores stuff from the hscore that got passed 
@@ -119,6 +118,7 @@ class CyclicEvaluator:
          sampling at highest resl probably 0.6A due to ori + cart
          returns score # for each "dock"
       '''
+      scores[ok] = sfxn(body, body, xforms[ok], xsym[ok], iresl, bounds, **kw)
 
       # record ranges used (trim data to return)
       lb = np.zeros(len(scores), dtype="i4")
@@ -128,16 +128,16 @@ class CyclicEvaluator:
       return scores, rp.Bunch(reslb=lb, resub=ub)
 
 def _debug_dump_cyclic(xforms, body, sym, scores, ibest, evaluator, **kw):
-   arg = rp.Bunch(kw)
+   kw = rp.Bunch(kw)
    t = rp.Timer().start()
-   nout_debug = min(10 if arg.nout_debug is None else arg.nout_debug, len(ibest))
+   nout_debug = min(10 if kw.nout_debug is None else kw.nout_debug, len(ibest))
    for iout in range(nout_debug):
       i = ibest[iout]
       body.move_to(xforms[i])
-      wrpx, wnct = (arg.wts.sub(rpx=1, ncontact=0), arg.wts.sub(rpx=0, ncontact=1))
-      scr, extra = evaluator(xforms[i], arg.nresl - 1, wrpx)
-      cnt, extra = evaluator(xforms[i], arg.nresl - 1, wnct)
-      fn = arg.output_prefix + "_%02i.pdb" % iout
+      wrpx, wnct = (kw.wts.sub(rpx=1, ncontact=0), kw.wts.sub(rpx=0, ncontact=1))
+      scr, extra = evaluator(xforms[i], kw.nresl - 1, wrpx)
+      cnt, extra = evaluator(xforms[i], kw.nresl - 1, wnct)
+      fn = kw.output_prefix + "_%02i.pdb" % iout
       print(
          f"{fn} score {scores[i]:7.3f} rpx {scr[0]:7.3f} cnt {cnt[0]:4}",
          f"resi {extra.reslb[0]}-{extra.resub[0]}",

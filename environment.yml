@@ -3,21 +3,29 @@ channels:
  - conda-forge
  - https://pose:foldtree@conda.graylab.jhu.edu
 dependencies:
+<<<<<<< HEAD
  - python>=3.7
+=======
+ - python<3.8
+>>>>>>> akhmelin/grid_1comp
  - pyrosetta
  - numpy=1.16.3
  - matplotlib
  - pandas=0.24.2
  - xarray=0.11.3
- - pytest
- - pytest-faulthandler
  - ipython
  - cffi
  - tqdm
  - yapf
+ - tabulate
+ - pytest
+ - pytest-repeat
  - pytest-sugar
  - pytest-xdist
+<<<<<<< HEAD
  - tabulate
+=======
+>>>>>>> akhmelin/grid_1comp
  - sphinx>=2.0
  - doxygen
  - pip

@@ -6,28 +6,28 @@ from rpxdock.sampling import RotCart1Hier_f4, grid_sym_axis
 from rpxdock.search import concat_results, make_plugs, plug_get_sample_hierarchy
 
 def testarg():
-   arg = rp.app.defaults()
-   arg.wts = rp.Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
-   arg.beam_size = 1e4
-   arg.max_bb_redundancy = 3.0
-   arg.max_longaxis_dot_z = 0.5
-   arg.executor = ThreadPoolExecutor(min(4, arg.ncpu / 2))
-   arg.multi_iface_summary = np.min
-   arg.debug = True
-   return arg
+   kw = rp.app.defaults()
+   kw.wts = rp.Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
+   kw.beam_size = 1e4
+   kw.max_bb_redundancy = 3.0
+   kw.max_longaxis_dot_z = 0.5
+   kw.executor = ThreadPoolExecutor(min(4, kw.ncpu / 2))
+   kw.multi_iface_summary = np.min
+   kw.debug = True
+   return kw
 
 def test_plug_hier(hscore, plug, hole):
-   arg = testarg()
-   arg.max_trim = 0
+   kw = testarg()
+   kw.max_trim = 0
 
-   # arg.output_prefix = "test_plug_hier"
-   # arg.nout_debug = 10
+   # kw.output_prefix = "test_plug_hier"
+   # kw.nout_debug = 10
    # hole.dump_pdb('ref.pdb', use_body_sym=True)
 
    sampler = rp.search.plug.plug_test_hier_sampler(plug, hole, hscore, 2)
    # sampler = rp.search.plug.plug_get_sample_hierarchy(plug, hole, hscore)
-   # arg.beam_size = 1e5
-   result = make_plugs(plug, hole, hscore, rp.hier_search, sampler, **arg)
+   # kw.beam_size = 1e5
+   result = make_plugs(plug, hole, hscore, rp.hier_search, sampler, **kw)
 
    # print(result.reslb)
    # print(result.resub)
@@ -37,18 +37,18 @@ def test_plug_hier(hscore, plug, hole):
    rp.search.assert_results_close(result, ref)
 
 def test_plug_hier_trim(hscore, plug, hole):
-   arg = testarg()
-   arg.max_trim = 200
-   arg.output_prefix = 'plug'
+   kw = testarg()
+   kw.max_trim = 200
+   kw.output_prefix = 'plug'
 
-   # arg.output_prefix = "test_plug_hier_trim"
-   # arg.nout_debug = 10
+   # kw.output_prefix = "test_plug_hier_trim"
+   # kw.nout_debug = 10
    # hole.dump_pdb('ref.pdb', use_body_sym=True)
 
    sampler = rp.search.plug.plug_test_hier_sampler(plug, hole, hscore, 1)
    # sampler = rp.search.plug.plug_get_sample_hierarchy(plug, hole, hscore)
-   # arg.beam_size = 1e5
-   result = make_plugs(plug, hole, hscore, rp.hier_search, sampler, **arg)
+   # kw.beam_size = 1e5
+   result = make_plugs(plug, hole, hscore, rp.hier_search, sampler, **kw)
 
    # print(result.reslb)
    # print(result.resub)
@@ -59,32 +59,41 @@ def test_plug_hier_trim(hscore, plug, hole):
    # rp.search.assert_results_close(result, ref)
 
 def test_plug_olig_hier(hscore, body_c3_mono, hole):
-   arg = testarg().sub(plug_fixed_olig=True, max_trim=100)
+   kw = testarg().sub(plug_fixed_olig=True, max_trim=100)
    body_c3_mono.trim_direction = "C"
 
-   # arg.output_prefix = "test_plug_olig_hier"
-   # arg.nout_debug = 20
+   # kw.output_prefix = "test_plug_olig_hier"
+   # kw.nout_debug = 20
    # hole.dump_pdb('ref.pdb')
 
    hsamp = RotCart1Hier_f4(-120, 120, 20, 0, 120, 12, [0, 0, 1])
-   result = make_plugs(body_c3_mono, hole, hscore, rp.hier_search, hsamp, **arg)
+   result = make_plugs(body_c3_mono, hole, hscore, rp.hier_search, hsamp, **kw)
 
    # rp.dump(result, 'rpxdock/data/testdata/test_plug_olig_hier.pickle')
    ref = rp.data.get_test_data('test_plug_olig_hier')
    rp.search.assert_results_close(result, ref)
 
+<<<<<<< HEAD
 def test_plug_olig_grid(hscore, plug, hole):
    arg = testarg().sub(plug_fixed_olig=True, max_trim=300)
+=======
+def test_plug_olig_grid(hscore, body_c3_mono, hole):
+   kw = testarg().sub(plug_fixed_olig=True, max_trim=100)
+>>>>>>> akhmelin/grid_1comp
 
-   # arg.output_prefix = "test_plug_olig_grid"
-   # arg.nout_debug = 10
+   # kw.output_prefix = "test_plug_olig_grid"
+   # kw.nout_debug = 10
    # hole.dump_pdb('ref.pdb')
 
    # should match hsamp resl4 grid
    gcart = np.linspace(-119.625, 119.625, 20 * 16)
    gang = np.linspace(0.3125, 119.6875, 12 * 16)
    xgrid = grid_sym_axis(gcart, gang)
+<<<<<<< HEAD
    result = make_plugs(plug, hole, hscore, rp.grid_search, xgrid, **arg)
+=======
+   result = make_plugs(body_c3_mono, hole, hscore, rp.grid_search, xgrid, **kw)
+>>>>>>> akhmelin/grid_1comp
 
    result.dump_pdbs_top_score(10)
 
