@@ -8,7 +8,7 @@ def grid_sym_axis(cart, ang, axis=[0, 0, 1], flip=None):
       raise ValueError('bad axis')
    if flip is not None and not isinstance(flip, (np.ndarray, list, tuple)):
       raise TypeError('flip axis must be ndarray, list tuple')
-   if flip and len(flip) not in (3, 3):
+   if flip and len(flip) not in (3, 4):
       raise ValueError('bad flip axis')
    if flip and hm.hdot(axis, flip) > 0.001:
       raise ValueError('flip axis must be perpendicular to main axis')

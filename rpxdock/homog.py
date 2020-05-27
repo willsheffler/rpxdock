@@ -205,12 +205,12 @@ def rot(axis, angle, degrees='auto', dtype='f8', shape=(3, 3)):
    rot3[..., 2, 2] = aa + dd - bb - cc
    return rot3
 
-def hrot(axis, angle, center=None, dtype='f8', **args):
+def hrot(axis, angle, center=None, dtype='f8', **kws):
    axis = np.array(axis, dtype=dtype)
    angle = np.array(angle, dtype=dtype)
    center = (np.array([0, 0, 0], dtype=dtype) if center is None else np.array(
       center, dtype=dtype))
-   r = rot(axis, angle, dtype=dtype, shape=(4, 4), **args)
+   r = rot(axis, angle, dtype=dtype, shape=(4, 4), **kws)
    x, y, z = center[..., 0], center[..., 1], center[..., 2]
    r[..., 0, 3] = x - r[..., 0, 0] * x - r[..., 0, 1] * y - r[..., 0, 2] * z
    r[..., 1, 3] = y - r[..., 1, 0] * x - r[..., 1, 1] * y - r[..., 1, 2] * z
@@ -691,3 +691,97 @@ def expand_xforms(G, N=3, redundant_point=hpoint([1, 3, 10]), maxrad=9e9):
       if key not in seenit:
          seenit.add(key)
          yield X
+
+def scale_translate_lines_isect_lines(pt1, ax1, pt2, ax2, tp1, ta1, tp2, ta2):
+   _pt1 = hpoint(pt1.copy())
+   _ax1 = hnormalized(ax1.copy())
+   _pt2 = hpoint(pt2.copy())
+   _ax2 = hnormalized(ax2.copy())
+   _tp1 = hpoint(tp1.copy())
+   _ta1 = hnormalized(ta1.copy())
+   _tp2 = hpoint(tp2.copy())
+   _ta2 = hnormalized(ta2.copy())
+
+   if abs(angle(_ax1, _ax2) - angle(_ta1, _ta2)) > 0.00001:
+      _ta2 = -_ta2
+   # print(_ax1)
+   # print(_ax2)
+   # print(_ta1, ta1)
+   # print(_ta2)
+   # print(line_angle(_ax1, _ax2), line_angle(_ta1, _ta2))
+   assert np.allclose(line_angle(_ax1, _ax2), line_angle(_ta1, _ta2))
+
+   # scale target frame to match input line separation
+   d1 = line_line_distance_pa(_pt1, _ax1, _pt2, _ax2)
+   d2 = line_line_distance_pa(_tp1, _ta1, _tp2, _ta2)
+   scale = np.array([d1 / d2, d1 / d2, d1 / d2, 1])
+   _tp1 *= scale
+   _tp2 *= scale
+
+   # compute rotation to align line pairs, check "handedness" and correct if necessary
+   xalign = align_vectors(_ax1, _ax2, _ta1, _ta2)
+   a, b = line_line_closest_points_pa(_pt1, _ax1, _pt2, _ax2)
+   c, d = line_line_closest_points_pa(_tp1, _ta1, _tp2, _ta2)
+   _shift1 = xalign @ (b - a)
+   _shift2 = d - c
+   if hdot(_shift1, _shift2) < 0:
+      if np.allclose(angle(_ax1, _ax2), np.pi / 2):
+         xalign = align_vectors(-_ax1, _ax2, _ta1, _ta2)
+      else:
+         scale[:3] = -scale[:3]
+         _tp1 *= -1
+         _tp2 *= -1
+         # rays = np.array([
+         #    hm.hray(xalign @ pt1, xalign @ ax1),
+         #    hm.hray(xalign @ pt2, xalign @ ax2),
+         #    hm.hray(scale * tp1, scale * ta1),
+         #    hm.hray(scale * tp2, scale * ta2),
+         # ])
+         # colors = [(1, 0, 0), (0, 0, 1), (0.8, 0.5, 0.5), (0.5, 0.5, 0.8)]
+         # rp.viz.showme(rays, colors=colors, block=False)
+
+   _pt1 = xalign @ _pt1
+   _ax1 = xalign @ _ax1
+   _pt2 = xalign @ _pt2
+   _ax2 = xalign @ _ax2
+
+   assert np.allclose(_ax1, _ta1, atol=1e-3) or np.allclose(-_ax1, _ta1, atol=1e-3)
+   assert np.allclose(_ax2, _ta2, atol=1e-3) or np.allclose(-_ax2, _ta2, atol=1e-3)
+
+   # move to overlap pa1,_ta1, aligning first axes
+   delta1 = _tp1 - _pt1
+   _pt1 += delta1
+   _pt2 += delta1
+
+   # delta align second axes by moving alone first
+   pp = proj_perp(_ta2, _tp2 - _pt2)
+   d = np.linalg.norm(pp)
+   if d < 0.00001:
+      delta2 = 0
+   else:
+      a = line_angle(_ta1, _ta2)
+      l = d / np.sin(a)
+      delta2 = l * hnormalized(proj(_ta1, _tp2 - _pt2))
+      if hdot(pp, delta2) < 0:
+         delta2 *= -1
+   _pt1 += delta2
+   _pt2 += delta2
+   xalign[:, 3] = delta1 + delta2
+   xalign[3, 3] = 1
+
+   if np.any(np.isnan(xalign)):
+      print('=============================')
+      print(xalign)
+      print(delta1, delta2)
+
+   # rays = np.array([
+   #    hm.hray(xalign @ pt1, xalign @ ax1),
+   #    hm.hray(xalign @ pt2, xalign @ ax2),
+   #    hm.hray(scale * tp1, scale * ta1),
+   #    hm.hray(scale * tp2, scale * ta2),
+   # ])
+   # colors = [(1, 0, 0), (0, 0, 1), (0.8, 0.5, 0.5), (0.5, 0.5, 0.8)]
+   # rp.viz.showme(rays, colors=colors, block=False)
+   # assert 0
+
+   return xalign, scale

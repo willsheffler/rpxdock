@@ -2,13 +2,13 @@ import _pickle, rpxdock as rp, numpy as np
 from tabulate import tabulate
 
 def main():
-   arg = rp.options.get_cli_args()
+   kw = rp.options.get_cli_args()
 
-   for fn in arg.inputs:
+   for fn in kw.inputs:
       with open(fn, 'rb') as inp:
          result = _pickle.load(inp)
 
-         result.dump_pdbs_top_score(**arg)
+         result.dump_pdbs_top_score(**kw)
 
          result.data = result.drop('xforms')
          df = result.data.to_dataframe()

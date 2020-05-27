@@ -5,7 +5,7 @@ log = logging.getLogger(__name__)
 
 class RpxHier:
    def __init__(self, files, max_pair_dist=8.0, hscore_data_dir=None, **kw):
-      arg = rp.Bunch(kw)
+      kw = rp.Bunch(kw)
       if isinstance(files, str): files = [files]
       if len(files) is 0: raise ValueError('RpxHier given no datafiles')
       if len(files) is 1: files = _check_hscore_files_aliases(files[0], hscore_data_dir)
@@ -42,7 +42,7 @@ class RpxHier:
       self.max_pair_dist = [max_pair_dist + h.attr.cart_extent for h in self.hier]
       self.map_pairs_multipos = xu.ssmap_pairs_multipos if self.use_ss else xu.map_pairs_multipos
       self.map_pairs = xu.ssmap_of_selected_pairs if self.use_ss else xu.map_of_selected_pairs
-      self.score_only_sspair = arg.score_only_sspair
+      self.score_only_sspair = kw.score_only_sspair
 
    def __len__(self):
       return len(self.hier)
@@ -106,7 +106,7 @@ class RpxHier:
 #        "pos2"_a = eye4);
 
    def scorepos(self, body1, body2, pos1, pos2, iresl=-1, bounds=(), **kw):
-      arg = rp.Bunch(kw)
+      kw = rp.Bunch(kw)
       pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
       # if not bounds:
       # bounds = [-2e9], [2e9], nsym[0], [-2e9], [2e9], nsym[1]
@@ -142,8 +142,8 @@ class RpxHier:
       #       assert np.all(asym_res2 >= bounds[3][i])
       #       assert np.all(asym_res2 <= bounds[4][i])
 
-      if arg.wts.rpx == 0:
-         return arg.wts.ncontact * (lbub[:, 1] - lbub[:, 0])
+      if kw.wts.rpx == 0:
+         return kw.wts.ncontact * (lbub[:, 1] - lbub[:, 0])
 
       xbin = self.hier[iresl].xbin
       phmap = self.hier[iresl].phmap
@@ -160,7 +160,7 @@ class RpxHier:
          mscore = side1 + side2
          # mscore = np.sum(pscore[lb:ub])
          # mscore = np.log(np.sum(np.exp(pscore[lb:ub])))
-         scores[i] = arg.wts.rpx * mscore + arg.wts.ncontact * (ub - lb)
+         scores[i] = kw.wts.rpx * mscore + kw.wts.ncontact * (ub - lb)
 
       return scores
 

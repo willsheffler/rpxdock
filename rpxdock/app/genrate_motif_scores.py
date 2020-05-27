@@ -4,7 +4,7 @@ from rpxdock.motif import ResPairData, make_and_dump_hier_score_tables
 
 def get_opts():
    parser = rpxdock.options.default_cli_parser()
-   addarg = rpxdock.options.add_argument_unless_exists(parser)
+   addkw = rpxdock.options.add_argument_unless_exists(parser)
    H = "ResPairData file containing Xarray Dataset with pdb, residue, and pair info"
    addarg("respairdat_file", type=str, help=H)
    H = "final sampling resolution"
@@ -27,33 +27,33 @@ def get_opts():
    addarg("--smear_kernel", default="flat", type=str)
    addarg("--only_do_hier", default=-1, type=int)
    addarg("--use_ss_key", default=False, action='store_true')
-   arg = parser.parse_args()
-   arg.smear_params = rpxdock.options.parse_list_of_strtuple(arg.smear_params)
+   kw = parser.parse_args()
+   kw.smear_params = rpxdock.options.parse_list_of_strtuple(kw.smear_params)
    rpxdock.options.process_cli_args(arg)
    return Bunch(arg)
 
 def main():
-   arg = get_opts()
+   kw = get_opts()
 
-   if arg.respairdat_file == "TEST":
-      arg.respairdat_file = "/home/sheffler/debug/rpxdock/respairdat/pdb_res_pair_data_si30_10_rots.pickle"
-   bname = os.path.basename(arg.respairdat_file.replace(".pickle", ""))
-   arg.output_prefix += bname + '_'
+   if kw.respairdat_file == "TEST":
+      kw.respairdat_file = "/home/sheffler/debug/rpxdock/respairdat/pdb_res_pair_data_si30_10_rots.pickle"
+   bname = os.path.basename(kw.respairdat_file.replace(".pickle", ""))
+   kw.output_prefix += bname + '_'
 
-   with open(arg.respairdat_file, "rb") as inp:
+   with open(kw.respairdat_file, "rb") as inp:
       rp = ResPairData(_pickle.load(inp))
 
-   if arg.score_only_aa.lower() != 'ANYAA':
-      logging.info(f'using only aa {arg.score_only_aa}')
-      rp = rp.subset_by_aa(arg.score_only_aa, sanity_check=True)
+   if kw.score_only_aa.lower() != 'ANYAA':
+      logging.info(f'using only aa {kw.score_only_aa}')
+      rp = rp.subset_by_aa(kw.score_only_aa, sanity_check=True)
 
-   if set(arg.score_only_ss) != set('EHL'):
-      logging.info(f'using only ss {arg.score_only_ss}')
-      rp = rp.subset_by_ss(arg.score_only_ss, sanity_check=True)
-      if len(arg.score_only_ss) == 1:
-         arg.use_ss_key = False
+   if set(kw.score_only_ss) != set('EHL'):
+      logging.info(f'using only ss {kw.score_only_ss}')
+      rp = rp.subset_by_ss(kw.score_only_ss, sanity_check=True)
+      if len(kw.score_only_ss) == 1:
+         kw.use_ss_key = False
 
-   files = make_and_dump_hier_score_tables(rp, **arg)
+   files = make_and_dump_hier_score_tables(rp, **kw)
 
    logging.info('produced files:')
    for f in files:
