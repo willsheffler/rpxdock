@@ -206,14 +206,22 @@ def main():
    hscore = rp.CachedProxy(rp.RpxHier(kw.hscore_files, **kw))
    arch = kw.architecture
 
+<<<<<<< HEAD
    # TODO commit to master AK
+=======
+>>>>>>> quinton/multi_int_score
    #sym, comp = arch.split('_')
 
    # TODO: redefine archs WHS or others with a monster list of if statements
    if arch.startswith('C'):
+<<<<<<< HEAD
       result = dock_cyclic(hscore, **kw)
    elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
 <<<<<<< HEAD
+=======
+      result = dock_cyclic(hscore, **arg)
+   elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
+>>>>>>> quinton/multi_int_score
       result = dock_onecomp(hscore, **arg)
    elif arch.startswith('PLUG'):
       result = dock_plug(hscore, **arg)

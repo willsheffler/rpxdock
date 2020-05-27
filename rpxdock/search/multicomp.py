@@ -1,5 +1,6 @@
 import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
+import logging
 
 def make_multicomp(
    bodies,
@@ -12,8 +13,14 @@ def make_multicomp(
 ):
    kw = rp.Bunch(kw)
    t = rp.Timer().start()
+<<<<<<< HEAD
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else spec.arch
+=======
+   arg.nresl = hscore.actual_nresl if arg.nresl is None else arg.nresl
+   arg.output_prefix = arg.output_prefix if arg.output_prefix else spec.arch
+   logging.debug("Docking multicomp")
+>>>>>>> quinton/multi_int_score
 
    assert len(bodies) == spec.num_components
    bodies = list(bodies)
@@ -37,10 +44,17 @@ def make_multicomp(
       print("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
 
    xforms = xforms[ibest]
+<<<<<<< HEAD
    wrpx = kw.wts.sub(rpx=1, ncontact=0)
    wnct = kw.wts.sub(rpx=0, ncontact=1)
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
    ncontact, *_ = evaluator(xforms, kw.nresl - 1, wnct)
+=======
+   wrpx = arg.wts.sub(rpx=1, ncontact=0)
+   wnct = arg.wts.sub(rpx=0, ncontact=1)
+   rpx, extra = evaluator(xforms, arg.nresl - 1, wrpx)
+   ncontact, ncont_extra = evaluator(xforms, arg.nresl - 1, wnct)
+>>>>>>> quinton/multi_int_score
    data = dict(
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, output_prefix=kw.output_prefix,
                  output_body='all', sym=spec.arch),
@@ -53,6 +67,11 @@ def make_multicomp(
       if not isinstance(v, (list, tuple)) or len(v) > 3:
          v = ['model'], v
       data[k] = v
+   if arg.score_self:
+      for k, v in ncont_extra.items():
+         if not isinstance(v, (list, tuple)) or len(v) > 3:
+            v = ['model', v]
+         data[f"ncont_{k}"] = v
    for i in range(len(bodies)):
       data[f'disp{i}'] = (['model'], np.sum(xforms[:, i, :3, 3] * spec.axis[None, i, :3], axis=1))
       data[f'angle{i}'] = (['model'], rp.homog.angle_of(xforms[:, i]) * 180 / np.pi)
@@ -81,6 +100,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       kw = self.kw.sub(wts=wts)
       xeye = np.eye(4, dtype="f4")
       B = self.bodies
+      print(f"docking {len(B)} bodies")
       X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
       xnbr = self.spec.to_neighbor_olig
 
@@ -98,6 +118,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
             ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
 
       if xnbr[0] is None and xnbr[1] is not None and xnbr[2] is not None:  # layer hack
+         logging.debug("touch")
          inv = np.linalg.inv
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[1] @ X[ok, 1], **kw)
          ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], xnbr[2] @ X[ok, 2], **kw)
@@ -112,6 +133,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[1]) @ X[ok, 2], **kw)
 
       # score everything that didn't clash
+<<<<<<< HEAD
       # TODO maybe add inter/intra-face scoring here? QD WHS
       ifscore = list()
       for i in range(len(B)):
@@ -133,6 +155,72 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
                        resub=(['model', 'component'], resub))
 
       return scores, extra
+=======
+      # Behaves normally if arg.score_self is not set
+      if not arg.score_self:
+         ifscore = list()
+         for i in range(len(B)):
+            for j in range(i):
+               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
+               # ifscore = np.stack(ifscore)
+               logging.debug(f"ifscore is {len(ifscore)} long and is a {type(ifscore)}")
+
+         scores = np.zeros(len(X))
+         logging.debug(f"scores is shaped like {scores.shape} and is a {type(scores)}")
+         scores[ok] = arg.iface_summary(ifscore, axis=0)
+         logging.debug(f"scores is now shaped like {scores.shape}")
+         extra = rp.Bunch()
+      else: #return all of the interface scores
+         logging.debug("Scoring self")
+         s_ifscore = list()
+         ns_ifscore = list()
+         logging.debug("stepping into scoring")
+         #TO DO: The multiple loops could be simplified into a single loop.
+         for i in range(len(B)):
+            for j in range(i + 1):
+               logging.debug(f"scoring body {i} against body {j}")
+               if i==j:
+                  logging.debug("found self")
+                  Xsym = self.spec.to_neighbor_olig @ X
+                  s_ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, wts=wts))
+               else:
+                  ns_ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
+         logging.debug(f"self scores is length {len(s_ifscore[0])}")
+         logging.debug(f"non-self scores is legnth {len(ns_ifscore[0])}")
+         logging.debug(f"OK len is {len(ok)}")
+         scores_s = np.zeros((len(B), len(X)))
+         #TO DO: Quinton: Make sure this actually works for three-body docking
+         scores_ns = np.zeros((len(B) - 1, len(X)))
+
+         #Only keep non-clashing interface scores
+         for i,iface_scores in enumerate(ns_ifscore):
+            scores_ns[i,ok] = iface_scores
+         for i,iface_scores in enumerate(s_ifscore):
+             scores_s[i,ok] = iface_scores
+         logging.debug(f"Scores self is shape {scores_s.shape}")
+         logging.debug(f"Scores not-self is shape {scores_ns.shape}")
+         logging.debug("Done Scoring")
+         #Normal scoring for consistency in output. This may be the same as one of the cross component scores depending on arg.iface_summary()
+         scores = np.zeros(len(X))
+         scores[ok] = arg.iface_summary(ns_ifscore, axis=0)
+         
+         #Package all scores in a dict that can be bunched
+         all_scores = {}
+         ind=0
+         for i in range( len(B) ):
+            all_scores[f'self_score_comp{i}'] = (['model'], scores_s[i])
+            for j in range( i + 1 ):
+               if j != i:
+                  all_scores[f'cross_comp_score_{i}{j}'] = (['model'], scores_ns[ind])
+                  ind += 1
+    
+         extra = rp.Bunch(all_scores)
+      return scores, extra
+      #else:
+      #   scores[ok] = arg.iface_summary(ifscore, axis=0)
+      #   return scores, rp.Bunch()
+      #return scores, rp.Bunch()
+>>>>>>> quinton/multi_int_score
 
 class TwoCompEvaluatorWithTrim(MultiCompEvaluatorBase):
    def __init__(self, *arg, trimmable_components="AB", **kw):
