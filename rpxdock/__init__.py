@@ -4,11 +4,7 @@ __version__ = "0.1"
 
 import os
 
-<<<<<<< HEAD
 os.environ["CC"] = "gcc-7"
-=======
-os.environ["CC"] = "gcc-7"  # does this work?
->>>>>>> akhmelin/grid_1comp
 os.environ["CXX"] = "g++-7"
 
 from rpxdock.util import Bunch, Timer, load, dump

@@ -73,13 +73,8 @@ def test_plug_olig_hier(hscore, body_c3_mono, hole):
    ref = rp.data.get_test_data('test_plug_olig_hier')
    rp.search.assert_results_close(result, ref)
 
-<<<<<<< HEAD
-def test_plug_olig_grid(hscore, plug, hole):
-   arg = testarg().sub(plug_fixed_olig=True, max_trim=300)
-=======
 def test_plug_olig_grid(hscore, body_c3_mono, hole):
    kw = testarg().sub(plug_fixed_olig=True, max_trim=100)
->>>>>>> akhmelin/grid_1comp
 
    # kw.output_prefix = "test_plug_olig_grid"
    # kw.nout_debug = 10
@@ -89,11 +84,9 @@ def test_plug_olig_grid(hscore, body_c3_mono, hole):
    gcart = np.linspace(-119.625, 119.625, 20 * 16)
    gang = np.linspace(0.3125, 119.6875, 12 * 16)
    xgrid = grid_sym_axis(gcart, gang)
-<<<<<<< HEAD
-   result = make_plugs(plug, hole, hscore, rp.grid_search, xgrid, **arg)
-=======
+
+   #result = make_plugs(plug, hole, hscore, rp.grid_search, xgrid, **kw)
    result = make_plugs(body_c3_mono, hole, hscore, rp.grid_search, xgrid, **kw)
->>>>>>> akhmelin/grid_1comp
 
    result.dump_pdbs_top_score(10)
 

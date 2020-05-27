@@ -422,16 +422,12 @@ def test_align_lines_dof_dihedral_rand_single():
 
    # print('result', 'ta', np.degrees(target_angle), 'da', np.degrees(dof_angle), 'fda',
    # np.degrees(fix_to_dof_angle), dang, ahat, abs(abs(dang) - abs(ahat)))
-<<<<<<< HEAD
-   close1 = np.allclose(abs(dang), abs(ahat), atol=1e-3)
-   close2 = np.allclose(abs(dang), np.pi - abs(ahat), atol=1e-3)
-=======
+
    atol = 1e-5 if 0.01 < abs(dang) < 3.14 else 1e-3
    close1 = np.allclose(abs(dang), abs(ahat), atol=atol)
    close2 = np.allclose(abs(dang), np.pi - abs(ahat), atol=atol)
    if not close1 or close2:
       print('ERROR', abs(dang), abs(ahat), np.pi - abs(ahat))
->>>>>>> akhmelin/grid_1comp
    assert close1 or close2
 
 def test_align_lines_dof_dihedral_rand_3D():

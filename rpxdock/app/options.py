@@ -207,12 +207,8 @@ def default_cli_parser(parent=None, **kw):
    addarg("--primary_iface_cut", default=None, help='score cut for helix primary interface')
    addarg("--symframe_num_helix_repeats", default=10,
           help='number of helix repeat frames to dump')
-<<<<<<< HEAD
    addarg("--ignored_aas", default='CGP', help='Amino acids to ignore in scoring')
-=======
    addarg("--score_self", action='store_true', default=False, help='score each interface seperately and dump in output pickle')
-
->>>>>>> quinton/multi_int_score
 
    parser.has_rpxdock_args = True
    return parser

@@ -13,14 +13,9 @@ def make_multicomp(
 ):
    kw = rp.Bunch(kw)
    t = rp.Timer().start()
-<<<<<<< HEAD
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else spec.arch
-=======
-   arg.nresl = hscore.actual_nresl if arg.nresl is None else arg.nresl
-   arg.output_prefix = arg.output_prefix if arg.output_prefix else spec.arch
    logging.debug("Docking multicomp")
->>>>>>> quinton/multi_int_score
 
    assert len(bodies) == spec.num_components
    bodies = list(bodies)
@@ -44,17 +39,11 @@ def make_multicomp(
       print("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
 
    xforms = xforms[ibest]
-<<<<<<< HEAD
    wrpx = kw.wts.sub(rpx=1, ncontact=0)
    wnct = kw.wts.sub(rpx=0, ncontact=1)
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
    ncontact, *_ = evaluator(xforms, kw.nresl - 1, wnct)
-=======
-   wrpx = arg.wts.sub(rpx=1, ncontact=0)
-   wnct = arg.wts.sub(rpx=0, ncontact=1)
-   rpx, extra = evaluator(xforms, arg.nresl - 1, wrpx)
-   ncontact, ncont_extra = evaluator(xforms, arg.nresl - 1, wnct)
->>>>>>> quinton/multi_int_score
+
    data = dict(
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, output_prefix=kw.output_prefix,
                  output_body='all', sym=spec.arch),
@@ -67,7 +56,7 @@ def make_multicomp(
       if not isinstance(v, (list, tuple)) or len(v) > 3:
          v = ['model'], v
       data[k] = v
-   if arg.score_self:
+   if kw.score_self:
       for k, v in ncont_extra.items():
          if not isinstance(v, (list, tuple)) or len(v) > 3:
             v = ['model', v]
@@ -133,31 +122,8 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[1]) @ X[ok, 2], **kw)
 
       # score everything that didn't clash
-<<<<<<< HEAD
-      # TODO maybe add inter/intra-face scoring here? QD WHS
-      ifscore = list()
-      for i in range(len(B)):
-         for j in range(i):
-            ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
-      # ifscore = np.stack(ifscore)
-      # print(ifscore.shape)
-      scores = np.zeros(len(X))
-      scores[ok] = kw.iface_summary(ifscore, axis=0)
-
-      # B[0].pos = X[np.argmax(scores), 0]
-      # B[1].pos = X[np.argmax(scores), 1]
-      # B[0].dump_pdb('test0.pdb')
-      # B[1].dump_pdb('test1.pdb')
-      # assert 0
-
-      resub = np.tile([len(B[0]), len(B[1])], len(scores)).reshape(-1, 2)
-      extra = rp.Bunch(reslb=(['model', 'component'], np.zeros((len(scores), 2), dtype='i')),
-                       resub=(['model', 'component'], resub))
-
-      return scores, extra
-=======
       # Behaves normally if arg.score_self is not set
-      if not arg.score_self:
+      if not kw.score_self:
          ifscore = list()
          for i in range(len(B)):
             for j in range(i):
@@ -167,7 +133,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
 
          scores = np.zeros(len(X))
          logging.debug(f"scores is shaped like {scores.shape} and is a {type(scores)}")
-         scores[ok] = arg.iface_summary(ifscore, axis=0)
+         scores[ok] = kw.iface_summary(ifscore, axis=0)
          logging.debug(f"scores is now shaped like {scores.shape}")
          extra = rp.Bunch()
       else: #return all of the interface scores
@@ -202,7 +168,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          logging.debug("Done Scoring")
          #Normal scoring for consistency in output. This may be the same as one of the cross component scores depending on arg.iface_summary()
          scores = np.zeros(len(X))
-         scores[ok] = arg.iface_summary(ns_ifscore, axis=0)
+         scores[ok] = kw.iface_summary(ns_ifscore, axis=0)
          
          #Package all scores in a dict that can be bunched
          all_scores = {}
@@ -220,7 +186,6 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       #   scores[ok] = arg.iface_summary(ifscore, axis=0)
       #   return scores, rp.Bunch()
       #return scores, rp.Bunch()
->>>>>>> quinton/multi_int_score
 
 class TwoCompEvaluatorWithTrim(MultiCompEvaluatorBase):
    def __init__(self, *arg, trimmable_components="AB", **kw):

@@ -69,15 +69,12 @@ def dock_onecomp(hscore, **kw):
       sampler = rp.sampling.grid_sym_axis(cart=np.arange(kw.cart_bounds[0], kw.cart_bounds[1], kw.grid_resolution_cart_angstroms), ang=np.arange(0, 360/ spec.nfold, kw.grid_resolution_ori_degrees), axis = spec.axis, flip=list(spec.flip_axis[:3]))
       search = rp.grid_search
    else:
-<<<<<<< HEAD
-      #TODO: Change sampler to grid_sym_axis and switch rp.hier_search to rp.grid_search (if arg.docking_method == "grid" or "hier") AK/EY
       sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
-=======
+
       if spec.type == 'mirrorlayer':
          sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **arg)
       else:
          sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
->>>>>>> akhmelin/grid_1comp
                                               axis=spec.axis, flipax=spec.flip_axis)
       search=rp.hier_search
 
@@ -206,28 +203,16 @@ def main():
    hscore = rp.CachedProxy(rp.RpxHier(kw.hscore_files, **kw))
    arch = kw.architecture
 
-<<<<<<< HEAD
    # TODO commit to master AK
-=======
->>>>>>> quinton/multi_int_score
    #sym, comp = arch.split('_')
 
    # TODO: redefine archs WHS or others with a monster list of if statements
    if arch.startswith('C'):
-<<<<<<< HEAD
       result = dock_cyclic(hscore, **kw)
    elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
-<<<<<<< HEAD
-=======
-      result = dock_cyclic(hscore, **arg)
-   elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
->>>>>>> quinton/multi_int_score
       result = dock_onecomp(hscore, **arg)
    elif arch.startswith('PLUG'):
       result = dock_plug(hscore, **arg)
-=======
-      result = dock_onecomp(hscore, **kw)
->>>>>>> akhmelin/grid_1comp
    else:
       result = dock_multicomp(hscore, **kw)
 
