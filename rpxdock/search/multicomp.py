@@ -42,7 +42,7 @@ def make_multicomp(
    wrpx = kw.wts.sub(rpx=1, ncontact=0)
    wnct = kw.wts.sub(rpx=0, ncontact=1)
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
-   ncontact, *_ = evaluator(xforms, kw.nresl - 1, wnct)
+   ncontact, ncont_extra = evaluator(xforms, kw.nresl - 1, wnct)
 
    data = dict(
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, output_prefix=kw.output_prefix,

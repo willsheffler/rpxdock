@@ -70,12 +70,12 @@ def dock_onecomp(hscore, **kw):
       search = rp.grid_search
    else:
       sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
-
-      if spec.type == 'mirrorlayer':
-         sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **arg)
-      else:
-         sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
-                                              axis=spec.axis, flipax=spec.flip_axis)
+                                             axis=spec.axis, flipax=spec.flip_axis)
+      #if spec.type == 'mirrorlayer':
+      #   sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **arg)
+      #else:
+      #   sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
+                                              
       search=rp.hier_search
 
    # pose info and axes that intersect
@@ -114,7 +114,7 @@ def dock_multicomp(hscore, **kw):
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
    logging.info(f'num base samples {sampler.size(0):,}')
 
-   bodies = [[rp.Body(fn, allowed_res=ar2**kw)
+   bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
               for fn, ar2 in zip(inp, ar)]
              for inp, ar in zip(kw.inputs, kw.allowed_residues)]
    assert len(bodies) == spec.num_components
