@@ -66,24 +66,27 @@ def dock_onecomp(hscore, **kw):
    spec = get_spec(kw.architecture)
    # double normal resolution, cuz why not?
    if kw.docking_method == 'grid':
-      sampler = rp.sampling.grid_sym_axis(cart=np.arange(kw.cart_bounds[0], kw.cart_bounds[1], kw.grid_resolution_cart_angstroms), ang=np.arange(0, 360/ spec.nfold, kw.grid_resolution_ori_degrees), axis = spec.axis, flip=list(spec.flip_axis[:3]))
+      sampler = rp.sampling.grid_sym_axis(
+         cart=np.arange(kw.cart_bounds[0], kw.cart_bounds[1], kw.grid_resolution_cart_angstroms),
+         ang=np.arange(0, 360 / spec.nfold, kw.grid_resolution_ori_degrees), axis=spec.axis,
+         flip=list(spec.flip_axis[:3]))
       search = rp.grid_search
    else:
       sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
-                                             axis=spec.axis, flipax=spec.flip_axis)
+                                              axis=spec.axis, flipax=spec.flip_axis)
       #if spec.type == 'mirrorlayer':
       #   sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **arg)
       #else:
       #   sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
-                                              
-      search=rp.hier_search
+
+      search = rp.hier_search
 
    # pose info and axes that intersect
    bodies = [
       rp.Body(inp, allowed_res=allowedres, **kw)
       for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)
    ]
-   
+
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
    with exe(kw.ncpu) as pool:
@@ -103,7 +106,7 @@ def dock_onecomp(hscore, **kw):
       result = [None] * len(futures)
       for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
-   
+
    result = rp.concat_results(result)
    return result
    # result = rp.search.make_onecomp(bodyC3, spec, hscore, rp.hier_search, sampler, **kw)

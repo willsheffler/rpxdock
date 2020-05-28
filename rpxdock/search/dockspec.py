@@ -303,6 +303,7 @@ class DockSpec3CompLayer:
       self.num_components = 3
       ang = 360 / self.nfold[0]
       self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], ang), hm.hrot([0, 0, 1], ang)]
+
 '''
 class DockSpecPlug:
    def __init__(self, arch):
