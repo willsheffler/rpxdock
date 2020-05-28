@@ -35,10 +35,14 @@ def default_cli_parser(parent=None, **kw):
    addarg = add_argument_unless_exists(parser)
    addarg("--inputs", nargs="*", type=str, default=[],
           help='input structures for single component protocols')
-   addarg("--inputs1", nargs="*", type=str, default=[],
-          help='input structures for single component protocols')
-   addarg("--inputs2", nargs="*", type=str, default=[],
-          help='input structures for second component for 2+ component protocols')
+   addarg(
+      "--inputs1", nargs="*", type=str, default=[],
+      help='input structures for single component protocols, plug input structure for plug protocol'
+   )
+   addarg(
+      "--inputs2", nargs="*", type=str, default=[],
+      help='input structures for second component for 2+ component protocols, hole input structure for plug protocol'
+   )
    addarg("--inputs3", nargs="*", type=str, default=[],
           help='input structures for third component for 3+ component protocols')
    addarg("--allowed_residues", nargs="*", type=str, default=[],
@@ -190,7 +194,7 @@ def default_cli_parser(parent=None, **kw):
    # tcdock
    addarg(
       "--architecture", type=str, default=None,
-      help='architecture to be produced by docking. Can be cage I32, O43, T32 or Cx for cyclic. No default value'
+      help='architecture to be produced by docking. Can be cage I32, O43, T32 or Cx for cyclic. For plug protocol, can be PLUG_Cx. No default value'
    )
    addarg("--trimmable_components", default="ABCDEFGHIJKLMNOPQRSTUVWXYZ",
           help='specify which components "ABC" etc are trimmable.')
@@ -208,6 +212,8 @@ def default_cli_parser(parent=None, **kw):
    addarg("--symframe_num_helix_repeats", default=10,
           help='number of helix repeat frames to dump')
    addarg("--ignored_aas", default='CGP', help='Amino acids to ignore in scoring')
+   addarg("--score_self", action='store_true', default=False,
+          help='score each interface seperately and dump in output pickle')
 
    parser.has_rpxdock_args = True
    return parser

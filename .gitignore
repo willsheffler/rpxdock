@@ -93,3 +93,4 @@ doc/doxyoutput
 doc/_build
 doc/cppapi
 
+.idea

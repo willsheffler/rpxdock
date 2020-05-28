@@ -134,6 +134,11 @@ if __name__ == '__main__':
    # body2 = rp.data.get_body('T33_dn2_asymB_extended')
    # test_cage_hier_trim(hscore, body1, body2)
 
+   C2 = rp.data.get_body('C2_REFS10_1')
+   C3 = rp.data.get_body('C3_1na0-1_1')
+   C4 = rp.data.get_body('C4_1na0-G1_1')
+   test_cage_hier_3comp(hscore, C4, C3, C2)
+
    # C2 = rp.data.get_body('C2_REFS10_1')
    # C3 = rp.data.get_body('C3_1na0-1_1')
    # C4 = rp.data.get_body('C4_1na0-G1_1')

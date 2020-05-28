@@ -386,17 +386,22 @@ def ray_in_plane(plane, ray):
            point_in_plane(plane, ray[..., :3, 0] + ray[..., :3, 1]))
 
 def intersect_planes(plane1, plane2):
+   """
+   intersect_Planes: find the 3D intersection of two planes
+      Input:  two planes represented by rays shape=(..., 4, 2)
+      Output: L = the intersection line (when it exists)
+      Return: rays shape=(...,4,2), status
+              0 = intersection returned
+              1 = disjoint (no intersection)
+              2 = the two planes coincide
+   """
    """intersect two planes
-
    :param plane1: first plane represented by ray
    :type plane2: np.array shape=(..., 4, 2) 
-
    :param plane1: second planes represented by rays
    :type plane2: np.array shape=(..., 4, 2) 
-
    :return: line: np.array shape=(...,4,2), status: int (0 = intersection returned, 1 = no intersection, 2 = the two planes coincide)
    """
-
    if not is_valid_rays(plane1): raise ValueError('invalid plane1')
    if not is_valid_rays(plane2): raise ValueError('invalid plane2')
    shape1, shape2 = np.array(plane1.shape), np.array(plane2.shape)

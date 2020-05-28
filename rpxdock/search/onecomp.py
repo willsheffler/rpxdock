@@ -10,6 +10,16 @@ def make_onecomp(
    fixed_components=False,
    **kw,
 ):
+   '''
+   :param body: pose info
+   :param spec: architecture info
+   :param hscore: motif stuff
+   :param search: type of search
+   :param sampler: defined as None, but we feed it hier_axis_sampler
+   :param fixed_components: whether one component is fixed
+   :param kw: all default variables we are bringing in
+   :return:
+   '''
    kw = rp.Bunch(kw)
    t = rp.Timer().start()
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
@@ -17,7 +27,8 @@ def make_onecomp(
 
    assert isinstance(body, rp.Body)
    if not fixed_components:
-      body = body.copy_xformed(rp.homog.align_vector([0, 0, 1], spec.axis))
+      body = body.copy_xformed(rp.homog.align_vector(
+         [0, 0, 1], spec.axis))  # align body axis of symmetry to z axis
 
    dotrim = kw.max_trim and kw.trimmable_components
    evaluator = OneCompEvaluator(body, spec, hscore, **kw)
@@ -43,6 +54,8 @@ def make_onecomp(
       rpx=(["model"], rpx.astype("f4")),
       ncontact=(["model"], ncontact.astype("f4")),
    )
+
+   # put additional geom stuff into data
    for k, v in extra.items():
       if not isinstance(v, (list, tuple)) or len(v) > 3:
          v = ['model'], v
@@ -58,6 +71,14 @@ def make_onecomp(
    )
 
 class OneCompEvaluator:
+   '''
+   Takes a monomer position, generates a sym neighbor, and checks for clashes between the sym neighbors
+   For trimming: does trimming thing and finds intersection until overlap isn't too overlappy/clashy anymore
+   xforms: body.pos
+   xsym: xforms of symmetrically related copy
+   those two things get checked for intersections and clashes and scored by scorepos
+   Does not check for flatness like Cyclic, because cages aren't flat.
+   '''
    def __init__(self, body, spec, hscore, wts=rp.Bunch(ncontact=0.1, rpx=1.0),
                 trimmable_components="AB", **kw):
       self.kw = rp.Bunch(kw)
@@ -97,6 +118,15 @@ class OneCompEvaluator:
       scores = np.zeros(len(X))
       bounds = (*trim, -1, *trim, -1)
       scores[ok] = sfxn(body, body, X[ok], Xsym[ok], iresl, bounds, **kw)
+      '''
+      bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
+      sfxn: hscore.scorepos scores stuff from the hscore that got passed 
+         takes two pos of bodies (the same monomer in this case)
+         xforms: not clashing xforms 
+         iresl: stage of hierarchical search (grid spacing: 4A --> 2A --> 1A --> 0.5A --> 0.25A)
+         sampling at highest resl probably 0.6A due to ori + cart
+         returns score # for each "dock"
+      '''
 
       # record ranges used
       lb = np.zeros(len(scores), dtype="i4")

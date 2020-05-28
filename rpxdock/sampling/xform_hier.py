@@ -20,14 +20,24 @@ class LineHier:
       self.hier1d = rp.sampling.CartHier1D_f4([state[0]], [state[1]], [state[2]])
 
 def hier_axis_sampler(
-      nfold,
-      lb=25,
-      ub=200,
-      resl=10,
-      angresl=10,
-      axis=[0, 0, 1],
-      flipax=[0, 1, 0],
+   nfold,
+   lb=25,
+   ub=200,
+   resl=10,
+   angresl=10,
+   axis=[0, 0, 1],
+   flipax=[0, 1, 0],
 ):
+   '''
+   :param nfold: architecture stuff
+   :param lb:
+   :param ub:
+   :param resl:
+   :param angresl:
+   :param axis: sample z axis
+   :param flipax: flip subunits
+   :return: "arrays of pos" to check for a given search resolution where pos are represented by matrices
+   '''
    cart_nstep = int(np.ceil((ub - lb) / resl))
    ang = 360 / nfold
    ang_nstep = int(np.ceil(ang / angresl))
@@ -38,12 +48,12 @@ def hier_axis_sampler(
    return samp
 
 def hier_multi_axis_sampler(
-      spec,
-      cart_bounds=[25, 200],
-      resl=10,
-      angresl=10,
-      flip_components=True,
-      **kw,
+   spec,
+   cart_bounds=[25, 200],
+   resl=10,
+   angresl=10,
+   flip_components=True,
+   **kw,
 ):
    if not (hasattr(spec, 'nfold') and hasattr(spec, 'axis') and hasattr(spec, 'xflip')):
       raise ValueError('spec must have nfold, axis and xflip')
@@ -88,18 +98,30 @@ def hier_multi_axis_sampler(
    return sampler
 
 def hier_mirror_lattice_sampler(
-      spec,
-      cart_bounds=[0, 100],
-      resl=10,
-      angresl=10,
-      flip_components=True,
-      **kw,
+   spec,
+   cart_bounds=[0, 100],
+   resl=10,
+   angresl=10,
+   flip_components=True,
+   **kw,
 ):
+   '''
+   setting cartesian bounds as opposed to lower/upper bounds
+   :param spec:
+   :param cart_bounds:
+   :param resl:
+   :param angresl:
+   :param flip_components:
+   :param kw:
+   :return:
+   '''
    cart_bounds = np.array(cart_bounds)
    cart_nstep = np.ceil((cart_bounds[:, 1] - cart_bounds[:, 0]) / resl).astype('i')
    ang = 360 / spec.nfold
    ang_nstep = np.ceil(ang / angresl).astype('i')
+   # sampling cell type of xtal
    sampcell = LineHier(cart_bounds[0, 0], cart_bounds[0, 1], cart_nstep[0], [1, 0, 0])
+   # sampling axis of cage within "context of xtal"
    sampaxis = rp.sampling.RotCart1Hier_f4(cart_bounds[1, 0], cart_bounds[1, 1], cart_nstep[1], 0,
                                           ang[0], ang_nstep[0], [0, 0, 1])
    return rp.sampling.ProductHier(sampcell, sampaxis)
