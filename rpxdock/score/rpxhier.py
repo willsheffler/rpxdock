@@ -106,15 +106,15 @@ class RpxHier:
 #        "pos2"_a = eye4);
 
    def scorepos(
-      self,
-      body1,
-      body2,
-      pos1,
-      pos2,
-      iresl=-1,
-      bounds=(),
-      residue_summary=np.sum,  # TODO hook up to options to select
-      **kw,
+         self,
+         body1,
+         body2,
+         pos1,
+         pos2,
+         iresl=-1,
+         bounds=(),
+         residue_summary=np.sum,  # TODO hook up to options to select
+         **kw,
    ):
       '''
       TODO WSH rearrange so ppl can add different ways of scoring
@@ -183,6 +183,7 @@ class RpxHier:
       phmap = self.hier[iresl].phmap
       ssstub = body1.ssid, body2.ssid, body1.stub, body2.stub
       ssstub = ssstub if self.use_ss else ssstub[2:]
+
       # hashtable of scores for each pair of res in contact in each dock
       pscore = self.map_pairs_multipos(
          xbin,
