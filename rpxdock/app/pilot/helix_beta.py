@@ -55,7 +55,7 @@ def get_helix_args():
    if not kw.cart_bounds:
       kw.cart_bounds = np.array([(0, 100), (-100, 100), (-100, 100)])
    else:
-      kw.cart_bounds = rp.options.process_cart_bounds(kw.cart_bounds)
+      kw.cart_bounds = rp.options._process_cart_bounds(kw.cart_bounds)
 
    kw.iresl_second_shift = 2
    kw.helix_min_primary_angle = 360 / kw.helix_max_isecond - 1
