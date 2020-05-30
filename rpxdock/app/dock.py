@@ -201,6 +201,9 @@ def dock_plug(hscore, **kw):
 
 def main():
    kw = get_rpxdock_args()
+   rp.options.print_options(kw)
+   print(f'{" RUNNING dock.py:main ":=^80}')
+
    logging.info(f'weights: {kw.wts}')
 
    hscore = rp.CachedProxy(rp.RpxHier(kw.hscore_files, **kw))

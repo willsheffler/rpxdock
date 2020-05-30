@@ -94,3 +94,5 @@ doc/_build
 doc/cppapi
 
 .idea
+
+rpxdock_Result.pickle
