@@ -163,7 +163,9 @@ class RpxHier:
       phmap = self.hier[iresl].phmap
       ssstub = body1.ssid, body2.ssid, body1.stub, body2.stub
       ssstub = ssstub if self.use_ss else ssstub[2:]
-      pscore = self.map_pairs_multipos(xbin, phmap, pairs, *ssstub, lbub, pos1, pos2) # hashtable of scores for each pair of res in contact in each dock
+      pscore = self.map_pairs_multipos(
+         xbin, phmap, pairs, *ssstub, lbub, pos1,
+         pos2)  # hashtable of scores for each pair of res in contact in each dock
 
       # summarize pscores for a dock
       lbub1, lbub2, idx1, idx2, res1, res2 = rp.motif.marginal_max_score(lbub, pairs, pscore)

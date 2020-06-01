@@ -46,7 +46,6 @@ def make_cyclic(monomer, sym, hscore, search=hier_search, sampler=None, **kw):
       print("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
 
    xforms = xforms[ibest]
-
    '''
    dump pickle: (multidimensional pandas df) 
    body_: list of bodies/pos used in docking  

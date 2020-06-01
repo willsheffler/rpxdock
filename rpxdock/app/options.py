@@ -4,6 +4,37 @@ log = logging.getLogger(__name__)
 
 _iface_summary_methods = dict(min=np.min, sum=np.sum, median=np.median, mean=np.mean, max=np.max)
 
+def print_options(kw):
+
+   print(f'{" COMMAND LINE ":=^80}')
+   print('APP:', sys.argv[0], end='')
+   for k in sys.argv[1:]:
+      if k.startswith('--'): print('\n   ', k, end=' ')
+      else: print(k, end=' ')
+   print()
+
+   print(f'{" VERSION ":=^80}')
+   print('    Date of commit:', rp.util.gitcommit.date)
+   print('    Branch:', rp.util.gitcommit.branch)
+   print('    Pevious Commit:', rp.util.gitcommit.prev_commit)
+   print('    NOTE: Current commit isn\'t possible to record in the code... kinda a')
+   print('          chicken/egg problem. You must find it based on the previous commit!')
+
+   print(f'{" SETTINGS ":=^80}')
+   maxlen = max(len(_) for _ in kw)
+   for k, v in kw.items():
+      print('   ', k, '.' * (maxlen - len(k)), v)
+
+   print(f'{" SETTINGS EXTRA INFO ":=^80}')
+   for k, v in kw.items():
+      vstr = str(v)
+      if (vstr.startswith('<') and vstr.count(' at 0x') and vstr.endswith('>')
+          and hasattr(v, '__doc__')):
+         print(f'    {f" EXTRA INFO ABOUT: {k} ":=^76s}')
+         print('   ', k, '.' * (maxlen - len(k)), v)
+         print(v.__doc__)
+   print(f'{" END SETTINGS EXTRA INFO ":=^80}')
+
 def str2bool(v):
    if isinstance(v, bool):
       return v
@@ -35,10 +66,14 @@ def default_cli_parser(parent=None, **kw):
    addarg = add_argument_unless_exists(parser)
    addarg("--inputs", nargs="*", type=str, default=[],
           help='input structures for single component protocols')
-   addarg("--inputs1", nargs="*", type=str, default=[],
-          help='input structures for single component protocols')
-   addarg("--inputs2", nargs="*", type=str, default=[],
-          help='input structures for second component for 2+ component protocols')
+   addarg(
+      "--inputs1", nargs="*", type=str, default=[],
+      help='input structures for single component protocols, plug input structure for plug protocol'
+   )
+   addarg(
+      "--inputs2", nargs="*", type=str, default=[],
+      help='input structures for second component for 2+ component protocols, hole input structure for plug protocol'
+   )
    addarg("--inputs3", nargs="*", type=str, default=[],
           help='input structures for third component for 3+ component protocols')
    addarg("--allowed_residues", nargs="*", type=str, default=[],
@@ -190,7 +225,7 @@ def default_cli_parser(parent=None, **kw):
    # tcdock
    addarg(
       "--architecture", type=str, default=None,
-      help='architecture to be produced by docking. Can be cage I32, O43, T32 or Cx for cyclic. No default value'
+      help='architecture to be produced by docking. Can be cage I32, O43, T32 or Cx for cyclic. For plug protocol, can be PLUG_Cx. No default value'
    )
    addarg("--trimmable_components", default="ABCDEFGHIJKLMNOPQRSTUVWXYZ",
           help='specify which components "ABC" etc are trimmable.')
@@ -208,6 +243,8 @@ def default_cli_parser(parent=None, **kw):
    addarg("--symframe_num_helix_repeats", default=10,
           help='number of helix repeat frames to dump')
    addarg("--ignored_aas", default='CGP', help='Amino acids to ignore in scoring')
+   addarg("--score_self", action='store_true', default=False,
+          help='score each interface seperately and dump in output pickle')
 
    parser.has_rpxdock_args = True
    return parser
@@ -257,7 +294,7 @@ def process_cli_args(options, **kw):
    if options.architecture:
       options.architecture = options.architecture.upper()
 
-   if kw.dont_set_default_cart_bounds:
+   if not kw.dont_set_default_cart_bounds:
       options.cart_bounds = _process_cart_bounds(options.cart_bounds)
 
    options.trimmable_components = options.trimmable_components.upper()

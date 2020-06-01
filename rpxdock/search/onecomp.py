@@ -117,6 +117,15 @@ class OneCompEvaluator:
       scores = np.zeros(len(X))
       bounds = (*trim, -1, *trim, -1)
       scores[ok] = sfxn(body, body, X[ok], Xsym[ok], iresl, bounds, **kw)
+      '''
+      bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
+      sfxn: hscore.scorepos scores stuff from the hscore that got passed 
+         takes two pos of bodies (the same monomer in this case)
+         xforms: not clashing xforms 
+         iresl: stage of hierarchical search (grid spacing: 4A --> 2A --> 1A --> 0.5A --> 0.25A)
+         sampling at highest resl probably 0.6A due to ori + cart
+         returns score # for each "dock"
+      '''
 
       '''
       bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
