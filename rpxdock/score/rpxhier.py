@@ -106,15 +106,15 @@ class RpxHier:
 #        "pos2"_a = eye4);
 
    def scorepos(
-         self,
-         body1,
-         body2,
-         pos1,
-         pos2,
-         iresl=-1,
-         bounds=(),
-         residue_summary=np.sum,  # TODO hook up to options to select
-         **kw,
+      self,
+      body1,
+      body2,
+      pos1,
+      pos2,
+      iresl=-1,
+      bounds=(),
+      residue_summary=np.sum,  # TODO hook up to options to select
+      **kw,
    ):
       '''
       TODO WSH rearrange so ppl can add different ways of scoring

@@ -36,6 +36,8 @@ def print_options(kw):
    print(f'{" END SETTINGS EXTRA INFO ":=^80}')
 
 def str2bool(v):
+   if isinstance(v, (list, tuple)):
+      return [str2bool(_) for _ in v]
    if isinstance(v, bool):
       return v
    if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -43,7 +45,10 @@ def str2bool(v):
    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
       return False
    else:
-      raise argparse.ArgumentTypeError('Boolean value expected.')
+      raise argparse.ArgumentTypeError(
+         ('Boolean value expected, not "%s" of type %s\n' % (v, type(v)) +
+          'Allowed True Vals  (case independant): yes true ty 1\n' +
+          'Allowed False Vals (case independant): no false f n 0'))
 
 def parse_list_of_strtuple(s):
    if isinstance(s, list):

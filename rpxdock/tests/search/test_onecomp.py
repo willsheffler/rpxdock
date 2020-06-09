@@ -84,7 +84,7 @@ def test_cage_hier_D3_2_onecomp_notrim(hscore, bodyC2):
 
    # result.dump_pdbs_top_score(10)
 
-@pytest.mark.xfail
+@pytest.mark.skip
 def test_cage_hier_onecomp_trim(hscore, bodyC3):
    kw = rp.app.defaults()
    kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)

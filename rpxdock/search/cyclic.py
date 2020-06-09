@@ -1,5 +1,5 @@
 import numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
-from rpxdock.search import hier_search
+from rpxdock.search import hier_search, grid_search
 
 def make_cyclic_hier_sampler(monomer, hscore):
    '''
