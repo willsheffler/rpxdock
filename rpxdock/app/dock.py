@@ -67,19 +67,17 @@ def dock_onecomp(hscore, **kw):
    # double normal resolution, cuz why not?
    if kw.docking_method == 'grid':
       sampler = rp.sampling.grid_sym_axis(
-         cart=np.arange(kw.cart_bounds[0], kw.cart_bounds[1], kw.grid_resolution_cart_angstroms),
+         cart=np.arange(kw.cart_bounds[0][0], kw.cart_bounds[0][1], kw.grid_resolution_cart_angstroms),
          ang=np.arange(0, 360 / spec.nfold, kw.grid_resolution_ori_degrees), axis=spec.axis,
          flip=list(spec.flip_axis[:3]))
       search = rp.grid_search
    else:
-      sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
+      if spec.type == 'mirrorlayer':
+         sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **arg)
+      else:
+         sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
                                               axis=spec.axis, flipax=spec.flip_axis)
-      #if spec.type == 'mirrorlayer':
-      #   sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **arg)
-      #else:
-      #   sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=5, angresl=5,
-
-      search = rp.hier_search
+      search=rp.hier_search
 
    # pose info and axes that intersect
    bodies = [
@@ -106,7 +104,6 @@ def dock_onecomp(hscore, **kw):
       result = [None] * len(futures)
       for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
-
    result = rp.concat_results(result)
    return result
    # result = rp.search.make_onecomp(bodyC3, spec, hscore, rp.hier_search, sampler, **kw)
@@ -145,39 +142,38 @@ def dock_multicomp(hscore, **kw):
    return result
 
 def dock_plug(hscore, **kw):
-   arg = rp.Bunch(kw)
-   arg.plug_fixed_olig = True
+   kw = rp.Bunch(kw)
+   kw.plug_fixed_olig = True
 
-   arch = arg.architecture
-   #arg.sym = arch.split('_')[1]
-   arg.nfold = int(arch.split('_')[1][-1])
+   arch = kw.architecture
+   kw.nfold = int(arch.split('_')[1][-1])
 
-   cb = arg.cart_bounds[0]
+   cb = kw.cart_bounds[0]
    if not cb: cb = [-100, 100]
-   if arg.docking_method.lower() == 'grid':
+   if kw.docking_method.lower() == 'grid':
       search = rp.grid_search
-      crt_smap = np.arange(cb[0], cb[1] + 0.001, arg.grid_resolution_cart_angstroms)
-      ori_samp = np.arange(-180 / arg.nfold, 180 / arg.nfold - 0.001,
-                           arg.grid_resolution_ori_degrees)
+      crt_smap = np.arange(cb[0], cb[1] + 0.001, kw.grid_resolution_cart_angstroms)
+      ori_samp = np.arange(-180 / kw.nfold, 180 / kw.nfold - 0.001,
+                           kw.grid_resolution_ori_degrees)
       sampler = rp.sampling.grid_sym_axis(crt_smap, ori_samp, axis=[0, 0, 1], flip=[0, 1, 0])
       logging.info(f'docking samples per splice {len(sampler)}')
-   elif arg.docking_method.lower() == 'hier':
+   elif kw.docking_method.lower() == 'hier':
       search = rp.hier_search
-      sampler = rp.sampling.hier_axis_sampler(arg.nfold, lb=cb[0], ub=cb[1])
+      sampler = rp.sampling.hier_axis_sampler(kw.nfold, lb=cb[0], ub=cb[1])
       logging.info(f'docking possible samples per splice {sampler.size(4)}')
    else:
-      raise ValueError(f'unknown search dock_method {arg.dock_method}')
+      raise ValueError(f'unknown search dock_method {kw.dock_method}')
 
    logging.info(f'num base samples {sampler.size(0):,}')
 
-   plug_bodies = [rp.Body(inp, which_ss="H", **arg) for inp in arg.inputs1]
-   hole_bodies = [rp.Body(inp, sym=3, which_ss="H", **arg) for inp in arg.inputs2]
+   plug_bodies = [rp.Body(inp, which_ss="H", **kw) for inp in kw.inputs1]
+   hole_bodies = [rp.Body(inp, sym=3, which_ss="H", **kw) for inp in kw.inputs2]
 
    #assert len(bodies) == spec.num_components
 
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
-   with exe(arg.ncpu) as pool:
+   with exe(kw.ncpu) as pool:
       futures = list()
       for ijob, bod in enumerate(itertools.product(hole_bodies)):
          hole = hole_bodies[ijob]
@@ -190,7 +186,7 @@ def dock_plug(hscore, **kw):
                hscore,
                search,
                sampler,
-               **arg,
+               **kw,
             ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
@@ -216,9 +212,9 @@ def main():
    if arch.startswith('C'):
       result = dock_cyclic(hscore, **kw)
    elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
-      result = dock_onecomp(hscore, **arg)
+      result = dock_onecomp(hscore, **kw)
    elif arch.startswith('PLUG'):
-      result = dock_plug(hscore, **arg)
+      result = dock_plug(hscore, **kw)
    else:
       result = dock_multicomp(hscore, **kw)
 
