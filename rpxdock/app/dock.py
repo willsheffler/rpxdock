@@ -167,6 +167,7 @@ def dock_plug(hscore, **kw):
 
    logging.info(f'num base samples {sampler.size(0):,}')
 
+   # TODO: EY to use inputs and add allowed_residues flag 
    plug_bodies = [rp.Body(inp, which_ss="H", **arg) for inp in arg.inputs1]
    hole_bodies = [rp.Body(inp, sym=3, which_ss="H", **arg) for inp in arg.inputs2]
 
