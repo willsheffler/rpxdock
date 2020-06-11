@@ -20,18 +20,17 @@ def test_make_cyclic_hier(hscore, body):
    ref = rp.data.get_test_data('test_make_cyclic_hier')
    rp.search.assert_results_close(result, ref)
 
-@pytest.mark.skip
 def test_make_cyclic_grid(hscore, body):
    kw = get_arg()
    kw.max_trim = 0
+   kw.cart_resl = 3
+   kw.ori_resl = 20
    result = rp.search.make_cyclic(body, "C3", hscore, grid_search, **kw)
-   print(result)
-   result.dump_pdbs_top_score(3)
-
+   # print(result)
+   # result.dump_pdbs_top_score(3)
    # rp.dump(result, 'rpxdock/data/testdata/test_make_cyclic_grid.pickle')
-   # ref = rp.data.get_test_data('test_make_cyclic_grid')
-   # rp.search.assert_results_close(result, ref)
-   assert 0
+   ref = rp.data.get_test_data('test_make_cyclic_grid')
+   rp.search.assert_results_close(result, ref)
 
 def test_make_cyclic_hier_trim(hscore, body):
    kw = get_arg()
