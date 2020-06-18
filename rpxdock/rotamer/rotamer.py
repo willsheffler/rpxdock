@@ -20,8 +20,8 @@ def assign_rotamers(rp, rotspace=None):
       rotchi = np.stack([rs["x" + str(i + 1)] for i in range(nchi)], axis=1)
       assert rotchi.shape[0] == len(rs.lbl)
       allrotchi.extend(rotchi)
-      chi = np.stack([rp["chi" + str(i + 1)][rp.aaid == aaid] for i in range(nchi)], axis=1)[:,
-                                                                                             None]
+      chi = np.stack([rp["chi" + str(i + 1)][rp.aaid == aaid] for i in range(nchi)],
+                     axis=1)[:, None]
       assert -180.0 <= np.min(chi)
       assert np.max(chi) <= 180.0
       # print(aa, rotchi.shape, chi.shape)

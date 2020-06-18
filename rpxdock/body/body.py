@@ -7,12 +7,12 @@ _CLASHRAD = 1.75
 
 class Body:
    def __init__(
-      self,
-      pdb_or_pose,
-      sym="C1",
-      symaxis=[0, 0, 1],
-      allowed_res=None,
-      **kw,
+         self,
+         pdb_or_pose,
+         sym="C1",
+         symaxis=[0, 0, 1],
+         allowed_res=None,
+         **kw,
    ):
       kw = rpxdock.Bunch(kw)
 
