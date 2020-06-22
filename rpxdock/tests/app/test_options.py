@@ -102,6 +102,18 @@ def test_inputs():
    for i, a in zip(kw.inputs, kw.allowed_residues):
       assert len(i) == len(a)
 
+def test_str2bool():
+   assert str2bool('True')
+   with pytest.raises(argparse.ArgumentTypeError):
+      assert str2bool('8')
+   assert str2bool('1')
+   with pytest.raises(argparse.ArgumentTypeError):
+      assert str2bool('-1')
+   assert not str2bool('faLse')
+   assert not str2bool('0')
+
+   assert str2bool(['t', 'f', 'no', 'yes']) == [True, False, False, True]
+
 def test_inputs_read_allowed_res():
    kw = defaults(process_args=False).sub(
       inputs=['foo'],
@@ -118,4 +130,5 @@ def test_inputs_read_allowed_res():
 if __name__ == '__main__':
    # test_defaults()
    # test_get_cli_args()
-   test_inputs_read_allowed_res()
+   # test_inputs_read_allowed_res()
+   test_str2bool()

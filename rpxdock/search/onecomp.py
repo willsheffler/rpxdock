@@ -27,7 +27,8 @@ def make_onecomp(
 
    assert isinstance(body, rp.Body)
    if not fixed_components:
-      body = body.copy_xformed(rp.homog.align_vector([0, 0, 1], spec.axis)) # align body axis of symmetry to z axis
+      body = body.copy_xformed(rp.homog.align_vector(
+         [0, 0, 1], spec.axis))  # align body axis of symmetry to z axis
 
    dotrim = kw.max_trim and kw.trimmable_components
    evaluator = OneCompEvaluator(body, spec, hscore, **kw)
@@ -126,7 +127,6 @@ class OneCompEvaluator:
          sampling at highest resl probably 0.6A due to ori + cart
          returns score # for each "dock"
       '''
-
       '''
       bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
       sfxn: hscore.scorepos scores stuff from the hscore that got passed 

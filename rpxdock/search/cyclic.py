@@ -1,7 +1,7 @@
 import numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
-from rpxdock.search import hier_search
+from rpxdock.search import hier_search, grid_search
 
-def make_cyclic_hier_sampler(monomer, hscore):
+def make_cyclic_hier_sampler(monomer, hscore, **kw):
    '''
    :param monomer:
    :param hscore:
@@ -18,9 +18,15 @@ def make_cyclic_hier_sampler(monomer, hscore):
    ncart = int(np.ceil(2 * monomer.radius_max() / cart_resl))
    return rp.sampling.OriCart1Hier_f4([0.0], [ncart * cart_resl], [ncart], ori_resl)
 
-_default_samplers = {hier_search: make_cyclic_hier_sampler}
+def make_cyclic_grid_sampler(monomer, cart_resl, ori_resl, **kw):
+   ncart = int(np.ceil(2 * monomer.radius_max() / cart_resl))
+   hiersampler = rp.sampling.OriCart1Hier_f4([0.0], [ncart * cart_resl], [ncart], ori_resl)
+   isvalid, xforms = hiersampler.get_xforms(0, np.arange(hiersampler.size(0)))
+   return xforms[isvalid]
 
-def make_cyclic(monomer, sym, hscore, search=hier_search, sampler=None, **kw):
+_default_samplers = {hier_search: make_cyclic_hier_sampler, grid_search: make_cyclic_grid_sampler}
+
+def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
    '''
    monomer and sym are the input single unit and symmetry
    hscore (hierarchical score) defines the score functions
@@ -34,7 +40,12 @@ def make_cyclic(monomer, sym, hscore, search=hier_search, sampler=None, **kw):
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else sym
 
-   if sampler is None: sampler = _default_samplers[search](monomer, hscore)
+   if search is None:
+      if kw.docking_method not in 'hier grid'.split():
+         raise ValueError(f'--docking_method must be either "hier" or "grid"')
+      if kw.docking_method is 'hier': search = hier_search
+      elif kw.docking_method is 'grid': search = grid_search
+   if sampler is None: sampler = _default_samplers[search](monomer, hscore=hscore, **kw)
    evaluator = CyclicEvaluator(monomer, sym, hscore, **kw)
    xforms, scores, extra, stats = search(sampler, evaluator, **kw)
    ibest = rp.filter_redundancy(xforms, monomer, scores, **kw)
@@ -91,7 +102,7 @@ class CyclicEvaluator:
       xeye = np.eye(4, dtype="f4")
       body, sfxn = self.body, self.hscore.scorepos
       xforms = xforms.reshape(-1, 4, 4)  # body.pos
-      xsym = self.symrot @ xforms # symmetrized version of xforms
+      xsym = self.symrot @ xforms  # symmetrized version of xforms
 
       # check for "flatness"
       ok = np.abs((xforms @ body.pcavecs[0])[:, 2]) <= self.kw.max_longaxis_dot_z
