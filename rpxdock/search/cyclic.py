@@ -102,7 +102,7 @@ class CyclicEvaluator:
       xeye = np.eye(4, dtype="f4")
       body, sfxn = self.body, self.hscore.scorepos
       xforms = xforms.reshape(-1, 4, 4)  # body.pos
-      xsym = self.symrot @ xforms # symmetrized version of xforms
+      xsym = self.symrot @ xforms  # symmetrized version of xforms
 
       # check for "flatness"
       ok = np.abs((xforms @ body.pcavecs[0])[:, 2]) <= self.kw.max_longaxis_dot_z

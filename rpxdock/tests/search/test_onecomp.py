@@ -142,17 +142,52 @@ def test_cage_grid_onecomp_notrim(hscore, bodyC3):
    # result.dump_pdbs_top_score(10)
    # assert 0
 
+def test_deepesh_1comp_bug(hscore):
+   print('start')
+   import sys
+   sys.stdout.flush()
+   kw = rp.app.defaults()
+   kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
+   kw.beam_size = 2e4
+   kw.max_bb_redundancy = 2.0
+   kw.max_delta_h = 9999
+   kw.nout_debug = 0
+   kw.nout_top = 0
+   kw.nout_each = 0
+   kw.score_only_ss = 'H'
+   kw.max_trim = 0
+   # kw.debug = True
+   # kw.executor = concurrent.futures.ThreadPoolExecutor(min(4, kw.ncpu / 2))
+
+   spec = rp.search.DockSpec1CompCage('I3')
+   body = rp.data.get_body('deepesh_1comp_bug')
+
+   kw.sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=140, ub=160, axis=spec.axis,
+                                              flipax=spec.flip_axis)
+   result = rp.search.make_onecomp(body, spec, hscore, **kw)
+   # print(result)
+   # result.dump_pdbs_top_score(
+   # hscore=hscore,
+   # **kw.sub(nout_top=3, output_prefix='test_cage_hier_onecomp_notrim'),
+   # )
+   # assert 0
+   # rp.dump(result, 'rpxdock/data/testdata/test_deepesh_1comp_bug.pickle')
+   ref = rp.data.get_test_data('test_deepesh_1comp_bug')
+   rp.search.assert_results_close(result, ref)
+
 def main():
    hscore = rp.data.small_hscore()
    # hscore = rp.RpxHier('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
    # C2 = rp.data.get_body('C2_REFS10_1')
-   C3 = rp.data.get_body('C3_1na0-1_1')
+   # C3 = rp.data.get_body('C3_1na0-1_1')
 
    # test_cage_hier_onecomp_notrim(hscore, C3)
    # test_cage_hier_D3_onecomp_notrim(hscore, C3)
    # test_cage_hier_D3_2_onecomp_notrim(hscore, C2)
    # _test_cage_hier_onecomp_trim(hscore, C3)
-   test_cage_grid_onecomp_notrim(hscore, C3)
+   # test_cage_grid_onecomp_notrim(hscore, C3)
+
+   test_deepesh_1comp_bug(hscore)
 
 if __name__ == '__main__':
    main()

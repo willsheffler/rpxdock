@@ -7,24 +7,24 @@ _CLASHRAD = 1.75
 
 class Body:
    def __init__(
-         self,
-         pdb_or_pose,
-         sym="C1",
-         symaxis=[0, 0, 1],
-         allowed_res=None,
-         **kw,
+      self,
+      source,
+      sym="C1",
+      symaxis=[0, 0, 1],
+      allowed_res=None,
+      **kw,
    ):
       kw = rpxdock.Bunch(kw)
 
       # pose stuff
-      pose = pdb_or_pose
-      if isinstance(pdb_or_pose, str):
+      pose = source
+      if isinstance(source, str):
          import rpxdock.rosetta.triggers_init as ros
-         self.pdbfile = pdb_or_pose
+         self.pdbfile = source
          if kw.posecache:
-            pose = ros.get_pose_cached(pdb_or_pose)
+            pose = ros.get_pose_cached(source)
          else:
-            pose = ros.pose_from_file(pdb_or_pose)
+            pose = ros.pose_from_file(source)
             ros.assign_secstruct(pose)
       self.pdbfile = pose.pdb_info().name() if pose.pdb_info() else None
       self.orig_anames, self.orig_coords = rp.rosetta.get_sc_coords(pose)
@@ -320,3 +320,7 @@ class Body:
          assert 0
       else:
          return pairs[ok]
+
+   def __repr__(self):
+      source = self.pdbfile if self.pdbfile else '<rosetta Pose of unknown origin>'
+      return f'Body(source="{source}")'

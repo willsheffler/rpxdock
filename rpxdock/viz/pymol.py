@@ -27,18 +27,18 @@ _atom_record_format = (
    "{x:8.3f}{y:8.3f}{z:8.3f}{occ:6.2f}{b:6.2f}\n")
 
 def format_atom(
-      atomi=0,
-      atomn="ATOM",
-      idx=" ",
-      resn="RES",
-      chain="A",
-      resi=0,
-      insert=" ",
-      x=0,
-      y=0,
-      z=0,
-      occ=0,
-      b=0,
+   atomi=0,
+   atomn="ATOM",
+   idx=" ",
+   resn="RES",
+   chain="A",
+   resi=0,
+   insert=" ",
+   x=0,
+   y=0,
+   z=0,
+   occ=0,
+   b=0,
 ):
    return _atom_record_format.format(**locals())
 

@@ -4,22 +4,22 @@ from rpxdock.body import Body
 from rpxdock.io.io import *
 
 def make_pdb_from_bodies(
-      bodies,
-      symframes=None,
-      start=(0, 0),
-      use_body_sym=None,
-      keep=lambda x: True,
-      no_duplicate_chains=False,
-      no_duplicate_reschain_pairs=True,
-      include_cen=True,
-      only_atoms=None,
-      chain_letters=None,
-      resbounds=[],
-      bfactor=None,
-      occupancy=None,
-      use_orig_coords=False,
-      warn_on_chain_overflow=True,
-      **kw,
+   bodies,
+   symframes=None,
+   start=(0, 0),
+   use_body_sym=None,
+   keep=lambda x: True,
+   no_duplicate_chains=False,
+   no_duplicate_reschain_pairs=True,
+   include_cen=True,
+   only_atoms=None,
+   chain_letters=None,
+   resbounds=[],
+   bfactor=None,
+   occupancy=None,
+   use_orig_coords=False,
+   warn_on_chain_overflow=True,
+   **kw,
 ):
    if symframes is None and use_body_sym is None:
       use_body_sym = True
