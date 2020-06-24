@@ -15,8 +15,8 @@ def test_cage_hier_onecomp_notrim(hscore, bodyC3):
    kw.executor = concurrent.futures.ThreadPoolExecutor(min(4, kw.ncpu / 2))
 
    spec = rp.search.DockSpec1CompCage('T3')
-   sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, axis=spec.axis,
-                                           flipax=spec.flip_axis)
+   sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=10, angresl=10,
+                                           axis=spec.axis, flipax=spec.flip_axis)
    result = rp.search.make_onecomp(bodyC3, spec, hscore, rp.hier_search, sampler, **kw)
    # print(result)
    # result.dump_pdbs_top_score(
@@ -43,8 +43,8 @@ def test_cage_hier_D3_onecomp_notrim(hscore, bodyC3):
    kw.executor = concurrent.futures.ThreadPoolExecutor(min(4, kw.ncpu / 2))
 
    spec = rp.search.DockSpec1CompCage('D3_3')
-   sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, axis=spec.axis,
-                                           flipax=spec.flip_axis)
+   sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=10, angresl=10,
+                                           axis=spec.axis, flipax=spec.flip_axis)
    result = rp.search.make_onecomp(bodyC3, spec, hscore, rp.hier_search, sampler, **kw)
    # print(result)
    # result.dump_pdbs_top_score(
@@ -71,8 +71,8 @@ def test_cage_hier_D3_2_onecomp_notrim(hscore, bodyC2):
    kw.executor = concurrent.futures.ThreadPoolExecutor(min(4, kw.ncpu / 2))
 
    spec = rp.search.DockSpec1CompCage('D3_2')
-   sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, axis=spec.axis,
-                                           flipax=spec.flip_axis)
+   sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=10, angresl=10,
+                                           axis=spec.axis, flipax=spec.flip_axis)
    result = rp.search.make_onecomp(bodyC2, spec, hscore, rp.hier_search, sampler, **kw)
    # print(result)
    # result.dump_pdbs_top_score(
@@ -126,7 +126,7 @@ def test_cage_grid_onecomp_notrim(hscore, bodyC3):
    kw.executor = concurrent.futures.ThreadPoolExecutor(min(4, kw.ncpu / 2))
 
    spec = rp.search.DockSpec1CompCage('T3')
-   # sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, axis=spec.axis,
+   # sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=10, angresl=10,  axis=spec.axis,
    sampler = rp.sampling.grid_sym_axis(np.arange(0, 100, 2), np.arange(0, 360 / spec.nfold, 2),
                                        axis=spec.axis, flip=list(spec.flip_axis[:3]))
 
@@ -143,13 +143,13 @@ def test_cage_grid_onecomp_notrim(hscore, bodyC3):
    # assert 0
 
 def test_deepesh_1comp_bug(hscore):
-   print('start')
-   import sys
-   sys.stdout.flush()
+   # print('start')
+   # import sys
+   # sys.stdout.flush()
    kw = rp.app.defaults()
    kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
    kw.beam_size = 2e4
-   kw.max_bb_redundancy = 2.0
+   kw.max_bb_redundancy = 2
    kw.max_delta_h = 9999
    kw.nout_debug = 0
    kw.nout_top = 0
@@ -162,14 +162,17 @@ def test_deepesh_1comp_bug(hscore):
    spec = rp.search.DockSpec1CompCage('I3')
    body = rp.data.get_body('deepesh_1comp_bug')
 
-   kw.sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=140, ub=160, axis=spec.axis,
-                                              flipax=spec.flip_axis)
+   kw.sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=147, ub=154, resl=10, angresl=10,
+                                              axis=spec.axis, flipax=spec.flip_axis)
    result = rp.search.make_onecomp(body, spec, hscore, **kw)
+
    # print(result)
    # result.dump_pdbs_top_score(
-   # hscore=hscore,
-   # **kw.sub(nout_top=3, output_prefix='test_cage_hier_onecomp_notrim'),
+   #    hscore=hscore,
+   #    **kw.sub(nout_top=3, output_prefix='test_cage_hier_onecomp_notrim'),
    # )
+   # return
+
    # assert 0
    # rp.dump(result, 'rpxdock/data/testdata/test_deepesh_1comp_bug.pickle')
    ref = rp.data.get_test_data('test_deepesh_1comp_bug')

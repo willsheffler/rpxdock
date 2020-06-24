@@ -31,6 +31,8 @@ def make_onecomp(
          [0, 0, 1], spec.axis))  # align body axis of symmetry to z axis
 
    dotrim = kw.max_trim and kw.trimmable_components
+   if dotrim:
+      raise NotImplemented('cant yet trim one component stuff')
    evaluator = OneCompEvaluator(body, spec, hscore, **kw)
    xforms, scores, extra, stats = search(sampler, evaluator, **kw)
    ibest = rp.filter_redundancy(xforms, body, scores, **kw)
