@@ -76,6 +76,8 @@ class Result:
    def dump_pdbs_top_score_each(self, nout_each=1, **kw):
       if nout_each is 0: return
       which = self.top_each(nout_each)
+      if not len(which):
+         raise ValueError("can't dump pdbs, no results available")
       ndigijob = num_digits(len(which) - 1)
       dumped = set()
       ndigmdl = max(np.max(num_digits(v)) for v in which.values())

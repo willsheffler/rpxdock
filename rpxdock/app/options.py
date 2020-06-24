@@ -1,10 +1,13 @@
-import sys, os, argparse, functools, logging, glob, numpy as np, rpxdock as rp, functools as ft
+import sys, os, argparse, re, functools, logging, glob
+import numpy as np, rpxdock as rp, functools as ft
 
 log = logging.getLogger(__name__)
 
 _iface_summary_methods = dict(min=np.min, sum=np.sum, median=np.median, mean=np.mean, max=np.max)
 
 def print_options(kw):
+
+   ll = logging.getLogger().level
 
    print(f'{" COMMAND LINE ":=^80}')
    print('APP:', sys.argv[0], end='')
@@ -22,8 +25,8 @@ def print_options(kw):
 
    print(f'{" SETTINGS ":=^80}')
    maxlen = max(len(_) for _ in kw)
-   for k, v in kw.items():
-      print('   ', k, '.' * (maxlen - len(k)), v)
+   for k in sorted(kw):
+      print('   ', k, '.' * (maxlen - len(k)), kw[k])
 
    print(f'{" SETTINGS EXTRA INFO ":=^80}')
    for k, v in kw.items():
@@ -32,8 +35,20 @@ def print_options(kw):
           and hasattr(v, '__doc__')):
          print(f'    {f" EXTRA INFO ABOUT: {k} ":=^76s}')
          print('   ', k, '.' * (maxlen - len(k)), v)
-         print(v.__doc__)
+         doc = v.__doc__
+
+         trunc = [
+            _re_find_position('\n.*Parameters', doc) if 25 <= ll else 99999,
+            _re_find_position('\n.*See Also', doc) if 15 < ll < 25 else 99999,
+         ]
+         print(doc[:min(trunc)])
    print(f'{" END SETTINGS EXTRA INFO ":=^80}')
+
+def _re_find_position(pattern, string):
+   match = re.search(pattern, string)
+   if match:
+      return match.start(0)
+   return len(string)
 
 def str2bool(v):
    if isinstance(v, (list, tuple)):

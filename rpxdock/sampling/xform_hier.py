@@ -21,10 +21,10 @@ class LineHier:
 
 def hier_axis_sampler(
    nfold,
-   lb=25,
-   ub=200,
-   resl=10,
-   angresl=10,
+   lb,
+   ub,
+   resl,
+   angresl,
    axis=[0, 0, 1],
    flipax=[0, 1, 0],
 ):
