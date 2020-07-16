@@ -166,8 +166,6 @@ def dock_plug(hscore, **kw):
    else:
       raise ValueError(f'unknown search dock_method {kw.dock_method}')
 
-   logging.info(f'num base samples {sampler.size(0):,}')
-
    plug_bodies = [rp.Body(inp, which_ss="H", **kw) for inp in kw.inputs1]
    hole_bodies = [rp.Body(inp, sym=3, which_ss="H", **kw) for inp in kw.inputs2]
 
