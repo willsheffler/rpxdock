@@ -169,7 +169,6 @@ def dock_plug(hscore, **kw):
    plug_bodies = [rp.Body(inp, which_ss="H", allowed_res=allowedres, **kw) for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)]
    hole_bodies = [rp.Body(inp, which_ss="H", allowed_res=allowedres, **kw) for inp, allowedres in zip(kw.inputs2, kw.allowed_residues2)]
 
-
    #assert len(bodies) == spec.num_components
 
    exe = concurrent.futures.ProcessPoolExecutor
