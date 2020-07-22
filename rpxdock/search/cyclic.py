@@ -24,7 +24,7 @@ def make_cyclic_grid_sampler(monomer, cart_resl, ori_resl, **kw):
    isvalid, xforms = hiersampler.get_xforms(0, np.arange(hiersampler.size(0)))
    return xforms[isvalid]
 
-_default_samplers = {hier: make_cyclic_hier_sampler, grid: make_cyclic_grid_sampler}
+_default_samplers = {hier_search: make_cyclic_hier_sampler, grid_search: make_cyclic_grid_sampler}
 
 def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
    '''
@@ -45,6 +45,7 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
          raise ValueError(f'--docking_method must be either "hier" or "grid"')
       if kw.docking_method is 'hier': search = hier_search
       elif kw.docking_method is 'grid': search = grid_search
+   print(kw.docking_method, search)
    if sampler is None: sampler = _default_samplers[search](monomer, hscore=hscore, **kw)
    evaluator = CyclicEvaluator(monomer, sym, hscore, **kw)
    xforms, scores, extra, stats = search(sampler, evaluator, **kw)
