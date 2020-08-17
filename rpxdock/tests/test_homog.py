@@ -842,7 +842,20 @@ def test_scale_translate_lines_isect_lines_cases():
       xalign, scale = scale_translate_lines_isect_lines(*samp)
       _vaildate_test_scale_translate_lines_isect_lines(samp, xalign, scale, i)
 
+def test_xform_around_dof_for_vector_target_angle():
+
+   fix = np.array([0, 0, 1, 0])
+   mov = np.array([-0.48615677, 0.14842946, -0.86117379, 0.])
+   dof = np.array([-1.16191467, 0.35474642, -2.05820535, 0.])
+   target_angle = 0.6154797086703874
+   # should not throw
+   solutions = xform_around_dof_for_vector_target_angle(fix, mov, dof, target_angle)
+   assert solutions == []
+
 if __name__ == '__main__':
+
+   test_xform_around_dof_for_vector_target_angle()
+
    # test_calc_dihedral_angle()
    # test_align_lines_dof_dihedral_basic()
    # test_align_lines_dof_dihedral_rand(10)
@@ -853,8 +866,10 @@ if __name__ == '__main__':
    # test_place_lines_to_isect_F432()
    # test_expand_xforms_basic()
 
-   test_scale_translate_lines_isect_lines_cases()
-   for i in range(10):
-      test_scale_translate_lines_isect_lines_p4132()
-      test_scale_translate_lines_isect_lines_nonorthog()
-      test_scale_translate_lines_isect_lines_arbitrary()
+   # test_scale_translate_lines_isect_lines_cases()
+   # for i in range(10):
+   #    test_scale_translate_lines_isect_lines_p4132()
+   #    test_scale_translate_lines_isect_lines_nonorthog()
+   #    test_scale_translate_lines_isect_lines_arbitrary()
+
+   print('test_homog.py done')
