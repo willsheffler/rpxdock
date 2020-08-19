@@ -114,6 +114,7 @@ def test_cage_hier_onecomp_trim(hscore, bodyC3):
 def test_cage_grid_onecomp_notrim(hscore, bodyC3):
    kw = rp.app.defaults()
    kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
+   print(kw.beam_size)
    kw.beam_size = 2e4
    kw.max_bb_redundancy = 2.0
    kw.max_delta_h = 9999
@@ -139,7 +140,7 @@ def test_cage_grid_onecomp_notrim(hscore, bodyC3):
    ref = rp.data.get_test_data('test_cage_grid_onecomp_notrim')
    rp.search.assert_results_close(result, ref)
 
-   # result.dump_pdbs_top_score(10)
+   # result.dump_pdbs_top_score(3)
    # assert 0
 
 def test_deepesh_1comp_bug(hscore):
@@ -182,15 +183,16 @@ def main():
    hscore = rp.data.small_hscore()
    # hscore = rp.RpxHier('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
    # C2 = rp.data.get_body('C2_REFS10_1')
-   # C3 = rp.data.get_body('C3_1na0-1_1')
+   C3 = rp.data.get_body('C3_1na0-1_1')
 
    # test_cage_hier_onecomp_notrim(hscore, C3)
+
    # test_cage_hier_D3_onecomp_notrim(hscore, C3)
    # test_cage_hier_D3_2_onecomp_notrim(hscore, C2)
    # _test_cage_hier_onecomp_trim(hscore, C3)
-   # test_cage_grid_onecomp_notrim(hscore, C3)
+   test_cage_grid_onecomp_notrim(hscore, C3)
 
-   test_deepesh_1comp_bug(hscore)
+   # test_deepesh_1comp_bug(hscore)
 
 if __name__ == '__main__':
    main()

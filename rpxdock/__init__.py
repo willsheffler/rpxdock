@@ -4,8 +4,18 @@ __version__ = "0.1"
 
 import os
 
-os.environ["CC"] = "gcc-7"  # no idea if this works
-os.environ["CXX"] = "g++-7"  # no idea if this works
+# os.environ["CC"] = "gcc-7"  # no idea if this works
+# os.environ["CXX"] = "g++-7"  # no idea if this works
+
+# # tell cppimport to say what it's doing
+# import cppimport
+# cppimport.set_quiet(False)
+
+# set MKL threads to 1
+import numpy, ctypes
+if hasattr(numpy.__config__, 'mkl_info'):
+   mkl_rt = ctypes.CDLL('libmkl_rt.so')
+   mkl_rt.mkl_set_num_threads(ctypes.byref(ctypes.c_int(1)))
 
 from rpxdock.util import Bunch, Timer, load, dump
 from rpxdock import app
