@@ -166,8 +166,14 @@ def dock_plug(hscore, **kw):
    else:
       raise ValueError(f'unknown search dock_method {kw.dock_method}')
 
-   plug_bodies = [rp.Body(inp, which_ss="H", allowed_res=allowedres, **kw) for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)]
-   hole_bodies = [rp.Body(inp, which_ss="H", allowed_res=allowedres, **kw) for inp, allowedres in zip(kw.inputs2, kw.allowed_residues2)]
+   plug_bodies = [
+      rp.Body(inp, which_ss="H", allowed_res=allowedres, **kw)
+      for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)
+   ]
+   hole_bodies = [
+      rp.Body(inp, which_ss="H", allowed_res=allowedres, **kw)
+      for inp, allowedres in zip(kw.inputs2, kw.allowed_residues2)
+   ]
 
    #assert len(bodies) == spec.num_components
 
