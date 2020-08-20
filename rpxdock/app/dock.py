@@ -26,7 +26,7 @@ def get_spec(arch):
          raise ValueError('number of conponents must be 1, 2 or 3')
    elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
       spec = rp.search.DockSpec1CompCage(arch)
-   else:
+   elif (len(arch) == 3 and arch[2] != '_') or arch.endswith('D'):
       spec = rp.search.DockSpec2CompCage(arch)
    return spec
 
@@ -215,7 +215,7 @@ def main():
       result = dock_onecomp(hscore, **kw)
    elif arch.startswith('PLUG'):
       result = dock_plug(hscore, **kw)
-   else:
+   elif (len(arch) == 3 and arch[2] != '_') or arch.endswith('D'):
       result = dock_multicomp(hscore, **kw)
 
    print(result)
