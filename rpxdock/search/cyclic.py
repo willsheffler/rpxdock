@@ -43,11 +43,9 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
    if search is None:
       if kw.docking_method not in 'hier grid'.split():
          raise ValueError(f'--docking_method must be either "hier" or "grid"')
-      if kw.docking_method == 'hier':
-          search = hier_search
-      elif kw.docking_method == 'grid':
-          search = grid_search
-   
+      if kw.docking_method is 'hier': search = hier_search
+      elif kw.docking_method is 'grid': search = grid_search
+   print(kw.docking_method, search)
    if sampler is None: sampler = _default_samplers[search](monomer, hscore=hscore, **kw)
    evaluator = CyclicEvaluator(monomer, sym, hscore, **kw)
    xforms, scores, extra, stats = search(sampler, evaluator, **kw)
