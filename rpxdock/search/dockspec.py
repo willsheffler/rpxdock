@@ -33,7 +33,7 @@ class DockSpec1CompCage(DockSpec):
       if arch[0] == 'D':
          assert arch[2] == '_'
          self.sym = arch[:2]
-         self.nfold = int(arch[3])
+         self.nfold = int(arch[1])
       else:
          self.sym = arch[0]
          self.nfold = int(arch[1])
