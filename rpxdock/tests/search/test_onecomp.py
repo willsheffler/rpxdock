@@ -181,16 +181,16 @@ def test_deepesh_1comp_bug(hscore):
 def main():
    hscore = rp.data.small_hscore()
    # hscore = rp.RpxHier('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
-   # C2 = rp.data.get_body('C2_REFS10_1')
+   C2 = rp.data.get_body('C2_REFS10_1')
    # C3 = rp.data.get_body('C3_1na0-1_1')
 
    # test_cage_hier_onecomp_notrim(hscore, C3)
    # test_cage_hier_D3_onecomp_notrim(hscore, C3)
-   # test_cage_hier_D3_2_onecomp_notrim(hscore, C2)
+   test_cage_hier_D3_2_onecomp_notrim(hscore, C2)
    # _test_cage_hier_onecomp_trim(hscore, C3)
    # test_cage_grid_onecomp_notrim(hscore, C3)
 
-   test_deepesh_1comp_bug(hscore)
+   # test_deepesh_1comp_bug(hscore)
 
 if __name__ == '__main__':
    main()
