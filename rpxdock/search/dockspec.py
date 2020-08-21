@@ -37,7 +37,7 @@ class DockSpec1CompCage(DockSpec):
             self.nfold = int(arch[3])
             assert self.nfold in (2, int(arch[1]))
          else:
-            self.nfold = int(arch[1])
+             print("Error: 1comp dihedral symmetry should be parsed as Dx_y")
       else:
          self.sym = arch[0]
          self.nfold = int(arch[1])
