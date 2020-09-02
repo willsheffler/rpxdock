@@ -47,7 +47,6 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
          search = hier_search
       elif kw.docking_method == 'grid':
          search = grid_search
-
    if sampler is None: sampler = _default_samplers[search](monomer, hscore=hscore, **kw)
    evaluator = CyclicEvaluator(monomer, sym, hscore, **kw)
    xforms, scores, extra, stats = search(sampler, evaluator, **kw)
