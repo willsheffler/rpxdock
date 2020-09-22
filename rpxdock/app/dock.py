@@ -1,4 +1,4 @@
-#! /home/sheffler/.conda/envs/rpxdock/bin/python
+#! /home/quintond/.conda/envs/rpxdock/bin/python
 
 import logging, itertools, concurrent, tqdm, rpxdock as rp
 import numpy as np
@@ -112,8 +112,25 @@ def dock_onecomp(hscore, **kw):
 def dock_multicomp(hscore, **kw):
    kw = rp.Bunch(kw)
    spec = get_spec(kw.architecture)
-   sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
-   logging.info(f'num base samples {sampler.size(0):,}')
+   #TODO: Quinton: This was copied from one-comp and so might barf.
+   if kw.docking_method == 'grid':
+      print(f"spec.nfold is {spec.nfold} and resolution is {kw.grid_resolution_ori_degrees}\n\n")
+      print(f"spec.axis is len {len(spec.axis)} and looks like\n{spec.axis}\n\n")
+      print(f"spec.xflip is len {len(spec.xflip)} and looks like\n{spec.xflip}\n\n")
+      crtbnd = kw.cart_bounds[0]
+      sampler = rp.sampling.grid_sym_multi_axis(spec, cart_bounds=crtbnd, resl=kw.grid_resolution_cart_angstroms, angres=kw.grid_resolution_ori_degrees, flip=spec.xflip)
+
+      #One compe sampler generation
+      #sampler = rp.sampling.grid_sym_axis(
+      #   cart=np.arange(crtbnd[0], crtbnd[1], kw.grid_resolution_cart_angstroms), 
+      #   ang=np.arange(0, 360 / spec.nfold[0], kw.grid_resolution_ori_degrees), 
+      #   axis=spec.axis[0], 
+      #   flip=list(spec.xflip[0][1]))
+      search = rp.grid_search
+   else:
+      search = rp.hier_search
+      sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
+      logging.info(f'num base samples {sampler.size(0):,}')
 
    bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
               for fn, ar2 in zip(inp, ar)]
@@ -131,7 +148,7 @@ def dock_multicomp(hscore, **kw):
                bod,
                spec,
                hscore,
-               rp.hier_search,
+               search,
                sampler,
                **kw,
             ))
