@@ -93,7 +93,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
       xnbr = self.spec.to_neighbor_olig
 
-      # check for "flatness"
+      # check for "flatness" (ok = an array of "the good stuff that passes these checks")
       delta_h = np.array(
          [hm.hdot(X[:, i] @ B[i].com(), self.spec.axis[i]) for i in range(len(B))])
       ok = np.max(np.abs(delta_h[None] - delta_h[:, None]), axis=(0, 1)) < kw.max_delta_h

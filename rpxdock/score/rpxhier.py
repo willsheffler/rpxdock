@@ -3,6 +3,10 @@ from rpxdock.xbin import xbin_util as xu
 
 log = logging.getLogger(__name__)
 
+"""
+RpxHier holds score information at each level of searching / scoring 
+Grid search just uses the last/finest scorefunction 
+"""
 class RpxHier:
    def __init__(self, files, max_pair_dist=8.0, hscore_data_dir=None, **kw):
       kw = rp.Bunch(kw)
@@ -109,14 +113,14 @@ class RpxHier:
       '''
       TODO WSH rearrange so ppl can add different ways of scoring
       Get scores for all docks
-      :param body1:
-      :param body2:
-      :param pos1:
-      :param pos2:
-      :param iresl:
-      :param bounds:
-      :param kw:
-      :return:
+      :param body1: oligomer 1
+      :param body2: oligomer 2
+      :param pos1: position of oligomer 1
+      :param pos2: position of oligomer 2
+      :param iresl: resolution index (stage of search)
+      :param bounds: for stuff that gets trimmed, defines the range of residues that don't clash
+      :param kw: other args
+      :return: 
       '''
       kw = rp.Bunch(kw)
       pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
@@ -134,8 +138,14 @@ class RpxHier:
 
       # print('nres asym', body1.asym_body.nres, body2.asym_body.nres)
       # print(bounds[2], bounds[5])
-      # calling bvh c++ function that will look at pair of (arrays of) positions, scores pairs that are in contact (ID from maxpair distance)
-      # lbub: len pos1
+      
+      '''
+      # Step 1: Calling bvh c++ function that will look at pair of (arrays of) positions, scores pairs that are in contact (ID from maxpair distance)
+      # Takes in arrays of bodies / positions and finds all pairs of all combinations of position bodies
+      # pairs: array of all residue number pairs; each pair of bodies will have different # of contacts / pairs for placements 
+      # lbub: bounds (start and stop) for each group of bodies (len pos1)
+      # Returns details on contact counts
+      '''
       pairs, lbub = rp.bvh.bvh_collect_pairs_range_vec(body1.bvh_cen, body2.bvh_cen, pos1, pos2,
                                                        self.max_pair_dist[iresl], *bounds)
 
@@ -157,7 +167,7 @@ class RpxHier:
       #       assert np.all(asym_res2 <= bounds[4][i])
 
       if kw.wts.rpx == 0:
-         return kw.wts.ncontact * (lbub[:, 1] - lbub[:, 0])
+         return kw.wts.ncontact * (lbub[:, 1] - lbub[:, 0]) # option to score based on ncontacts only
 
       xbin = self.hier[iresl].xbin
       phmap = self.hier[iresl].phmap
