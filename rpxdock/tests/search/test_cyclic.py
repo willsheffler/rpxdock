@@ -1,4 +1,5 @@
-import concurrent, os, argparse, sys, numpy as np, rpxdock as rp
+import concurrent, os, argparse, sys, numpy as np, rpxdock as rp, pytest
+from rpxdock.search import grid_search
 
 def get_arg():
    kw = rp.app.defaults()
@@ -17,6 +18,18 @@ def test_make_cyclic_hier(hscore, body):
    result = rp.search.make_cyclic(body, "C3", hscore, **kw)
    # rp.dump(result, 'rpxdock/data/testdata/test_make_cyclic_hier.pickle')
    ref = rp.data.get_test_data('test_make_cyclic_hier')
+   rp.search.assert_results_close(result, ref)
+
+def test_make_cyclic_grid(hscore, body):
+   kw = get_arg()
+   kw.max_trim = 0
+   kw.cart_resl = 3
+   kw.ori_resl = 20
+   result = rp.search.make_cyclic(body, "C3", hscore, grid_search, **kw)
+   # print(result)
+   # result.dump_pdbs_top_score(3)
+   # rp.dump(result, 'rpxdock/data/testdata/test_make_cyclic_grid.pickle')
+   ref = rp.data.get_test_data('test_make_cyclic_grid')
    rp.search.assert_results_close(result, ref)
 
 def test_make_cyclic_hier_trim(hscore, body):
@@ -55,6 +68,6 @@ def test_make_cyclic_hier_trim(hscore, body):
 if __name__ == "__main__":
    hscore = rp.data.small_hscore()
    body = rp.data.get_body('DHR14')
-   test_make_cyclic_hier(hscore, body)
-   test_make_cyclic_hier_trim(hscore, body)
-   # test_make_cyclic_grid(hscore, body)
+   # test_make_cyclic_hier(hscore, body)
+   # test_make_cyclic_hier_trim(hscore, body)
+   test_make_cyclic_grid(hscore, body)

@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import numpy as np
 import rpxdock.homog as hm
 from rpxdock.geom import sym
@@ -10,39 +11,45 @@ O32D O23D O42D O24D O43D O34D
 I32D I23D I52D I54D I53D I35D
 """.split()
 
-class DockSpec1CompCage:
+class DockSpec:
+   @property
+   @abstractmethod
+   def type(self):
+      raise NotImplementedError
+
+class DockSpecHelix(DockSpec):
+   @property
+   def type(self):
+      return 'helix'
+
+class DockSpec1CompCage(DockSpec):
+   @property
+   def type(self):
+      return '1comp_cage'
+
    def __init__(self, arch):
       assert len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_')
       assert arch[:2] in "T2 T3 O2 O3 O4 I2 I3 I5 D2 D3 D4 D5 D6 D8".split()
       if arch[0] == 'D':
-         assert arch[2] == '_'
          self.sym = arch[:2]
-         self.nfold = int(arch[3])
+         if len(arch) is 4:
+            assert arch[2] == '_'
+            self.nfold = int(arch[3])
+            assert self.nfold in (2, int(arch[1]))
+         else:
+            raise ValueError(f"architecture {arch} invalid, must be Dx_y, where y=2 or y=x")
       else:
          self.sym = arch[0]
          self.nfold = int(arch[1])
 
       self.arch = arch
-      self.type = 'cage'
       self.num_components = 1
 
       self.comp_is_dihedral = [False]
       self.axis = sym.axes[self.sym][self.nfold]
       self.axis_second = sym.axes_second[self.sym][self.nfold]
-
-      # print(self.nfold)
-      # print(self.axis)
-      # print(self.axis_second)
-      # assert 0
-
       self.orig = hm.align_vector([0, 0, 1], self.axis)
       self.to_neighbor_olig = sym.to_neighbor_olig[self.sym][self.nfold]
-
-      # print(self.to_neighbor_olig)
-      # print(self.to_neighbor_olig @ self.axis)
-      # print(self.axis_second)
-      # assert 0
-
       self.orig_second = self.to_neighbor_olig @ self.orig
 
       cang = hm.angle(self.axis, self.axis_second)
@@ -88,13 +95,16 @@ class DockSpec1CompCage:
 
       return newpos.reshape(origshape)
 
-class DockSpec2CompCage:
+class DockSpec2CompCage(DockSpec):
+   @property
+   def type(self):
+      return '2comp_cage'
+
    def __init__(self, arch):
       self.arch = arch.upper()
       assert self.arch in allowed_twocomp_architectures
       assert len(self.arch) == 3 or self.arch.endswith('D')
       self.sym = arch if arch[0] == 'D' else arch[0]
-      self.type = 'cage'
       self.num_components = 2
       self.comp_is_dihedral = [False, self.arch.endswith('D')]
       self.nfold1 = int(arch[1])
@@ -192,12 +202,15 @@ class DockSpec2CompCage:
 
       return (pos1.reshape(origshape), pos2.reshape(origshape))
 
-class DockSpec3CompCage:
+class DockSpec3CompCage(DockSpec):
+   @property
+   def type(self):
+      return '3comp_cage'
+
    def __init__(self, arch):
       assert len(arch) == 4
       assert arch in "O432 I532".split()
       self.arch = arch
-      self.type = 'cage'
       self.sym = arch[0]
       self.num_components = 3
       self.symframes_ = sym.frames[self.sym]
@@ -220,11 +233,14 @@ class DockSpec3CompCage:
          hm.hcross(self.axis[2], hm.hcross(self.axis[2], self.axis[0]))
       ], np.pi)
 
-class DockSpecMonomerToCyclic:
+class DockSpecMonomerToCyclic(DockSpec):
+   @property
+   def type(self):
+      return 'cyclic'
+
    def __init__(self, arch):
       assert len(arch) == 2
       assert arch[0] == "C"
-      self.type = 'cyclic'
       self.arch = arch
       self.num_components = 1
       self.nfold = int(arch[1])
@@ -271,12 +287,15 @@ _layer_comp_center_directions = dict(
    P4M_4=(np.array([1, 0, 0]), ),
 )
 
-class DockSpec1CompMirrorLayer:
+class DockSpec1CompMirrorLayer(DockSpec):
+   @property
+   def type(self):
+      return '1comp_mirror_layer'
+
    def __init__(self, arch):
       arch = arch.upper()
       assert arch.startswith('P')
       self.arch = arch
-      self.type = 'mirrorlayer'
       self.sym = arch
       self.nfold = np.array(list(arch.split('_')[1]), dtype='i')
       self.directions = _layer_comp_center_directions[arch]
@@ -287,13 +306,16 @@ class DockSpec1CompMirrorLayer:
       ang = 360 / self.nfold[0]
       self.to_neighbor_olig = [hm.hrot([0, 0, 1], ang)]
 
-class DockSpec3CompLayer:
+class DockSpec3CompLayer(DockSpec):
+   @property
+   def type(self):
+      return '3comp_layer'
+
    def __init__(self, arch):
       arch = arch.upper()
       assert arch.startswith('P')
       assert 3 == len(arch.split('_')[1])
       self.arch = arch
-      self.type = 'layer'
       self.sym = arch
       self.nfold = np.array(list(arch.split('_')[1]), dtype='i')
       self.directions = _layer_comp_center_directions[arch]
@@ -303,12 +325,15 @@ class DockSpec3CompLayer:
       self.num_components = 3
       ang = 360 / self.nfold[0]
       self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], ang), hm.hrot([0, 0, 1], ang)]
-'''
+
 class DockSpecPlug:
+   @property
+   def type(self):
+      return 'plug'
+
    def __init__(self, arch):
       assert len(arch) == 7
       assert arch[5] == "C"
-      self.type = 'plug'
       self.arch = arch.split('_')[1]
       self.num_components = 1
       self.nfold = int(arch[6])
@@ -321,4 +346,11 @@ class DockSpecPlug:
 
       self.symframes_ = [hm.hrot([0, 0, 1], self.angle * i) for i in range(self.nfold)]
       self.tan_half_vertex = np.tan((np.pi - self.angle) / 2)
-'''
+
+class DockSpecAxel:
+   @property
+   def type(self):
+      return 'axel'
+
+   def __init__(self, arch):
+      pass

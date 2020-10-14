@@ -20,13 +20,13 @@ class LineHier:
       self.hier1d = rp.sampling.CartHier1D_f4([state[0]], [state[1]], [state[2]])
 
 def hier_axis_sampler(
-      nfold,
-      lb=25,
-      ub=200,
-      resl=10,
-      angresl=10,
-      axis=[0, 0, 1],
-      flipax=[0, 1, 0],
+   nfold,
+   lb,
+   ub,
+   resl,
+   angresl,
+   axis=[0, 0, 1],
+   flipax=[0, 1, 0],
 ):
    '''
    :param nfold: architecture stuff
@@ -48,12 +48,12 @@ def hier_axis_sampler(
    return samp
 
 def hier_multi_axis_sampler(
-      spec,
-      cart_bounds=[25, 200],
-      resl=10,
-      angresl=10,
-      flip_components=True,
-      **kw,
+   spec,
+   cart_bounds=[25, 200],
+   resl=10,
+   angresl=10,
+   flip_components=True,
+   **kw,
 ):
    if not (hasattr(spec, 'nfold') and hasattr(spec, 'axis') and hasattr(spec, 'xflip')):
       raise ValueError('spec must have nfold, axis and xflip')
@@ -98,12 +98,12 @@ def hier_multi_axis_sampler(
    return sampler
 
 def hier_mirror_lattice_sampler(
-      spec,
-      cart_bounds=[0, 100],
-      resl=10,
-      angresl=10,
-      flip_components=True,
-      **kw,
+   spec,
+   cart_bounds=[0, 100],
+   resl=10,
+   angresl=10,
+   flip_components=True,
+   **kw,
 ):
    '''
    setting cartesian bounds as opposed to lower/upper bounds

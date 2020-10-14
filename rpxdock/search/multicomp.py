@@ -89,7 +89,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       kw = self.kw.sub(wts=wts)
       xeye = np.eye(4, dtype="f4")
       B = self.bodies
-      print(f"docking {len(B)} bodies")
+      # print(f"docking {len(B)} bodies")
       X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
       xnbr = self.spec.to_neighbor_olig
 
@@ -127,7 +127,8 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          ifscore = list()
          for i in range(len(B)):
             for j in range(i):
-               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
+               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl,
+                                                   wts=wts))
                # ifscore = np.stack(ifscore)
                logging.debug(f"ifscore is {len(ifscore)} long and is a {type(ifscore)}")
 
@@ -136,7 +137,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          scores[ok] = kw.iface_summary(ifscore, axis=0)
          logging.debug(f"scores is now shaped like {scores.shape}")
          extra = rp.Bunch()
-      else: #return all of the interface scores
+      else:  #return all of the interface scores
          logging.debug("Scoring self")
          s_ifscore = list()
          ns_ifscore = list()
@@ -145,12 +146,14 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          for i in range(len(B)):
             for j in range(i + 1):
                logging.debug(f"scoring body {i} against body {j}")
-               if i==j:
+               if i == j:
                   logging.debug("found self")
                   Xsym = self.spec.to_neighbor_olig @ X
-                  s_ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, wts=wts))
+                  s_ifscore.append(
+                     self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, wts=wts))
                else:
-                  ns_ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
+                  ns_ifscore.append(
+                     self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
          logging.debug(f"self scores is length {len(s_ifscore[0])}")
          logging.debug(f"non-self scores is legnth {len(ns_ifscore[0])}")
          logging.debug(f"OK len is {len(ok)}")
@@ -159,27 +162,27 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          scores_ns = np.zeros((len(B) - 1, len(X)))
 
          #Only keep non-clashing interface scores
-         for i,iface_scores in enumerate(ns_ifscore):
-            scores_ns[i,ok] = iface_scores
-         for i,iface_scores in enumerate(s_ifscore):
-             scores_s[i,ok] = iface_scores
+         for i, iface_scores in enumerate(ns_ifscore):
+            scores_ns[i, ok] = iface_scores
+         for i, iface_scores in enumerate(s_ifscore):
+            scores_s[i, ok] = iface_scores
          logging.debug(f"Scores self is shape {scores_s.shape}")
          logging.debug(f"Scores not-self is shape {scores_ns.shape}")
          logging.debug("Done Scoring")
          #Normal scoring for consistency in output. This may be the same as one of the cross component scores depending on arg.iface_summary()
          scores = np.zeros(len(X))
          scores[ok] = kw.iface_summary(ns_ifscore, axis=0)
-         
+
          #Package all scores in a dict that can be bunched
          all_scores = {}
-         ind=0
-         for i in range( len(B) ):
+         ind = 0
+         for i in range(len(B)):
             all_scores[f'self_score_comp{i}'] = (['model'], scores_s[i])
-            for j in range( i + 1 ):
+            for j in range(i + 1):
                if j != i:
                   all_scores[f'cross_comp_score_{i}{j}'] = (['model'], scores_ns[ind])
                   ind += 1
-    
+
          extra = rp.Bunch(all_scores)
       return scores, extra
       #else:
