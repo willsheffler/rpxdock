@@ -105,7 +105,8 @@ class Result:
       return dumped
 
    def dump_pdb(self, imodel, output_prefix='', output_suffix='', fname=None, output_body='ALL',
-                sym='', sep='_', skip=[], hscore=None, output_asym_only=False, **kw):
+                sym='', sep='_', skip=[], hscore=None, output_asym_only=False, to_string=False, **kw):
+      kw["to_string"] = to_string
       if not sym and 'sym' in self.attrs: sym = self.attrs['sym']
       if not sym and 'sym' in self.data: sym = self.data.sym.data[imodel]
       sym = sym if sym else "C1"
@@ -151,7 +152,12 @@ class Result:
          bounds = np.stack([self.reslb[imodel], self.resub[imodel]], axis=-1)
       symframes = rp.geom.symframes(sym, pos=self.xforms.data[imodel], **kw)
       if output_asym_only: symframes = [np.eye(4)]
-      rp.io.dump_pdb_from_bodies(fname, bod, symframes=symframes, resbounds=bounds,
+      
+      if not to_string:
+         rp.io.dump_pdb_from_bodies(fname, bod, symframes=symframes, resbounds=bounds,
+                                 bfactor=bfactor, **kw)
+      else:
+         return rp.io.dump_pdb_from_bodies(fname, bod, symframes=symframes, resbounds=bounds,
                                  bfactor=bfactor, **kw)
       if self.pdb_extra is not None:
          with open(fname, 'a') as out:
@@ -159,9 +165,13 @@ class Result:
       if hasattr(self.data, 'helix_n_to_primary'):
          symframes = symframes[np.array(
             [0, self.data.helix_n_to_primary[imodel], self.data.helix_n_to_secondry[imodel]])]
-         rp.io.dump_pdb_from_bodies(fname + '_hbase.pdb', bod, symframes=symframes,
+         if not to_string:
+            rp.io.dump_pdb_from_bodies(fname + '_hbase.pdb', bod, symframes=symframes,
                                     resbounds=bounds, bfactor=bfactor, **kw)
-         # assert 0, 'testing helix dump'
+         else:
+            return rp.io.dump_pdb_from_bodies(fname + '_hbase.pdb', bod, symframes=symframes,
+                                    resbounds=bounds, bfactor=bfactor, **kw)
+        # assert 0, 'testing helix dump'
 
    def __len__(self):
       return len(self.model)

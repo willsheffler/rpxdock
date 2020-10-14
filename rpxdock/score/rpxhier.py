@@ -131,14 +131,12 @@ class RpxHier:
          bounds[2] = body1.asym_body.nres
       if len(bounds) > 5 and (bounds[5] is None or bounds[5] < 0):
          bounds[5] = body2.asym_body.nres
-
       # print('nres asym', body1.asym_body.nres, body2.asym_body.nres)
       # print(bounds[2], bounds[5])
       # calling bvh c++ function that will look at pair of (arrays of) positions, scores pairs that are in contact (ID from maxpair distance)
       # lbub: len pos1
       pairs, lbub = rp.bvh.bvh_collect_pairs_range_vec(body1.bvh_cen, body2.bvh_cen, pos1, pos2,
                                                        self.max_pair_dist[iresl], *bounds)
-
       # pairs, lbub = body1.filter_pairs(pairs, self.score_only_sspair, other=body2, lbub=lbub)
 
       if bounds: assert len(bounds[0]) in (1, len(lbub))
@@ -166,10 +164,8 @@ class RpxHier:
       pscore = self.map_pairs_multipos(
          xbin, phmap, pairs, *ssstub, lbub, pos1,
          pos2)  # hashtable of scores for each pair of res in contact in each dock
-
       # summarize pscores for a dock
       lbub1, lbub2, idx1, idx2, res1, res2 = rp.motif.marginal_max_score(lbub, pairs, pscore)
-
       scores = np.zeros(max(len(pos1), len(pos2)))
       for i, (lb, ub) in enumerate(lbub):
          side1 = np.sum(res1[lbub1[i, 0]:lbub1[i, 1]])
@@ -179,7 +175,6 @@ class RpxHier:
          # mscore = np.log(np.sum(np.exp(pscore[lb:ub])))
          #TODO generalize scores to specify scoretypes and weights like Rosetta WHS
          scores[i] = kw.wts.rpx * mscore + kw.wts.ncontact * (ub - lb)
-
       return scores
 
    def iresls(self):

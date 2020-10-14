@@ -19,6 +19,7 @@ def make_pdb_from_bodies(
    occupancy=None,
    use_orig_coords=False,
    warn_on_chain_overflow=True,
+   to_string=False,
    **kw,
 ):
    if symframes is None and use_body_sym is None:
@@ -160,5 +161,8 @@ def make_pdb_from_bodies(
 
 def dump_pdb_from_bodies(fname, *args, **kw):
    s, *_ = make_pdb_from_bodies(*args, **kw)
-   with open(fname, "w") as out:
-      out.write(s)
+   if not kw["to_string"]:
+      with open(fname, "w") as out:
+         out.write(s)
+   else:
+      return s

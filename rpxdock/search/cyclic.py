@@ -18,6 +18,13 @@ def make_cyclic_hier_sampler(monomer, hscore):
    ncart = int(np.ceil(2 * monomer.radius_max() / cart_resl))
    return rp.sampling.OriCart1Hier_f4([0.0], [ncart * cart_resl], [ncart], ori_resl)
 
+def make_cyclic_hier_sampler_grid(monomer, cart_resl, ori_resl):
+   '''
+   DRH using to provide high res grid for grid sampling. Not for hier_search.
+   '''
+   ncart = int(np.ceil(2 * monomer.radius_max() / cart_resl))
+   return rp.sampling.OriCart1Hier_f4([0.0], [ncart * cart_resl], [ncart], ori_resl)
+
 _default_samplers = {hier_search: make_cyclic_hier_sampler}
 
 def make_cyclic(monomer, sym, hscore, search=hier_search, sampler=None, **kw):
@@ -33,6 +40,12 @@ def make_cyclic(monomer, sym, hscore, search=hier_search, sampler=None, **kw):
    sym = "C%i" % i if isinstance(sym, int) else sym
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else sym
+
+   if kw.docking_method == 'grid':
+       sampler = make_cyclic_hier_sampler_grid(monomer, kw.grid_resolution_cart_angstroms, kw.grid_resolution_ori_degrees)
+       indices, xforms = rp.search.hierarchical.expand_samples(0, sampler, indices=None, scores=None, **kw)
+       print("grid size", len(xforms))
+       sampler = xforms
 
    if sampler is None: sampler = _default_samplers[search](monomer, hscore)
    evaluator = CyclicEvaluator(monomer, sym, hscore, **kw)

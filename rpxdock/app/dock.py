@@ -1,5 +1,8 @@
 #! /home/sheffler/.conda/envs/rpxdock/bin/python
 
+import sys
+sys.path.append("/home/drhicks1/RPXDOCK/rpxdock/")
+
 import logging, itertools, concurrent, tqdm, rpxdock as rp
 import numpy as np
 
@@ -33,10 +36,23 @@ def get_spec(arch):
 ## All dock_cyclic, dock_onecomp, and dock_multicomp do similar things
 def dock_cyclic(hscore, inputs, architecture, **kw):
    kw = rp.Bunch(kw)
+   sym = "C%i" % i if isinstance(architecture.upper(), int) else architecture.upper()
    bodies = [
       rp.Body(inp, allowed_res=allowedres, **kw)
       for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)
    ]
+
+   max_radius = 0
+   for bod in bodies:
+       if bod.radius_max() > max_radius:
+           max_radius = bod.radius_max()
+
+   if kw.docking_method == 'grid': 
+       sampler=1
+       search = rp.grid_search
+   else:
+       sampler = None
+       search = rp.hier_search
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
    with exe(kw.ncpu) as pool:
@@ -49,6 +65,8 @@ def dock_cyclic(hscore, inputs, architecture, **kw):
                bod,
                architecture.upper(),
                hscore,
+               search=search,
+               sampler=sampler,
                **kw,
             ))
          futures[-1].ijob = ijob
