@@ -123,7 +123,7 @@ def default_cli_parser(parent=None, **kw):
       help='rpx score files using in scoring for most protocols. defaults to pairs involving only ILV and only in helices. Can be only a path-suffix, which will be appended to --hscore_data_dir. Can be a list of files. Score files with various parameters can be generated with rpxdock/app/generate_motif_scores.py.'
    )
    addarg(
-      "--hscore_data_dir", default='/home/sheffler/data/rpx/hscore',
+      "--hscore_data_dir", default='/home/sheffler/data/rpx/hscore/willsheffler',
       help='default path to search for hcores_files. defaults to /home/sheffler/data/rpx/hscore')
    addarg(
       "--max_trim", type=int, default=0,
@@ -265,6 +265,9 @@ def default_cli_parser(parent=None, **kw):
    addarg("--ignored_aas", default='CGP', help='Amino acids to ignore in scoring')
    addarg("--score_self", action='store_true', default=False,
           help='score each interface seperately and dump in output pickle')
+
+   addarg("--recenter_input", action='store_true', default=False,
+          help='center coorinates from pdb input files')
 
    parser.has_rpxdock_args = True
    return parser

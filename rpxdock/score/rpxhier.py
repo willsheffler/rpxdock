@@ -232,11 +232,19 @@ class RpxHier:
       return self.base[x_or_k]
 
 def _check_hscore_files_aliases(alias, hscore_data_dir):
-   try:
-      pattern = os.path.join(hscore_data_dir, alias, '*.pickle')
-      g = sorted(glob.glob(pattern))
-      if len(g) > 0:
-         return g
-   except:
-      pass
-   raise ValueError(f'hscore datadir {hscore_data_dir} or alias {alias} invalid')
+   # try:
+   pattern = os.path.join(hscore_data_dir, alias, '*.pickle*')
+   g = sorted(glob.glob(pattern))
+   # check for consistency
+   for filetype in '.pickle .pickle.gz .pickle.bz2 .pickle.zip'.split():
+      if g[0].endswith(filetype):
+         log.info(f'Detected hscore files filetype: "{filetype}"')
+         for f in g:
+            assert f.endswith(
+               filetype
+            ), 'inconsistent hscore filetypes, all must be same (.gz, .bz2, .pickle, etc)'
+   if len(g) > 0: return g
+
+# except:
+#    pass
+# raise ValueError(f'hscore datadir {hscore_data_dir} or alias {alias} invalid')

@@ -23,6 +23,7 @@ from rpxdock import body
 from rpxdock import bvh
 from rpxdock import cluster
 from rpxdock import data
+from rpxdock import fragments
 from rpxdock import geom
 from rpxdock import io
 from rpxdock import motif

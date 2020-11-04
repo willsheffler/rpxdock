@@ -1,4 +1,4 @@
-import _pickle, os, multiprocessing, threading, copy, hashlib, logging, concurrent, time
+import _pickle, os, multiprocessing, threading, copy, hashlib, logging, concurrent, time, gzip, bz2, lzma, zipfile
 from collections import abc
 import numpy as np, xarray as xr
 
@@ -7,7 +7,18 @@ log = logging.getLogger(__name__)
 def load(f, verbose=True):
    if isinstance(f, str):
       if verbose: log.debug(f'loading{f}')
-      with open(f, "rb") as inp:
+
+      if f.endswith('.gz'):
+         readfun = gzip.open
+      elif f.endswith('.bz') or f.endswith('.bz2'):
+         readfun = bz2.open
+      elif f.endswith('.xz') or f.endswith('.lzma'):
+         readfun = lzma.open
+      elif f.endswith('.zip'):
+         readfun = zipfile.Zipfile
+      else:
+         readfun = open
+      with readfun(f, "rb") as inp:
          return _pickle.load(inp)
    return [load(x) for x in f]
 

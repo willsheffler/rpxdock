@@ -24,6 +24,10 @@
    	{
 			"name": "test_homog",
 			"shell_cmd" : "cd $folder; python rpxdock/tests/test_homog.py &> sublime_build.log"
+		},
+		{
+			"name": "run expand_xforms",
+			"shell_cmd": "cd $folder; python rpxdock/tests/geom/test_expand_xforms.py  &> sublime_build.log"
 		}
 
 		

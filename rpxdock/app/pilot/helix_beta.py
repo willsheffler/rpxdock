@@ -49,11 +49,23 @@ def get_helix_args():
       "--helix_max_primary_angle", type=float, default=None,
       help='maximum rotation around axis per step. default based on min_isecond is usually the right choice'
    )
-   parser.add_argument("--cart_cell_width", type=float, default=10,
-                       help='cartesian resolution of the initial search stage, default 10')
-   parser.add_argument("--angle_cell_width", type=float, default=30,
-                       help='angular resolution of the initial search stage, default 30')
+   # parser.add_argument("--cart_cell_width", type=float, default=10,
+   #                     help='cartesian resolution of the initial search stage, default 10')
+   # parser.add_argument("--angle_cell_width", type=float, default=30,
+   #                     help='angular resolution of the initial search stage, default 30')
+
+   parser.add_argument("--tether_xform", type=str, nargs='*', default=[],
+                       help='two structs with configuration to sample around')
+   parser.add_argument("--tether_dist", type=float, default=3,
+                       help='max dist from supplied dimer configuration')
+   parser.add_argument("--tether_ang", type=float, default=10,
+                       help='max angle from supplied dimer configuration')
+
+   parser.add_argument("--tmpa", type=int)
+   parser.add_argument("--tmpb", type=int)
+
    kw = rp.options.get_cli_args(parent=parser, dont_set_default_cart_bounds=True)
+
    if not kw.cart_bounds:
       kw.cart_bounds = np.array([(0, 100), (-100, 100), (-100, 100)])
    else:

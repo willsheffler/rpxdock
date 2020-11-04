@@ -121,8 +121,12 @@ def is_broadcastable(shp1, shp2):
    return True
 
 def fast_axis_of(xforms):
-   return np.stack((xforms[..., 2, 1] - xforms[..., 1, 2], xforms[..., 0, 2] - xforms[..., 2, 0],
-                    xforms[..., 1, 0] - xforms[..., 0, 1], np.zeros(xforms.shape[:-2])), axis=-1)
+   return np.stack((
+      xforms[..., 2, 1] - xforms[..., 1, 2],
+      xforms[..., 0, 2] - xforms[..., 2, 0],
+      xforms[..., 1, 0] - xforms[..., 0, 1],
+      np.zeros(xforms.shape[:-2]),
+   ), axis=-1)
 
 def is_homog_xform(xforms):
    return ((xforms.shape[-2:] == (4, 4)) and (np.allclose(1, np.linalg.det(xforms[..., :3, :3])))

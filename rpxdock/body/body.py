@@ -15,7 +15,6 @@ class Body:
       **kw,
    ):
       kw = rpxdock.Bunch(kw)
-
       # pose stuff
       pose = source
       if isinstance(source, str):
@@ -27,10 +26,10 @@ class Body:
             pose = ros.pose_from_file(source)
             ros.assign_secstruct(pose)
       self.pdbfile = pose.pdb_info().name() if pose.pdb_info() else None
-      self.orig_anames, self.orig_coords = rp.rosetta.get_sc_coords(pose)
+      self.orig_anames, self.orig_coords = rp.rosetta.get_sc_coords(pose, **kw)
       self.seq = np.array(list(pose.sequence()))
       self.ss = np.array(list(pose.secstruct()))
-      self.coord = rp.rosetta.get_bb_coords(pose)
+      self.coord = rp.rosetta.get_bb_coords(pose, **kw)
       self.set_asym_body(pose, sym, **kw)
 
       self.label = kw.label

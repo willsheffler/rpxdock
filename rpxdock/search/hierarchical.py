@@ -17,8 +17,9 @@ def hier_search(sampler, evaluator, **kw):
       indices, xforms = expand_samples(iresl, sampler, indices, scores, **kw)
       scores, extra, t = rp.search.evaluate_positions(**kw.sub(vars()))
       neval.append((t, len(scores)))
-      log.info(f"{kw.output_prefix} iresl {iresl} ntot {len(scores):11,} " +
-               f"nonzero {np.sum(scores > 0):5,}")
+      log.info(f"{kw.output_prefix} iresl {iresl} ntot {len(scores):11,} " \
+               f"nonzero {np.sum(scores > 0):6,}" \
+               f' best {np.max(scores) if len(scores) else -1:7.3f}')
    stats = rp.Bunch(ntot=sum(x[1] for x in neval), neval=neval)
    return xforms, scores, extra, stats
 

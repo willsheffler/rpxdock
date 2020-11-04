@@ -1,4 +1,5 @@
 from time import perf_counter
+import pytest
 import itertools as it
 import numpy as np
 from cppimport import import_hook
@@ -490,6 +491,26 @@ def test_OriCart1_hierarchy_product():
    assert np.allclose(x.reshape(24, -1, 4, 4)[0, :, :1, 3], t)
    assert np.allclose(x.reshape(24, -1, 4, 4)[:, ::8, :3, :3], o.reshape(24, -1, 3, 3)[:, ::8])
 
+def test_OriCart1_hierarchy_redundancy():
+   hhat = [0.041472, 0.516975, 0.952381, 0.986313, 0.994392]
+   h = OriCart1Hier_f4([0], [8], [8], 30.643)
+   for N in range(5):
+
+      print('----------------')
+      idx = np.random.choice(h.size(N), 1000000).astype('u8')
+      _, x = h.get_xforms(N, idx)
+      xb = rp.xbin.Xbin_double(0.04, 0.2, 32)
+      seenit = set(xb.key_of(x.astype('f8')))
+      print(N, len(seenit), len(x), len(seenit) / len(x))
+      assert hhat[N] - 0.001 < len(seenit) / len(x) < hhat[N] + 0.001
+
+   print('----------------')
+   # cdelta2, odelta2 = xform_dist2_split(x, x[:10], 8)
+   # delta = np.sqrt(cdelta2 + odelta2)
+   # np.fill_diagonal(delta, 9999)
+   # print(np.quantile(delta, np.arange(10) / 10000))
+   # print(x.shape)
+
 def test_rot_hier():
    rh = RotHier_f8(0, 64, 64)
    # print('RotHier:', rh.lb * 180 / np.pi, rh.ub * 180 / np.pi, rh.resl * 180 / np.pi,
@@ -643,6 +664,7 @@ if __name__ == "__main__":
    # test_rotcart1_hier_multicell()
    # test_rotcart1_hier_expand_top_N()
    # test_OriCart1_hierarchy_product()
+   test_OriCart1_hierarchy_redundancy()
    # test_zorder()
    # test_cart_hier1()
    # test_xform_hierarchy_product()

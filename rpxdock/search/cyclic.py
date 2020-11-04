@@ -39,7 +39,6 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
    sym = "C%i" % i if isinstance(sym, int) else sym
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else sym
-
    if search is None:
       if kw.docking_method not in 'hier grid'.split():
          raise ValueError(f'--docking_method must be either "hier" or "grid"')
@@ -71,6 +70,16 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
    wnct = kw.wts.sub(rpx=0, ncontact=1)
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
    ncontact, _ = evaluator(xforms, kw.nresl - 1, wnct)
+
+   #
+
+   print('######################################################')
+   print(np.quantile(scores, [0, 0.25, 0.5, 0.75, 1.0]))
+   print(np.sum(scores > 1.0), np.max(scores))
+   print('######################################################')
+
+   #
+
    return rp.Result(
       body_=None if kw.dont_store_body_in_results else [monomer],
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, sym=sym),
@@ -134,6 +143,11 @@ class CyclicEvaluator:
       lb = np.zeros(len(scores), dtype="i4")
       ub = np.ones(len(scores), dtype="i4") * (body.nres - 1)
       if trim: lb[ok], ub[ok] = trim[0], trim[1]
+
+      # if iresl is 4:
+      # sel = (scores > 136.3) * (scores < 136.306)
+      # if np.any(sel): print(xforms[sel])
+      # assert 0
 
       return scores, rp.Bunch(reslb=lb, resub=ub)
 

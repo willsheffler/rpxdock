@@ -1,6 +1,6 @@
 import os, _pickle, numpy as np
 from pyrosetta import pose_from_file, rosetta, init, version
-from pyrosetta.rosetta import core, protocols
+from pyrosetta.rosetta import core, protocols, numeric
 from pyrosetta.rosetta.core.scoring.dssp import Dssp
 from rpxdock.util import hash_str_to_int
 
@@ -10,7 +10,7 @@ def assign_secstruct(pose):
    Dssp(pose).insert_ss_into_pose(pose)
 
 def rosetta_stub_from_numpy_stub(npstub):
-   rosstub = ros.core.kinematics.Stub()
+   rosstub = core.kinematics.Stub()
    rosstub.M.xx = npstub[0, 0]
    rosstub.M.xy = npstub[0, 1]
    rosstub.M.xz = npstub[0, 2]
@@ -24,6 +24,13 @@ def rosetta_stub_from_numpy_stub(npstub):
    rosstub.v.y = npstub[1, 3]
    rosstub.v.z = npstub[2, 3]
    return rosstub
+
+def create_residue(resname, typeset='fa_standard'):
+   chem_manager = rosetta.core.chemical.ChemicalManager
+   rts = chem_manager.get_instance().residue_type_set(typeset)
+   # print(rts)
+   rfactory = rosetta.core.conformation.ResidueFactory
+   return rfactory.create_residue(rts.name_map(resname))
 
 def get_pose_cached(fname, pdbdir="."):
    path = os.path.join(pdbdir, fname)

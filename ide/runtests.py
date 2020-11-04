@@ -54,6 +54,8 @@ _file_mappings = {
    "basic.py": ["rpxdock/tests/search/test_onecomp.py"],
    "dockspec.py": ["rpxdock/tests/search/test_onecomp.py"],
    "pymol.py": ["rpxdock/tests/test_homog.py"],
+   "ball_joint_build_db.py": ['rpxdock/tests/fragments/test_ball_joint.py'],
+   # "expand_xforms.cpp": ["rpxdock/tests/geom/test_expand_xforms.py"],
 }
 _post = defaultdict(lambda: "")
 
@@ -70,7 +72,7 @@ def testfile_of(path, bname):
    if os.path.exists(t):
       return t
 
-def dispatch(file, pytest_args="--duration=5"):
+def dispatch(file, pytest_args="--durations=5"):
    """for the love of god... clean me up"""
    file = os.path.relpath(file)
    path, bname = os.path.split(file)
@@ -97,6 +99,8 @@ def dispatch(file, pytest_args="--duration=5"):
       cmd = "pytest {pytest_args} {file}".format(**vars())
    elif file.endswith(".py"):
       cmd = "PYTHONPATH=. python " + file
+   elif file.endswith('.cpp') or file.endswith('.hpp'):
+      cmd = 'PYTHONPATH=. python ide/compile_file.py ' + file
    else:
       cmd = "pytest {pytest_args}".format(**vars())
 

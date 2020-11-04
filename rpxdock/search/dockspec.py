@@ -11,6 +11,11 @@ O32D O23D O42D O24D O43D O34D
 I32D I23D I52D I54D I53D I35D
 """.split()
 
+default_lattice_axes = dict(
+   P6_632=(np.array([0.86602540378, 0.5, 0, 0]), np.array([0.86602540378, 0.0, 0, 0])),
+   P4M_4=(np.array([1, 0, 0]), ),
+)
+
 class DockSpec:
    @property
    @abstractmethod
@@ -278,11 +283,6 @@ class DockSpecMonomerToCyclic(DockSpec):
       newpos[:, 1, 3] = dy
       return newpos.reshape(origshape)
 
-_layer_comp_center_directions = dict(
-   P6_632=(np.array([0.86602540378, 0.5, 0, 0]), np.array([0.86602540378, 0.0, 0, 0])),
-   P4M_4=(np.array([1, 0, 0]), ),
-)
-
 class DockSpec1CompMirrorLayer(DockSpec):
    @property
    def type(self):
@@ -294,7 +294,7 @@ class DockSpec1CompMirrorLayer(DockSpec):
       self.arch = arch
       self.sym = arch
       self.nfold = np.array(list(arch.split('_')[1]), dtype='i')
-      self.directions = _layer_comp_center_directions[arch]
+      self.directions = default_lattice_axes[arch]
       self.axis = np.array([np.array([0, 0, 1])] * 1)
       self.xflip = [hm.hrot([1, 0, 0], 180)] * 1
       self.comp_is_dihedral = [False]
@@ -314,7 +314,7 @@ class DockSpec3CompLayer(DockSpec):
       self.arch = arch
       self.sym = arch
       self.nfold = np.array(list(arch.split('_')[1]), dtype='i')
-      self.directions = _layer_comp_center_directions[arch]
+      self.directions = default_lattice_axes[arch]
       self.axis = np.array([np.array([0, 0, 1])] * 3)
       self.xflip = [hm.hrot([1, 0, 0], 180)] * 3
       self.comp_is_dihedral = [False, False, False]

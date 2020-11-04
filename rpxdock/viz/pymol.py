@@ -88,6 +88,49 @@ def _(to_show, state, **kw):
       return show_ndarray_n_ca_c(to_show, state, **kw)
    elif to_show.shape[-2:] == (4, 2):
       return show_ndarray_lines(to_show, state, **kw)
+   elif to_show.shape[-2:] == (4, 4):
+      pymol_visualize_xforms(to_show, state, **kw)
+
+def pymol_visualize_xforms(
+   xforms,
+   state,
+   name=None,
+   randpos=0.0,
+   xyzlen=[1, 1, 1],
+   scale=1.0,
+   **kw,
+):
+   name = name or "rpxthing"
+   state["seenit"][name] += 1
+   name += "_%i" % state["seenit"][name]
+   # mycgo = [cgo.BEGIN]
+   mycgo = list()
+
+   c0 = [0, 0, 0, 1]
+   x0 = [xyzlen[0], 0, 0, 1]
+   y0 = [0, xyzlen[1], 0, 1]
+   z0 = [0, 0, xyzlen[2], 1]
+   if randpos > 0:
+      rr = homog.rand_xform()
+      rr[:3, 3] *= randpos
+      c0 = rr @ c0
+      x0 = rr @ x0
+      y0 = rr @ y0
+      z0 = rr @ z0
+
+   for xform in xforms:
+      xform[:3, 3] *= scale
+      c = xform @ c0
+      x = xform @ x0
+      y = xform @ y0
+      z = xform @ z0
+      mycgo.extend(cgo_cyl(c, x, 0.1, [1, 0, 0]))
+      mycgo.extend(cgo_cyl(c, y, 0.1, [0, 1, 0]))
+      mycgo.extend(cgo_cyl(c, z, 0.1, [0, 0, 1]))
+   # mycgo.append(cgo.END)
+   print(mycgo)
+   cmd.load_cgo(mycgo, name)
+   return state
 
 def show_ndarray_lines(to_show, state=None, name=None, colors=None, **kw):
    name = name or "worms_thing"

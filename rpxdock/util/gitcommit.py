@@ -1,4 +1,4 @@
-prev_commit='327be571e9aa2773270cb84fe1461c7cf7eb655f'
-date='2020-06-22 11:43:29 -0700'
-branch='sheffler/master'
+prev_commit = 'fbaa394ad8dead1a0158cdbb6b67dc03d76c88c0'
+date = '2020-08-18 21:49:54 -0700'
+branch = 'sheffler/master'
 

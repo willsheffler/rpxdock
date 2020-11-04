@@ -37,8 +37,8 @@ def dock_cyclic(hscore, inputs, architecture, **kw):
       rp.Body(inp, allowed_res=allowedres, **kw)
       for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)
    ]
-   exe = concurrent.futures.ProcessPoolExecutor
-   # exe = rp.util.InProcessExecutor
+   # exe = concurrent.futures.ProcessPoolExecutor
+   exe = rp.util.InProcessExecutor
    with exe(kw.ncpu) as pool:
       futures = list()
       # where the magic happens
@@ -76,6 +76,7 @@ def dock_onecomp(hscore, **kw):
       if spec.type == 'mirrorlayer':
          sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **arg)
       else:
+         print('!!!!!!!!!! dock.py:79 !!!!!!!!!!!!!!', crtbnd)
          sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=crtbnd[0], ub=crtbnd[1], resl=5,
                                                  angresl=5, axis=spec.axis, flipax=spec.flip_axis)
       search = rp.hier_search
