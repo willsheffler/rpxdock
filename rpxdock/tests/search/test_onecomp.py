@@ -188,7 +188,7 @@ def main():
    # test_cage_hier_onecomp_notrim(hscore, C3)
 
    # test_cage_hier_D3_onecomp_notrim(hscore, C3)
-   # test_cage_hier_D3_2_onecomp_notrim(hscore, C2)
+   test_cage_hier_D3_2_onecomp_notrim(hscore, C2)
    # _test_cage_hier_onecomp_trim(hscore, C3)
    test_cage_grid_onecomp_notrim(hscore, C3)
 
