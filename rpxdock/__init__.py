@@ -4,8 +4,8 @@ __version__ = "0.1"
 
 import os
 
-os.environ["CC"] = "gcc-7"
-os.environ["CXX"] = "g++-7"
+os.environ["CC"] = "gcc-7"  # no idea if this works
+os.environ["CXX"] = "g++-7"  # no idea if this works
 
 from rpxdock.util import Bunch, Timer, load, dump
 from rpxdock import app

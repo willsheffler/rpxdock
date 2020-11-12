@@ -109,19 +109,30 @@ class RpxHier:
 #        "phmap"_a, "idx"_c, "ss"_c, "xform"_c, "pos1"_a = eye4,
 #        "pos2"_a = eye4);
 
-   def scorepos(self, body1, body2, pos1, pos2, iresl=-1, bounds=(), **kw):
+   def scorepos(
+      self,
+      body1,
+      body2,
+      pos1,
+      pos2,
+      iresl=-1,
+      bounds=(),
+      residue_summary=np.sum,  # TODO hook up to options to select
+      **kw,
+   ):
       '''
       TODO WSH rearrange so ppl can add different ways of scoring
       Get scores for all docks
-      :param body1: oligomer 1
-      :param body2: oligomer 2
-      :param pos1: position of oligomer 1
-      :param pos2: position of oligomer 2
-      :param iresl: resolution index (stage of search)
-      :param bounds: for stuff that gets trimmed, defines the range of residues that don't clash
-      :param kw: other args
-      :return: 
+      :param body1:
+      :param body2:
+      :param pos1:
+      :param pos2:
+      :param iresl:
+      :param bounds:
+      :param kw:
+      :return:
       '''
+
       kw = rp.Bunch(kw)
       pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
       # if not bounds:
@@ -138,16 +149,19 @@ class RpxHier:
 
       # print('nres asym', body1.asym_body.nres, body2.asym_body.nres)
       # print(bounds[2], bounds[5])
-      
-      '''
-      # Step 1: Calling bvh c++ function that will look at pair of (arrays of) positions, scores pairs that are in contact (ID from maxpair distance)
-      # Takes in arrays of bodies / positions and finds all pairs of all combinations of position bodies
-      # pairs: array of all residue number pairs; each pair of bodies will have different # of contacts / pairs for placements 
-      # lbub: bounds (start and stop) for each group of bodies (len pos1)
-      # Returns details on contact counts
-      '''
-      pairs, lbub = rp.bvh.bvh_collect_pairs_range_vec(body1.bvh_cen, body2.bvh_cen, pos1, pos2,
-                                                       self.max_pair_dist[iresl], *bounds)
+
+      # calling bvh c++ function that will look at pair of (arrays of) positions, scores pairs that are in contact (ID from maxpair distance)
+      # lbub: len pos1
+      pairs, lbub = rp.bvh.bvh_collect_pairs_range_vec(
+         body1.bvh_cen,
+         body2.bvh_cen,
+         pos1,
+         pos2,
+         self.max_pair_dist[iresl],
+         *bounds,
+      )
+
+      # TODO some output or analysis of distances?
 
       # pairs, lbub = body1.filter_pairs(pairs, self.score_only_sspair, other=body2, lbub=lbub)
 
@@ -173,15 +187,31 @@ class RpxHier:
       phmap = self.hier[iresl].phmap
       ssstub = body1.ssid, body2.ssid, body1.stub, body2.stub
       ssstub = ssstub if self.use_ss else ssstub[2:]
-      pscore = self.map_pairs_multipos(xbin, phmap, pairs, *ssstub, lbub, pos1, pos2) # hashtable of scores for each pair of res in contact in each dock
+
+      # hashtable of scores for each pair of res in contact in each dock
+      pscore = self.map_pairs_multipos(
+         xbin,
+         phmap,
+         pairs,
+         *ssstub,
+         # body1.ssid, body2.ssid, body1.stub, body2.stub,
+         lbub,
+         pos1,
+         pos2,
+      )
 
       # summarize pscores for a dock
-      lbub1, lbub2, idx1, idx2, res1, res2 = rp.motif.marginal_max_score(lbub, pairs, pscore)
+      lbub1, lbub2, idx1, idx2, ressc1, ressc2 = rp.motif.marginal_max_score(
+         lbub,
+         pairs,
+         pscore,
+      )
 
       scores = np.zeros(max(len(pos1), len(pos2)))
       for i, (lb, ub) in enumerate(lbub):
-         side1 = np.sum(res1[lbub1[i, 0]:lbub1[i, 1]])
-         side2 = np.sum(res2[lbub2[i, 0]:lbub2[i, 1]])
+         side1 = residue_summary(ressc1[lbub1[i, 0]:lbub1[i, 1]])
+         side2 = residue_summary(ressc2[lbub2[i, 0]:lbub2[i, 1]])
+         # TODO: maybe do this a different way?
          mscore = side1 + side2
          # mscore = np.sum(pscore[lb:ub])
          # mscore = np.log(np.sum(np.exp(pscore[lb:ub])))

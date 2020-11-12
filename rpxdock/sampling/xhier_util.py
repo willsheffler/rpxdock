@@ -4,14 +4,14 @@ from rpxdock.sampling.xform_hierarchy import XformHier_f4
 log = logging.getLogger(__name__)
 
 def xform_hier_guess_sampling_covrads(
-      hierarchy_depth,
-      sampling_lever,
-      base_sample_resl,
-      base_cart_resl,
-      base_ori_resl,
-      xhier_cart_fudge_factor,
-      xhier_ori_fudge_factor,
-      **kw,
+   hierarchy_depth,
+   sampling_lever,
+   base_sample_resl,
+   base_cart_resl,
+   base_ori_resl,
+   xhier_cart_fudge_factor,
+   xhier_ori_fudge_factor,
+   **kw,
 ):
    resl = base_sample_resl * 2**(hierarchy_depth - 1)
    log.debug("low tot resl {resl} {base_sample_resl}")

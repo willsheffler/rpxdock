@@ -1,13 +1,15 @@
-import rpxdock as rp, numpy as np, argparse
+import sys, rpxdock as rp, numpy as np, argparse
 
 def dock_helix(hscore, body, **kw):
-   kw = rp.Bunch(arg)
+   kw = rp.Bunch(kw)
+
+   print(f'{"helix_beta.py:dock_helix starting":=^80}')
+
    assert kw.max_trim == 0, 'no support for trimming yet'
 
    # kw.executor = ThreadPoolExecutor(8)
    kw.executor = None
 
-   print(kw.cart_bounds)
    assert len(kw.cart_bounds) is 3, 'improper cart_bounds'
    cartlb = np.array([kw.cart_bounds[0][0], kw.cart_bounds[1][0], kw.cart_bounds[2][0]])
    cartub = np.array([kw.cart_bounds[0][1], kw.cart_bounds[1][1], kw.cart_bounds[2][1]])
@@ -55,7 +57,7 @@ def get_helix_args():
    if not kw.cart_bounds:
       kw.cart_bounds = np.array([(0, 100), (-100, 100), (-100, 100)])
    else:
-      kw.cart_bounds = rp.options.process_cart_bounds(kw.cart_bounds)
+      kw.cart_bounds = rp.options._process_cart_bounds(kw.cart_bounds)
 
    kw.iresl_second_shift = 2
    kw.helix_min_primary_angle = 360 / kw.helix_max_isecond - 1
@@ -63,6 +65,12 @@ def get_helix_args():
    kw.max_iclash = int(kw.helix_max_isecond * 1.2 + 3)
 
    kw.symframe_num_helix_repeats = kw.helix_max_isecond * 2 + 2
+
+   if not kw.inputs1:
+      print('No inputs! Aborting.')
+      sys.exit(-1)
+
+   rp.options.print_options(kw)
 
    return kw
 
