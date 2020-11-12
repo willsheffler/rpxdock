@@ -3,6 +3,10 @@ from rpxdock.xbin import xbin_util as xu
 
 log = logging.getLogger(__name__)
 
+"""
+RpxHier holds score information at each level of searching / scoring 
+Grid search just uses the last/finest scorefunction 
+"""
 class RpxHier:
    def __init__(self, files, max_pair_dist=8.0, hscore_data_dir=None, **kw):
       kw = rp.Bunch(kw)
@@ -177,7 +181,7 @@ class RpxHier:
       #       assert np.all(asym_res2 <= bounds[4][i])
 
       if kw.wts.rpx == 0:
-         return kw.wts.ncontact * (lbub[:, 1] - lbub[:, 0])
+         return kw.wts.ncontact * (lbub[:, 1] - lbub[:, 0]) # option to score based on ncontacts only
 
       xbin = self.hier[iresl].xbin
       phmap = self.hier[iresl].phmap
