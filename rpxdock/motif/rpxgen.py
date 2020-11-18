@@ -18,7 +18,7 @@ def make_and_dump_hier_score_tables(pairdat, **kw):
    # xbin_base = rp.Xbin(kw.base_cart_resl, ORI_RESL, kw.xbin_max_cart)
    xbin_base = create_xbin_even_nside(kw.base_cart_resl, kw.base_ori_resl, kw.xbin_max_cart)
    pairscore = rp.motif.create_res_pair_score(pairdat, xbin_base, **kw)
-   pairscore.attr.opts = arg
+   pairscore.attr.opts = kw
    pairscore.attr.nbase_nm3 = nbase_nm3
    pairscore.attr.xhresl = xhresl
 
@@ -75,7 +75,7 @@ def make_hscore_single(pairdat, ihier, xbin_base, cart_extent, ori_extent, sstag
    sm = rp.Xmap(xbin, smearmap, rehash_bincens=True)
    ori_lever_extent = ori_extent * np.pi / 180 * kw.sampling_lever
    sm.attr.hresl = np.sqrt(cart_extent**2 + ori_lever_extent**2)
-   sm.attr.cli_args = arg
+   sm.attr.cli_args = kw
    sm.attr.smearrad = smearrad
    sm.attr.exhalf = exhalf
    sm.attr.cart_extent = cart_extent

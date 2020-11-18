@@ -73,7 +73,7 @@ def test_make_cyclic_hier_trim(hscore, body):
 def debug_marisa_dhr01():
    kw = rp.app.defaults()
    kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
-   kw.beam_size = 1e5
+   kw.beam_size = 1e4
    kw.max_bb_redundancy = 2.0
    kw.recenter_input = True
    # kw.max_longaxis_dot_z = 0.5
@@ -82,13 +82,15 @@ def debug_marisa_dhr01():
    kw.executor = concurrent.futures.ThreadPoolExecutor(min(4, kw.ncpu / 2))
    kw.max_trim = 0
 
-   hscore = rp.score.RpxHier('ailv_h', hscore_data_dir='/home/erinyang/hscore/')
-   # hscore = rp.data.small_hscore()
+   # hscore = rp.score.RpxHier('ailv_h', hscore_data_dir='/home/erinyang/hscore/')
+   hscore = rp.data.small_hscore()
 
    body = rp.Body('/home/sheffler/debug/marisa/input/dhr01.pdb', **kw)
    result = rp.search.make_cyclic(body, "C2", hscore, **kw)
    result.dump_pdbs_top_score(**kw.sub(nout_top=50, output_prefix='debug_marisa'))
    print('num results:', len(result))
+   result = rp.concat_results([result])
+   rp.dump(result, 'result_test.pickle')
 
    assert 0
 

@@ -53,6 +53,7 @@ def hier_multi_axis_sampler(
    resl=10,
    angresl=10,
    flip_components=True,
+   fixed_components=[],
    **kw,
 ):
    if not (hasattr(spec, 'nfold') and hasattr(spec, 'axis') and hasattr(spec, 'xflip')):
@@ -79,6 +80,8 @@ def hier_multi_axis_sampler(
    for i in range(len(spec.nfold)):
       if spec.comp_is_dihedral[i]:
          s = LineHier(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], spec.axis[i])
+      elif i in fixed_components:
+         s = rp.ZeroDHier([np.eye(4)])
       else:
          s = rp.sampling.RotCart1Hier_f4(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], 0,
                                          ang[i], ang_nstep[i], spec.axis[i][:3])

@@ -4,7 +4,7 @@ from rpxdock.motif import ResPairData, make_and_dump_hier_score_tables
 
 def get_opts():
    parser = rpxdock.options.default_cli_parser()
-   addkw = rpxdock.options.add_argument_unless_exists(parser)
+   addarg = rpxdock.options.add_argument_unless_exists(parser)
    H = "ResPairData file containing Xarray Dataset with pdb, residue, and pair info"
    addarg("respairdat_file", type=str, help=H)
    H = "final sampling resolution"
@@ -29,8 +29,8 @@ def get_opts():
    addarg("--use_ss_key", default=False, action='store_true')
    kw = parser.parse_args()
    kw.smear_params = rpxdock.options.parse_list_of_strtuple(kw.smear_params)
-   rpxdock.options.process_cli_args(arg)
-   return Bunch(arg)
+   rpxdock.options.process_cli_args(kw)
+   return Bunch(kw)
 
 def main():
    kw = get_opts()

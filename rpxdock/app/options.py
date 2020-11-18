@@ -254,9 +254,11 @@ def default_cli_parser(parent=None, **kw):
       help='boolean value or values specifying if components should be allowed to flip in axis aligned docking protocols'
    )
    addarg(
-      "--fixed_components", action='store_true', default=False,
+      "--components_already_aligned_to_sym_axes", action='store_true', default=False,
       help='use this flag if components are already aligned along the appropriate symmetry axes. If absent, components are assumed to be aligned along Z and centered on the origin'
    )
+   addarg("--fixed_components", nargs='+', default=[],
+          help='list of components (0,1,2 etc) which should be fixed in multicomponent docking')
    addarg("--use_orig_coords", action='store_true', default=False,
           help='remember and output the original sidechains from the input structures')
    addarg("--primary_iface_cut", default=None, help='score cut for helix primary interface')
