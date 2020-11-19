@@ -8,7 +8,7 @@ def make_multicomp(
    hscore,
    search=hier_search,
    sampler=None,
-   fixed_components=False,
+   components_already_aligned_to_sym_axes=False,
    **kw,
 ):
    kw = rp.Bunch(kw)
@@ -19,7 +19,7 @@ def make_multicomp(
 
    assert len(bodies) == spec.num_components
    bodies = list(bodies)
-   if not fixed_components:
+   if not components_already_aligned_to_sym_axes:
       for i, b in enumerate(bodies):
          bodies[i] = b.copy_xformed(rp.homog.align_vector([0, 0, 1], spec.axis[i]))
 

@@ -21,7 +21,7 @@ def _test_cage_slide(hscore, body_cageA, body_cageB):
    rp.search.samples_2xCyclic_slide(spec)
 
 def test_cage_hier_no_trim(hscore, body_cageA, body_cageB):
-   kw = get_arg(fixed_components=True)
+   kw = get_arg(components_already_aligned_to_sym_axes=True)
    kw.beam_size = 5000
 
    spec = rp.search.DockSpec2CompCage('T33')
@@ -37,7 +37,7 @@ def test_cage_hier_no_trim(hscore, body_cageA, body_cageB):
    rp.search.assert_results_close(result, ref)
 
 def test_cage_hier_trim(hscore, body_cageA_extended, body_cageB_extended):
-   kw = get_arg().sub(nout_debug=0, max_trim=150, fixed_components=True)
+   kw = get_arg().sub(nout_debug=0, max_trim=150, components_already_aligned_to_sym_axes=True)
    kw.output_prefix = 'test_cage_hier_trim'
    kw.wts.ncontact = 0.0
    kw.trimmable_components = 'AB'
