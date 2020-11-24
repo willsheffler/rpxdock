@@ -83,14 +83,14 @@ class Timer:
       else:
          raise ValueError('Timer, unknown order: ' + order)
 
-   def report(self, order='longest', summary='sum', namelen=None, precision='10.5f',
-              printme=True):
+   def report(self, order='longest', summary='sum', namelen=None, precision='10.5f', printme=True,
+              scale=1.0):
       if namelen is None:
          namelen = max(len(n) for n in self.checkpoints)
       lines = [f"Times(order={order}, summary={summary}):"]
       times = self.report_dict(order=order, summary=summary)
       for cpoint, t in times.items():
-         lines.append(f'    {cpoint:>{namelen}} {t:{precision}}')
+         lines.append(f'    {cpoint:>{namelen}} {t*scale:{precision}}')
       r = os.linesep.join(lines)
       if printme: log.info(r)
       return r

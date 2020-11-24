@@ -502,7 +502,7 @@ def test_OriCart1_hierarchy_redundancy():
       xb = rp.xbin.Xbin_double(0.04, 0.2, 32)
       seenit = set(xb.key_of(x.astype('f8')))
       print(N, len(seenit), len(x), len(seenit) / len(x))
-      assert hhat[N] - 0.001 < len(seenit) / len(x) < hhat[N] + 0.001
+      assert hhat[N] - 0.002 < len(seenit) / len(x) < hhat[N] + 0.002
 
    print('----------------')
    # cdelta2, odelta2 = xform_dist2_split(x, x[:10], 8)

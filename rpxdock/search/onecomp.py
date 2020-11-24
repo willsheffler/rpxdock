@@ -138,7 +138,6 @@ class OneCompEvaluator:
          sampling at highest resl probably 0.6A due to ori + cart
          returns score # for each "dock"
       '''
-
       '''
       bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
       sfxn: hscore.scorepos scores stuff from the hscore that got passed 

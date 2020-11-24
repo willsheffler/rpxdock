@@ -255,6 +255,21 @@ def test_axis_ang_cen_of_rand():
    cenhat = (rot @ cen[..., None]).squeeze()
    assert np.allclose(cen + helical_trans, cenhat, rtol=1e-4, atol=1e-4)
 
+def test_axis_angle_vs_axis_angle_cen_performance():
+   N = 10000
+   t = rp.Timer().start()
+   xforms = rand_xform(N)
+   t.checkpoint('setup')
+   axis, ang = axis_angle_of(xforms)
+   t.checkpoint('axis_angle_of')
+   axis2, ang2, cen = axis_ang_cen_of(xforms)
+   t.checkpoint('axis_ang_cen_of')
+   print(t.report(scale=1_000_000 / N))
+
+   assert np.allclose(axis, axis2)
+   assert np.allclose(ang, ang2)
+   # assert 0
+
 def test_hinv_rand():
    shape = (5, 6, 7, 8, 9)
    axis0 = hnormalized(np.random.randn(*shape, 3))
@@ -854,7 +869,9 @@ def test_xform_around_dof_for_vector_target_angle():
 
 if __name__ == '__main__':
 
-   test_xform_around_dof_for_vector_target_angle()
+   test_axis_angle_vs_axis_angle_cen_performance()
+
+   # test_xform_around_dof_for_vector_target_angle()
 
    # test_calc_dihedral_angle()
    # test_align_lines_dof_dihedral_basic()

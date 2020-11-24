@@ -216,6 +216,14 @@ class HelixEvaluator:
       dok = np.logical_and(dhelix >= kw.helix_min_delta_z - cart_extent,
                            dhelix <= helix_max_delta_z + cart_extent)
       ok = np.logical_and(ok, np.logical_and(dok, aok))
+
+      # filter on radius
+      axis, ang, cen = hm.axis_ang_cen_of(xforms[ok])
+      rhelix = hm.hnorm(hm.proj_perp(axis, cen))
+      # print(np.quantile(rhelix, np.arange(11) / 10))
+
+      ok[ok] = np.logical_and(kw.helix_min_radius - cart_extent <= rhelix,
+                              rhelix <= cart_extent + kw.helix_max_radius)
       # ok = np.tile(True, len(xforms))
 
       scores = np.zeros((len(xforms), 2))

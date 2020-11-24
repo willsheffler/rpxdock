@@ -61,6 +61,9 @@ def get_helix_args():
    parser.add_argument("--tether_ang", type=float, default=10,
                        help='max angle from supplied dimer configuration')
 
+   parser.add_argument("--helix_min_radius", type=float, default=0, help='min helix radius')
+   parser.add_argument("--helix_max_radius", type=float, default=9e9, help='max helix radius')
+
    parser.add_argument("--tmpa", type=int)
    parser.add_argument("--tmpb", type=int)
 

@@ -1,4 +1,4 @@
-import _pickle, collections
+import _pickle, collections, pytest
 from rpxdock.search.result import *
 
 def test_result(result):
@@ -44,11 +44,23 @@ def test_result_no_body_label(result):
    foo = Result(result.data, body_=['a', 'b', 'c'])
    assert foo.body_label_ == 'body0 body1 body2'.split()
 
+@pytest.mark.skip
+def test_result_coords():
+   r = rp.data.get_test_data('test_cage_hier_no_trim')
+   r = rp.concat_results([r])
+   idx = 7
+   bodyA, bodyB = r.bodies[r.ijob[idx].data]
+   crdA = bodyA.positioned_coord(pos=r.xforms[idx, 0])
+   crdB = bodyB.positioned_coord(pos=r.xforms[idx, 1])
+
+   assert 0
+
 if __name__ == '__main__':
    import tempfile
    # test_result(dummy_result(1000))
-   test_result_pickle(dummy_result(1000), tempfile.mkdtemp())
+   # test_result_pickle(dummy_result(1000), tempfile.mkdtemp())
    # test_result_attrs()
    # test_mismatch_len(dummy_result(1000))
-   test_top_each(dummy_result(1000))
-   test_result_no_body_label(dummy_result(1000))
+   # test_top_each(dummy_result(1000))
+   # test_result_no_body_label(dummy_result(1000))
+   test_result_coords()
