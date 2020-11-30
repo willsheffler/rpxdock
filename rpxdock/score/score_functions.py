@@ -35,28 +35,37 @@ def sasa_priority(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
    for i, (lb, ub) in enumerate(lbub):
       side1 = np.mean(ressc1[lbub1[i, 0]:lbub1[i, 1]])
       side2 = np.mean(ressc2[lbub2[i, 0]:lbub2[i, 1]])
-      side1_stdev = np.std(ressc1[lbub1[i, 0]:lbub1[i, 1]])
-      side2_stdev = np.std(ressc2[lbub1[i, 0]:lbub1[i, 1]])
          # TODO: maybe do this a different way?
       mscore = (side1 + side2) / 2
-      sscore = np.sqrt(side1_stdev**2 + side2_stdev**2)
-      if np.isnan(sscore):
-         sscore = 100
 
-   #ncont_score = a * np.exp( -((ncont) - b)**2 / (2*c**2) )
       a = kw.wts.ncontact
-      mu = kw.wts.sasa / 21.522
-      if not kw.wts.sasa_error:
-        sigma = mu * 0.2433619617913417
+      
+      if not kw.wts.error:
+        sigma = 1
       else:
-        sigma = kw.wts.sasa_error / 21.522
-      b=np.log(mu**2 / np.sqrt(mu**2 + sigma**2))
+        sigma = kw.wts.error
+      
+      m = np.exp((-sigma**2.22215285) / 28.59075188)
+      mu = (kw.wts.sasa) / m #convert input sasa (mode) into a mean
+      
+      mu = (mu - 14.2198) / 21.522 #redefine mean in terms of ncontact
+      sigma = mu * sigma * 0.2433619617913417 #redefine mean in terms of ncontact
+      mode = (kw.wts.sasa - 14.2198) / 21.522 #redefine mode in terms of ncontact
+   
+      #calculate parameterization factors
+      b=np.log(mu**2 / np.sqrt(mu**2 + sigma**2)) 
       c=np.log(1 + (sigma**2 / mu**2))
+      
       #ncont_score = a * np.exp( -((ncont) - mu)**2 / (2*sigma**2) )
-      if (ub - lb) > 0:
-         ncont_score = ( a  / (c * np.sqrt(2 * np.pi) * (ub - lb)) ) * np.exp( -(np.log(ub - lb) - b)**2 / (2*c**2) )
+      if (ub - lb) > 0:   
+         #normalize the lognormal distribution to the maximum score so that all possible sasa/sigma combinations
+         #result in the same maximum possible score
+         prob_max = ( 1  / (c * np.sqrt(2 * np.pi) * (mode)) ) * np.exp( -(np.log(mode) - b)**2 / (2*c**2) )
+         ncont_score = ( a / prob_max )*( 1  / (c * np.sqrt(2 * np.pi) * (ub - lb)) ) * np.exp( -(np.log(ub - lb) - b)**2 / (2*c**2) )
+         
          scores[i] = kw.wts.rpx * mscore + ncont_score
       else:
+         
          scores[i] = 0
    return scores
 
