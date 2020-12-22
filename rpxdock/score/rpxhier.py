@@ -207,8 +207,12 @@ class RpxHier:
          pscore,
       )
       score_functions = {"fun2" : sfx.score_fun2, "lin" : sfx.lin, "exp" : sfx.exp, "mean" : sfx.mean, "median" : sfx.median, "stnd" : sfx.stnd, "sasa_priority" : sfx.sasa_priority}
-      scores = score_functions[kw.function](pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, wts=kw.wts)
-
+      score_fx = score_functions.get(kw.function)
+      if score_fx:
+         scores = score_fx(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, wts=kw.wts)
+      else:
+         logging.info(f"Failed to find score function {kw.function}, falling back to 'stnd'")
+         scores = score_functions["stnd"](pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, wts=kw.wts)
       return scores
 
    def iresls(self):
