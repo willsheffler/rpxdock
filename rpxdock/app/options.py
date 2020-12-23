@@ -202,6 +202,14 @@ def default_cli_parser(parent=None, **kw):
       help='Only for monomer-to-plug docking. score weight of plug / cage hole interface. defaults to 1.0'
    )
    addarg(
+      "--weight_sasa", type=float, default=1500,
+      help="Desired SASA used to weight dock scoring"
+   )
+   addarg(
+      "--weight_error", type=float, default=None,
+      help="Standard deviation used to calculate the distribution of SASA weighting"
+      )
+   addarg(
       "--output_prefix", nargs="?", default="rpxdock", type=str,
       help="output file prefix. will output pickles for a base ResPairScore plus --hierarchy_depth hier XMaps"
    )
@@ -265,7 +273,12 @@ def default_cli_parser(parent=None, **kw):
    addarg("--ignored_aas", default='CGP', help='Amino acids to ignore in scoring')
    addarg("--score_self", action='store_true', default=False,
           help='score each interface seperately and dump in output pickle')
-
+   #addarg("--score_fun", default=standard,
+   #       help='apply this score function to rpx and ncontact')
+   #addarg("--weight_scorefun",
+   #       help='weights to use in score function')
+   addarg("--function", type=str, default='stnd',
+          help='score function to use for scoring')
    parser.has_rpxdock_args = True
    return parser
 
