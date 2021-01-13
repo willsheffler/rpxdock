@@ -234,7 +234,9 @@ def hpoint(point):
 
 def hvec(vec):
    vec = np.asanyarray(vec)
-   if vec.shape[-1] == 4: return vec
+   if vec.shape[-1] == 4:
+      vec[..., 3] = 0
+      return vec
    elif vec.shape[-1] == 3:
       r = np.zeros(vec.shape[:-1] + (4, ))
       r[..., :3] = vec
@@ -299,7 +301,9 @@ def hnormalized(a):
    if (not a.shape and len(a) == 3) or (a.shape and a.shape[-1] == 3):
       a, tmp = np.zeros(a.shape[:-1] + (4, )), a
       a[..., :3] = tmp
-   return a / hnorm(a)[..., None]
+   a2 = a.copy()
+   a2[..., 3] = 0
+   return a2 / hnorm(a2)[..., None]
 
 def is_valid_rays(r):
    r = np.asanyarray(r)

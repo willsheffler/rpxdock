@@ -22,6 +22,9 @@ class _TimerGetter:
          return self.summary(self.timer.checkpoints[name])
       raise AttributeError("Timer has no attribute named: " + name)
 
+   def __getitem__(self, name):
+      return getattr(self, name)
+
 class Timer:
    def __init__(self, name='Timer', verbose=False):
       self.name = name

@@ -12,7 +12,10 @@ setup_pybind11(cfg)
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
+#include "parallel_hashmap/phmap.h"
+#include "rpxdock/util/global_rng.hpp"
 #include "rpxdock/util/numeric.hpp"
 #include "rpxdock/util/pybind_types.hpp"
 #include "rpxdock/xbin/xbin.hpp"
@@ -31,6 +34,62 @@ namespace rpxdock {
 namespace geom {
 
 using namespace util;
+using namespace Eigen;
+
+template <typename F>
+py::tuple expand_xforms_rand(std::vector<py::array_t<F>> gen_in, int depth,
+                             int ntrials, F radius, V3<F> cen,
+                             F reset_radius_ratio) {
+  std::uniform_int_distribution<> randidx(0, gen_in.size() - 1);
+
+  using X = X3<F>;
+  std::vector<X> gen;
+  for (auto g : gen_in) gen.push_back(xform_py_to_X3(g));
+  xbin::XformHash_bt24_BCC6<X, uint64_t> binner(0.1654, 1.74597, 107.745);
+  ::phmap::parallel_flat_hash_map<uint64_t, uint64_t> uniq_keys;
+  Mx<X> frames(depth, ntrials);
+
+  for (int idepth = 0; idepth < depth; ++idepth) {
+    for (int itrial = 0; itrial < ntrials; ++itrial) {
+      // compute new frame
+      X xdelta = gen[randidx(global_rng())];
+      X& x = frames(idepth, itrial);
+      x = idepth == 0 ? xdelta : xdelta * frames(idepth - 1, itrial);
+      F dist2cen = (x.translation() - cen).squaredNorm();
+      if (dist2cen > sqr(reset_radius_ratio) * sqr(radius)) {
+        x = frames(idepth / 2, itrial);  // reset to prior location in bounds
+        continue;
+      } else if (dist2cen > sqr(radius)) {
+        continue;  // out of bounds, don't record
+      }
+      // record frame
+      int id = idepth * ntrials + itrial;
+      uniq_keys.insert_or_assign(binner.get_key(x), id);
+    }
+  }
+  std::vector<X> frames_uniq_key;
+  for (auto& [k, v] : uniq_keys) {
+    int idepth = v / ntrials;
+    int itrial = v % ntrials;
+    frames_uniq_key.push_back(frames(idepth, itrial));
+  }
+  std::vector<X> frames_uniq;
+  for (int i = 0; i < frames_uniq_key.size(); ++i) {
+    bool uniq = true;
+    auto x = frames_uniq_key[i];
+    for (int j = 0; j < i; ++j) {
+      auto y = frames_uniq_key[j];
+      auto y2x = x * y.inverse();
+      Matrix<F, 3, 3> m = y2x.linear();
+      if (y2x.translation().squaredNorm() > 0.0001) continue;
+      if (AngleAxis<F>(m).angle() < 0.0001) uniq = false;
+    }
+    if (uniq) frames_uniq.push_back(x);
+  }
+  Vx<X> ret(frames_uniq.size());
+  for (int i = 0; i < frames_uniq.size(); ++i) ret[i] = frames_uniq[i];
+  return py::make_tuple(xform_eigen_to_py(ret), 0);
+}
 
 // ZOMG...
 template <typename F>
@@ -222,7 +281,7 @@ DONE:
 
   auto ret = xform_eigen_to_py(xuniq, n);
 
-  return py::make_tuple(ret, (int)seenit.size(), count);
+  return py::make_tuple(ret, py::make_tuple((int)seenit.size(), count));
 }  // namespace rpxdock
 
 template <typename F>
@@ -332,12 +391,17 @@ py::tuple expand_xforms(py::array_t<F> generators, int N = 5, F maxrad = 9e9,
 
 PYBIND11_MODULE(expand_xforms, m) {
   // m.def("expand_xforms_loop", &expand_xforms_loop<double>);
-  m.def("expand_xforms", &expand_xforms<double>, "", "generators"_a, "nstep"_a,
-        "maxrad"_a = 9e9, "maxrad_intermediate"_a = 9e9);
+
+  m.def("expand_xforms", &expand_xforms<double>, "", "generators"_a, "depth"_a,
+        "radius"_a = 9e9, "maxrad_intermediate"_a = 9e9);
 
   m.def("expand_xforms_2gen_loop_pyarray",
-        &expand_xforms_2gen_loop_pyarray<double>, "", "g1"_a, "g2"_a, "nstep"_a,
-        "maxrad"_a = 9e9, "maxrad_intermediate"_a = 9e9);
+        &expand_xforms_2gen_loop_pyarray<double>, "", "g1"_a, "g2"_a, "depth"_a,
+        "radius"_a = 9e9, "maxrad_intermediate"_a = 9e9);
+
+  m.def("expand_xforms_rand", &expand_xforms_rand<double>, "", "generators"_a,
+        "depth"_a = 1000, "trials"_a = 1000, "radius"_a = 9e9,
+        "cen"_a = Vector3d(0, 0, 0), "reset_radius_ratio"_a = 9e9);
 }
 
 }  // namespace geom

@@ -62,7 +62,8 @@ py::tuple xform_dist2_split(py::array_t<F> a, py::array_t<F> b, F lever) {
 }
 
 PYBIND11_MODULE(xform_dist, m) {
-  m.def("xform_dist2_split", &xform_dist2_split<float>);
+  m.def("xform_dist2_split", &xform_dist2_split<float>,
+        "dist and ang between xforms", "x"_a, "y"_a, "lever"_a = 1.0);
   m.def("xform_dist2_split", &xform_dist2_split<double>);
 }
 

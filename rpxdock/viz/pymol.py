@@ -96,7 +96,7 @@ def pymol_visualize_xforms(
    state,
    name=None,
    randpos=0.0,
-   xyzlen=[1, 1, 1],
+   xyzlen=[5 / 4, 1, 4 / 5],
    scale=1.0,
    **kw,
 ):
@@ -128,7 +128,7 @@ def pymol_visualize_xforms(
       mycgo.extend(cgo_cyl(c, y, 0.1, [0, 1, 0]))
       mycgo.extend(cgo_cyl(c, z, 0.1, [0, 0, 1]))
    # mycgo.append(cgo.END)
-   print(mycgo)
+   # print(mycgo)
    cmd.load_cgo(mycgo, name)
    return state
 
