@@ -48,6 +48,7 @@ class RpxHier:
       self.map_pairs_multipos = xu.ssmap_pairs_multipos if self.use_ss else xu.map_pairs_multipos
       self.map_pairs = xu.ssmap_of_selected_pairs if self.use_ss else xu.map_of_selected_pairs
       self.score_only_sspair = kw.score_only_sspair
+      self.function = kw.function
 
    def __len__(self):
       return len(self.hier)
@@ -207,7 +208,7 @@ class RpxHier:
          pscore,
       )
       score_functions = {"fun2" : sfx.score_fun2, "lin" : sfx.lin, "exp" : sfx.exp, "mean" : sfx.mean, "median" : sfx.median, "stnd" : sfx.stnd, "sasa_priority" : sfx.sasa_priority}
-      score_fx = score_functions.get(kw.function)
+      score_fx = score_functions.get(self.function)
       if score_fx:
          scores = score_fx(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, wts=kw.wts)
       else:

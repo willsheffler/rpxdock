@@ -127,7 +127,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          ifscore = list()
          for i in range(len(B)):
             for j in range(i):
-               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, function=kw.function, wts=wts))
+               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
                # ifscore = np.stack(ifscore)
                logging.debug(f"ifscore is {len(ifscore)} long and is a {type(ifscore)}")
 
@@ -149,10 +149,10 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
                   logging.debug("found self")
                   Xsym = self.spec.to_neighbor_olig @ X
                   s_ifscore.append(
-                     self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, function=kw.function, wts=wts))
+                     self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, wts=wts))
                else:
                   ns_ifscore.append(
-                     self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, function=kw.function, wts=wts))
+                     self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
          logging.debug(f"self scores is length {len(s_ifscore[0])}")
          logging.debug(f"non-self scores is legnth {len(ns_ifscore[0])}")
          logging.debug(f"OK len is {len(ok)}")
