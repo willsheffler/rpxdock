@@ -15,13 +15,13 @@ def _ex_get_cen_radius(generators):
    return radius, cen
 
 def expand_xforms_rand(
-   generators,
-   trials=100,
-   depth=10,
-   radius=None,
-   radius_mult=8,
-   cen=[0, 0, 0],
-   reset_radius_ratio=1.5,  # unused atm
+      generators,
+      trials=100,
+      depth=10,
+      radius=None,
+      radius_mult=8,
+      cen=[0, 0, 0],
+      reset_radius_ratio=1.5,  # unused atm
 ):
 
    generators = _ex_process_generators(generators)
@@ -139,14 +139,14 @@ def _test_expand_xforms_various_count_py(trials=3):
    _test_expand_xforms_various_count(expand_xforms_rand, trials)
 
 def do_test_expand_xforms(
-   generators,
-   nstep,
-   radius,
-   nexpected,
-   radius_intermediate=9e9,
-   trials=1,
-   showme=False,
-   expand_xforms_func=rp.geom.expand_xforms_rand,
+      generators,
+      nstep,
+      radius,
+      nexpected,
+      radius_intermediate=9e9,
+      trials=1,
+      showme=False,
+      expand_xforms_func=rp.geom.expand_xforms_rand,
 ):
    ex, _ = expand_xforms_func(generators, depth=4 * nstep, radius=radius, trials=10000)
    if showme: rp.viz.showme(ex, randpos=2, xyzlen=[1.4, 1.2, 1], scale=1.3)

@@ -69,6 +69,15 @@ class Bunch(dict):
             newbunch.__setattr__(k, v)
       return newbunch
 
+   def __add__(self, addme):
+      newbunch = self.copy()
+      for k, v in addme.items():
+         if k in self:
+            newbunch.__setattr__(k, self[k] + v)
+         else:
+            newbunch.__setattr__(k, v)
+      return newbunch
+
    def __getstate__(self):
       return self.__dict__
 

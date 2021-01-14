@@ -65,6 +65,12 @@ def test_bunch_items():
    assert list(b.keys()) == ['item', 'attr']
    assert list(b.values()) == ['item', 'attr']
 
+def test_bunch_add():
+   b1 = Bunch(dict(a=2, b="bee", mergedint=4, mergedstr='b1'))
+   b2 = Bunch(dict(a=2, c="see", mergedint=3, mergedstr='b2'))
+   b1_plus_b2 = Bunch(a=4, b='bee', mergedint=7, mergedstr='b1b2', c='see')
+   assert (b1 + b2) == b1_plus_b2
+
 if __name__ == "__main__":
    from tempfile import mkdtemp
 
@@ -72,3 +78,4 @@ if __name__ == "__main__":
    test_bunch_init()
    test_bunch_sub()
    test_bunch_items()
+   test_bunch_add()

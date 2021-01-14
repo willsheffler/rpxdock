@@ -107,6 +107,9 @@ class Timer:
    def __str__(self):
       return self.report(printme=False)
 
+   def __repr__(self):
+      return str(type(self))
+
    def merge(self, others):
       if isinstance(others, Timer): others = [others]
       for other in others:
