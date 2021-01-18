@@ -71,6 +71,21 @@ def test_bunch_add():
    b1_plus_b2 = Bunch(a=4, b='bee', mergedint=7, mergedstr='b1b2', c='see')
    assert (b1 + b2) == b1_plus_b2
 
+def test_bunch_visit():
+   count = 0
+
+   def func(k, v, depth):
+      # print('    ' * depth, k, type(v))
+      nonlocal count
+      count += 1
+      if v == 'b': return True
+      return False
+
+   b = Bunch(a='a', b='b', bnch=Bunch(foo='bar'))
+   b.visit(func)
+   assert b == Bunch(a='a', bnch=Bunch(foo='bar'))
+   assert count == 4
+
 if __name__ == "__main__":
    from tempfile import mkdtemp
 
@@ -79,3 +94,4 @@ if __name__ == "__main__":
    test_bunch_sub()
    test_bunch_items()
    test_bunch_add()
+   test_bunch_visit()
