@@ -27,18 +27,18 @@ _atom_record_format = (
    "{x:8.3f}{y:8.3f}{z:8.3f}{occ:6.2f}{b:6.2f}\n")
 
 def format_atom(
-      atomi=0,
-      atomn="ATOM",
-      idx=" ",
-      resn="RES",
-      chain="A",
-      resi=0,
-      insert=" ",
-      x=0,
-      y=0,
-      z=0,
-      occ=0,
-      b=0,
+   atomi=0,
+   atomn="ATOM",
+   idx=" ",
+   resn="RES",
+   chain="A",
+   resi=0,
+   insert=" ",
+   x=0,
+   y=0,
+   z=0,
+   occ=0,
+   b=0,
 ):
    return _atom_record_format.format(**locals())
 
@@ -92,13 +92,13 @@ def _(to_show, state, **kw):
       pymol_visualize_xforms(to_show, state, **kw)
 
 def pymol_visualize_xforms(
-      xforms,
-      state,
-      name=None,
-      randpos=0.0,
-      xyzlen=[5 / 4, 1, 4 / 5],
-      scale=1.0,
-      **kw,
+   xforms,
+   state,
+   name=None,
+   randpos=0.0,
+   xyzlen=[5 / 4, 1, 4 / 5],
+   scale=1.0,
+   **kw,
 ):
    name = name or "rpxthing"
    state["seenit"][name] += 1

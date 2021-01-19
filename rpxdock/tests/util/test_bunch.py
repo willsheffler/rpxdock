@@ -82,7 +82,7 @@ def test_bunch_visit():
       return False
 
    b = Bunch(a='a', b='b', bnch=Bunch(foo='bar'))
-   b.visit(func)
+   b.visit_remove_if(func)
    assert b == Bunch(a='a', bnch=Bunch(foo='bar'))
    assert count == 4
 

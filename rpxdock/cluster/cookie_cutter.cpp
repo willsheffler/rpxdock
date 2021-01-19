@@ -17,6 +17,7 @@ setup_pybind11(cfg)
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include <Eigen/Dense>
 #include <iostream>
@@ -43,27 +44,38 @@ template <typename F>
 using RowMatrixX = Matrix<F, Dynamic, Dynamic, RowMajor>;
 
 template <typename F>
-Vx<int> cookie_cutter(Ref<RowMatrixX<F>> pts, F thresh) {
-  py::gil_scoped_release release;
-  using Keeper = std::pair<Vx<F>, int>;
-  std::vector<Keeper> keep;
-  for (int i = 0; i < pts.rows(); ++i) {
-    bool seenit = false;
-    for (auto& keeper : keep) {
-      Vx<F> delta = pts.row(i) - keeper.first;
-      F d2 = delta.squaredNorm();
-      if (d2 <= thresh * thresh) {
-        seenit = true;
-        break;
+py::tuple cookie_cutter(Ref<RowMatrixX<F>> pts, F thresh) {
+  Vx<int> out;
+  std::vector<int> clustid;
+  {
+    py::gil_scoped_release release;
+    using Keeper = std::pair<Vx<F>, int>;
+    std::vector<Keeper> keep;
+
+    for (int i = 0; i < pts.rows(); ++i) {
+      int seenit = -1;
+      for (auto& keeper : keep) {
+        Vx<F> delta = pts.row(i) - keeper.first;
+        F d2 = delta.squaredNorm();
+        if (d2 <= thresh * thresh) {
+          seenit = keeper.second;
+          break;
+        }
       }
+      if (seenit == -1) {
+        keep.push_back(Keeper(pts.row(i), i));
+        clustid.push_back(i);
+      }
+
+      else
+        clustid.push_back(seenit);
     }
-    if (!seenit) keep.push_back(Keeper(pts.row(i), i));
+    out.resize(keep.size());
+    for (int i = 0; i < keep.size(); ++i) {
+      out[i] = keep[i].second;
+    }
   }
-  Vx<int> out(keep.size());
-  for (int i = 0; i < keep.size(); ++i) {
-    out[i] = keep[i].second;
-  }
-  return out;
+  return py::make_tuple(out, clustid);
 }
 
 PYBIND11_MODULE(cookie_cutter, m) {

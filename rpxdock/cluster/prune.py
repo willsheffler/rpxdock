@@ -13,7 +13,7 @@ def prune_results_2comp(spec, body1, body2, score, pos, mindis=5):
    r2 = (body2.rg_xy() + body2.radius_xy_max()) / 2
    dofs = np.stack([a1 * r1, d1, a2 * r2, d2, 1000 * flip], axis=1)
 
-   keep = cookie_cutter(dofs, mindis)
+   keep, clustid = cookie_cutter(dofs, mindis)
 
    return score[keep], (pos[0][keep], pos[1][keep])
 

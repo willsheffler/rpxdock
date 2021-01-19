@@ -71,11 +71,11 @@ def main():
    # rp.io.dump_pdb_from_points('hlh%03i.pdb' % i, crd)
 
 def align_loop_adjacent_helix_and_cluster(
-      hlh,
-      min_helix1_len,
-      min_helix2_len,
-      max_bb_redundancy,
-      **kw,
+   hlh,
+   min_helix1_len,
+   min_helix2_len,
+   max_bb_redundancy,
+   **kw,
 ):
    hlh = hlh.copy()
    coords = list()
@@ -108,7 +108,7 @@ def align_loop_adjacent_helix_and_cluster(
          frag[aname][:] = np.dot(frag[aname], U)
       hlhnew.append(frag)
    coords = coords.reshape(len(coords), -1)
-   centers = rp.cluster.cookie_cutter(coords, max_bb_redundancy)
+   centers, clustid = rp.cluster.cookie_cutter(coords, max_bb_redundancy)
 
    hlh_centers = [_ for i, _ in enumerate(hlhnew) if i in centers]
 
@@ -116,9 +116,9 @@ def align_loop_adjacent_helix_and_cluster(
    return hlh_centers
 
 def extract_hlh_data(
-      dat,
-      hlh_bounds,
-      **kw,
+   dat,
+   hlh_bounds,
+   **kw,
 ):
 
    dat = dat.drop([
@@ -135,15 +135,15 @@ def extract_hlh_data(
    return hlh
 
 def get_hlh_regions(
-      dat,
-      min_helix1_len,
-      max_helix1_len,
-      min_turn_len,
-      max_turn_len,
-      min_helix2_len,
-      max_helix2_len,
-      max_e_per_res,
-      **kw,
+   dat,
+   min_helix1_len,
+   max_helix1_len,
+   min_turn_len,
+   max_turn_len,
+   min_helix2_len,
+   max_helix2_len,
+   max_e_per_res,
+   **kw,
 ):
 
    E, H, L = [np.where(dat.ss == aa)[0][0] for aa in 'EHL']
@@ -241,7 +241,7 @@ def get_hlh_regions(
    #    # rp.io.dump_pdb_from_points('test%04i.pdb' % i, coords[i])
 
    #    coords = coords.reshape(len(coords), -1)
-   #    centers = rp.cluster.cookie_cutter(coords, max_bb_redundancy)
+   #    centers, clustid = rp.cluster.cookie_cutter(coords, max_bb_redundancy)
    #    # print(tl, len(coords), len(centers))n
    #    keep.append(hlh_bounds[sel][centers])
 

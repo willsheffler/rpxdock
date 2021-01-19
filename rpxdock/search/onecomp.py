@@ -2,13 +2,13 @@ import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.h
 from rpxdock.search import hier_search, trim_ok
 
 def make_onecomp(
-      body,
-      spec,
-      hscore,
-      search=hier_search,
-      sampler=None,
-      fixed_components=False,
-      **kw,
+   body,
+   spec,
+   hscore,
+   search=hier_search,
+   sampler=None,
+   fixed_components=False,
+   **kw,
 ):
    '''
    :param body: pose info

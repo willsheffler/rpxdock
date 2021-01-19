@@ -3,13 +3,13 @@ from rpxdock.search import hier_search, trim_ok
 import logging
 
 def make_multicomp(
-      bodies,
-      spec,
-      hscore,
-      search=hier_search,
-      sampler=None,
-      components_already_aligned_to_sym_axes=False,
-      **kw,
+   bodies,
+   spec,
+   hscore,
+   search=hier_search,
+   sampler=None,
+   components_already_aligned_to_sym_axes=False,
+   **kw,
 ):
    kw = rp.Bunch(kw)
    t = rp.Timer().start()
@@ -64,7 +64,7 @@ def make_multicomp(
    for i in range(len(bodies)):
       data[f'disp{i}'] = (['model'], np.sum(xforms[:, i, :3, 3] * spec.axis[None, i, :3], axis=1))
       data[f'angle{i}'] = (['model'], rp.homog.angle_of(xforms[:, i]) * 180 / np.pi)
-   default_label = [f'comp{c}' for c in 'ABCDEFD' [:len(bodies)]]
+   default_label = [f'comp{c}' for c in 'ABCDEFD'[:len(bodies)]]
 
    return rp.Result(
       body_=None if kw.dont_store_body_in_results else bodies,
