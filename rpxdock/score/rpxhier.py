@@ -181,6 +181,7 @@ class RpxHier:
       #       assert np.all(asym_res2 >= bounds[3][i])
       #       assert np.all(asym_res2 <= bounds[4][i])
 
+      #TODO: Figure out if this should be handled in the score functions below.
       if kw.wts.rpx == 0:
          return kw.wts.ncontact * (lbub[:, 1] - lbub[:, 0]) # option to score based on ncontacts only
 
