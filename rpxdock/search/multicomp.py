@@ -1,5 +1,6 @@
 import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
+from rpxdock.filter import sscount
 import logging
 
 def make_multicomp(
@@ -183,6 +184,13 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
                   ind += 1
 
          extra = rp.Bunch(all_scores)
+
+      # TODO: Tie in ss_count filter
+      if kw.ss_count:
+         # TODO: Starting with just the defaults, then adding in options for controlling the filter in more detail
+         # TODO: Edit the filter and this code to handle self-interacting ss_counts.
+         extra.ss_counts = sscount.filter_sscount(B[0], B[1], X[ok, 0], X[ok, 1], min_helix_length=4, min_sheet_length=3, min_loop_length=1, min_element_resis=1, sstype="EH", **kw)
+
       return scores, extra
       #else:
       #   scores[ok] = arg.iface_summary(ifscore, axis=0)

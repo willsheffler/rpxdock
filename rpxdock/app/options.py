@@ -273,6 +273,8 @@ def default_cli_parser(parent=None, **kw):
    addarg("--ignored_aas", default='CGP', help='Amino acids to ignore in scoring')
    addarg("--score_self", action='store_true', default=False,
           help='score each interface seperately and dump in output pickle')
+   addarg("--ss_count", action='store_true', default=False,
+          help='calculate the ss_count in the interface')
    #addarg("--score_fun", default=standard,
    #       help='apply this score function to rpx and ncontact')
    #addarg("--weight_scorefun",
