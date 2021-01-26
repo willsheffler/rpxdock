@@ -43,24 +43,22 @@ class secondary_structure_map:
                 temp_start = i
                 temp_ss = ss_at_resi
 
-def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_length=3, min_loop_length=1, min_element_resis=1,
-                   sstype="EHL", **kw):
+def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_length=3, min_loop_length=1, min_element_resis=1, max_dist=8.0,
+                   sstype="EHL", confidence=0, min_ss_count=3, **kw):
     # body ss info is in body.ss as an array like array(["L", "H", "H", "H", "H", "L"]) with the array index corresponding to the residue number
     #TODO: Add confidence functionality
-    max_pair_dist = 8
+    #TODO: When confidence is active, return a list of True/False in addition to the ss counts
 
     # This is for clash checking and delta_h checks, I probably don't need this...
     # probably what I need to do is make this filter work within the OK framework.
-    iresl = 1
 
     pairs, lbub = rp.bvh.bvh_collect_pairs_vec(
         body1.bvh_cen,
         body2.bvh_cen,
         pos1 @ body1.pos,
         pos2 @ body2.pos,
-        max_pair_dist,
+        max_dist,
     )
-
     #map ss to an object
     body1_ss_map, body2_ss_map = secondary_structure_map(), secondary_structure_map()
     body1_ss_map.map_body_ss(body1, min_helix_length, min_sheet_length, min_loop_length)
@@ -85,5 +83,7 @@ def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_lengt
             if ss_type in sstype and ss_len >= min_element_resis:
                 temp_counts[ss_type] = temp_counts[ss_type] + 1
         ss_counts[i] = temp_counts["H"] + temp_counts["E"] + temp_counts["L"]
-
-    return ss_counts
+    if confidence==1:
+        return ss_counts >= min_ss_count
+    else:
+        return ss_counts

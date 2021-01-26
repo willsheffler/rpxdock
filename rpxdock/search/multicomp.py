@@ -32,6 +32,25 @@ def make_multicomp(
    xforms, scores, extra, stats = search(sampler, evaluator, **kw)
 
    ibest = rp.filter_redundancy(xforms, bodies, scores, **kw)
+   #TODO: If running with ss_count filter confidence=1 then modify ibest by ss_count result
+   logging.debug(f"Apply sscount filter to docks? {kw.ssc.confidence}")
+   logging.debug(f"Apply sscount filter? {kw.ssc.filter}")
+   if kw.ssc.filter and kw.ssc.confidence:
+      # Apply sscounts filter to docks with confidence 1. Will change dock results.
+      logging.debug("Applying sscount filter to search results")
+      # TODO: Starting with just the defaults, then adding in options for controlling the filter in more detail
+      # TODO: Edit the filter and this code to handle self-interacting ss_counts.
+      # may need to pass something like  X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
+
+      X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
+      B = [b.copy_with_sym(spec.nfold[i], spec.axis[i]) for i, b in enumerate(bodies)]
+      sbest = sscount.filter_sscount(B[0], B[1], X[ibest, 0], X[ibest, 1], min_helix_length=kw.ssc.min_helix_length,
+                                               min_sheet_length=kw.ssc.min_sheet_length, min_loop_length=kw.ssc.min_loop_length,
+                                               min_element_resis=kw.ssc.min_element_resis, max_dist=kw.ssc.max_dist,
+                                               sstype=kw.ssc.sstype, confidence=1, min_ss_count=kw.ssc.min_ss_count, **kw)
+      logging.debug(f"Array of docks passingg sscount filter: {sbest}")
+      ibest = ibest[sbest]
+
    tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw)
 
    if kw.verbose:
@@ -44,6 +63,17 @@ def make_multicomp(
    wnct = kw.wts.sub(rpx=0, ncontact=1)
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
    ncontact, ncont_extra = evaluator(xforms, kw.nresl - 1, wnct)
+
+   if kw.ssc.filter:
+   #   # Run sscount filter to obtain counts, does not impact output
+   #   # TODO: Edit the filter and this code to handle self-interacting ss_counts
+      X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
+      # scaffold symmetry has to be applied before evaluating ss counts
+      B = [b.copy_with_sym(spec.nfold[i], spec.axis[i]) for i, b in enumerate(bodies)]
+      extra.ss_counts = sscount.filter_sscount(B[0], B[1], X[:, 0], X[:, 1], min_helix_length=kw.ssc.min_helix_length,
+                                               min_sheet_length=kw.ssc.min_sheet_length, min_loop_length=kw.ssc.min_loop_length,
+                                               min_element_resis=kw.ssc.min_element_resis, max_dist=kw.ssc.max_dist,
+                                               sstype=kw.ssc.sstype, confidence=0, min_ss_count=kw.ssc.min_ss_count, **kw)
 
    data = dict(
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, output_prefix=kw.output_prefix,
@@ -185,11 +215,12 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
 
          extra = rp.Bunch(all_scores)
 
-      # TODO: Tie in ss_count filter
-      if kw.ss_count:
-         # TODO: Starting with just the defaults, then adding in options for controlling the filter in more detail
-         # TODO: Edit the filter and this code to handle self-interacting ss_counts.
-         extra.ss_counts = sscount.filter_sscount(B[0], B[1], X[ok, 0], X[ok, 1], min_helix_length=4, min_sheet_length=3, min_loop_length=1, min_element_resis=1, sstype="EH", **kw)
+      #TODO: Move this out of this class
+      #This is not returning all of the ss_counts for all xforms...
+      #extra.ss_counts = sscount.filter_sscount(B[0], B[1], X[ok, 0], X[ok, 1], min_helix_length=kw.ssc.min_helix_length,
+      #                                   min_sheet_length=kw.ssc.min_sheet_length, min_loop_length=kw.ssc.min_loop_length,
+      #                                   min_element_resis=kw.ssc.min_element_resis, max_dist=kw.ssc.max_dist,
+      #                                   sstype=kw.ssc.sstype, confidence=0, min_ss_count=kw.ssc.min_ss_count, **kw)
 
       return scores, extra
       #else:
