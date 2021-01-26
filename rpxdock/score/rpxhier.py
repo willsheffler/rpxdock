@@ -213,7 +213,7 @@ class RpxHier:
       if score_fx:
          scores = score_fx(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, wts=kw.wts)
       else:
-         logging.info(f"Failed to find score function {kw.function}, falling back to 'stnd'")
+         logging.info(f"Failed to find score function {self.function}, falling back to 'stnd'")
          scores = score_functions["stnd"](pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, wts=kw.wts)
       return scores
 
