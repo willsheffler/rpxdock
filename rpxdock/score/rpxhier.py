@@ -181,6 +181,7 @@ class RpxHier:
       #       assert np.all(asym_res2 >= bounds[3][i])
       #       assert np.all(asym_res2 <= bounds[4][i])
 
+      #TODO: Figure out if this should be handled in the score functions below.
       if kw.wts.rpx == 0:
          return kw.wts.ncontact * (lbub[:, 1] - lbub[:, 0]) # option to score based on ncontacts only
 
@@ -212,7 +213,7 @@ class RpxHier:
       if score_fx:
          scores = score_fx(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, wts=kw.wts)
       else:
-         logging.info(f"Failed to find score function {kw.function}, falling back to 'stnd'")
+         logging.info(f"Failed to find score function {self.function}, falling back to 'stnd'")
          scores = score_functions["stnd"](pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, wts=kw.wts)
       return scores
 
