@@ -32,14 +32,12 @@ def make_multicomp(
    xforms, scores, extra, stats = search(sampler, evaluator, **kw)
 
    ibest = rp.filter_redundancy(xforms, bodies, scores, **kw)
-   #TODO: If running with ss_count filter confidence=1 then modify ibest by ss_count result
+
    logging.debug(f"Apply sscount filter to docks? {kw.ssc.confidence}")
    logging.debug(f"Apply sscount filter? {kw.ssc.filter}")
    if kw.ssc.filter and kw.ssc.confidence:
       # Apply sscounts filter to docks with confidence 1. Will change dock results.
       logging.debug("Applying sscount filter to search results")
-      # TODO: Starting with just the defaults, then adding in options for controlling the filter in more detail
-      # TODO: Edit the filter and this code to handle self-interacting ss_counts.
       # may need to pass something like  X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
 
       X = xforms.reshape(-1, xforms.shape[-3], 4, 4)

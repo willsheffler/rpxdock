@@ -45,12 +45,6 @@ class secondary_structure_map:
 
 def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_length=3, min_loop_length=1, min_element_resis=1, max_dist=8.0,
                    sstype="EHL", confidence=0, min_ss_count=3, **kw):
-    # body ss info is in body.ss as an array like array(["L", "H", "H", "H", "H", "L"]) with the array index corresponding to the residue number
-    #TODO: Add confidence functionality
-    #TODO: When confidence is active, return a list of True/False in addition to the ss counts
-
-    # This is for clash checking and delta_h checks, I probably don't need this...
-    # probably what I need to do is make this filter work within the OK framework.
 
     pairs, lbub = rp.bvh.bvh_collect_pairs_vec(
         body1.bvh_cen,
