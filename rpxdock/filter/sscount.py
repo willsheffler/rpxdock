@@ -44,7 +44,7 @@ class secondary_structure_map:
                 temp_ss = ss_at_resi
 
 def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_length=3, min_loop_length=1, min_element_resis=1, max_dist=8.0,
-                   sstype="EHL", confidence=0, min_ss_count=3, **kw):
+                   sstype="EHL", confidence=0, min_ss_count=3, strict=False, **kw):
 
     pairs, lbub = rp.bvh.bvh_collect_pairs_vec(
         body1.bvh_cen,
@@ -57,27 +57,113 @@ def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_lengt
     body1_ss_map, body2_ss_map = secondary_structure_map(), secondary_structure_map()
     body1_ss_map.map_body_ss(body1, min_helix_length, min_sheet_length, min_loop_length)
     body2_ss_map.map_body_ss(body2, min_helix_length, min_sheet_length, min_loop_length)
-
+    
+    sscounts_data = []
     ss_counts = np.zeros(max(len(pos1), len(pos2)))
     for i, (lb, ub) in enumerate(lbub):
+
+        #this loses context information.
         body1_res, body2_res = np.unique(pairs[lb:ub][:,0]), np.unique(pairs[lb:ub][:,1])
-        temp_counts = {"H" : 0, "E" : 0, "L" : 0}
+        #store residues in an SS element 
+        temp_result = {
+            "A" : {
+               "pdb_file" : body1.pdbfile,
+               "E" : 0,
+               "H" : 0,
+               "L" : 0,
+               "total_counts" : 0,
+               "resis" : [],
+               "paired_resis" : []},
+            "B" : {
+               "pdb_file" : body2.pdbfile,
+               "E" : 0,
+               "H" : 0,
+               "L" : 0,
+               "total_counts" : 0,
+               "resis" : [],
+               "paired_resis" : []},
+            "total_count" : 0}
+        resis = np.array([])
         for ss_element in body1_ss_map.ss_index:
             start = body1_ss_map.ss_element_start[ss_element]
             end = body1_ss_map.ss_element_end[ss_element]
             ss_type = body1_ss_map.ss_type_assignments[ss_element]
-            ss_len = len(body1_res[body1_res >= start + 1][body1_res[body1_res >= start + 1] < end + 1])
+            list_resis = body1_res[(body1_res >= start + 1) & (body1_res <= end + 1)]
+            ss_len = len(list_resis)
             if ss_type in sstype and ss_len >= min_element_resis:
-                temp_counts[ss_type] = temp_counts[ss_type] + 1
+                resis = np.append(resis, list_resis)
+                temp_result["A"][ss_type] = temp_result["A"][ss_type] + 1
+        temp_result["A"]["total_counts"] = temp_result["A"]["H"] + temp_result["A"]["E"] + temp_result["A"]["L"]
+        temp_result["A"]["resis"] = resis
+        temp_result["A"]["paired_resis"] = np.unique(pairs[lb:ub,1][np.isin(pairs[lb:ub,0], resis)])
+        resis = np.array([])
+        
         for ss_element in body2_ss_map.ss_index:
             start = body2_ss_map.ss_element_start[ss_element]
             end = body2_ss_map.ss_element_end[ss_element]
             ss_type = body2_ss_map.ss_type_assignments[ss_element]
-            ss_len = len(body2_res[body2_res >= start + 1][body2_res[body2_res >= start + 1] < end + 1])
+            list_resis = body2_res[(body2_res >= start + 1) & (body2_res <= end + 1)]
+            ss_len = len(list_resis)
             if ss_type in sstype and ss_len >= min_element_resis:
-                temp_counts[ss_type] = temp_counts[ss_type] + 1
-        ss_counts[i] = temp_counts["H"] + temp_counts["E"] + temp_counts["L"]
+                resis= np.append(resis, list_resis)
+                temp_result["B"][ss_type] = temp_result["B"][ss_type] + 1
+        
+        temp_result["B"]["total_counts"] = temp_result["B"]["H"] + temp_result["B"]["E"] + temp_result["B"]["L"]
+        temp_result["B"]["resis"] = resis
+        temp_result["B"]["paired_resis"] = np.unique(pairs[lb:ub,0][np.isin(pairs[lb:ub,1], resis)])
+        temp_result["total_count"] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
+
+        if strict:
+            #Require that, for a residue to count in an SS element, it has to be paired with a residue that is also in an SS element.
+            #reset counts
+            temp_result["A"]["E"] = 0
+            temp_result["A"]["H"] = 0
+            temp_result["A"]["L"] = 0
+            temp_result["B"]["E"] = 0
+            temp_result["B"]["H"] = 0
+            temp_result["B"]["L"] = 0
+            temp_result["A"]["total_counts"] = 0
+            temp_result["B"]["total_counts"] = 0
+            temp_result["total_count"] = 0
+
+            #check that the paired residues are also in an SS element.
+            resis = np.array([])
+            for ss_element in body1_ss_map.ss_index:
+                start = body1_ss_map.ss_element_start[ss_element]
+                end = body1_ss_map.ss_element_end[ss_element]
+                ss_type = body1_ss_map.ss_type_assignments[ss_element]
+                body1_resis = temp_result["B"]["paired_resis"]
+                list_resis = body1_resis[(body1_resis >= start + 1) & (body1_resis <= end + 1)]
+                ss_len = len(list_resis)
+                if ss_type in sstype and ss_len >= min_element_resis:
+                    resis = np.append(resis, list_resis)
+                    temp_result["A"][ss_type] = temp_result["A"][ss_type] + 1
+            temp_result["A"]["total_counts"] = temp_result["A"]["H"] + temp_result["A"]["E"] + temp_result["A"]["L"]
+            temp_result["A"]["resis"] = resis
+
+            resis = np.array([])
+            for ss_element in body2_ss_map.ss_index:
+                start = body2_ss_map.ss_element_start[ss_element]
+                end = body2_ss_map.ss_element_end[ss_element]
+                ss_type = body2_ss_map.ss_type_assignments[ss_element]
+                body2_resis = temp_result["A"]["paired_resis"]
+                list_resis = body2_resis[(body2_resis >= start + 1) & (body2_resis <= end + 1)]
+                ss_len = len(list_resis)
+                if ss_type in sstype and ss_len >= min_element_resis:
+                    resis = np.append(resis, list_resis)
+                    temp_result["B"][ss_type] = temp_result["B"][ss_type] + 1
+            temp_result["B"]["total_counts"] = temp_result["B"]["H"] + temp_result["B"]["E"] + temp_result["B"]["L"]
+            temp_result["B"]["resis"] = resis
+            temp_result["B"]["paired_resis"] = temp_result["A"]["resis"]
+            temp_result["A"]["paired_resis"] = temp_result["B"]["resis"]
+            temp_result["total_count"] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
+            ss_counts[i] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
+            sscounts_data.append(temp_result)
+        else:
+            ss_counts[i] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
+            sscounts_data.append(temp_result)
+
     if confidence==1:
         return ss_counts >= min_ss_count
     else:
-        return ss_counts
+        return sscounts_data

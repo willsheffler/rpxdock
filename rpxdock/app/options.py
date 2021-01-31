@@ -291,6 +291,9 @@ def default_cli_parser(parent=None, **kw):
           help='Types of secondary structure to include in count')
    addarg("--sscount_min_ss_count", default=3, type=int,
           help='If confidence set, minimum number of ss elements to pass the filter')
+   addarg("--sscount_strict", action='store_true', default=False,
+          help='Require that both pairs of residues in the interface are in an SS element meeting the set criteria')
+
    #addarg("--score_fun", default=standard,
    #       help='apply this score function to rpx and ncontact')
    #addarg("--weight_scorefun",

@@ -45,7 +45,7 @@ def make_multicomp(
       sbest = sscount.filter_sscount(B[0], B[1], X[ibest, 0], X[ibest, 1], min_helix_length=kw.ssc.min_helix_length,
                                                min_sheet_length=kw.ssc.min_sheet_length, min_loop_length=kw.ssc.min_loop_length,
                                                min_element_resis=kw.ssc.min_element_resis, max_dist=kw.ssc.max_dist,
-                                               sstype=kw.ssc.sstype, confidence=1, min_ss_count=kw.ssc.min_ss_count, **kw)
+                                               sstype=kw.ssc.sstype, confidence=1, min_ss_count=kw.ssc.min_ss_count, strict=kw.ssc.strict, **kw)
       logging.debug(f"Array of docks passingg sscount filter: {sbest}")
       ibest = ibest[sbest]
 
@@ -68,11 +68,12 @@ def make_multicomp(
       X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
       # scaffold symmetry has to be applied before evaluating ss counts
       B = [b.copy_with_sym(spec.nfold[i], spec.axis[i]) for i, b in enumerate(bodies)]
-      extra.ss_counts = sscount.filter_sscount(B[0], B[1], X[:, 0], X[:, 1], min_helix_length=kw.ssc.min_helix_length,
+      sscounts_data = sscount.filter_sscount(B[0], B[1], X[:, 0], X[:, 1], min_helix_length=kw.ssc.min_helix_length,
                                                min_sheet_length=kw.ssc.min_sheet_length, min_loop_length=kw.ssc.min_loop_length,
                                                min_element_resis=kw.ssc.min_element_resis, max_dist=kw.ssc.max_dist,
-                                               sstype=kw.ssc.sstype, confidence=0, min_ss_count=kw.ssc.min_ss_count, **kw)
-
+                                               sstype=kw.ssc.sstype, confidence=0, min_ss_count=kw.ssc.min_ss_count, strict=kw.ssc.strict, **kw)
+      extra.sscounts = sscounts_data 
+      
    data = dict(
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, output_prefix=kw.output_prefix,
                  output_body='all', sym=spec.arch),
