@@ -1,4 +1,4 @@
-#! /home/sheffler/.conda/envs/rpxdock/bin/python
+#! /home/quintond/git/rpxdock/envs/bin/python
 
 import logging, itertools, concurrent, tqdm, rpxdock as rp
 import numpy as np

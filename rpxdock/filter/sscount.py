@@ -57,7 +57,8 @@ def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_lengt
     body1_ss_map, body2_ss_map = secondary_structure_map(), secondary_structure_map()
     body1_ss_map.map_body_ss(body1, min_helix_length, min_sheet_length, min_loop_length)
     body2_ss_map.map_body_ss(body2, min_helix_length, min_sheet_length, min_loop_length)
-    
+    bod_len = (body1.asym_body.nres, body2.asym_body.nres)
+
     sscounts_data = []
     ss_counts = np.zeros(max(len(pos1), len(pos2)))
     for i, (lb, ub) in enumerate(lbub):
@@ -93,11 +94,17 @@ def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_lengt
             if ss_type in sstype and ss_len >= min_element_resis:
                 resis = np.append(resis, list_resis)
                 temp_result["A"][ss_type] = temp_result["A"][ss_type] + 1
+
+        # get the paired residues
+        # Correct the residue numbers to match the input numbering
+        paired_resis = np.unique(pairs[lb:ub, 1][np.isin(pairs[lb:ub, 0], resis)])
+        resis = resis - (bod_len[0] * (resis / bod_len[0]).astype(int))
+        paired_resis = paired_resis - (bod_len[1] * (paired_resis / bod_len[1]).astype(int))
         temp_result["A"]["total_counts"] = temp_result["A"]["H"] + temp_result["A"]["E"] + temp_result["A"]["L"]
         temp_result["A"]["resis"] = resis
-        temp_result["A"]["paired_resis"] = np.unique(pairs[lb:ub,1][np.isin(pairs[lb:ub,0], resis)])
+        temp_result["A"]["paired_resis"] = paired_resis
+
         resis = np.array([])
-        
         for ss_element in body2_ss_map.ss_index:
             start = body2_ss_map.ss_element_start[ss_element]
             end = body2_ss_map.ss_element_end[ss_element]
@@ -107,10 +114,15 @@ def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_lengt
             if ss_type in sstype and ss_len >= min_element_resis:
                 resis= np.append(resis, list_resis)
                 temp_result["B"][ss_type] = temp_result["B"][ss_type] + 1
-        
+
+        # get the paired residues
+        # Correct the residue numbers to match the input numbering
+        paired_resis = np.unique(pairs[lb:ub, 0][np.isin(pairs[lb:ub, 1], resis)])
+        resis = resis - (bod_len[1] * (resis / bod_len[1]).astype(int))
+        paired_resis = paired_resis - (bod_len[0] * (paired_resis / bod_len[0]).astype(int))
         temp_result["B"]["total_counts"] = temp_result["B"]["H"] + temp_result["B"]["E"] + temp_result["B"]["L"]
         temp_result["B"]["resis"] = resis
-        temp_result["B"]["paired_resis"] = np.unique(pairs[lb:ub,0][np.isin(pairs[lb:ub,1], resis)])
+        temp_result["B"]["paired_resis"] = paired_resis
         temp_result["total_count"] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
 
         if strict:

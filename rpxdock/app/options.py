@@ -293,11 +293,6 @@ def default_cli_parser(parent=None, **kw):
           help='If confidence set, minimum number of ss elements to pass the filter')
    addarg("--sscount_strict", action='store_true', default=False,
           help='Require that both pairs of residues in the interface are in an SS element meeting the set criteria')
-
-   #addarg("--score_fun", default=standard,
-   #       help='apply this score function to rpx and ncontact')
-   #addarg("--weight_scorefun",
-   #       help='weights to use in score function')
    addarg("--function", type=str, default='stnd',
           help='score function to use for scoring')
    parser.has_rpxdock_args = True

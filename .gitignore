@@ -94,5 +94,9 @@ doc/_build
 doc/cppapi
 
 .idea
+.idea/.gitignore
+.idea/misc.xml
 
 rpxdock_Result.pickle
+envs/
+hscore/
