@@ -111,7 +111,7 @@ def test_layer_hier_3comp(hscore, bodyC6, bodyC3, bodyC2):
                                  nout_top=10,
                                  output_prefix='test_layer_hier_3comp',
                               ))
-   assert 0
+   # assert 0
    # rp.dump(result, 'rpxdock/data/testdata/test_layer_hier_3comp.pickle')
    ref = rp.data.get_test_data('test_layer_hier_3comp')
    rp.search.assert_results_close(result, ref)
@@ -146,4 +146,4 @@ if __name__ == '__main__':
    C3 = rp.data.get_body('C3_1na0-1_1')
    # C4 = rp.data.get_body('C4_1na0-G1_1')
    C6 = rp.data.get_body('C6_3H22')
-   test_layer_hier_3comp(hscore, C6, C3, C2)
+   # test_layer_hier_3comp(hscore, C6, C3, C2)

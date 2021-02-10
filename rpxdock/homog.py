@@ -393,6 +393,11 @@ def ray_in_plane(plane, ray):
    return (point_in_plane(plane, ray[..., :3, 0]) *
            point_in_plane(plane, ray[..., :3, 0] + ray[..., :3, 1]))
 
+def intesect_line_plane(p0, n, l0, l):
+   l = hm.hnormalized(l)
+   d = hm.hdot(p0 - l0, n) / hm.hdot(l, n)
+   return l0 + l * d
+
 def intersect_planes(plane1, plane2):
    """
    intersect_Planes: find the 3D intersection of two planes
