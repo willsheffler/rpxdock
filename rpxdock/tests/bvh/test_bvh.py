@@ -1,4 +1,4 @@
-import _pickle, numpy as np, itertools as it
+import _pickle, numpy as np, itertools as it, sys
 from time import perf_counter
 
 # from cppimport import import_hook
@@ -1078,6 +1078,38 @@ def test_bvh_threading_mindist_may_fail():
 
    print("bvh_min_dist", tottmain / tottthread)
 
+def bvh_perf():
+   timer = rp.Timer().start()
+   N = 10
+   Npts = 50 * 50 * 4
+   for j in range(N):
+      xyz1 = np.random.rand(Npts, 3) + [0, 0, 0]
+      xyz2 = np.random.rand(Npts, 3) + [1, 0, 0]
+      timer.checkpoint('setup')
+      bvh1 = BVH(xyz1)
+      bvh2 = BVH(xyz2)
+      timer.checkpoint('buid bvh')
+      pos1, pos2 = list(), list()
+      pos1 = np.stack([np.eye(4)])
+      pos2 = np.stack([np.eye(4)])
+      mindist = 0.15
+      timer.checkpoint('setup')
+
+      # cold vs hot doesn't seem to matter
+      timer2 = rp.Timer().start()
+      pairs, lbub = bvh.bvh_collect_pairs_vec(bvh1, bvh2, pos1, pos2, mindist)
+      timer2.checkpoint('bvh cold')
+      timer.checkpoint('bvh cold')
+      pairs, lbub = bvh.bvh_collect_pairs_vec(bvh1, bvh2, pos1, pos2, mindist)
+      timer2.checkpoint('bvh hot')
+      timer.checkpoint('bvh hot')
+      print(timer2)
+      print(f"npairs {len(pairs):,}")
+      sys.stdout.flush()
+
+   print(timer.report(summary='mean'))
+   assert 0
+
 if __name__ == "__main__":
    # from rpxdock.body import Body
 
@@ -1099,7 +1131,7 @@ if __name__ == "__main__":
    # test_collect_pairs_simple()
    # test_collect_pairs_simple_selection()
    # test_collect_pairs()
-   test_collect_pairs_range()
+   # test_collect_pairs_range()
    # test_collect_pairs_range_sym()
    # test_slide_collect_pairs()
    # test_bvh_accessors()
@@ -1111,3 +1143,5 @@ if __name__ == "__main__":
 
    # test_bvh_threading_mindist_may_fail()
    # test_bvh_threading_isect_may_fail()
+
+   bvh_perf()

@@ -15,13 +15,13 @@ def _ex_get_cen_radius(generators):
    return radius, cen
 
 def expand_xforms_rand(
-   generators,
-   trials=100,
-   depth=10,
-   radius=None,
-   radius_mult=8,
-   cen=[0, 0, 0],
-   reset_radius_ratio=1.5,  # unused atm
+      generators,
+      trials=100,
+      depth=10,
+      radius=None,
+      radius_mult=8,
+      cen=[0, 0, 0],
+      reset_radius_ratio=1.5,  # unused atm
 ):
 
    generators = _ex_process_generators(generators)

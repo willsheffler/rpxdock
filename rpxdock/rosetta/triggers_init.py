@@ -1,10 +1,16 @@
-import os, _pickle, numpy as np
-from pyrosetta import pose_from_file, rosetta, init, version
+import os, _pickle, numpy as np, rpxdock as rp
+from pyrosetta import Pose, pose_from_file, rosetta, init, version, AtomID
 from pyrosetta.rosetta import core, protocols, numeric
 from pyrosetta.rosetta.core.scoring.dssp import Dssp
-from rpxdock.util import hash_str_to_int
+from pyrosetta.rosetta.core.scoring import get_score_function
 
-init("-beta -mute all")
+def get_init_string():
+   s = '-beta -mute all -extra_res_fa '
+   s += ' '.join(rp.data.params_files())
+   return s
+
+init(get_init_string())
+sfxn = get_score_function()
 
 def assign_secstruct(pose):
    Dssp(pose).insert_ss_into_pose(pose)
@@ -34,7 +40,7 @@ def create_residue(resname, typeset='fa_standard'):
 
 def get_pose_cached(fname, pdbdir="."):
    path = os.path.join(pdbdir, fname)
-   h = str(hash_str_to_int(version().encode()))
+   h = str(rp.util.hash_str_to_int(version().encode()))
    ppath = path + "_v" + h + ".pickle"
    if not os.path.exists(ppath):
       pose = pose_from_file(path)
