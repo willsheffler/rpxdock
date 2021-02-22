@@ -64,3 +64,16 @@ def get_centroids(pose0, which_resi=None):
       cen = r.xyz("CEN")
       coords.append([cen.x, cen.y, cen.z, 1])
    return np.stack(coords).astype("f8")
+
+def remove_terminus_variants(pose):
+   for ires in range(1, pose.size() + 1):
+      if (pose.residue(ires).has_variant_type(core.chemical.UPPER_TERMINUS_VARIANT)):
+         core.pose.remove_variant_type_from_pose_residue(
+            pose, core.chemical.UPPER_TERMINUS_VARIANT, ires)
+      if (pose.residue(ires).has_variant_type(core.chemical.LOWER_TERMINUS_VARIANT)):
+         core.pose.remove_variant_type_from_pose_residue(
+            pose, core.chemical.LOWER_TERMINUS_VARIANT, ires)
+      if (pose.residue(ires).has_variant_type(core.chemical.CUTPOINT_LOWER)):
+         core.pose.remove_variant_type_from_pose_residue(pose, core.chemical.CUTPOINT_LOWER, ires)
+      if (pose.residue(ires).has_variant_type(core.chemical.CUTPOINT_UPPER)):
+         core.pose.remove_variant_type_from_pose_residue(pose, core.chemical.CUTPOINT_UPPER, ires)

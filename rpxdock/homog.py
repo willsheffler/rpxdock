@@ -365,8 +365,17 @@ def rand_xform_aac(shape=(), axis=None, ang=None, cen=None):
       ang = np.random.rand(*shape) * np.pi  # todo: make uniform!
    if cen is None:
       cen = rand_point(shape)
-   q = rand_quat(shape)
+   # q = rand_quat(shape)
    return hrot(axis, ang, cen)
+
+def rand_xform_small(shape=(), cart_sd=1, rot_sd=1):
+   if isinstance(shape, int): shape = (shape, )
+   axis = rand_unit(shape)
+   ang = np.random.normal(0, rot_sd, shape) * np.pi
+   x = hrot(axis, ang, [0, 0, 0, 1]).squeeze()
+   trans = np.random.normal(0, cart_sd, shape + (3, ))
+   x[:3, 3] = trans
+   return x.squeeze()
 
 def rand_xform(shape=(), cart_cen=0, cart_sd=1):
    if isinstance(shape, int): shape = (shape, )

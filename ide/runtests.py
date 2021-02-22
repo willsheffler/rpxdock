@@ -56,8 +56,8 @@ _file_mappings = {
    "pymol.py": ["rpxdock/tests/test_homog.py"],
    "ball_joint_build_db.py": ['rpxdock/tests/fragments/test_ball_joint.py'],
    # "expand_xforms.cpp": ["rpxdock/tests/geom/test_expand_xforms.py"],
-   "HapoCH3.params": ['rpxdock/tests/rotamer/test_earray.py'],
-   "CH3.params": ['rpxdock/tests/rotamer/test_earray.py'],
+   "HapoCH3.params": ['rpxdock/tests/rotamer/test_etable.py'],
+   "CH3.params": ['rpxdock/tests/rotamer/test_etable.py'],
 }
 _post = defaultdict(lambda: "")
 
