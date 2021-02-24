@@ -1,36 +1,17 @@
-from rpxdock.rotamer.etable import *
+import numpy as np, rpxdock as rp
+from rpxdock.rotamer.etable import (_get_etable, get_etables, make_2res_gly_poses,
+                                    earray_rosetta_sfxn, earray_score_2res_pose)
 from pyrosetta import pose_from_file
 from rpxdock.rosetta.triggers_init import remove_terminus_variants
 from rpxdock.rosetta.rosetta_util import xform_pose
 
-def test_etable_a1a2(aname1, aname2):
-   N = 64
-
-   print(f"======= {aname1} === {aname2} =======")
-   etable = get_etable(aname1, aname2, N)
-   assert len(etable) == N
-
-   slope = earray_slope(etable)
-   assert slope.shape == etable.shape
-   edelta = etable[1:] - etable[:-1]
-   # print(slope)
-   print('edelta')
-   edelta = edelta
-   q = np.quantile(edelta, np.arange(5) / 4)
-   for i in range(len(q)):
-      print(q[i])
-   r = earray_r(etable)
-   for i in range(1, N):
-      print(f"{r[i]:7.3f}     {etable[i]-etable[i-1]:7.3f}   {etable[i]:7.3f}")
-   # MIN_PRECISION = 0.1
-   # assert np.all(np.abs(etable[65:] - etable[64:-1]) < MIN_PRECISION)
-
 def test_get_etables():
-   N = 512
-   ch3ch3, ch3hapo, hapohapo = get_etables(N)
-
-   c_and_h = get_etable('Hapo', 'Hapo', N)
-   assert np.allclose(c_and_h, ch3ch3 + 2 * ch3hapo + hapohapo)
+   N = 1024
+   etables = get_etables(N)
+   ch3ch3, ch3hapo, hapohapo = etables[2, 2], etables[2, 3], etables[3, 3]
+   c_and_h = _get_etable('Hapo', 'Hapo', N)
+   c_and_h_hat = ch3ch3 + 2 * ch3hapo + hapohapo
+   assert np.allclose(c_and_h, c_and_h_hat)
 
    import matplotlib
 
@@ -40,10 +21,22 @@ def scale_raw_score(e):
    s[e < 0] = -np.sqrt(-e[e < 0])
    return s
 
-def test_etable_v_rosetta_2res():
-   Ntest = 1000
+def test_etable_v_rosetta_2res(Ntest=1, N=100, plot=False):
 
-   N = 8192
+   #  64             9398230856304585
+   # 128 e v s e<3 0.9804708700163653
+   # 192             9867697120396796
+   #                 9893726064006946
+   # 200           0.9878583845912273
+   # 228           0.9915802097700429
+   # 256 e v s e<3 0.9905069439891698
+   #                 9893203434735797
+   #                 9917960653654193
+   #                 9918968055523946
+   # 512 e v s e<3 0.9903913481726961
+   #1024           0.9900235243619212
+   # 2048          0.993876241929788
+
    etables = get_etables(N)
 
    pose = pose_from_file(rp.data.pdbdir + '/twores.pdb')
@@ -57,7 +50,7 @@ def test_etable_v_rosetta_2res():
    # gly12pose.dump_pdb('gly12pose.pdb')
 
    etot, rtot, ntot = 0, 0, 0
-   e, r, s = np.zeros(Ntest), -np.ones(Ntest), np.zeros(Ntest)
+   e, r, s = -12345 * np.ones(Ntest), -12345 * np.ones(Ntest), -12345 * np.ones(Ntest)
 
    for i in range(Ntest):
 
@@ -102,45 +95,34 @@ def test_etable_v_rosetta_2res():
       etot += e[i]
       rtot += r[i]
       ntot += 1
+      print('.', end='')
 
-   e2 = e
-   r2 = r
-   s2 = s
+   e2 = e[e != -12345]
+   r2 = r[e != -12345]
+   s2 = s[e != -12345]
 
    print('AVG', np.sqrt(abs(etot)) / np.sqrt(abs(rtot)), 'N', ntot)
    print('e v r ALL', np.corrcoef(np.stack([e2, r2]))[0, 1])
    print('e v s ALL', np.corrcoef(np.stack([e2, s2]))[0, 1])
 
-   idx = np.logical_and(r2 < 10, np.logical_and(e2 < 3, s2 < 3))
+   ethresh = 6
+   idx = np.logical_and(e2 != -12345,
+                        np.logical_and(r2 < 10, np.logical_and(e2 < ethresh, s2 < ethresh)))
    e3 = e2[idx]
    r3 = r2[idx]
    s3 = s2[idx]
 
-   toplot = dict(etable=e3, rosetta=s3, rosetta_raw=r3)
-   rp.util.plot.coplot(toplot)
-
+   print('nsamp', len(e3))
    print('e v r e<3', np.corrcoef(np.stack([e3, r3]))[0, 1])
    print('e v s e<3', np.corrcoef(np.stack([e3, s3]))[0, 1])
 
-   # energy_graph = pose.energies().energy_graph()
-   # eweights = pose.energies().weights()
-   # nonbonded_energy = 0
-   # for i in range(1, 3):
-   #    for j in range(1, 3):
-   #       edge = energy_graph.find_edge(i, j)
-   #       if not edge:
-   #          print('res-res energy', i, j, 'NONE')
-   #          pass
-   #       else:
-   #          e = edge.dot(eweights)
-   #          print('res-res energy', i, j, e)
-   #          nonbonded_energy += e
-
-   # assert 0
+   if plot:
+      import sys
+      sys.stdout.flush()
+      toplot = dict(etable=e3, rosetta=s3)  #, rosetta_raw=r3)
+      rp.util.plot.coplot(toplot)
 
 if __name__ == '__main__':
-   # test_etable_a1a2('CH3', 'CH3')
-   # test_etable_a1a2('CH3', 'Hapo')
-   # test_etable_a1a2('Hapo', 'Hapo')
-   # test_get_errays()
+   test_get_etables()
    test_etable_v_rosetta_2res()
+   # test_etable_v_rosetta_2res(Ntest=1000, N=256, plot=True)

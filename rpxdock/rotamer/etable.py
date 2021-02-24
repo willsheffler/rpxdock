@@ -86,12 +86,12 @@ def earray_slope(e):
 def earray_d2resl(nsamp):
    return (nsamp - 1) / 36.0
 
-def get_etable(a1, a2, nsamp):
-   pose = two_atom_pose(a1, a2)
-   d2resl = (nsamp - 1) / 36.0
-   r = [atom_atom_score(pose, np.sqrt(d2 / d2resl)) for d2 in range(0, nsamp)]
-   # pose.dump_pdb('test.pdb')
-   return np.array(r, dtype='f4')
+# def get_etable(a1, a2, nsamp):
+#    pose = two_atom_pose(a1, a2)
+#    d2resl = (nsamp - 1) / 36.0
+#    r = [atom_atom_score(pose, np.sqrt(d2 / d2resl)) for d2 in range(0, nsamp)]
+#    # pose.dump_pdb('test.pdb')
+#    return np.array(r, dtype='f4')
 
 def _get_etable(an1, an2, nsamp):
    e = two_atom_pose(an1, an2)
@@ -204,7 +204,12 @@ def earray_score_2res_pose(pose, etables, debug=True):
          d2idx = int(d2 * d2resl)
          if d2idx >= N:
             continue
+
          e = etables[at1, at2][d2idx]
+
+         # e1 = etables[at1, at2][d2idx]
+         # e2 = etables[at1, at2][d2idx + 1]
+         # e = e1
          # if e != 0:
          # print(at1, an1, at2, an2, e)
 
