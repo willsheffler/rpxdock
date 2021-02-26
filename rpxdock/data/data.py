@@ -8,8 +8,11 @@ hscoredir = os.path.join(os.path.dirname(__file__), "hscore")
 testdatadir = os.path.join(os.path.dirname(__file__), "testdata")
 paramsdir = os.path.join(os.path.dirname(__file__), "rosetta_params")
 
-def params_files():
+def rosetta_params_files():
    return [paramsdir + '/' + f for f in os.listdir(paramsdir) if f.endswith('.params')]
+
+def rosetta_patch_files():
+   return [paramsdir + '/' + f for f in os.listdir(paramsdir) if f.endswith('.txt')]
 
 @lru_cache()
 def get_test_data(name):

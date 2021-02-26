@@ -13,6 +13,7 @@ def get_arg(**kw):
    arg.max_trim = 0
    # arg.debug = True
    arg.executor = concurrent.futures.ThreadPoolExecutor(min(4, arg.ncpu / 2))
+
    return arg.sub(kw)
 
 def _test_cage_slide(hscore, body_cageA, body_cageB):
@@ -26,6 +27,21 @@ def test_cage_hier_no_trim(hscore, body_cageA, body_cageB):
 
    spec = rp.search.DockSpec2CompCage('T33')
    sampler = rp.sampling.hier_multi_axis_sampler(spec, [50, 60])
+   result = rp.search.make_multicomp([body_cageA, body_cageB], spec, hscore, rp.hier_search,
+                                     sampler, **kw)
+   # print(result)
+   # result.dump_pdbs_top_score(hscore=hscore,
+   #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
+
+def test_cage_hier_fixed0(hscore, body_cageA, body_cageB):
+   kw = get_arg(components_already_aligned_to_sym_axes=True, fixed_components=[0])
+
+   kw.beam_size = 5000
+
+   print('kw.fixed_components', kw.fixed_components)
+
+   spec = rp.search.DockSpec2CompCage('T32')
+   sampler = rp.sampling.hier_multi_axis_sampler(spec, [50, 60], **kw.sub(cart_bounds=None))
    result = rp.search.make_multicomp([body_cageA, body_cageB], spec, hscore, rp.hier_search,
                                      sampler, **kw)
    # print(result)
@@ -147,3 +163,5 @@ if __name__ == '__main__':
    # C4 = rp.data.get_body('C4_1na0-G1_1')
    C6 = rp.data.get_body('C6_3H22')
    # test_layer_hier_3comp(hscore, C6, C3, C2)
+
+   test_cage_hier_fixed0(hscore, C3, C2)

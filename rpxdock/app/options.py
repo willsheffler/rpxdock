@@ -257,14 +257,19 @@ def default_cli_parser(parent=None, **kw):
       "--components_already_aligned_to_sym_axes", action='store_true', default=False,
       help='use this flag if components are already aligned along the appropriate symmetry axes. If absent, components are assumed to be aligned along Z and centered on the origin'
    )
-   addarg("--fixed_components", nargs='+', default=[],
+   addarg("--fixed_components", nargs='+', type=int, default=[],
           help='list of components (0,1,2 etc) which should be fixed in multicomponent docking')
+
    addarg("--use_orig_coords", action='store_true', default=False,
           help='remember and output the original sidechains from the input structures')
+
    addarg("--primary_iface_cut", default=None, help='score cut for helix primary interface')
+
    addarg("--symframe_num_helix_repeats", default=10,
           help='number of helix repeat frames to dump')
+
    addarg("--ignored_aas", default='CGP', help='Amino acids to ignore in scoring')
+
    addarg("--score_self", action='store_true', default=False,
           help='score each interface seperately and dump in output pickle')
 

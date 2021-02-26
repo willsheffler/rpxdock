@@ -5,12 +5,22 @@ from pyrosetta.rosetta.core.scoring.dssp import Dssp
 from pyrosetta.rosetta.core.scoring import get_score_function
 
 def get_init_string():
-   s = '-beta -mute all -extra_res_fa '
-   s += ' '.join(rp.data.params_files())
+   s = ' -beta '
+   s += ' -mute all '
+   s += ' -extra_res_fa '
+   s += ' '.join(rp.data.rosetta_params_files())
+   # s += ' -extra_patch_fa '
+   # s += ' '.join(rp.data.rosetta_patch_files())
+   # s += ' -include_patches VIRTUAL_CB'
+   print('===================== rosetta flags ==========================')
+   print(s)
+   print('==============================================================')
    return s
 
 init(get_init_string())
-sfxn = get_score_function()
+default_sfxn = get_score_function()
+chem_manager = core.chemical.ChemicalManager.get_instance()
+rts_fastd = chem_manager.residue_type_set('fa_standard')
 
 def assign_secstruct(pose):
    Dssp(pose).insert_ss_into_pose(pose)
