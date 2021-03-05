@@ -35,28 +35,33 @@ def ala_to_virtCB(pose):
    # print(pose.residue(1).atom_type(5))
    # assert 0
 
-def get_rosetta_helix_rots(
+def get_rosetta_rots(
    pose,
-   ires,
+   whichres='all',
    sfxn=None,
    dump_pdbs=False,
    include_unknown_atom_types=False,
    allowed_aas=[
-      core.chemical.AA.aa_leu,
+      core.chemical.AA.aa_ala,
       core.chemical.AA.aa_ile,
+      core.chemical.AA.aa_leu,
       core.chemical.AA.aa_val,
    ],
    debug=False,
    extra_rots=[False, False, False, False],
    extrachi_nnb_cutoff=0,
+   dump_rotamers=False,
+   disable_restypes=['ALAvirtCB'],
 ):
    pose = pose.clone()  # will be modified, don't screw the caller!
    if sfxn is None: sfxn = rp.rosetta.get_score_function()
 
+   if whichres == all: whichres = np.arange(1, pose.size() + 1)
    residues_allowed_to_be_packed = utility.vector1_bool(pose.size())
    for i in range(1, pose.size() + 1):
       residues_allowed_to_be_packed[i] = False
-   residues_allowed_to_be_packed[ires] = True
+      if i in whichres:
+         residues_allowed_to_be_packed[i] = True
 
    aas = utility.vector1_bool(20)
    for iaa in range(1, 21):
@@ -64,15 +69,20 @@ def get_rosetta_helix_rots(
 
    task = TaskFactory.create_packer_task(pose)
    task.restrict_to_residues(residues_allowed_to_be_packed)
-   task.initialize_extra_rotamer_flags_from_command_line()
+   # task.initialize_extra_rotamer_flags_from_command_line()
    sfxn.setup_for_packing(pose, task.repacking_residues(), task.designing_residues())
-   task.nonconst_residue_task(ires).restrict_absent_canonical_aas(aas)
+   badrestypes = utility.vector1_string(len(disable_restypes))
+   for i, t in enumerate(disable_restypes):
+      badrestypes[i + 1] = t
+   for ires in range(1, len(pose) + 1):
+      task.nonconst_residue_task(ires).restrict_absent_canonical_aas(aas)
+      task.nonconst_residue_task(ires).disable_restypes(badrestypes)
 
-   task.nonconst_residue_task(ires).or_ex1(extra_rots[0])
-   task.nonconst_residue_task(ires).or_ex2(extra_rots[1])
-   task.nonconst_residue_task(ires).or_ex3(extra_rots[2])
-   task.nonconst_residue_task(ires).or_ex4(extra_rots[3])
-   task.nonconst_residue_task(ires).and_extrachi_cutoff(extrachi_nnb_cutoff)
+      task.nonconst_residue_task(ires).or_ex1(extra_rots[0])
+      task.nonconst_residue_task(ires).or_ex2(extra_rots[1])
+      task.nonconst_residue_task(ires).or_ex3(extra_rots[2])
+      task.nonconst_residue_task(ires).or_ex4(extra_rots[3])
+      task.nonconst_residue_task(ires).and_extrachi_cutoff(extrachi_nnb_cutoff)
 
    packer_neighbor_graph = core.pack.create_packer_graph(pose, sfxn, task)
 
@@ -81,45 +91,49 @@ def get_rosetta_helix_rots(
    rotsets.build_rotamers(pose, sfxn, packer_neighbor_graph)
    rotsets.prepare_sets_for_packing(pose, sfxn)
 
-   rotset = rotsets.rotamer_set_for_residue(ires)
+   for ires in whichres:
+      rotset = rotsets.rotamer_set_for_residue(ires)
 
-   energies1b = utility.vector1_float(rotset.num_rotamers())
-   rotset.compute_one_body_energies(pose, sfxn, task, packer_neighbor_graph, energies1b)
-   energies1b = np.array(energies1b, dtype='f4')
+      energies1b = utility.vector1_float(rotset.num_rotamers())
+      rotset.compute_one_body_energies(pose, sfxn, task, packer_neighbor_graph, energies1b)
+      energies1b = np.array(energies1b, dtype='f4')
 
-   if debug: print("total rots: ", rotset.num_rotamers())
+      if debug: print("total rots: ", rotset.num_rotamers())
 
-   rotdata = rp.Bunch(coords=list(), rotnum=list(), atomnum=list(), resname=list(),
-                      atomname=list(), atomtype=list(), rosetta_atom_type_index=list(),
-                      onebody=energies1b)
+      rotdata = rp.Bunch(coords=list(), resnum=list(), rotnum=list(), atomnum=list(),
+                         resname=list(), atomname=list(), atomtype=list(),
+                         rosetta_atom_type_index=list(), onebody=energies1b)
 
-   # for (Size irot = 1 irot <= rotset.num_rotamers() irot++) {
-   for irot in range(1, rotset.num_rotamers() + 1):
-      rot = rotset.rotamer(irot)
+      # for (Size irot = 1 irot <= rotset.num_rotamers() irot++) {
+      for irot in range(1, rotset.num_rotamers() + 1):
+         rot = rotset.rotamer(irot)
 
-      # rotpose = Pose()
-      # rotpose.append_residue_by_jump(rot, 1)
-      # fn = f"{rot.name()}_{irot:02}.pdb"
-      # print(fn)
-      # rotpose.dump_pdb(fn)
-      for ia in range(1, rot.natoms() + 1):
-         rat = rot.atom_type_index(ia)
-         aname = rot.atom_name(ia)
-         if aname.strip() in 'N H CA HA C O'.split():
-            continue
-         if rat not in _rosetta_known_atypes and not include_unknown_atom_types:
-            continue
+         if dump_rotamers:
+            rotpose = Pose()
+            rotpose.append_residue_by_jump(rot, 1)
+            fn = f"nrot{rotset.num_rotamers():04}_{rot.name()}_{irot:02}.pdb"
+            print(fn)
+            rotpose.dump_pdb(fn)
 
-         at = rosetta_atype_to_rpx_atype(rat)
-         xyz = rot.xyz(ia)
-         rotdata.coords.append([xyz.x, xyz.y, xyz.z])
-         rotdata.rotnum.append(irot)
-         rotdata.atomnum.append(ia)
-         rotdata.atomtype.append(at)
-         rotdata.resname.append(rot.name())
-         rotdata.atomname.append(rot.atom_name(ia))
-         rotdata.rosetta_atom_type_index.append(rat)
-         # print(irot, rot.name(), ia, rot.atom_name(ia), at, xyz)
+         for ia in range(1, rot.natoms() + 1):
+            rat = rot.atom_type_index(ia)
+            aname = rot.atom_name(ia)
+            if aname.strip() in 'N H CA HA C O'.split():
+               continue
+            if rat not in _rosetta_known_atypes and not include_unknown_atom_types:
+               continue
+
+            at = rosetta_atype_to_rpx_atype(rat)
+            xyz = rot.xyz(ia)
+            rotdata.coords.append([xyz.x, xyz.y, xyz.z, 1])
+            rotdata.resnum.append(ires)
+            rotdata.rotnum.append(irot)
+            rotdata.atomnum.append(ia)
+            rotdata.atomtype.append(at)
+            rotdata.resname.append(rot.name())
+            rotdata.atomname.append(rot.atom_name(ia))
+            rotdata.rosetta_atom_type_index.append(rat)
+            # print(irot, rot.name(), ia, rot.atom_name(ia), at, xyz)
 
    rotdata.coords = np.array(rotdata.coords, dtype='f4')
    rotdata.rotnum = np.array(rotdata.rotnum, dtype='i4')

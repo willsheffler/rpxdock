@@ -58,6 +58,8 @@ _file_mappings = {
    # "expand_xforms.cpp": ["rpxdock/tests/geom/test_expand_xforms.py"],
    "HapoCH3.params": ['rpxdock/tests/rotamer/test_etable.py'],
    "CH3.params": ['rpxdock/tests/rotamer/test_etable.py'],
+   "HackPack.hh": ['rpxdock/pack/_annealer.cpp'],
+   "TwoBodyTable.hh": ['rpxdock/pack/_annealer.cpp'],
 }
 _post = defaultdict(lambda: "")
 
@@ -101,7 +103,7 @@ def dispatch(file, pytest_args="--durations=5"):
       cmd = "pytest {pytest_args} {file}".format(**vars())
    elif file.endswith(".py"):
       cmd = "PYTHONPATH=. python " + file
-   elif file.endswith('.cpp') or file.endswith('.hpp'):
+   elif file.split('.')[-1] in 'cpp hpp cc hh'.split():
       cmd = 'PYTHONPATH=. python ide/compile_file.py ' + file
    else:
       cmd = "pytest {pytest_args}".format(**vars())

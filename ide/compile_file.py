@@ -7,8 +7,10 @@ def main():
    assert len(sys.argv) is 2
 
    file = sys.argv[1]
-   envinc = '/home/sheffler/miniconda3/envs/rpxdock/include/python3.7m'
-   cmd = f'g++-7 -std=c++17 -w -O1 -S -Irpxdock/extern -I. -I{envinc} {file}'
+   # !!!!!!!!!!!! WILL BREAK!
+   envinc = '/home/sheffler/.conda/envs/rpxdock/include/python3.7m'
+   envinc2 = '/home/sheffler/.conda/envs/rpxdock/lib/python3.7/site-packages/pybind11/include'
+   cmd = f'g++-7 -std=c++17 -w -O1 -S -Irpxdock/extern -I. -I{envinc} -I{envinc2} {file}'
    print()
    print(cmd)
    print()
