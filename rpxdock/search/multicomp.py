@@ -29,7 +29,8 @@ def make_multicomp(
    evaluator = Evaluator(bodies, spec, hscore, **kw)
 
    # do search
-   xforms, scores, extra, stats = search(sampler, evaluator, spec, bodies, **kw)
+   #TODO: Quinton: spec and bodies are added to test resolution level score function weighting
+   xforms, scores, extra, stats = search(sampler, evaluator, spec=spec, bodies=bodies, **kw)
 
    ibest = rp.filter_redundancy(xforms, bodies, scores, **kw)
 

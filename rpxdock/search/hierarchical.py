@@ -2,7 +2,7 @@ import logging, itertools, numpy as np, rpxdock as rp
 
 log = logging.getLogger(__name__)
 
-def hier_search(sampler, evaluator, spec, bodies, **kw):
+def hier_search(sampler, evaluator, **kw):
    '''
    :param sampler:
    :param evaluator:
@@ -13,8 +13,12 @@ def hier_search(sampler, evaluator, spec, bodies, **kw):
    kw = rp.Bunch(kw)
    neval, indices, scores = list(), None, None
    nresl = kw.nresl if kw.nresl else evaluator.hscore.actual_nresl
-   iresl_list = []
-   data_list = []
+   
+   #Uncomment to dump docking metrics at each resolution level of the search.
+   #iresl_list = []
+   #data_list = []
+   #spec = kw.spec
+   #bodies = kw.bodies
    for iresl in range(kw.nresl):
       indices, xforms = expand_samples(iresl, sampler, indices, scores, **kw)
       scores, extra, t = rp.search.evaluate_positions(**kw.sub(vars()))
