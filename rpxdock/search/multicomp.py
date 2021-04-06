@@ -29,7 +29,7 @@ def make_multicomp(
    evaluator = Evaluator(bodies, spec, hscore, **kw)
 
    # do search
-   xforms, scores, extra, stats = search(sampler, evaluator, **kw)
+   xforms, scores, extra, stats = search(sampler, evaluator, spec, bodies, **kw)
 
    ibest = rp.filter_redundancy(xforms, bodies, scores, **kw)
 

@@ -202,11 +202,11 @@ def default_cli_parser(parent=None, **kw):
       help='Only for monomer-to-plug docking. score weight of plug / cage hole interface. defaults to 1.0'
    )
    addarg(
-      "--weight_sasa", type=float, default=1500,
+      "--weight_sasa", type=float, default=1152,
       help="Desired SASA used to weight dock scoring"
    )
    addarg(
-      "--weight_error", type=float, default=None,
+      "--weight_error", type=float, default=4,
       help="Standard deviation used to calculate the distribution of SASA weighting"
       )
    addarg(
