@@ -202,6 +202,14 @@ def default_cli_parser(parent=None, **kw):
       help='Only for monomer-to-plug docking. score weight of plug / cage hole interface. defaults to 1.0'
    )
    addarg(
+      "--weight_sasa", type=float, default=1500,
+      help="Desired SASA used to weight dock scoring"
+   )
+   addarg(
+      "--weight_error", type=float, default=None,
+      help="Standard deviation used to calculate the distribution of SASA weighting"
+      )
+   addarg(
       "--output_prefix", nargs="?", default="rpxdock", type=str,
       help="output file prefix. will output pickles for a base ResPairScore plus --hierarchy_depth hier XMaps"
    )
@@ -257,8 +265,22 @@ def default_cli_parser(parent=None, **kw):
       "--components_already_aligned_to_sym_axes", action='store_true', default=False,
       help='use this flag if components are already aligned along the appropriate symmetry axes. If absent, components are assumed to be aligned along Z and centered on the origin'
    )
-   addarg("--fixed_components", nargs='+', default=[],
+   addarg("--fixed_components", nargs='+', type=int, default=[],
           help='list of components (0,1,2 etc) which should be fixed in multicomponent docking')
+   addarg("--fixed_wiggle", nargs='+', type=int, default=[],
+          help='Simliar to fixed_components but it lets the component wiggle 2-3 degrees')
+   addarg("--fw_cartlb", default=-5.0, type=float,
+          help='Lower bound for fixed_wiggle translation (in Angstroms)')
+   addarg("--fw_cartub", default=5.0, type=float,
+          help='Upper bound for fixed_wiggle translation (in Angstroms)')
+   addarg("--fw_cartnc", default=1, type=int,
+          help='Ncell value for translation (in Angstroms)')
+   addarg("--fw_rotlb", default=-5.0, type=float,
+          help='Lower bound for fixed_wiggle rotation (in Angstroms)')
+   addarg("--fw_rotub", default=5.0, type=float,
+          help='Upper bound for fixed_wiggle rotation (in Angstroms)')
+   addarg("--fw_rotnc", default=1, type=int,
+          help='Ncell value for rotation (in Angstroms)')
    addarg("--use_orig_coords", action='store_true', default=False,
           help='remember and output the original sidechains from the input structures')
    addarg("--primary_iface_cut", default=None, help='score cut for helix primary interface')
@@ -267,9 +289,15 @@ def default_cli_parser(parent=None, **kw):
    addarg("--ignored_aas", default='CGP', help='Amino acids to ignore in scoring')
    addarg("--score_self", action='store_true', default=False,
           help='score each interface seperately and dump in output pickle')
-
    addarg("--recenter_input", action='store_true', default=False,
           help='center coorinates from pdb input files')
+
+  #addarg("--score_fun", default=standard,
+  #       help='apply this score function to rpx and ncontact')
+  #addarg("--weight_scorefun",
+  #       help='weights to use in score function')
+   addarg("--function", type=str, default='stnd',
+          help='score function to use for scoring')
 
    parser.has_rpxdock_args = True
    return parser
