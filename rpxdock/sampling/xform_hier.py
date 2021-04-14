@@ -53,6 +53,15 @@ def hier_multi_axis_sampler(
    resl=10,
    angresl=10,
    flip_components=True,
+   fixed_rot=[],
+   fixed_components=[],
+   fixed_wiggle=[],
+   fw_cartlb=-5,
+   fw_cartub=5,
+   fw_cartnc=1,
+   fw_rotlb=-5,
+   fw_rotub=5,
+   fw_rotnc=1,
    **kw,
 ):
    if not (hasattr(spec, 'nfold') and hasattr(spec, 'axis') and hasattr(spec, 'xflip')):
@@ -79,6 +88,14 @@ def hier_multi_axis_sampler(
    for i in range(len(spec.nfold)):
       if spec.comp_is_dihedral[i]:
          s = LineHier(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], spec.axis[i])
+      elif i in fixed_rot: 
+         s = LineHier(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], spec.axis[i])
+      elif i in fixed_components:
+         s = rp.ZeroDHier([np.eye(4)])
+      elif i in fixed_wiggle:
+         print(fw_cartlb)
+         #Samples +/- 3 angstroms along sym axis, and same value around the symaxis
+         s =  rp.sampling.RotCart1Hier_f4(fw_cartlb,  fw_cartub, fw_cartnc, fw_rotlb, fw_rotub, fw_rotnc)
       else:
          s = rp.sampling.RotCart1Hier_f4(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], 0,
                                          ang[i], ang_nstep[i], spec.axis[i][:3])

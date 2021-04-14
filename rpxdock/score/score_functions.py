@@ -36,15 +36,15 @@ def sasa_priority(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
    #TODO: Quinton: Resolution-dependent scoring is turned off while I try to optimize it further. This does nothing right now.
    if kw.wts.ncontact != 0:
       if kw.wts.rpx != 0:
-         #start_sasa = kw.wts.sasa + ( 576 * 4 )
-         #sasa = start_sasa - ( 576 * kw.iresl )
-         sasa = kw.wts.sasa
-         #if not kw.wts.error:
-         #   start_error = 6
-         #else:
-         #   start_error = kw.wts.error + 2
-         #sigma = start_error - ( kw.iresl / 2 )
-         sigma = kw.wts.error
+         start_sasa = kw.wts.sasa + ( 576 * 4 )
+         sasa = start_sasa - ( 576 * kw.iresl )
+         #sasa = kw.wts.sasa
+         if not kw.wts.error:
+            start_error = 6
+         else:
+            start_error = kw.wts.error + 2
+         sigma = start_error - kw.iresl 
+         #sigma = kw.wts.error
       else:
          if not kw.wts.error:
             sigma = 4
