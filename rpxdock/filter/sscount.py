@@ -42,16 +42,31 @@ class secondary_structure_map:
                 temp_start = i
                 temp_ss = ss_at_resi
 
-def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_length=3, min_loop_length=1, min_element_resis=1, max_dist=8.0,
-                   sstype="EHL", confidence=0, min_ss_count=3, simple=True, strict=False, **kw):
+def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_length=3, min_loop_length=1, min_element_resis=1, max_dist=9.2,
+                   sstype="EHL", confidence=0, min_ss_count=3, simple=False, strict=False, **kw):
 
     pairs, lbub = rp.bvh.bvh_collect_pairs_vec(
         body1.bvh_cen,
         body2.bvh_cen,
-        pos1 @ body1.pos,
-        pos2 @ body2.pos,
+        pos1,
+        pos2,
         max_dist,
     )
+    #TODO: dump the first docked position here
+    from rpxdock.io.io_body import dump_pdb_from_bodies
+    import pickle
+    pickle.dump(body1, open("body.pickle", "wb"))
+    pickle.dump(pos1, open("X.pickle", "wb"))
+    pickle.dump(pos2, open("Xsym.pickle", "wb"))
+
+    body1.move_to(pos1[0])
+    symframes = [np.eye(4)]
+    dump_pdb_from_bodies("test_0.pdb", body1, symframes=symframes, chain_letters="A")
+    
+
+    print(f"Pairs: {pairs}")
+    print(f"lbub: {lbub}")
+    print(f"ncontact: {lbub[:,1] - lbub[:,0]}")
     #map ss to an object
     body1_ss_map, body2_ss_map = secondary_structure_map(), secondary_structure_map()
     body1_ss_map.map_body_ss(body1, min_helix_length, min_sheet_length, min_loop_length)
@@ -63,7 +78,11 @@ def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_lengt
     for i, (lb, ub) in enumerate(lbub):
 
         #this loses context information.
-        body1_res, body2_res = np.unique(pairs[lb:ub][:,0]), np.unique(pairs[lb:ub][:,1])
+        #adding 1 corrects for zero-indexing of residue numbers
+        #print(f"pairs: {pairs[lb:ub]}")
+        body1_res, body2_res = np.unique(pairs[lb:ub][:,0]) + 1, np.unique(pairs[lb:ub][:,1]) + 1
+        #print (f"body1_res {body1_res}")
+        #print (f"body2_res {body2_res}")
         #store residues in an SS element 
         temp_result = {
             "A" : {
@@ -173,7 +192,7 @@ def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_lengt
         else:
             ss_counts[i] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
             sscounts_data.append(temp_result)
-
+    print (f"sscount {ss_counts}")
     if confidence==1:
         return ss_counts >= min_ss_count
     elif simple:
