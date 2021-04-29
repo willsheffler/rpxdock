@@ -78,22 +78,28 @@ def hier_multi_axis_sampler(
    cart_bounds = np.tile(cart_bounds, [8, 1])  # for wrapping / repeating
 
    cart_nstep = np.ceil((cart_bounds[:, 1] - cart_bounds[:, 0]) / resl).astype('i')
-
+   assert cart_nstep > 0
+   
    ang = 360 / spec.nfold
    ang_nstep = np.ceil(ang / angresl).astype('i')
-
+   assert ang_nstep > 0 
+   
    samp = []
    for i in range(len(spec.nfold)):
       if spec.comp_is_dihedral[i]:
          s = LineHier(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], spec.axis[i])
       elif i in fixed_rot: 
          s = LineHier(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], spec.axis[i])
+      elif i in fixed_trans: 
+         s = RotHier(0, ang[i], ang_nstep[i], spec.axis[i][:3]) #TODO: MDL try this
       elif i in fixed_components:
          s = rp.ZeroDHier([np.eye(4)])
-      elif i in fixed_wiggle:
-         print(fw_cartlb)
+      elif i in fixed_wiggle: #TODO: MDL try this
          #Samples +/- 3 angstroms along sym axis, and same value around the symaxis
-         s =  rp.sampling.RotCart1Hier_f4(fw_cartlb,  fw_cartub, cart_nstep[i], fw_rotlb, fw_rotub, ang_nstep[i], spec.axis[i][:3])
+         if fw_cartnc and fw_rotnc: 
+             s = rp.sampling.RotCart1Hier_f4(fw_cartlb,  fw_cartub, fw_cartnc, fw_rotlb, fw_rotub, fw_rotnc, spec.axis[i][:3])
+         else:
+             s =  rp.sampling.RotCart1Hier_f4(fw_cartlb,  fw_cartub, cart_nstep[i], fw_rotlb, fw_rotub, ang_nstep[i], spec.axis[i][:3])
          #s = rp.sampling.RotCart1Hier_f4(0, 400, 10, 0, 3, 1, spec.axis[i][:3])
       else:
          s = rp.sampling.RotCart1Hier_f4(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], 0,
