@@ -74,6 +74,13 @@ def make_multicomp(
 
       extra.sscounts = sscounts_data
 
+   if kw.sasa.filter:
+      X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
+      # scaffold symmetry has to be applied before evaluating ss counts
+      B = [b.copy_with_sym(spec.nfold[i], spec.axis[i]) for i, b in enumerate(bodies)]
+      sasa_data = sasa.sasa_filter(B[0], B[1], X[:, 0], X[:, 1])
+      extra.sasa_data = sasa_data
+
    data = dict(
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, output_prefix=kw.output_prefix,
                  output_body='all', sym=spec.arch),
