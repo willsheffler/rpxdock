@@ -337,7 +337,7 @@ def process_cli_args(options, **kw):
 
    _extract_weights(options)
    _extract_sscount(options)
-
+   _extract_sasa(options)
    set_loglevel(options.loglevel)
 
    options.score_only_aa = options.score_only_aa.upper()
