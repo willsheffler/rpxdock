@@ -2,7 +2,7 @@ import logging, numpy as np, rpxdock as rp
 
 log = logging.getLogger(__name__)
 
-def sasa_filter(body1, body2, pos1, pos2, min_sasa=750, max_sasa=1500, apply=False, function=None, confidence=False, **kw):
+def sasa_filter(body1, body2, pos1, pos2, min_sasa=750, max_sasa=1500, apply=False, max_dist=9.2, function=None, confidence=False, **kw):
 
     pairs, lbub = rp.bvh.bvh_collect_pairs_vec(
         body1.bvh_cen,
