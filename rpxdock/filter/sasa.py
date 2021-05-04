@@ -26,8 +26,8 @@ def sasa_filter(boy1, body2, pos1, pos2, min_sasa=750, max_sasa=1500, apply=Fals
             sasa_data[i] = append(tot_int_sasa)
 
         else:
-            sasa_data[i] = append(len(body1_res) + len(body2_res))
-    if reply:
-        return [a and b for a, b in zip(sasa_data < min_sasa, sasa_data > max_sasa]
+            sasa_data[i] = len(body1_res) + len(body2_res)
+    if apply:
+        return [a and b for a, b in zip(sasa_data < min_sasa, sasa_data > max_sasa)]
     else:
-            return sasa_data
+        return sasa_data
