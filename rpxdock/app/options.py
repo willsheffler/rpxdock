@@ -295,6 +295,14 @@ def default_cli_parser(parent=None, **kw):
       help='If confidence set, minimum number of ss elements to pass the filter')
    addarg("--sscount_strict", action='store_true', default=False,
       help='Require that both pairs of residues in the interface are in an SS element meeting the set criteria')
+   addarg("--sasa_filter", action='store_true', default=False,
+      help='calculate the SASA of the interface')
+   addarg("--sasa_min_sasa", default=750,
+      help='the minimum allowed SASA of the interface')
+   addarg("--sasa_max_sasa", default=1500,
+      help='the maximum allowed SASA of the interface')
+   addarg("--sasa_confidence", action='store_true', default=False,
+      help='If set to 1, outside the threshold interface SASA will not be included in the output')
    parser.has_rpxdock_args = True
    return parser
 
@@ -523,6 +531,18 @@ def _extract_sscount(kw):
       del kw[k]
    kw.ssc = ssc
 
+def _extract_sasa(kw):
+   pref = 'sasa_'
+   sasa = rp.Bunch()
+   todel = list()
+   for k in kw:
+      if k.startswith(pref):
+         sasa_type = k.replace(pref, '')
+         sasa[sasa_type] = kw[k]
+         todel.append(k)
+   for k in todel:
+      del kw[k]
+   kw.sasa = sasa
 
 def _process_arg_sspair(kw):
    kw.score_only_sspair = [''.join(sorted(p)) for p in kw.score_only_sspair]
