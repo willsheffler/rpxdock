@@ -61,9 +61,9 @@ def make_onecomp(
    if kw.ssc.filter:
       X = xforms.reshape(-1, 4, 4)  #@ body.pos
       Xsym = spec.to_neighbor_olig @ X
-
+      B = body.copy_with_sym(spec.nfold, spec.axis)
       # scaffold symmetry has to be applied before evaluating ss counts
-      sscounts_data = sscount.filter_sscount(body, body, X, Xsym, min_helix_length=kw.ssc.min_helix_length,
+      sscounts_data = sscount.filter_sscount(B, B, X, Xsym, min_helix_length=kw.ssc.min_helix_length,
          min_sheet_length=kw.ssc.min_sheet_length, min_loop_length=kw.ssc.min_loop_length,
          min_element_resis=kw.ssc.min_element_resis, max_dist=kw.ssc.max_dist,
          sstype=kw.ssc.sstype, confidence=0, min_ss_count=kw.ssc.min_ss_count, strict=kw.ssc.strict, **kw)
@@ -73,9 +73,9 @@ def make_onecomp(
    if kw.sasa.filter:
       X = xforms.reshape(-1, 4, 4)  # @ body.pos
       Xsym = spec.to_neighbor_olig @ X
-
+      B = body.copy_with_sym(spec.nfold, spec.axis)
       # scaffold symmetry has to be applied before evaluating ss counts
-      sasa_data = sasa.sasa_filter(body, body, X, Xsym)
+      sasa_data = sasa.sasa_filter(B, B, X, Xsym)
       extra.sasa_data = sasa_data
 
    # put additional geom stuff into data
