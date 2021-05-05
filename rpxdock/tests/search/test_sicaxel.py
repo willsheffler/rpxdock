@@ -19,8 +19,10 @@ def test_sic_axel(hscore, C3_A, C3_B):
    kw = get_arg(fixed_components=True)
    kw.beam_size = 5000
 
-   sampler = rp.sampling.hier_axis_sampler(3, 0, 100, 10, 10)
-   sampler = rp.sampling.CompoundHier(rp.sampling.ZeroDHier(np.eye(4)), sampler)
+   sampler1 = rp.sampling.hier_axis_sampler(3, 0, 100, 10, 10)
+   sampler2 = rp.sampling.ZeroDHier([np.eye(4),rp.homog.hrot([1,0,0],180)])
+ #  sampler2 = rp.sampling.ZeroDHier(np.eye(4))
+   sampler = rp.sampling.CompoundHier(sampler2, sampler1)
    _,x = sampler.get_xforms(resl=0, idx=[0])
    print(x)
    print(x.shape)
@@ -28,7 +30,7 @@ def test_sic_axel(hscore, C3_A, C3_B):
 
    dummy = np.eye(4)
    dummy[:3,3] = [10000,0,0]
-   spec = rp.Bunch(nfold=[3,3], axis=[[0,0,1,0],[0,0,1,0]], arch="axel_3", num_components=2,
+   spec = rp.Bunch(nfold=[3,3], axis=[[0,0,1,0],[0,0,1,0]], arch="axel_1", num_components=2,
            to_neighbor_olig=[dummy,dummy])
 
    result = rp.search.make_multicomp([C3_A, C3_B], spec, hscore, rp.hier_search,
@@ -44,5 +46,8 @@ if __name__=="__main__":
 
    C3_A = rp.data.get_body('C3_1na0-1_1')
    C3_B = rp.data.get_body('C3_1nza_1')
+   C3_A.init_coords(3, [0,0,1,0])
+   C3_B.init_coords(3, [0,0,1,0])
+
 
    test_sic_axel(hscore, C3_A, C3_B)
