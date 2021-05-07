@@ -48,8 +48,8 @@ def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_lengt
     pairs, lbub = rp.bvh.bvh_collect_pairs_vec(
         body1.bvh_cen,
         body2.bvh_cen,
-        pos1 @ body1.pos,
-        pos2 @ body2.pos,
+        pos1,
+        pos2,
         max_dist,
     )
     #map ss to an object

@@ -1,5 +1,7 @@
 import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
+from rpxdock.filter import sscount
+import logging
 
 def make_onecomp(
    body,
@@ -38,6 +40,22 @@ def make_onecomp(
    ibest = rp.filter_redundancy(xforms, body, scores, **kw)
    # tdump = _debug_dump_cage(xforms, body, spec, scores, ibest, evaluator, **kw)
 
+   logging.debug(f"Apply sscount filter to docks? {kw.ssc.confidence}")
+   logging.debug(f"Apply sscount filter? {kw.ssc.filter}")
+   if kw.ssc.filter and kw.ssc.confidence:
+      # Apply sscounts filter to docks with confidence 1. Will change dock results.
+      logging.debug("Applying sscount filter to search results")
+      X = xforms.reshape(-1, 4, 4)  #@ body.pos
+      Xsym = spec.to_neighbor_olig @ X
+      B = body.copy_with_sym(spec.nfold, spec.axis)
+      sbest = sscount.filter_sscount(B, B, X[ibest], Xsym[ibest], min_helix_length=kw.ssc.min_helix_length,
+         min_sheet_length=kw.ssc.min_sheet_length, min_loop_length=kw.ssc.min_loop_length,
+         min_element_resis=kw.ssc.min_element_resis, max_dist=kw.ssc.max_dist,
+         sstype=kw.ssc.sstype, confidence=1, min_ss_count=kw.ssc.min_ss_count, strict=kw.ssc.strict, **kw)
+      # TODO: Add exception handling for empty array sscounts
+      logging.debug(f"Array of docks passingg sscount filter: {sbest}")
+      ibest = ibest[sbest]
+
    if kw.verbose:
       print(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f}")
       print("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
@@ -48,6 +66,20 @@ def make_onecomp(
    wnct = kw.wts.sub(rpx=0, ncontact=1)
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
    ncontact, *_ = evaluator(xforms, kw.nresl - 1, wnct)
+
+   if kw.ssc.filter:
+      X = xforms.reshape(-1, 4, 4)  #@ body.pos
+      Xsym = spec.to_neighbor_olig @ X
+      B = body.copy_with_sym(spec.nfold, spec.axis)
+      # scaffold symmetry has to be applied before evaluating ss counts
+      sscounts_data = sscount.filter_sscount(B, B, X, Xsym, min_helix_length=kw.ssc.min_helix_length,
+         min_sheet_length=kw.ssc.min_sheet_length, min_loop_length=kw.ssc.min_loop_length,
+         min_element_resis=kw.ssc.min_element_resis, max_dist=kw.ssc.max_dist,
+         sstype=kw.ssc.sstype, confidence=0, min_ss_count=kw.ssc.min_ss_count, strict=kw.ssc.strict, **kw)
+
+      print(sscounts_data)
+      extra.sscounts = sscounts_data
+
    data = dict(
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, output_prefix=kw.output_prefix,
                  output_body='all', sym=spec.arch),
