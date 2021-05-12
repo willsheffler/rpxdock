@@ -1,5 +1,6 @@
 import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
+from numpy.linalg import inv
 import logging
 
 def make_multicomp(
@@ -92,7 +93,6 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       # print(f"docking {len(B)} bodies")
       X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
       xnbr = self.spec.to_neighbor_olig
-
       # check for "flatness"
       delta_h = np.array(
          [hm.hdot(X[:, i] @ B[i].com(), self.spec.axis[i]) for i in range(len(B))])
@@ -108,7 +108,6 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
 
       if xnbr[0] is None and xnbr[1] is not None and xnbr[2] is not None:  # layer hack
          logging.debug("touch")
-         inv = np.linalg.inv
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[1] @ X[ok, 1], **kw)
          ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], xnbr[2] @ X[ok, 2], **kw)
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[2] @ X[ok, 1], **kw)
@@ -116,10 +115,14 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], xnbr[2] @ X[ok, 2], **kw)
          ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], xnbr[1] @ X[ok, 2], **kw)
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], inv(xnbr[1]) @ X[ok, 1], **kw)
-         # ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], inv(xnbr[2]) @ X[ok, 2], **kw)
-         # ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[2]) @ X[ok, 2], **kw)
          ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], inv(xnbr[1]) @ X[ok, 2], **kw)
          ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[1]) @ X[ok, 2], **kw)
+         # check clash, or get non-clash range
+      for i in range(len(B)):
+         if xnbr[i] is not None:
+            ok[ok] &= B[i].clash_ok(B[i], X[ok, i], xnbr[i] @ X[ok, i], **kw)
+         for j in range(i):
+            ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
 
       # score everything that didn't clash
       # Behaves normally if arg.score_self is not set
@@ -149,11 +152,19 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
                if i == j:
                   logging.debug("found self")
                   Xsym = self.spec.to_neighbor_olig @ X
+         for i in range(len(B)):
+            for j in range(i + 1):
+               logging.debug(f"scoring body {i} against body {j}")
+               if i == j:
+                  logging.debug("found self")
+                  Xsym = self.spec.to_neighbor_olig @ X
                   s_ifscore.append(
                      self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, wts=wts))
                else:
                   ns_ifscore.append(
                      self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
+                  s_ifscore.append(
+                     self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, wts=wts))
          logging.debug(f"self scores is length {len(s_ifscore[0])}")
          logging.debug(f"non-self scores is legnth {len(ns_ifscore[0])}")
          logging.debug(f"OK len is {len(ok)}")

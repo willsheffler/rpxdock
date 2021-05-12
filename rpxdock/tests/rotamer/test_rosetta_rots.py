@@ -48,6 +48,7 @@ def test_rosetta_rots_1res(**kw):
    print(t)
 
 def test_rosetta_rots(**kw):
+   print('test_rosetta_rots begin')
 
    pose = Pose()
    core.pose.make_pose_from_sequence(pose, 'AAAAAAAAAAAAAAA', 'fa_standard', auto_termini=False)
@@ -62,7 +63,13 @@ def test_rosetta_rots(**kw):
    # pose.dump_pdb("refhelix.pdb").
 
    fields = [
-      'coords', 'rotnum', 'atomnum', 'resname', 'atomname', 'atomtype', 'rosetta_atom_type_index'
+      'coords',
+      'rotnum',
+      'atomnum',
+      'resname',
+      'atomname',
+      'atomtype',
+      'rosetta_atom_type_index',
    ]
 
    t = rp.Timer().start()
@@ -92,6 +99,7 @@ def test_rosetta_rots(**kw):
    t.checkpoint('ex1 ex2')
 
    print(t)
+   print('test_rosetta_rots begin')
 
 if __name__ == '__main__':
    # test_rosetta_rots_1res(dump_rotamers=True)

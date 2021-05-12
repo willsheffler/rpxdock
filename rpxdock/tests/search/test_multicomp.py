@@ -30,8 +30,8 @@ def test_cage_hier_no_trim(hscore, body_cageA, body_cageB):
    result = rp.search.make_multicomp([body_cageA, body_cageB], spec, hscore, rp.hier_search,
                                      sampler, **kw)
    # print(result)
-   # result.dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
+   result.dump_pdbs_top_score(hscore=hscore,
+                              **kw.sub(nout_top=10, output_prefix='old_test_cage_hier_no_trim'))
 
 @pytest.mark.skip
 def test_cage_hier_fixed0(hscore, body_cageA, body_cageB):
@@ -80,8 +80,8 @@ def test_cage_hier_trim(hscore, body_cageA_extended, body_cageB_extended):
    # result.dump_pdbs_top_score(hscore=hscore,
    # **kw.sub(nout_top=10, output_prefix="test_cage_hier_trim"))
    # result.resub[:] = np.max(result.resub, axis=0)
-   # result.dump_pdbs_top_score(hscore=hscore,
-   # **kw.sub(nout_top=10, output_prefix="whole_test_cage_hier_trim"))
+   result.dump_pdbs_top_score(hscore=hscore,
+                              **kw.sub(nout_top=10, output_prefix="old_test_cage_hier_trim"))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_hier_trim.pickle')
    ref = rp.data.get_test_data('test_cage_hier_trim')
@@ -98,8 +98,8 @@ def test_cage_hier_3comp(hscore, bodyC4, bodyC3, bodyC2):
    sampler = rp.sampling.hier_multi_axis_sampler(spec, [70, 90], flip_components=False)
    result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **kw)
 
-   # result.dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_3comp'))
+   result.dump_pdbs_top_score(hscore=hscore,
+                              **kw.sub(nout_top=10, output_prefix='old_cage_hier_3comp'))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_hier_3comp.pickle')
    ref = rp.data.get_test_data('test_cage_hier_3comp')
@@ -146,23 +146,23 @@ if __name__ == '__main__':
    # hscore = rp.RpxHier('ilv_h', hscore_data_dir='/home/sheffler/data/rpx/hscore')
    # hscore = rp.RpxHier('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
 
-   # body1 = rp.data.get_body('T33_dn2_asymA')
-   # body2 = rp.data.get_body('T33_dn2_asymB')
-   # test_cage_hier_no_trim(hscore, body1, body2)
+   body1 = rp.data.get_body('T33_dn2_asymA')
+   body2 = rp.data.get_body('T33_dn2_asymB')
+   test_cage_hier_no_trim(hscore, body1, body2)
 
-   # body1 = rp.data.get_body('T33_dn2_asymA_extended')
-   # body2 = rp.data.get_body('T33_dn2_asymB_extended')
-   # test_cage_hier_trim(hscore, body1, body2)
+   body1 = rp.data.get_body('T33_dn2_asymA_extended')
+   body2 = rp.data.get_body('T33_dn2_asymB_extended')
+   test_cage_hier_trim(hscore, body1, body2)
+
+   C2 = rp.data.get_body('C2_REFS10_1')
+   C3 = rp.data.get_body('C3_1na0-1_1')
+   C4 = rp.data.get_body('C4_1na0-G1_1')
+   test_cage_hier_3comp(hscore, C4, C3, C2)
 
    # C2 = rp.data.get_body('C2_REFS10_1')
    # C3 = rp.data.get_body('C3_1na0-1_1')
    # C4 = rp.data.get_body('C4_1na0-G1_1')
-   # test_cage_hier_3comp(hscore, C4, C3, C2)
-
-   C2 = rp.data.get_body('C2_REFS10_1')
-   C3 = rp.data.get_body('C3_1na0-1_1')
-   # C4 = rp.data.get_body('C4_1na0-G1_1')
-   C6 = rp.data.get_body('C6_3H22')
+   # C6 = rp.data.get_body('C6_3H22')
    # test_layer_hier_3comp(hscore, C6, C3, C2)
 
-   test_cage_hier_fixed0(hscore, C3, C2)
+   # test_cage_hier_fixed0(hscore, C3, C2)

@@ -9,6 +9,7 @@ def get_init_string():
    s += ' -mute all '
    s += ' -extra_res_fa '
    s += ' '.join(rp.data.rosetta_params_files())
+   s += ' -renumber_pdb'
    # s += ' -extra_patch_fa '
    # s += ' '.join(rp.data.rosetta_patch_files())
    # s += ' -include_patches VIRTUAL_CB'

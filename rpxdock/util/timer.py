@@ -94,6 +94,7 @@ class Timer:
       times = self.report_dict(order=order, summary=summary)
       for cpoint, t in times.items():
          lines.append(f'    {cpoint:>{namelen}} {t*scale:{precision}}')
+         if scale == 1000: lines[-1] += 'ms'
       r = os.linesep.join(lines)
       if printme: log.info(r)
       return r

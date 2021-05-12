@@ -867,9 +867,32 @@ def test_xform_around_dof_for_vector_target_angle():
    solutions = xform_around_dof_for_vector_target_angle(fix, mov, dof, target_angle)
    assert solutions == []
 
+def marisa():
+   data = rp.load('rpxdock/data/testdata/test_asym.pickle')
+   print(type(data))
+   print(data.xforms[3].data)
+   print(np.eye(4))
+   rp.dump(data.data, 'tmp.pickle')
+
+   ary = np.array([1, 2, 3])
+
+   X = data.xforms[3].data
+   orig_pts = np.random.rand(10, 4) * 100 - 50
+   orig_pts[:, 3] = 1
+   new_pts = X @ orig_pts.T
+
+   print(X)
+
+   print(orig_pts)
+   print('xformed (1,2,3)')
+
+   print(new_pts.T)
+
 if __name__ == '__main__':
 
-   test_axis_angle_vs_axis_angle_cen_performance()
+   marisa()
+
+   # test_axis_angle_vs_axis_angle_cen_performance()
 
    # test_xform_around_dof_for_vector_target_angle()
 

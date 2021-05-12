@@ -114,7 +114,15 @@ def dock_onecomp(hscore, **kw):
 def dock_multicomp(hscore, **kw):
    kw = rp.Bunch(kw)
    spec = get_spec(kw.architecture)
-   sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
+
+
+   # sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
+   sampler1 = rp.sampling.RotCart1Hier_f4(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], 0,
+                                         ang[i], ang_nstep[i], spec.axis[i][:3],)
+   sampler2 = rp.ZeroDHier([np.eye(4)])) 
+   sampler rp.sampling.CompoundHier(sampler1, sampler2)
+
+
    logging.info(f'num base samples {sampler.size(0):,}')
 
    bodies = [[rp.Body(fn, allowed_res=ar2, **kw)

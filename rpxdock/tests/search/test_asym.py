@@ -26,7 +26,7 @@ def test_asym(hscore, body, body2):
    # print(f'toplevel samples {sampler.size(0):,}')
    result = rp.search.make_asym([body2, body], hscore, sampler, **kw)
 
-   # result.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts)
+   result.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts, output_prefix='old')
 
    # rp.dump(result, 'rpxdock/data/testdata/test_asym.pickle')
    ref = rp.data.get_test_data('test_asym')

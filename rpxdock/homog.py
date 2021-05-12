@@ -676,12 +676,14 @@ def xform_around_dof_for_vector_target_angle(fix, mov, dof, target_angle):
       else:
          return []
 
-def align_lines_isect_axis2(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2):
+def align_lines_isect_axis2(pt1, ax1, pt2, ax2, ta1, tp1, ta2, sl2, strict=True):
+   '''zomg, point/axis reversed for second half of args...'''
    ## make sure to align with smaller axis choice
    assert np.allclose(np.linalg.norm(tp1[..., :3]), 0.0)
    if angle(ax1, ax2) > np.pi / 2: ax2 = -ax2
    if angle(ta1, ta2) > np.pi / 2: ta2 = -ta2
-   assert np.allclose(angle(ta1, ta2), angle(ax1, ax2))
+   if strict:
+      assert np.allclose(angle(ta1, ta2), angle(ax1, ax2))
    if abs(angle(ta1, ta2)) < 0.01:
       assert 0, 'case not tested'
       # vector delta between pt2 and pt1

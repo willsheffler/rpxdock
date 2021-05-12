@@ -19,7 +19,6 @@ dependencies:
  - pytest-repeat
  - pytest-sugar
  - pytest-xdist
- - tabulate
  - sphinx>=2.0
  - doxygen
  - rmsd

@@ -2,6 +2,8 @@ import _pickle, numpy as np, itertools as it, sys
 from time import perf_counter
 
 # from cppimport import import_hook
+from cppimport.config import turn_off_strict_prototypes
+turn_off_strict_prototypes()
 #
 # # import cppimport
 #

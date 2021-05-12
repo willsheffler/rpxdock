@@ -1,6 +1,8 @@
 import threading, numpy as np
 from os.path import join
 from cppimport import import_hook
+from cppimport.config import turn_off_strict_prototypes
+turn_off_strict_prototypes()
 from rpxdock.util.dilated_int_test import *
 from rpxdock.util import sanitize_for_pickle, load_threads, dump, can_pickle, num_digits
 from rpxdock import Bunch

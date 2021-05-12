@@ -1,7 +1,6 @@
 from rpxdock.pack.annealer import foo
 
 def test_annealer():
-
    foo()
 
 if __name__ == '__main__':

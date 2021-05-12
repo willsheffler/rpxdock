@@ -6,6 +6,8 @@ import gzip
 import pandas as pd
 
 from cppimport import import_hook
+from cppimport.config import turn_off_strict_prototypes
+turn_off_strict_prototypes()
 from rpxdock.sampling._orientations import read_karney_orientations
 
 if sys.version_info[0] < 3:
