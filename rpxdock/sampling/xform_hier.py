@@ -60,6 +60,8 @@ def hier_multi_axis_sampler(
    fw_cartub=5,
    fw_rotlb=-5,
    fw_rotub=5,
+   fw_cartnc=1,
+   fw_rotnc=1,
    **kw,
 ):
    if not (hasattr(spec, 'nfold') and hasattr(spec, 'axis') and hasattr(spec, 'xflip')):
@@ -100,7 +102,6 @@ def hier_multi_axis_sampler(
              s = rp.sampling.RotCart1Hier_f4(fw_cartlb,  fw_cartub, fw_cartnc, fw_rotlb, fw_rotub, fw_rotnc, spec.axis[i][:3])
          else:
              s =  rp.sampling.RotCart1Hier_f4(fw_cartlb,  fw_cartub, cart_nstep[i], fw_rotlb, fw_rotub, ang_nstep[i], spec.axis[i][:3])
-         #s = rp.sampling.RotCart1Hier_f4(0, 400, 10, 0, 3, 1, spec.axis[i][:3])
       else:
          s = rp.sampling.RotCart1Hier_f4(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], 0,
                                          ang[i], ang_nstep[i], spec.axis[i][:3])

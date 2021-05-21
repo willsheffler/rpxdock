@@ -266,7 +266,7 @@ def default_cli_parser(parent=None, **kw):
    addarg("--fixed_trans", nargs='+', type=int, default=[],
           help='list of components (0,1,2 etc) which should be fixed from translating in multicomponent docking')
    addarg("--fixed_components", nargs='+', type=int, default=[],
-          help='list of components (0,1,2 etc) which should be fixed in multicomponent docking')
+          help='list of components (0,1,2 etc) which should be fixed from rotating and translating in multicomponent docking')
    addarg("--fixed_wiggle", nargs='+', type=int, default=[],
           help='Similar to fixed_components (input as list 0,1,2,etc) but it lets the component wiggle 2-3 degrees')
    addarg("--fw_cartlb", default=-5.0, type=float,
@@ -278,9 +278,9 @@ def default_cli_parser(parent=None, **kw):
    addarg("--fw_rotub", default=5.0, type=float,
           help='Upper bound for fixed_wiggle rotation (in degrees) Default 5.0')
    addarg("--fw_cartnc", default=1, type=int,
-          help='Ncell value for translation (in Angstroms) Default 1.0')
+          help='Ncell value for fixed_wiggle translation (in Angstroms) Default 1.0')
    addarg("--fw_rotnc", default=1, type=int,
-          help='Ncell value for rotation (in degrees) Default 1.0')
+          help='Ncell value for fixed_wiggle rotation (in degrees) Default 1.0')
    addarg("--use_orig_coords", action='store_true', default=False,
           help='remember and output the original sidechains from the input structures')
    addarg("--primary_iface_cut", default=None, help='score cut for helix primary interface')
