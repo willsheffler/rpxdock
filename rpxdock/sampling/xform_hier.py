@@ -55,6 +55,7 @@ def hier_multi_axis_sampler(
    flip_components=True,
    fixed_rot=[],
    fixed_components=[],
+   fixed_trans=[],
    fixed_wiggle=[],
    fw_cartlb=-5,
    fw_cartub=5,
@@ -80,11 +81,11 @@ def hier_multi_axis_sampler(
    cart_bounds = np.tile(cart_bounds, [8, 1])  # for wrapping / repeating
 
    cart_nstep = np.ceil((cart_bounds[:, 1] - cart_bounds[:, 0]) / resl).astype('i')
-   assert cart_nstep > 0
-   
+   assert np.all(cart_nstep > 0)
+
    ang = 360 / spec.nfold
    ang_nstep = np.ceil(ang / angresl).astype('i')
-   assert ang_nstep > 0 
+   assert np.all(ang_nstep > 0) 
    
    samp = []
    for i in range(len(spec.nfold)):
@@ -93,7 +94,7 @@ def hier_multi_axis_sampler(
       elif i in fixed_rot: 
          s = LineHier(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], spec.axis[i])
       elif i in fixed_trans: 
-         s = RotHier(0, ang[i], ang_nstep[i], spec.axis[i][:3]) #TODO: MDL try this
+         s = rp.sampling.RotHier_f4(0, ang[i], ang_nstep[i], spec.axis[i][:3]) #TODO: MDL try this
       elif i in fixed_components:
          s = rp.ZeroDHier([np.eye(4)])
       elif i in fixed_wiggle: #TODO: MDL try this
