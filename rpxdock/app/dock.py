@@ -65,10 +65,11 @@ def dock_onecomp(hscore, **kw):
    kw = rp.Bunch(kw)
    spec = get_spec(kw.architecture)
    crtbnd = kw.cart_bounds[0]
+
    # double normal resolution, cuz why not?
    if kw.docking_method == 'grid':
       flip=list(spec.flip_axis[:3])
-      if kw.flip_component[0]:
+      if not kw.flip_components[0]:
          flip = None
       sampler = rp.sampling.grid_sym_axis(
          cart=np.arange(crtbnd[0], crtbnd[1], kw.grid_resolution_cart_angstroms),
