@@ -39,6 +39,7 @@ def hier_axis_sampler(
    :param flipax: flip subunits
    :return: "arrays of pos" to check for a given search resolution where pos are represented by matrices
    '''
+   kw=rp.Bunch(kw)
    cart_nstep = int(np.ceil((ub - lb) / resl))
    ang = 360 / nfold
    ang_nstep = int(np.ceil(ang / angresl))
