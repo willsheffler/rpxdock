@@ -65,19 +65,25 @@ def dock_onecomp(hscore, **kw):
    kw = rp.Bunch(kw)
    spec = get_spec(kw.architecture)
    crtbnd = kw.cart_bounds[0]
+
    # double normal resolution, cuz why not?
    if kw.docking_method == 'grid':
+      flip=list(spec.flip_axis[:3])
+      if not kw.flip_components[0]:
+         flip = None
       sampler = rp.sampling.grid_sym_axis(
-         cart=np.arange(crtbnd[0], crtbnd[1], kw.grid_resolution_cart_angstroms), ang=np.arange(
-            0, 360 / spec.nfold, kw.grid_resolution_ori_degrees), axis=spec.axis,
-         flip=list(spec.flip_axis[:3]))
+         cart=np.arange(crtbnd[0], crtbnd[1], kw.grid_resolution_cart_angstroms),
+         ang=np.arange(0, 360 / spec.nfold, kw.grid_resolution_ori_degrees),
+         axis=spec.axis,
+         flip=flip
+         )
       search = rp.grid_search
    else:
       if spec.type == 'mirrorlayer':
-         sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **arg)
+         sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **kw)
       else:
          sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=crtbnd[0], ub=crtbnd[1], resl=5,
-                                                 angresl=5, axis=spec.axis, flipax=spec.flip_axis)
+                                                 angresl=5, axis=spec.axis, flipax=spec.flip_axis, **kw)
       search = rp.hier_search
 
    # pose info and axes that intersect
