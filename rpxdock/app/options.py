@@ -255,7 +255,7 @@ def default_cli_parser(parent=None, **kw):
    # tcdock
    addarg(
       "--architecture", type=str, default=None,
-      help='architecture to be produced by docking. Can be cage I32, O43, T32 where larger axis of symmetry is listed first, or Cx for cyclic. For plug protocol, can be PLUG_Cx. No default value'
+      help='architecture to be produced by docking. Can be cage I32, O43, T32 where larger axis of symmetry is listed first, Cx for cyclic, Dx2 for dihedral. For plug protocol, can be PLUG_Cx. No default value'
    )
    addarg("--trimmable_components", default="ABCDEFGHIJKLMNOPQRSTUVWXYZ",
           help='specify which components "ABC" etc are trimmable. defaults to all components')
@@ -293,7 +293,7 @@ def default_cli_parser(parent=None, **kw):
    addarg("--score_self", action='store_true', default=False,
           help='score each interface seperately and dump in output pickle')
    addarg("--function", type=str, default='stnd',
-          help='score function to use for scoring. Default is stnd scorefunction. Example: standard, sasa_priority, mean, exp, median. Full list is defined in score/scorefunctions.py')
+          help='score function to use for scoring. Default is stnd scorefunction. Example: stnd, sasa_priority, mean, exp, median. Full list is defined in score/scorefunctions.py')
    addarg("--sscount_filter", action='store_true', default=False,
       help='calculate the ss_count in the interface')
    addarg("--sscount_confidence", action='store_true', default=False,
