@@ -85,7 +85,7 @@ def default_cli_parser(parent=None, **kw):
    parser = parent if parent else argparse.ArgumentParser(allow_abbrev=False)
    addarg = add_argument_unless_exists(parser)
    addarg("--inputs", nargs="*", type=str, default=[],
-          help='Empty list of input structures for docking protocols used for pytests. DO NOT USE for actual docking')
+          help=argparse.SUPPRESS)
    addarg(
       "--inputs1", nargs="*", type=str, default=[],
       help='input structures for single component protocols or first component for 2+ protocols, plug input structure for plug protocol. Can be inputted as a string or list of strings'
@@ -97,7 +97,7 @@ def default_cli_parser(parent=None, **kw):
    addarg("--inputs3", nargs="*", type=str, default=[],
           help='input structures for third component for 3+ component protocols. Can be inputted as a string or list of strings')
    addarg("--allowed_residues", nargs="*", type=str, default=[],
-          help='Empty allowed residues list for docking protocols used for pytests. DO NOT USE for actual docking')
+          help=argparse.SUPPRESS)
    addarg("--allowed_residues1", nargs="*", type=str, default=[],
           help='allowed residues list for single component protocols or first component of 2+ component protocols or the monomeric plug for plug protocol. Takes either nothing (if you leave them out), a single file which applies to all the corresponding inputs, or a list of files which must have the same length as the list of inputs. The files themselves must contain a whitespace separated list of either numbers or ranges.')
    addarg("--allowed_residues2", nargs="*", type=str, default=[],
@@ -293,7 +293,7 @@ def default_cli_parser(parent=None, **kw):
    addarg("--score_self", action='store_true', default=False,
           help='score each interface seperately and dump in output pickle')
    addarg("--function", type=str, default='stnd',
-          help='score function to use for scoring. Default is stnd scorefunction. Example: standard, sasa_priority. Full list is defined in score/scorefunctions.py')
+          help='score function to use for scoring. Default is stnd scorefunction. Example: standard, sasa_priority, mean, exp, median. Full list is defined in score/scorefunctions.py')
    addarg("--sscount_filter", action='store_true', default=False,
       help='calculate the ss_count in the interface')
    addarg("--sscount_confidence", action='store_true', default=False,
