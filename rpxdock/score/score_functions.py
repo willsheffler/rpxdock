@@ -36,14 +36,14 @@ def sasa_priority(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
    #TODO: Quinton: Resolution-dependent scoring is turned off while I try to optimize it further. This does nothing right now.
    if kw.wts.ncontact != 0:
       if kw.wts.rpx != 0:
-         #start_sasa = kw.wts.sasa + ( 576 * 4 )
-         #sasa = start_sasa - ( 576 * kw.iresl )
+      #   start_sasa = kw.wts.sasa + ( 576 * 4 )
+      #   sasa = start_sasa - ( 576 * kw.iresl )
          sasa = kw.wts.sasa
-         #if not kw.wts.error:
-         #   start_error = 6
-         #else:
-         #   start_error = kw.wts.error + 2
-         #sigma = start_error - ( kw.iresl / 2 )
+      #   if not kw.wts.error:
+      #      start_error = 6
+      #   else:
+      #      start_error = kw.wts.error + 2
+      #   sigma = start_error - kw.iresl 
          sigma = kw.wts.error
       else:
          if not kw.wts.error:
@@ -97,7 +97,7 @@ def stnd(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
    for i, (lb, ub) in enumerate(lbub):
       side1 = np.sum(ressc1[lbub1[i, 0]:lbub1[i, 1]])
       side2 = np.sum(ressc2[lbub2[i, 0]:lbub2[i, 1]])
-      mscore = (side1 + side2) / 2
+      mscore = (side1 + side2) 
       scores[i] = kw.wts.rpx * mscore + kw.wts.ncontact * (ub - lb)
    return scores
   
@@ -127,7 +127,7 @@ def exp(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
    for i, (lb, ub) in enumerate(lbub):
       side1 = np.sum(ressc1[lbub1[i, 0]:lbub1[i, 1]])
       side2 = np.sum(ressc2[lbub2[i, 0]:lbub2[i, 1]])
-      mscore = (side1 + side2) / 2
+      mscore = (side1 + side2)
       scores[i] = mscore - ( 4.6679 * ((ub - lb)**0.588  ))
    return scores
   
@@ -137,6 +137,6 @@ def lin(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
    for i, (lb, ub) in enumerate(lbub):
       side1 = np.sum(ressc1[lbub1[i, 0]:lbub1[i, 1]])
       side2 = np.sum(ressc2[lbub2[i, 0]:lbub2[i, 1]])
-      mscore = (side1 + side2) / 2
+      mscore = (side1 + side2)
       scores[i] = mscore - ( 0.7514*(ub - lb) )
    return scores
