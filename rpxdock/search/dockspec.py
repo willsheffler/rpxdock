@@ -8,7 +8,7 @@ T32 T33 O32 O42 O43 I32 I52 I53
 T32D T23D T33D
 O32D O23D O42D O24D O43D O34D
 I32D I23D I52D I54D I53D I35D
-""".split()
+AXEL_1 AXEL_2 AXEL_3 AXEL_4 AXEL_5 AXEL_6""".split()
 
 class DockSpec1CompCage:
    def __init__(self, arch):
@@ -303,7 +303,7 @@ class DockSpec3CompLayer:
       self.num_components = 3
       ang = 360 / self.nfold[0]
       self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], ang), hm.hrot([0, 0, 1], ang)]
-'''
+
 class DockSpecPlug:
    def __init__(self, arch):
       assert len(arch) == 7
@@ -321,4 +321,17 @@ class DockSpecPlug:
 
       self.symframes_ = [hm.hrot([0, 0, 1], self.angle * i) for i in range(self.nfold)]
       self.tan_half_vertex = np.tan((np.pi - self.angle) / 2)
-'''
+
+class DockSpecAxel:
+   '''Specs for sliding two components into contact along the zz axis. Can use same symmetry blocks (asu subunits) or different symmetry (full holigomers)'''   
+   def __init__(self, arch):
+      assert len(arch) == 6
+      assert int(arch.split('_')[1]) > 0
+      self.arch = arch
+      self.nfold = [int(arch.split('_')[1])]*2
+      self.axis=np.array([[0,0,1,0],[0,0,1,0]])
+      self.num_components=2
+      dummy = np.eye(4)
+      dummy[:3,3] = [10000,0,0]
+      self.to_neighbor_olig=[dummy,dummy]
+

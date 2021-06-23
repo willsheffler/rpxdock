@@ -1,6 +1,7 @@
 #! /home/sheffler/.conda/envs/rpxdock/bin/python
 
 import logging, itertools, concurrent, tqdm, rpxdock as rp
+import numpy as np
 
 def get_rpxdock_args():
    arg = rp.options.get_cli_args()
@@ -25,6 +26,8 @@ def get_spec(arch):
          raise ValueError('number of conponents must be 1, 2 or 3')
    elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
       spec = rp.search.DockSpec1CompCage(arch)
+   elif arch.startswith('AXEL_'):
+      spec = rp.search.DockSpecAxel(arch)
    else:
       spec = rp.search.DockSpec2CompCage(arch)
    return spec
@@ -130,6 +133,57 @@ def dock_multicomp(hscore, **kw):
    result = rp.concat_results(result)
    return result
 
+def dock_axel(hscore, **kw):
+   arg = rp.Bunch(kw)
+   spec = get_spec(arg.architecture)
+   
+   if arg.docking_method.lower() == 'hier':
+       sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0],  lb=0, ub=100, resl=5, angresl=5)
+       sampler2 = rp.sampling.ZeroDHier([np.eye(4),rp.homog.hrot([1,0,0],180)])
+       sampler = rp.sampling.CompoundHier(sampler2, sampler1)
+       logging.info(f'num base samples {sampler.size(0):,}')
+       search = rp.hier_search
+   elif arg.docking_method.lower() =='grid':
+       sampler1 = rp.sampling.grid_sym_axis(
+         cart=np.arange(0, 100, arg.grid_resolution_cart_angstroms),
+         ang=np.arange(0, 360 / spec.nfold[0], arg.grid_resolution_ori_degrees),
+         axis=spec.axis[0],
+         )
+       assert sampler1.ndim == 3
+       shape = (2,)+sampler1.shape
+       sampler = np.zeros(shape=shape)
+       sampler[0] = sampler1
+       sampler[1] = np.eye(4)
+       sampler = np.swapaxes(sampler,0,1)
+       logging.info(f'num base samples {sampler.shape}')
+       search = rp.grid_search
+   else:
+       raise ValueError(f'not compatible with docking method {arg.dock_method}')   
+   
+   bodies = [[rp.Body(fn, **arg) for fn in inp] for inp in arg.inputs]
+   assert len(bodies) == spec.num_components
+
+   exe = concurrent.futures.ProcessPoolExecutor
+   with exe(arg.ncpu) as pool:
+      futures = list()
+      for ijob, bod in enumerate(itertools.product(*bodies)):
+         futures.append(
+            pool.submit(
+               rp.search.make_multicomp,
+               bod,
+               spec,
+               hscore,
+               search,
+               sampler,
+               **arg,
+            ))
+         futures[-1].ijob = ijob
+      result = [None] * len(futures)
+      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+         result[f.ijob] = f.result()
+   result = rp.concat_results(result)
+   return result
+
 def dock_plug(hscore, **kw):
    arg = rp.Bunch(kw)
    arg.plug_fixed_olig = True
@@ -203,6 +257,8 @@ def main():
       result = dock_onecomp(hscore, **arg)
    elif arch.startswith('PLUG'):
       result = dock_plug(hscore, **arg)
+   elif arch.startswith('AXEL_'):
+      result = dock_axel(hscore, **arg)
    else:
       result = dock_multicomp(hscore, **arg)
 
