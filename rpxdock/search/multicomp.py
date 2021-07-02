@@ -53,7 +53,7 @@ def make_multicomp(
       if not isinstance(v, (list, tuple)) or len(v) > 3:
          v = ['model'], v
       data[k] = v
-   if not spec.arch.startswith("axel_"):
+   if not spec.arch.lower().startswith("axel_"):
       for i in range(len(bodies)):
          data[f'disp{i}'] = (['model'], np.sum(xforms[:, i, :3, 3] * spec.axis[None, i, :3], axis=1))
          data[f'angle{i}'] = (['model'], rp.homog.angle_of(xforms[:, i]) * 180 / np.pi)
