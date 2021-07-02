@@ -44,7 +44,7 @@ def hier_axis_sampler(
    ang = 360 / nfold
    ang_nstep = int(np.ceil(ang / angresl))
    samp = rp.sampling.RotCart1Hier_f4(lb, ub, cart_nstep, 0, ang, ang_nstep, axis[:3])
-   if kw.flip_components[0]:
+   if flipax is not None:
       flip = rp.ZeroDHier([np.eye(4), rp.homog.hrot(flipax, 180)])
       samp = rp.ProductHier(samp, flip)
    return samp

@@ -110,12 +110,12 @@ class CyclicEvaluator:
       ok = np.abs((xforms @ body.pcavecs[0])[:, 2]) <= self.kw.max_longaxis_dot_z
 
       # check clash, or get non-clash range
-      if arg.max_trim > 0:
-         trim = body.intersect_range(body, xforms[ok], xsym[ok], **arg) # what residues can you have w/o clashing
-         trim, trimok = rp.search.trim_ok(trim, body.nres, **arg)
+      if kw.max_trim > 0:
+         trim = body.intersect_range(body, xforms[ok], xsym[ok], **kw) # what residues can you have w/o clashing
+         trim, trimok = rp.search.trim_ok(trim, body.nres, **kw)
          ok[ok] &= trimok # given an array of pos/xforms, filter out pos/xforms that clash
       else:
-         ok[ok] &= body.clash_ok(body, xforms[ok], xsym[ok], **arg) # if no trim, just checks for clashes (intersecting)
+         ok[ok] &= body.clash_ok(body, xforms[ok], xsym[ok], **kw) # if no trim, just checks for clashes (intersecting)
          trim = [0], [body.nres - 1]  # no trimming
 
       # score everything that didn't clash
