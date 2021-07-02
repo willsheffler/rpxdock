@@ -38,8 +38,8 @@ def test_sic_axel(hscore):
    result = rp.search.make_multicomp([C3_A, C3_B], spec, hscore, rp.hier_search,
                                      sampler, **kw)
    print(result)
-   result.dump_pdbs_top_score(hscore=hscore,
-                               **kw.sub(nout_top=10, output_prefix='test_sic_axel'))
+#   result.dump_pdbs_top_score(hscore=hscore,
+#                               **kw.sub(nout_top=10, output_prefix='test_sic_axel'))
 
 def test_sic_axel_asym(hscore):
    C2_A = rp.data.get_body('C2_3hm4_1')
@@ -64,8 +64,8 @@ def test_sic_axel_asym(hscore):
    result = rp.search.make_multicomp([C2_A, C3_B], spec, hscore, rp.hier_search,
                                      sampler, **kw)
    print(result)
-   result.dump_pdbs_top_score(hscore=hscore,
-                               **kw.sub(nout_top=10, output_prefix='test_sic_axel'))
+#   result.dump_pdbs_top_score(hscore=hscore,
+#                               **kw.sub(nout_top=10, output_prefix='test_sic_axel'))
 
 if __name__=="__main__":
    #logging.getLogger().setLevel(level='INFO')

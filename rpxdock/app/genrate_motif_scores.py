@@ -4,56 +4,56 @@ from rpxdock.motif import ResPairData, make_and_dump_hier_score_tables
 
 def get_opts():
    parser = rpxdock.options.default_cli_parser()
-   addarg = rpxdock.options.add_argument_unless_exists(parser)
+   addkw = rpxdock.options.add_argument_unless_exists(parser)
    H = "ResPairData file containing Xarray Dataset with pdb, residue, and pair info"
-   addarg("respairdat_file", type=str, help=H)
+   addkw("respairdat_file", type=str, help=H)
    H = "final sampling resolution"
-   addarg("--base_sample_resl", default=np.sqrt(2) / 2, type=float, help=H)
+   addkw("--base_sample_resl", default=np.sqrt(2) / 2, type=float, help=H)
    H = "Xbin base translational resolution"
-   addarg("--base_cart_resl", default=0.7, type=float, help=H)
+   addkw("--base_cart_resl", default=0.7, type=float, help=H)
    H = "Xbin base orientational resoltution"
-   addarg("--base_ori_resl", default=10.0, type=float, help=H)
-   addarg("--xbin_max_cart", default=128.0, type=float, help="Xbin max traslation")
-   addarg("--min_ssep", default=10, type=int, help="min seq sep")
+   addkw("--base_ori_resl", default=10.0, type=float, help=H)
+   addkw("--xbin_max_cart", default=128.0, type=float, help="Xbin max traslation")
+   addkw("--min_ssep", default=10, type=int, help="min seq sep")
    H = "number of hierarchical tables to make"
-   addarg("--hierarchy_depth", default=5, type=int, help=H)
-   addarg("--sampling_lever", default=25, type=float)
-   addarg("--xhier_cart_fudge_factor", default=1.5, type=float)
-   addarg("--xhier_ori_fudge_factor", default=2.5, type=float)
-   addarg("--min_bin_score", default=1.0, type=float)
-   addarg("--min_pair_score", default=0.5, type=float)
-   addarg("--smear_params", default=["2,1", "1,1", "1,1", "1,0", "1,0"], type=str, nargs="*")
+   addkw("--hierarchy_depth", default=5, type=int, help=H)
+   addkw("--sampling_lever", default=25, type=float)
+   addkw("--xhier_cart_fudge_factor", default=1.5, type=float)
+   addkw("--xhier_ori_fudge_factor", default=2.5, type=float)
+   addkw("--min_bin_score", default=1.0, type=float)
+   addkw("--min_pair_score", default=0.5, type=float)
+   addkw("--smear_params", default=["2,1", "1,1", "1,1", "1,0", "1,0"], type=str, nargs="*")
    # addarg("--smear_params", default=[(2, 0)])
-   addarg("--smear_kernel", default="flat", type=str)
-   addarg("--only_do_hier", default=-1, type=int)
-   addarg("--use_ss_key", default=False, action='store_true')
-   arg = parser.parse_args()
-   arg.smear_params = rpxdock.options.parse_list_of_strtuple(arg.smear_params)
-   rpxdock.options.process_cli_args(arg)
-   return Bunch(arg)
+   addkw("--smear_kernel", default="flat", type=str)
+   addkw("--only_do_hier", default=-1, type=int)
+   addkw("--use_ss_key", default=False, action='store_true')
+   kw = parser.parse_args()
+   kw.smear_params = rpxdock.options.parse_list_of_strtuple(kw.smear_params)
+   rpxdock.options.process_cli_args(kw)
+   return Bunch(kw)
 
 def main():
-   arg = get_opts()
+   kw = get_opts()
 
-   if arg.respairdat_file == "TEST":
-      arg.respairdat_file = "/home/sheffler/debug/rpxdock/respairdat/pdb_res_pair_data_si30_10_rots.pickle"
-   bname = os.path.basename(arg.respairdat_file.replace(".pickle", ""))
-   arg.output_prefix += bname + '_'
+   if kw.respairdat_file == "TEST":
+      kw.respairdat_file = "/home/sheffler/debug/rpxdock/respairdat/pdb_res_pair_data_si30_10_rots.pickle"
+   bname = os.path.basename(kw.respairdat_file.replace(".pickle", ""))
+   kw.output_prefix += bname + '_'
 
-   with open(arg.respairdat_file, "rb") as inp:
+   with open(kw.respairdat_file, "rb") as inp:
       rp = ResPairData(_pickle.load(inp))
 
-   if arg.score_only_aa.lower() != 'ANYAA':
-      logging.info(f'using only aa {arg.score_only_aa}')
-      rp = rp.subset_by_aa(arg.score_only_aa, sanity_check=True)
+   if kw.score_only_aa.lower() != 'ANYAA':
+      logging.info(f'using only aa {kw.score_only_aa}')
+      rp = rp.subset_by_aa(kw.score_only_aa, sanity_check=True)
 
-   if set(arg.score_only_ss) != set('EHL'):
-      logging.info(f'using only ss {arg.score_only_ss}')
-      rp = rp.subset_by_ss(arg.score_only_ss, sanity_check=True)
-      if len(arg.score_only_ss) == 1:
-         arg.use_ss_key = False
+   if set(kw.score_only_ss) != set('EHL'):
+      logging.info(f'using only ss {kw.score_only_ss}')
+      rp = rp.subset_by_ss(kw.score_only_ss, sanity_check=True)
+      if len(kw.score_only_ss) == 1:
+         kw.use_ss_key = False
 
-   files = make_and_dump_hier_score_tables(rp, **arg)
+   files = make_and_dump_hier_score_tables(rp, **kw)
 
    logging.info('produced files:')
    for f in files:

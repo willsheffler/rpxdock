@@ -2,20 +2,20 @@ import rpxdock as rp, numpy as np, pytest
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 def testarg():
-   arg = rp.app.defaults()
-   arg.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
-   arg.beam_size = 1e4
-   arg.max_bb_redundancy = 3.0
-   arg.max_longaxis_dot_z = 0.5
-   arg.executor = ThreadPoolExecutor(min(4, arg.ncpu / 2))
-   arg.multi_iface_summary = np.min
-   arg.debug = True
-   return arg
+   kw = rp.app.defaults()
+   kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
+   kw.beam_size = 1e4
+   kw.max_bb_redundancy = 3.0
+   kw.max_longaxis_dot_z = 0.5
+   kw.executor = ThreadPoolExecutor(min(4, kw.ncpu / 2))
+   kw.multi_iface_summary = np.min
+   kw.debug = True
+   return kw
 
 def test_asym(hscore, body, body2):
-   arg = testarg()
-   arg.max_trim = 0
-   arg.output_prefix = 'test_asym'
+   kw = testarg()
+   kw.max_trim = 0
+   kw.output_prefix = 'test_asym'
 
    cartlb = np.array([+00, +10, +00])
    cartub = np.array([+30, +20, +30])
@@ -24,9 +24,9 @@ def test_asym(hscore, body, body2):
 
    # sampler = rp.search.asym_get_sample_hierarchy(body2, hscore, 18)
    # print(f'toplevel samples {sampler.size(0):,}')
-   result = rp.search.make_asym([body2, body], hscore, sampler, **arg)
+   result = rp.search.make_asym([body2, body], hscore, sampler, **kw)
 
-   # result.dump_pdbs_top_score(10, hscore=hscore, wts=arg.wts)
+   # result.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts)
 
    # rp.dump(result, 'rpxdock/data/testdata/test_asym.pickle')
    ref = rp.data.get_test_data('test_asym')
@@ -34,12 +34,12 @@ def test_asym(hscore, body, body2):
 
 @pytest.mark.skip
 def test_asym_trim(hscore, body, body2):
-   arg = testarg()
-   arg.max_trim = 100
-   arg.output_prefix = 'test_asym_trim'
+   kw = testarg()
+   kw.max_trim = 100
+   kw.output_prefix = 'test_asym_trim'
 
-   arg.beam_size = 2e5
-   arg.executor = None
+   kw.beam_size = 2e5
+   kw.executor = None
 
    cartlb = np.array([-40, +00, -40])
    cartub = np.array([+40, +40, +40])
@@ -48,9 +48,9 @@ def test_asym_trim(hscore, body, body2):
 
    # sampler = rp.search.asym_get_sample_hierarchy(body2, hscore, 18)
    # print(f'toplevel samples {sampler.size(0):,}')
-   result = rp.search.make_asym([body2, body], hscore, sampler, **arg)
+   result = rp.search.make_asym([body2, body], hscore, sampler, **kw)
 
-   result.dump_pdbs_top_score(10, hscore=hscore, wts=arg.wts)
+   result.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts)
 
    rp.dump(result, 'rpxdock/data/testdata/test_asym_trim.pickle')
    ref = rp.data.get_test_data('test_asym_trim')

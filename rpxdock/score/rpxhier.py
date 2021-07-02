@@ -1,11 +1,16 @@
 import os, logging, glob, numpy as np, rpxdock as rp
 from rpxdock.xbin import xbin_util as xu
+from rpxdock.score import score_functions as sfx
 
 log = logging.getLogger(__name__)
 
+"""
+RpxHier holds score information at each level of searching / scoring 
+Grid search just uses the last/finest scorefunction 
+"""
 class RpxHier:
    def __init__(self, files, max_pair_dist=8.0, hscore_data_dir=None, **kw):
-      arg = rp.Bunch(kw)
+      kw = rp.Bunch(kw)
       if isinstance(files, str): files = [files]
       if len(files) is 0: raise ValueError('RpxHier given no datafiles')
       if len(files) is 1: files = _check_hscore_files_aliases(files[0], hscore_data_dir)
@@ -42,7 +47,8 @@ class RpxHier:
       self.max_pair_dist = [max_pair_dist + h.attr.cart_extent for h in self.hier]
       self.map_pairs_multipos = xu.ssmap_pairs_multipos if self.use_ss else xu.map_pairs_multipos
       self.map_pairs = xu.ssmap_of_selected_pairs if self.use_ss else xu.map_of_selected_pairs
-      self.score_only_sspair = arg.score_only_sspair
+      self.score_only_sspair = kw.score_only_sspair
+      self.function = kw.function
 
    def __len__(self):
       return len(self.hier)
@@ -105,7 +111,17 @@ class RpxHier:
 #        "phmap"_a, "idx"_c, "ss"_c, "xform"_c, "pos1"_a = eye4,
 #        "pos2"_a = eye4);
 
-   def scorepos(self, body1, body2, pos1, pos2, iresl=-1, bounds=(), **kw):
+   def scorepos(
+      self,
+      body1,
+      body2,
+      pos1,
+      pos2,
+      iresl=-1,
+      bounds=(),
+      residue_summary=np.mean,  # TODO hook up to options to select
+      **kw,
+   ):
       '''
       TODO WSH rearrange so ppl can add different ways of scoring
       Get scores for all docks
@@ -118,7 +134,7 @@ class RpxHier:
       :param kw:
       :return:
       '''
-      arg = rp.Bunch(kw)
+      kw = rp.Bunch(kw)
       pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
       # if not bounds:
       # bounds = [-2e9], [2e9], nsym[0], [-2e9], [2e9], nsym[1]
@@ -134,10 +150,19 @@ class RpxHier:
 
       # print('nres asym', body1.asym_body.nres, body2.asym_body.nres)
       # print(bounds[2], bounds[5])
+
       # calling bvh c++ function that will look at pair of (arrays of) positions, scores pairs that are in contact (ID from maxpair distance)
       # lbub: len pos1
-      pairs, lbub = rp.bvh.bvh_collect_pairs_range_vec(body1.bvh_cen, body2.bvh_cen, pos1, pos2,
-                                                       self.max_pair_dist[iresl], *bounds)
+      pairs, lbub = rp.bvh.bvh_collect_pairs_range_vec(
+         body1.bvh_cen,
+         body2.bvh_cen,
+         pos1,
+         pos2,
+         self.max_pair_dist[iresl],
+         *bounds,
+      )
+
+      # TODO some output or analysis of distances?
 
       # pairs, lbub = body1.filter_pairs(pairs, self.score_only_sspair, other=body2, lbub=lbub)
 
@@ -156,28 +181,41 @@ class RpxHier:
       #       assert np.all(asym_res2 >= bounds[3][i])
       #       assert np.all(asym_res2 <= bounds[4][i])
 
-      if arg.wts.rpx == 0:
-         return arg.wts.ncontact * (lbub[:, 1] - lbub[:, 0])
+      #TODO: Figure out if this should be handled in the score functions below.
+      if kw.wts.rpx == 0:
+         return kw.wts.ncontact * (lbub[:, 1] - lbub[:, 0]) # option to score based on ncontacts only
 
       xbin = self.hier[iresl].xbin
       phmap = self.hier[iresl].phmap
       ssstub = body1.ssid, body2.ssid, body1.stub, body2.stub
       ssstub = ssstub if self.use_ss else ssstub[2:]
-      pscore = self.map_pairs_multipos(xbin, phmap, pairs, *ssstub, lbub, pos1, pos2) # hashtable of scores for each pair of res in contact in each dock
+
+      # hashtable of scores for each pair of res in contact in each dock
+      pscore = self.map_pairs_multipos(
+         xbin,
+         phmap,
+         pairs,
+         *ssstub,
+         # body1.ssid, body2.ssid, body1.stub, body2.stub,
+         lbub,
+         pos1,
+         pos2,
+      )
 
       # summarize pscores for a dock
-      lbub1, lbub2, idx1, idx2, res1, res2 = rp.motif.marginal_max_score(lbub, pairs, pscore)
+      lbub1, lbub2, idx1, idx2, ressc1, ressc2 = rp.motif.marginal_max_score(
+         lbub,
+         pairs,
+         pscore,
+      )
+      score_functions = {"fun2" : sfx.score_fun2, "lin" : sfx.lin, "exp" : sfx.exp, "mean" : sfx.mean, "median" : sfx.median, "stnd" : sfx.stnd, "sasa_priority" : sfx.sasa_priority}
+      score_fx = score_functions.get(self.function)
 
-      scores = np.zeros(max(len(pos1), len(pos2)))
-      for i, (lb, ub) in enumerate(lbub):
-         side1 = np.sum(res1[lbub1[i, 0]:lbub1[i, 1]])
-         side2 = np.sum(res2[lbub2[i, 0]:lbub2[i, 1]])
-         mscore = side1 + side2
-         # mscore = np.sum(pscore[lb:ub])
-         # mscore = np.log(np.sum(np.exp(pscore[lb:ub])))
-         scores[i] = arg.wts.rpx * mscore + arg.wts.ncontact * (ub - lb)
-         #TODO generalize scores to specify scoretypes and weights like Rosetta WHS
-
+      if score_fx:
+         scores = score_fx(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, wts=kw.wts, iresl=iresl)
+      else:
+         logging.info(f"Failed to find score function {self.function}, falling back to 'stnd'")
+         scores = score_functions["stnd"](pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, wts=kw.wts)
       return scores
 
    def iresls(self):

@@ -20,6 +20,10 @@
    	{
 			"name": "helix_beta",
 			"shell_cmd" : "cd $folder; python rpxdock/app/pilot/helix_beta.py --inputs1 rpxdock/data/pdb/DHR14.pdb.gz --cart_bounds 0 100 -100 100 -100 100 --dump_pdbs &> sublime_build.log"
+		},
+   	{
+			"name": "test_homog",
+			"shell_cmd" : "cd $folder; python rpxdock/tests/test_homog.py &> sublime_build.log"
 		}
 
 		

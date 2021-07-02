@@ -1,25 +1,27 @@
-import rpxdock as rp, numpy as np, argparse
+import sys, rpxdock as rp, numpy as np, argparse
 
-def dock_helix(hscore, body, **arg):
-   arg = rp.Bunch(arg)
-   assert arg.max_trim == 0, 'no support for trimming yet'
+def dock_helix(hscore, body, **kw):
+   kw = rp.Bunch(kw)
 
-   # arg.executor = ThreadPoolExecutor(8)
-   arg.executor = None
+   print(f'{"helix_beta.py:dock_helix starting":=^80}')
 
-   print(arg.cart_bounds)
-   assert len(arg.cart_bounds) is 3, 'improper cart_bounds'
-   cartlb = np.array([arg.cart_bounds[0][0], arg.cart_bounds[1][0], arg.cart_bounds[2][0]])
-   cartub = np.array([arg.cart_bounds[0][1], arg.cart_bounds[1][1], arg.cart_bounds[2][1]])
-   cartbs = np.ceil((cartub - cartlb) / arg.cart_resl).astype('i')
+   assert kw.max_trim == 0, 'no support for trimming yet'
+
+   # kw.executor = ThreadPoolExecutor(8)
+   kw.executor = None
+
+   assert len(kw.cart_bounds) is 3, 'improper cart_bounds'
+   cartlb = np.array([kw.cart_bounds[0][0], kw.cart_bounds[1][0], kw.cart_bounds[2][0]])
+   cartub = np.array([kw.cart_bounds[0][1], kw.cart_bounds[1][1], kw.cart_bounds[2][1]])
+   cartbs = np.ceil((cartub - cartlb) / kw.cart_resl).astype('i')
    print('cart lower bound', cartlb)
    print('cart upper bound', cartub)
    print('cart base block nside', cartbs)
-   sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, arg.ori_resl)
+   sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, kw.ori_resl)
    # sampler = rp.search.asym_get_sample_hierarchy(body2, hscore, 18)
 
    print(f'toplevel samples {sampler.size(0):,}')
-   result = rp.search.make_helix(body, hscore, sampler, **arg)
+   result = rp.search.make_helix(body, hscore, sampler, **kw)
    return result
 
 def get_helix_args():
@@ -51,41 +53,47 @@ def get_helix_args():
                        help='cartesian resolution of the initial search stage, default 10')
    parser.add_argument("--angle_cell_width", type=float, default=30,
                        help='angular resolution of the initial search stage, default 30')
-   arg = rp.options.get_cli_args(parent=parser, dont_set_default_cart_bounds=True)
-   if not arg.cart_bounds:
-      arg.cart_bounds = np.array([(0, 100), (-100, 100), (-100, 100)])
+   kw = rp.options.get_cli_args(parent=parser, dont_set_default_cart_bounds=True)
+   if not kw.cart_bounds:
+      kw.cart_bounds = np.array([(0, 100), (-100, 100), (-100, 100)])
    else:
-      arg.cart_bounds = rp.options.process_cart_bounds(arg.cart_bounds)
+      kw.cart_bounds = rp.options._process_cart_bounds(kw.cart_bounds)
 
-   arg.iresl_second_shift = 2
-   arg.helix_min_primary_angle = 360 / arg.helix_max_isecond - 1
-   arg.helix_max_primary_angle = 360 / arg.helix_min_isecond + 1
-   arg.max_iclash = int(arg.helix_max_isecond * 1.2 + 3)
+   kw.iresl_second_shift = 2
+   kw.helix_min_primary_angle = 360 / kw.helix_max_isecond - 1
+   kw.helix_max_primary_angle = 360 / kw.helix_min_isecond + 1
+   kw.max_iclash = int(kw.helix_max_isecond * 1.2 + 3)
 
-   arg.symframe_num_helix_repeats = arg.helix_max_isecond * 2 + 2
+   kw.symframe_num_helix_repeats = kw.helix_max_isecond * 2 + 2
 
-   return arg
+   if not kw.inputs1:
+      print('No inputs! Aborting.')
+      sys.exit(-1)
+
+   rp.options.print_options(kw)
+
+   return kw
 
 def main():
-   arg = get_helix_args()
-   hscore = rp.CachedProxy(rp.RpxHier(arg.hscore_files, **arg))
+   kw = get_helix_args()
+   hscore = rp.CachedProxy(rp.RpxHier(kw.hscore_files, **kw))
 
    # two extra sampling refinements
-   arg.nresl = hscore.actual_nresl + arg.helix_iresl_second_shift
+   kw.nresl = hscore.actual_nresl + kw.helix_iresl_second_shift
 
-   bodies = [rp.Body(inp, **arg) for inp in arg.inputs1]
+   bodies = [rp.Body(inp, **kw) for inp in kw.inputs1]
 
    results = list()
    for body in bodies:
-      result = dock_helix(hscore, body, **arg)
+      result = dock_helix(hscore, body, **kw)
       results.append(result)
    result = rp.concat_results(results)
    print(result)
-   if arg.dump_pdbs:
-      result.dump_pdbs_top_score(score=hscore, **arg)
-      result.dump_pdbs_top_score_each(hscore=hscore, **arg)
-   if not arg.suppress_dump_results:
-      rp.util.dump(result, arg.output_prefix + '_Result.pickle')
+   if kw.dump_pdbs:
+      result.dump_pdbs_top_score(score=hscore, **kw)
+      result.dump_pdbs_top_score_each(hscore=hscore, **kw)
+   if not kw.suppress_dump_results:
+      rp.util.dump(result, kw.output_prefix + '_Result.pickle')
 
 if __name__ == '__main__':
    main()

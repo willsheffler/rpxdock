@@ -26,6 +26,7 @@ REQUIRED = [
    'xarray==0.11.3',
    'pandas==0.24.2',
    'pytest',
+   'pytest-repeat',
    'tqdm',
    'homog',
    'cppimport',
@@ -49,6 +50,7 @@ EXTRAS = {
 # If you do change the License, remember to change the Trove Classifier for that!
 
 here = os.path.abspath(os.path.dirname(__file__))
+os.environ["CC"] = "gcc-7"
 
 # Import the README and use it as the long-description.
 # Note: this will only work if 'README.md' is present in your MANIFEST.in file!

@@ -180,6 +180,24 @@ template <typename F, typename I>
 RotHier<F, I> RotHier_nside(F lb, F ub, I nside, V3<F> axis) {
   return RotHier<F, I>(lb, ub, nside, axis);
 }
+
+template <typename F, typename I>
+py::tuple RH_get_state(RotHier<F, I> const& h) {
+  return py::make_tuple(h.rot_lb_, h.rot_ub_, h.rot_cell_width_, h.rot_ncell_,
+                        h.axis_);
+}
+
+template <typename F, typename I>
+auto RH_set_state(py::tuple state) {
+  auto h = std::make_unique<RotHier<F, I>>(0.0, 0.0, (I)0, V3<F>(0,0,0));  // dummy
+  h->rot_lb_ = py::cast<F>(state[0]);
+  h->rot_ub_ = py::cast<F>(state[1]);
+  h->rot_cell_width_ = py::cast<F>(state[2]);
+  h->rot_ncell_ = py::cast<I>(state[3]);
+  h->axis_ = py::cast<V3<F>>(state[4]);
+  return h;
+}
+
 template <typename F, typename I>
 void bind_RotHier(auto m, std::string kind) {
   using THIS = RotHier<F, I>;
@@ -196,6 +214,9 @@ void bind_RotHier(auto m, std::string kind) {
       .def_property_readonly("dim", &THIS::dim)
       .def("get_ori", &get_ori<THIS, F, I, M3<F>>, "resl"_a, "idx"_a)
       .def("get_xforms", &get_ori<THIS, F, I, X3<F>>, "resl"_a, "idx"_a)
+      .def(py::pickle([](const THIS& h) { return RH_get_state<F, I>(h); },
+      	[](py::tuple t) { return RH_set_state<F, I>(t); }))
+
       /**/;
   m.def(("create_RotHier_nside_" + kind).c_str(), &RotHier_nside<F, I>, "lb"_a,
         "ub"_a, "ncell"_a, "axis"_a = V3<F>(0, 0, 1));

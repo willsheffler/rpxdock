@@ -1,14 +1,16 @@
 import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
+from rpxdock.filter import sscount
+import logging
 
 def make_onecomp(
-      body,
-      spec,
-      hscore,
-      search=hier_search,
-      sampler=None,
-      fixed_components=False,
-      **kw,
+   body,
+   spec,
+   hscore,
+   search=hier_search,
+   sampler=None,
+   fixed_components=False,
+   **kw,
 ):
    '''
    :param body: pose info
@@ -20,34 +22,66 @@ def make_onecomp(
    :param kw: all default variables we are bringing in
    :return:
    '''
-   arg = rp.Bunch(kw)
+   kw = rp.Bunch(kw)
    t = rp.Timer().start()
-   arg.nresl = hscore.actual_nresl if arg.nresl is None else arg.nresl # number of steps in hier search
-   arg.output_prefix = arg.output_prefix if arg.output_prefix else spec.arch
+   kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
+   kw.output_prefix = kw.output_prefix if kw.output_prefix else spec.arch
 
    assert isinstance(body, rp.Body)
    if not fixed_components:
-      body = body.copy_xformed(rp.homog.align_vector([0, 0, 1], spec.axis)) # align body axis of symmetry to z axis
+      body = body.copy_xformed(rp.homog.align_vector(
+         [0, 0, 1], spec.axis))  # align body axis of symmetry to z axis
 
-   dotrim = arg.max_trim and arg.trimmable_components # maximum of residues and which component to trim
-   evaluator = OneCompEvaluator(body, spec, hscore, **arg) #initiate instance of evaluator (set up geom and score)
-   xforms, scores, extra, stats = search(sampler, evaluator, **arg) #search stuff given pos and scores of evaluator and get positions, scores, and other stuff
-   ibest = rp.filter_redundancy(xforms, body, scores, **arg) #orders results from best to worst and checks for redundancy by score
-   # tdump = _debug_dump_cage(xforms, body, spec, scores, ibest, evaluator, **arg) # debugging, but is commented out in this case?
+   dotrim = kw.max_trim and kw.trimmable_components
+   if dotrim:
+      raise NotImplemented('cant yet trim one component stuff')
+   evaluator = OneCompEvaluator(body, spec, hscore, **kw)
+   xforms, scores, extra, stats = search(sampler, evaluator, **kw)
+   ibest = rp.filter_redundancy(xforms, body, scores, **kw)
+   # tdump = _debug_dump_cage(xforms, body, spec, scores, ibest, evaluator, **kw)
 
-   # spitting out random shit. we don't really care, compute time stats and crap
-   if arg.verbose:
+   logging.debug(f"Apply sscount filter to docks? {kw.ssc.confidence}")
+   logging.debug(f"Apply sscount filter? {kw.ssc.filter}")
+   if kw.ssc.filter and kw.ssc.confidence:
+      # Apply sscounts filter to docks with confidence 1. Will change dock results.
+      logging.debug("Applying sscount filter to search results")
+      X = xforms.reshape(-1, 4, 4)  #@ body.pos
+      Xsym = spec.to_neighbor_olig @ X
+      B = body.copy_with_sym(spec.nfold, spec.axis)
+      sbest = sscount.filter_sscount(B, B, X[ibest], Xsym[ibest], min_helix_length=kw.ssc.min_helix_length,
+         min_sheet_length=kw.ssc.min_sheet_length, min_loop_length=kw.ssc.min_loop_length,
+         min_element_resis=kw.ssc.min_element_resis, max_dist=kw.ssc.max_dist,
+         sstype=kw.ssc.sstype, confidence=1, min_ss_count=kw.ssc.min_ss_count, strict=kw.ssc.strict, **kw)
+      # TODO: Add exception handling for empty array sscounts
+      logging.debug(f"Array of docks passingg sscount filter: {sbest}")
+      ibest = ibest[sbest]
+
+   if kw.verbose:
       print(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f}")
       print("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
       print("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
 
-   xforms = xforms[ibest] # best transforms from the evaluator
-   wrpx = arg.wts.sub(rpx=1, ncontact=0) # rpx score weights
-   wnct = arg.wts.sub(rpx=0, ncontact=1) # ncontact weights
-   rpx, extra = evaluator(xforms, arg.nresl - 1, wrpx) # gives actual rpxscore
-   ncontact, *_ = evaluator(xforms, arg.nresl - 1, wnct) # gets actual ncontacts
+   xforms = xforms[ibest]
+   wrpx = kw.wts.sub(rpx=1, ncontact=0)
+   wnct = kw.wts.sub(rpx=0, ncontact=1)
+   rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
+   ncontact, *_ = evaluator(xforms, kw.nresl - 1, wnct)
+
+   if kw.ssc.filter:
+      X = xforms.reshape(-1, 4, 4)  #@ body.pos
+      Xsym = spec.to_neighbor_olig @ X
+      B = body.copy_with_sym(spec.nfold, spec.axis)
+      # scaffold symmetry has to be applied before evaluating ss counts
+      sscounts_data = sscount.filter_sscount(B, B, X, Xsym, min_helix_length=kw.ssc.min_helix_length,
+         min_sheet_length=kw.ssc.min_sheet_length, min_loop_length=kw.ssc.min_loop_length,
+         min_element_resis=kw.ssc.min_element_resis, max_dist=kw.ssc.max_dist,
+         sstype=kw.ssc.sstype, confidence=0, min_ss_count=kw.ssc.min_ss_count, strict=kw.ssc.strict, **kw)
+
+      print(sscounts_data)
+      extra.sscounts = sscounts_data
+
    data = dict(
-      attrs=dict(arg=arg, stats=stats, ttotal=t.total, output_prefix=arg.output_prefix,
+      attrs=dict(arg=kw, stats=stats, ttotal=t.total, output_prefix=kw.output_prefix,
                  output_body='all', sym=spec.arch),
       scores=(["model"], scores[ibest].astype("f4")),
       xforms=(["model", "hrow", "hcol"], xforms),
@@ -65,8 +99,8 @@ def make_onecomp(
    default_label = ['compA']
 
    return rp.Result(
-      body_=None if arg.dont_store_body_in_results else [body],
-      body_label_=[] if arg.dont_store_body_in_results else default_label,
+      body_=None if kw.dont_store_body_in_results else [body],
+      body_label_=[] if kw.dont_store_body_in_results else default_label,
       **data,
    )
 
@@ -81,16 +115,16 @@ class OneCompEvaluator:
    '''
    def __init__(self, body, spec, hscore, wts=rp.Bunch(ncontact=0.1, rpx=1.0),
                 trimmable_components="AB", **kw):
-      self.arg = rp.Bunch(kw)
+      self.kw = rp.Bunch(kw)
       self.hscore = hscore
       self.symrot = rp.geom.symframes(spec.nfold)
       self.spec = spec
-      self.arg.wts = wts
+      self.kw.wts = wts
       self.body = body.copy_with_sym(spec.nfold, spec.axis)
       self.trimmable_components = trimmable_components
 
    def __call__(self, xforms, iresl=-1, wts={}, **kw):
-      arg = self.arg.sub(wts=wts)
+      kw = self.kw.sub(wts=wts)
       xeye = np.eye(4, dtype="f4")
       body, sfxn = self.body, self.hscore.scorepos
       X = xforms.reshape(-1, 4, 4)  #@ body.pos
@@ -98,12 +132,12 @@ class OneCompEvaluator:
 
       # check clash, or get non-clash range
       ok = np.ones(len(xforms), dtype='bool')
-      if arg.max_trim > 0:
-         trim = body.intersect_range(body, X[ok], Xsym[ok], **arg)
-         trim, trimok = rp.search.trim_ok(trim, body.nres, **arg)
+      if kw.max_trim > 0:
+         trim = body.intersect_range(body, X[ok], Xsym[ok], **kw)
+         trim, trimok = rp.search.trim_ok(trim, body.nres, **kw)
          ok[ok] &= trimok
       else:
-         ok[ok] &= body.clash_ok(body, X[ok], Xsym[ok], **arg)
+         ok[ok] &= body.clash_ok(body, X[ok], Xsym[ok], **kw)
          trim = [0], [body.nres - 1]
 
       # if iresl == 4:
@@ -117,7 +151,45 @@ class OneCompEvaluator:
       # score everything that didn't clash
       scores = np.zeros(len(X))
       bounds = (*trim, -1, *trim, -1)
-      scores[ok] = sfxn(body, body, X[ok], Xsym[ok], iresl, bounds, **arg)
+      scores[ok] = sfxn(body, body, X[ok], Xsym[ok], iresl, bounds, **kw)
+      '''
+      bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
+      sfxn: hscore.scorepos scores stuff from the hscore that got passed 
+         takes two pos of bodies (the same monomer in this case)
+         xforms: not clashing xforms 
+         iresl: stage of hierarchical search (grid spacing: 4A --> 2A --> 1A --> 0.5A --> 0.25A)
+         sampling at highest resl probably 0.6A due to ori + cart
+         returns score # for each "dock"
+      '''
+      '''
+      bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
+      sfxn: hscore.scorepos scores stuff from the hscore that got passed 
+         takes two pos of bodies (the same monomer in this case)
+         xforms: not clashing xforms 
+         iresl: stage of hierarchical search (grid spacing: 4A --> 2A --> 1A --> 0.5A --> 0.25A)
+         sampling at highest resl probably 0.6A due to ori + cart
+         returns score # for each "dock"
+      '''
+
+      '''
+      bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
+      sfxn: hscore.scorepos scores stuff from the hscore that got passed 
+         takes two pos of bodies (the same monomer in this case)
+         xforms: not clashing xforms 
+         iresl: stage of hierarchical search (grid spacing: 4A --> 2A --> 1A --> 0.5A --> 0.25A)
+         sampling at highest resl probably 0.6A due to ori + cart
+         returns score # for each "dock"
+      '''
+
+      '''
+      bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
+      sfxn: hscore.scorepos scores stuff from the hscore that got passed 
+         takes two pos of bodies (the same monomer in this case)
+         xforms: not clashing xforms 
+         iresl: stage of hierarchical search (grid spacing: 4A --> 2A --> 1A --> 0.5A --> 0.25A)
+         sampling at highest resl probably 0.6A due to ori + cart
+         returns score # for each "dock"
+      '''
 
       '''
       bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 

@@ -22,9 +22,8 @@ def main():
       rp.dump(rp.Body(pdbfname), bodyfname)
 
    if replace or not os.path.exists(rp.data.bodydir + '/small_c3_hole_sym3.pickle'):
-      rp.dump(
-         rp.Body(rp.data.pdbdir + '/small_c3_hole.pdb', sym=3),
-         rp.data.bodydir + '/small_c3_hole_sym3.pickle')
+      rp.dump(rp.Body(rp.data.pdbdir + '/small_c3_hole.pdb', sym=3),
+              rp.data.bodydir + '/small_c3_hole_sym3.pickle')
 
 if __name__ == '__main__':
    main()

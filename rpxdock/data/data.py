@@ -14,7 +14,9 @@ def get_test_data(name):
 
 @lru_cache()
 def get_body(name):
-   with open(os.path.join(bodydir, name + '.pickle'), 'rb') as inp:
+   fname = os.path.join(bodydir, name + '.pickle')
+   print(f'get_body("{fname}")')
+   with open(fname, 'rb') as inp:
       return _pickle.load(inp)
 
 @lru_cache()

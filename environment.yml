@@ -1,20 +1,21 @@
 name: rpxdock
 channels:
  - conda-forge
- - https://pose:foldtree@conda.graylab.jhu.edu
+ - https://username:password@conda.graylab.jhu.edu
 dependencies:
- - python<3.8
+ - python>=3.7
  - pyrosetta
  - numpy=1.16.3
  - matplotlib
  - pandas=0.24.2
  - xarray=0.11.3
- - pytest
- - pytest-faulthandler
  - ipython
  - cffi
  - tqdm
  - yapf
+ - tabulate
+ - pytest
+ - pytest-repeat
  - pytest-sugar
  - pytest-xdist
  - tabulate

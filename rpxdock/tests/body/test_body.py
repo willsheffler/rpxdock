@@ -3,6 +3,16 @@ from time import perf_counter
 import numpy as np, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.body import Body
 
+def test_body_create():
+   pdb = rp.data.datadir + '/pdb/tiny.pdb.gz'
+   b0 = Body(pdb)
+   b1 = Body(pdb, allowed_res=None)
+   b2 = Body(pdb, allowed_res=lambda x: {1, 2, 3})
+
+   assert len(b0.cen) == 21
+   assert len(b1.cen) == 21
+   assert len(b2.cen) == 3
+
 def test_body(C2_3hm4, C3_1nza, sym1=2, sym2=3):
    body1 = Body(C2_3hm4, sym1)
    body2 = Body(C3_1nza, sym2)
@@ -110,10 +120,12 @@ if __name__ == "__main__":
 
    # test_body_pickle(f2, mkdtemp())
 
-   b = rp.data.get_body('tiny')
-   test_body_copy_sym(b)
-   test_body_copy_xform(b)
+   # b = rp.data.get_body('tiny')
+   # test_body_copy_sym(b)
+   # test_body_copy_xform(b)
 
    # nres  306  309 sqnpair  307 new 17743/s orig 13511/s
    # nres  728 1371 sqnpair  999 new  8246/s orig  4287/s
    # nres 6675 8380 sqnpair 7479 new  8629/s orig   627/s
+
+   test_body_create()

@@ -4,8 +4,8 @@ __version__ = "0.1"
 
 import os
 
-os.environ["CC"] = "gcc-7"
-os.environ["CXX"] = "g++-7"
+os.environ["CC"] = "gcc-7"  # no idea if this works
+os.environ["CXX"] = "g++-7"  # no idea if this works
 
 from rpxdock.util import Bunch, Timer, load, dump
 from rpxdock import app
@@ -22,10 +22,11 @@ from rpxdock import rotamer
 from rpxdock import sampling
 from rpxdock import search
 from rpxdock import util
+from rpxdock import viz
 from rpxdock import xbin
+
 from rpxdock.search import dockspec
 from rpxdock.app import options
-
 from rpxdock.body import Body
 from rpxdock.bvh import BVH
 from rpxdock.data import datadir

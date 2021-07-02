@@ -53,6 +53,7 @@ _file_mappings = {
    "lattice_hier.py": ['rpxdock/tests/search/test_multicomp.py'],
    "basic.py": ["rpxdock/tests/search/test_onecomp.py"],
    "dockspec.py": ["rpxdock/tests/search/test_onecomp.py"],
+   "pymol.py": ["rpxdock/tests/test_homog.py"],
 }
 _post = defaultdict(lambda: "")
 
