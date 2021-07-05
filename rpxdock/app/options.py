@@ -304,7 +304,7 @@ def default_cli_parser(parent=None, **kw):
       help='Min resis in sheet to count as ss element. default 3')
    addarg("--sscount_min_loop_length", default=1, type=int,
       help='Min resis in loop to count as ss element. default 1')
-   addarg("--sscount_max_dist", default=8, type=float,
+   addarg("--sscount_max_dist", type=float, default=8,
       help='Min resis in loop to count as ss element. default 1')
    addarg("--sscount_min_element_resis", default=3, type=int,
       help='Min interface resis in ss_element to include in ss count. default 3')

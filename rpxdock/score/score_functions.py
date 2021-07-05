@@ -29,7 +29,7 @@ def score_fun2(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
          scores[i] = 0
    return scores
    
-def sasa_priority(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
+def sasa_priority(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, pairs, **kw):
    kw = rp.Bunch(kw)
    scores = np.zeros(max(len(pos1), len(pos2)))
 
@@ -62,9 +62,9 @@ def sasa_priority(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
    a = kw.wts.ncontact
    m = np.exp((-sigma**2.22215285) / 28.59075188)
    mu = (sasa) / m #convert input sasa (mode) into a mean
-   mu = (mu - 14.2198) / 21.522 #redefine mean in terms of ncontact
+   mu = (mu - 282) / 29.1 #redefine mean in terms of ncontact
    sigma = mu * sigma * 0.2433619617913417 #redefine mean in terms of ncontact
-   mode = (sasa - 14.2198) / 21.522 #redefine mode in terms of ncontact
+   mode = (sasa - 282) / 29.1 #redefine mode in terms of ncontact
 
    #calculate parameterization factors
    b=np.log(mu**2 / np.sqrt(mu**2 + sigma**2))
@@ -83,7 +83,9 @@ def sasa_priority(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
          mscore = (side1 + side2) / 2
       
          #ncont_score
-         ncont_score = ( a / prob_max )*( 1  / (c * np.sqrt(2 * np.pi) * (ub - lb)) ) * np.exp( -(np.log(ub - lb) - b)**2 / (2*c**2) )
+         #ncont = ub - lb
+         ncont_unique = len(np.unique(pairs[lb:ub][:,0])) + len(np.unique(pairs[lb:ub][:,1]))
+         ncont_score = ( a / prob_max )*( 1  / (c * np.sqrt(2 * np.pi) * (ncont_unique)) ) * np.exp( -(np.log(ncont_unique) - b)**2 / (2*c**2) )
          
          scores[i] = kw.wts.rpx * mscore + ncont_score
       else:

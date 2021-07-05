@@ -42,9 +42,9 @@ class secondary_structure_map:
                 temp_start = i
                 temp_ss = ss_at_resi
 
-def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_length=3, min_loop_length=1, min_element_resis=1, max_dist=8.0,
+def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_length=3, min_loop_length=1, min_element_resis=1, max_dist=9.2,
                    sstype="EHL", confidence=0, min_ss_count=3, simple=True, strict=False, **kw):
-
+    
     pairs, lbub = rp.bvh.bvh_collect_pairs_vec(
         body1.bvh_cen,
         body2.bvh_cen,
