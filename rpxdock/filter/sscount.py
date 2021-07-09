@@ -1,4 +1,5 @@
 import logging, numpy as np, rpxdock as rp
+from rpxdock.app import dock
 
 log = logging.getLogger(__name__)
 
@@ -42,9 +43,82 @@ class secondary_structure_map:
                 temp_start = i
                 temp_ss = ss_at_resi
 
-def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_length=3, min_loop_length=1, min_element_resis=1, max_dist=9.2,
-                   sstype="EHL", confidence=0, min_ss_count=3, simple=True, strict=False, **kw):
-    
+def filter_sscount(xforms, body, **kw):
+
+    kw = rp.Bunch(kw)
+    #check if a value is defined otherwise use the default
+    if "min_helix_length" in kw.filter_sscount:
+        min_helix_length = kw.filter_sscount["min_helix_length"]
+    else:
+        min_helix_length = 4
+
+    if "min_sheet_length" in kw.filter_sscount:
+        min_sheet_length = kw.filter_sscount["min_sheet_length"]
+    else:
+        min_sheet_length = 3
+
+    if "min_loop_length" in kw.filter_sscount:
+        min_loop_length = kw.filter_sscount["min_loop_length"]
+    else:
+        min_loop_length = 1
+
+    if "min_element_resis" in kw.filter_sscount:
+        min_element_resis = kw.filter_sscount["min_element_resis"]
+    else:
+        min_element_resis = 1
+
+    if "max_dist" in kw.filter_sscount:
+        max_dist = kw.filter_sscount["max_dist"]
+    else:
+        max_dist = 9.2
+
+    if "sstype" in kw.filter_sscount:
+        sstype = kw.filter_sscount["sstype"]
+    else:
+        sstype = "EHL"
+
+    if "confidence" in kw.filter_sscount:
+        confidence = kw.filter_sscount["confidence"]
+    else:
+        confidence = 0
+
+    if "min_ss_count" in kw.filter_sscount:
+        min_ss_count = kw.filter_sscount["min_ss_count"]
+    else:
+        min_ss_count = 3
+
+    if "simple" in kw.filter_sscount:
+        simple = kw.filter_sscount["simple"]
+    else:
+        simple = True
+
+    if "strict" in kw.filter_sscount:
+        strict = kw.filter_sscount["strict"]
+    else:
+        strict = False
+
+    spec = dock.get_spec(kw.architecture)
+    logging.debug(f"sscount filter args:\n"
+                  f"confidence : {confidence}\nmin_helix_length : {min_helix_length}\n"
+                  f"min_sheet_length : {min_sheet_length}\nmin_loop_length : {min_loop_length}\n"
+                  f"max_dist : {max_dist}\nmin_element_resis: {min_element_resis}\nsstype:{sstype}\n"
+                  f"min_ss_count: {min_ss_count}\nstrict: {strict}")
+
+    #TODO: Make this work for n-component docking problems
+    if len(body) == 2:
+        X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
+        B = [b.copy_with_sym(spec.nfold[i], spec.axis[i]) for i, b in enumerate(body)]
+        body1 = B[0]
+        body2 = B[1]
+        pos1 = X[:,0]
+        pos2 = X[:,1]
+    else:
+        B = body.copy_with_sym(spec.nfold, spec.axis)
+        pos1 = xforms.reshape(-1, 4, 4)  #@ body.pos
+        pos2 = spec.to_neighbor_olig @ X
+        body1 = B
+        body2 = B
+
     pairs, lbub = rp.bvh.bvh_collect_pairs_vec(
         body1.bvh_cen,
         body2.bvh_cen,
@@ -60,6 +134,7 @@ def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_lengt
 
     sscounts_data = []
     ss_counts = np.zeros(max(len(pos1), len(pos2)))
+    ibest = np.array(range(0, len(ss_counts)))
     for i, (lb, ub) in enumerate(lbub):
 
         #this loses context information.
@@ -175,9 +250,11 @@ def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_lengt
             sscounts_data.append(temp_result)
 
     if confidence==1:
-        return ss_counts >= min_ss_count
+        bbest = ss_counts >= min_ss_count
+        ibest = ibest[bbest]
+        return ibest, ss_counts[ibest]
     elif simple:
-        return ss_counts
+        return ibest, ss_counts[ibest]
     else:
-        return sscounts_data
+        return ibest, sscounts_data[ibest]
 

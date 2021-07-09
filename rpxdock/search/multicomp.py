@@ -1,6 +1,6 @@
 import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
-from rpxdock.filter import sscount
+from rpxdock.filter import filters
 import logging
 
 def make_multicomp(
@@ -33,22 +33,17 @@ def make_multicomp(
    xforms, scores, extra, stats = search(sampler, evaluator, spec=spec, bodies=bodies, **kw)
 
    ibest = rp.filter_redundancy(xforms, bodies, scores, **kw)
-
-   logging.debug(f"Apply sscount filter to docks? {kw.ssc.confidence}")
-   logging.debug(f"Apply sscount filter? {kw.ssc.filter}")
-   if kw.ssc.filter and kw.ssc.confidence:
-      # Apply sscounts filter to docks with confidence 1. Will change dock results.
-      logging.debug("Applying sscount filter to search results")
-      X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
-      B = [b.copy_with_sym(spec.nfold[i], spec.axis[i]) for i, b in enumerate(bodies)]
-      sbest = sscount.filter_sscount(B[0], B[1], X[ibest, 0], X[ibest, 1], min_helix_length=kw.ssc.min_helix_length,
-         min_sheet_length=kw.ssc.min_sheet_length, min_loop_length=kw.ssc.min_loop_length,
-         min_element_resis=kw.ssc.min_element_resis, max_dist=kw.ssc.max_dist,
-         sstype=kw.ssc.sstype, confidence=1, min_ss_count=kw.ssc.min_ss_count, strict=kw.ssc.strict, **kw)
+   logging.debug(f"ibest = {ibest} and length {len(ibest)}")
+   logging.debug(f"Apply filters to docks? {kw.filter_config}")
+   if kw.filter_config != '':
+      # Apply filters
+      logging.debug("Applying filters to search results")
+      sbest, filter_extra = filters.filter(xforms[ibest], bodies, **kw)
       # TODO: Add exception handling for empty array sscounts
-      logging.debug(f"Array of docks passingg sscount filter: {sbest}")
+      logging.debug(f"Array of {len(sbest)} docks passing filters: {sbest}")
       ibest = ibest[sbest]
 
+   logging.debug(f"ibest post filter = {ibest} and length {len(ibest)}")
    tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw)
 
    if kw.verbose:
@@ -62,18 +57,6 @@ def make_multicomp(
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
    ncontact, ncont_extra = evaluator(xforms, kw.nresl - 1, wnct)
 
-   if kw.ssc.filter:
-      # TODO: Edit the filter and this code to handle self-interacting ss_counts
-      X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
-      # scaffold symmetry has to be applied before evaluating ss counts
-      B = [b.copy_with_sym(spec.nfold[i], spec.axis[i]) for i, b in enumerate(bodies)]
-      sscounts_data = sscount.filter_sscount(B[0], B[1], X[:, 0], X[:, 1], min_helix_length=kw.ssc.min_helix_length,
-         min_sheet_length=kw.ssc.min_sheet_length, min_loop_length=kw.ssc.min_loop_length,
-         min_element_resis=kw.ssc.min_element_resis, max_dist=kw.ssc.max_dist,
-         sstype=kw.ssc.sstype, confidence=0, min_ss_count=kw.ssc.min_ss_count, strict=kw.ssc.strict, **kw)
-
-      extra.sscounts = sscounts_data
-
    data = dict(
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, output_prefix=kw.output_prefix,
                  output_body='all', sym=spec.arch),
@@ -86,6 +69,13 @@ def make_multicomp(
       if not isinstance(v, (list, tuple)) or len(v) > 3:
          v = ['model'], v
       data[k] = v
+
+   #add the filter data to data
+   for k, v in filter_extra.items():
+      if not isinstance(v, (list, tuple)) or len(v) > 3:
+         v = ['model'], v
+      data[k] = v
+
    if kw.score_self:
       for k, v in ncont_extra.items():
          if not isinstance(v, (list, tuple)) or len(v) > 3:

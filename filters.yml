@@ -1,0 +1,20 @@
+filter_sscount:
+  confidence: False
+  min_helix_length: 4 #Min resis in helix to count as ss element. default 4
+  min_sheet_length: 3 #Min resis in sheet to count as ss element. default 3
+  min_loop_length: 1 #Min resis in loop to count as ss element. default 1
+  max_dist: 9.2 #Maximum distance between residues to include in SS count
+  min_element_resis: 3 #Min interface resis in ss_element to include in ss count. default 3
+  sstype: "EHL" #Types of secondary structure to include in count. defaults to all (EHL)
+  min_ss_count: 3 #If sscount_confidence set, minimum number of ss elements to pass the filter. default 3
+  strict: False #Require that both pairs of residues in the interface are in an SS element meeting the set criteria')
+filter_sscount:
+  confidence: True
+  min_helix_length: 4 #Min resis in helix to count as ss element. default 4
+  min_sheet_length: 3 #Min resis in sheet to count as ss element. default 3
+  min_loop_length: 1 #Min resis in loop to count as ss element. default 1
+  max_dist: 8 #Maximum distance between residues to include in SS count
+  min_element_resis: 3 #Min interface resis in ss_element to include in ss count. default 3
+  sstype: "EHL" #Types of secondary structure to include in count. defaults to all (EHL)
+  min_ss_count: 3 #If sscount_confidence set, minimum number of ss elements to pass the filter. default 3
+  strict: False #Require that both pairs of residues in the interface are in an SS element meeting the set criteria')

@@ -314,6 +314,8 @@ def default_cli_parser(parent=None, **kw):
       help='If sscount_confidence set, minimum number of ss elements to pass the filter. default 3')
    addarg("--sscount_strict", action='store_true', default=False,
       help='Require that both pairs of residues in the interface are in an SS element meeting the set criteria')
+   addarg("--filter_config", default='',
+      help='Path to a yaml file containing the default config file for filters.')
    parser.has_rpxdock_args = True
    return parser
 

@@ -1,1 +1,65 @@
-import logging, numpy as np, rpxdock as rp
+from yaml import load
+from yaml import FullLoader as Loader
+from rpxdock import filter as rpx_filter, Bunch
+import logging
+
+import yaml
+def intersection(l1, l2):
+    l3 = [v for v in l1 if v in l2]
+    return l3
+
+def filter(xforms, body, **kw):
+    #TODO: hook this into kw
+    kw = Bunch(kw)
+    #try:
+    with open(kw.filter_config) as ff: #"/home/quintond/git/rpxdock/filters.yml") as ff:
+        filter_data = load(ff, Loader=Loader)
+    #TODO: parse the filter data
+    filter_data = Bunch(filter_data)
+
+    #TODO: ibest should be updated with each loop to be the union of the previous ibest and the updated ibest
+    #TODO: Make sure all filters have a standardized output in the form extra and ibest.
+    extra = Bunch()
+
+    for i,function in enumerate(filter_data.keys()):
+        logging.debug(f"Applying filter {i} of {len(filter_data.keys())}: {function}")
+        module = function.split("_")[1]
+
+        filt_function = getattr(getattr(rpx_filter, module), function) #this assumes that the function to call in the filter has the same name as the module
+
+        kw[function] = filter_data[function]
+
+        tmp_ibest, extra[function] = filt_function(xforms, body, **kw)
+        if i == 0:
+            ibest = tmp_ibest
+        else:
+            ibest = intersection(ibest, tmp_ibest)
+        logging.debug(f"Extra for {function}: {extra}")
+        #TODO: extra needs to get modified by ibest
+
+
+        #TODO: Get clever about not filtering over the entire set of docks
+        #else:
+        #    tmp_best, extra[function] = filt_function(xforms[ibest], body, **kw)
+        #    ibest = intersection(ibest, tmp_best)
+        #TODO: Process f_result
+        #All filters must return data as tuple (ibest, extra) where extra can be empty
+        #if extra is not empty, apply ibest to members of extra
+
+    #After all filters have modified ibest, need to reshape extra
+    for function in filter_data.keys():
+        extra[function] = extra[function][ibest]
+
+    return ibest, extra
+
+    #except:
+    #logging.debug(f"Could not find config file {kw.filter_config}")
+    #return list(range(0,len(xforms))), Bunch()
+
+
+"""
+    def filter_redundancy(xforms, body, scores=None, categories=None, every_nth=10, **kw):
+
+    def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_length=3, min_loop_length=1, min_element_resis=1, max_dist=9.2,
+                   sstype="EHL", confidence=0, min_ss_count=3, simple=True, strict=False, **kw):
+"""
