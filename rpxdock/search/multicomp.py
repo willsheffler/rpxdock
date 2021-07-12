@@ -1,6 +1,8 @@
 import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
 from rpxdock.filter import filters
+from rpxdock.filter import sscount
+from rpxdock.filter import sasa
 import logging
 
 def make_multicomp(

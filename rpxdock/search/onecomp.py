@@ -1,7 +1,7 @@
 import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
-from rpxdock.filter import sscount
 import logging
+from rpxdock.filter import sscount, sasa
 
 def make_onecomp(
    body,
@@ -88,6 +88,26 @@ def make_onecomp(
       rpx=(["model"], rpx.astype("f4")),
       ncontact=(["model"], ncontact.astype("f4")),
    )
+
+   if kw.ssc.filter:
+      X = xforms.reshape(-1, 4, 4)  #@ body.pos
+      Xsym = spec.to_neighbor_olig @ X
+      B = body.copy_with_sym(spec.nfold, spec.axis)
+      # scaffold symmetry has to be applied before evaluating ss counts
+      sscounts_data = sscount.filter_sscount(B, B, X, Xsym, min_helix_length=kw.ssc.min_helix_length,
+         min_sheet_length=kw.ssc.min_sheet_length, min_loop_length=kw.ssc.min_loop_length,
+         min_element_resis=kw.ssc.min_element_resis, max_dist=kw.ssc.max_dist,
+         sstype=kw.ssc.sstype, confidence=0, min_ss_count=kw.ssc.min_ss_count, strict=kw.ssc.strict, **kw)
+
+      extra.sscounts = sscounts_data
+
+   if kw.sasa.filter:
+      X = xforms.reshape(-1, 4, 4)  # @ body.pos
+      Xsym = spec.to_neighbor_olig @ X
+      B = body.copy_with_sym(spec.nfold, spec.axis)
+      # scaffold symmetry has to be applied before evaluating ss counts
+      sasa_data = sasa.sasa_filter(B, B, X, Xsym)
+      extra.sasa_data = sasa_data
 
    # put additional geom stuff into data
    for k, v in extra.items():
