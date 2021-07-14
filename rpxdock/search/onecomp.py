@@ -69,10 +69,11 @@ def make_onecomp(
    )
 
    #add the filter data to data
-   for k, v in filter_extra.items():
-      if not isinstance(v, (list, tuple)) or len(v) > 3:
-         v = ['model'], v
-      data[k] = v
+   if kw.filter_config != '':
+      for k, v in filter_extra.items():
+         if not isinstance(v, (list, tuple)) or len(v) > 3:
+            v = ['model'], v
+         data[k] = v
 
    # put additional geom stuff into data
    for k, v in extra.items():

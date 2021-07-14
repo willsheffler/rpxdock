@@ -65,16 +65,18 @@ def make_multicomp(
       rpx=(["model"], rpx.astype("f4")),
       ncontact=(["model"], ncontact.astype("f4")),
    )
+
    for k, v in extra.items():
       if not isinstance(v, (list, tuple)) or len(v) > 3:
          v = ['model'], v
       data[k] = v
 
-   #add the filter data to data
-   for k, v in filter_extra.items():
-      if not isinstance(v, (list, tuple)) or len(v) > 3:
-         v = ['model'], v
-      data[k] = v
+   if kw.filter_config != "":
+      #add the filter data to data
+      for k, v in filter_extra.items():
+         if not isinstance(v, (list, tuple)) or len(v) > 3:
+            v = ['model'], v
+         data[k] = v
 
    if kw.score_self:
       for k, v in ncont_extra.items():
