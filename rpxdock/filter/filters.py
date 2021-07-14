@@ -13,42 +13,36 @@ def filter(xforms, body, **kw):
     kw = Bunch(kw)
     #try:
     with open(kw.filter_config) as ff: #"/home/quintond/git/rpxdock/filters.yml") as ff:
-        filter_data = load(ff, Loader=Loader)
+        all_filter_data = load(ff, Loader=Loader)
     #TODO: parse the filter data
-    filter_data = Bunch(filter_data)
+    all_filter_data = Bunch(all_filter_data)
 
     #TODO: ibest should be updated with each loop to be the union of the previous ibest and the updated ibest
     #TODO: Make sure all filters have a standardized output in the form extra and ibest.
     extra = Bunch()
 
-    for i,function in enumerate(filter_data.keys()):
-        logging.debug(f"Applying filter {i} of {len(filter_data.keys())}: {function}")
+    for i,filt in enumerate(all_filter_data.keys()):
+        filt_data = Bunch(all_filter_data[filt])
+        function = filt_data["type"]
+        logging.debug(f"Applying filter {i} of {len(all_filter_data.keys())}: {function}")
         module = function.split("_")[1]
-
+        logging.debug(f"{dir(rpx_filter)}")
         filt_function = getattr(getattr(rpx_filter, module), function) #this assumes that the function to call in the filter has the same name as the module
 
-        kw[function] = filter_data[function]
+        kw[function] = filt_data
 
-        tmp_ibest, extra[function] = filt_function(xforms, body, **kw)
+        tmp_ibest, extra[filt] = filt_function(xforms, body, **kw)
         if i == 0:
             ibest = tmp_ibest
         else:
             ibest = intersection(ibest, tmp_ibest)
         logging.debug(f"Extra for {function}: {extra}")
-        #TODO: extra needs to get modified by ibest
-
-
-        #TODO: Get clever about not filtering over the entire set of docks
-        #else:
-        #    tmp_best, extra[function] = filt_function(xforms[ibest], body, **kw)
-        #    ibest = intersection(ibest, tmp_best)
-        #TODO: Process f_result
-        #All filters must return data as tuple (ibest, extra) where extra can be empty
-        #if extra is not empty, apply ibest to members of extra
+        logging.debug(f"ibest length {len(ibest)}")
+        logging.debug(f"{ibest}")
 
     #After all filters have modified ibest, need to reshape extra
-    for function in filter_data.keys():
-        extra[function] = extra[function][ibest]
+    for filt in all_filter_data.keys():
+        extra[filt] = extra[filt][ibest]
 
     return ibest, extra
 

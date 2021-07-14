@@ -1,14 +1,16 @@
-filter_sscount:
+sscount_far:
+  type: filter_sscount
   confidence: False
   min_helix_length: 4 #Min resis in helix to count as ss element. default 4
   min_sheet_length: 3 #Min resis in sheet to count as ss element. default 3
   min_loop_length: 1 #Min resis in loop to count as ss element. default 1
-  max_dist: 9.2 #Maximum distance between residues to include in SS count
+  max_dist: 9 #Maximum distance between residues to include in SS count
   min_element_resis: 3 #Min interface resis in ss_element to include in ss count. default 3
   sstype: "EHL" #Types of secondary structure to include in count. defaults to all (EHL)
   min_ss_count: 3 #If sscount_confidence set, minimum number of ss elements to pass the filter. default 3
   strict: False #Require that both pairs of residues in the interface are in an SS element meeting the set criteria')
-filter_sscount:
+sscount_near:
+  type: filter_sscount
   confidence: True
   min_helix_length: 4 #Min resis in helix to count as ss element. default 4
   min_sheet_length: 3 #Min resis in sheet to count as ss element. default 3
@@ -18,3 +20,12 @@ filter_sscount:
   sstype: "EHL" #Types of secondary structure to include in count. defaults to all (EHL)
   min_ss_count: 3 #If sscount_confidence set, minimum number of ss elements to pass the filter. default 3
   strict: False #Require that both pairs of residues in the interface are in an SS element meeting the set criteria')
+sasa_estimate:
+  type: filter_sasa
+  confidence: False
+  min_sasa: 4 #Min interface size. Default = 750
+  max_sasa: 3 #Max interface size. Default = 1500
+  max_dist: 9 #Maximum distance between residues to include in interface
+  apply: True #Return sasa?
+  ncont: False #Return unique ncontact (instead of normal ncontact). Note if apply and ncont are both false this filter essentially returns ncontact
+

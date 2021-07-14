@@ -46,54 +46,102 @@ class secondary_structure_map:
 def filter_sscount(xforms, body, **kw):
 
     kw = rp.Bunch(kw)
-    #check if a value is defined otherwise use the default
+    #Check if values are set in kw, otherwise use the default value. Also try to sanitize input and if not able to, revert
+    #to the default value.
     if "min_helix_length" in kw.filter_sscount:
-        min_helix_length = kw.filter_sscount["min_helix_length"]
+        try:
+            min_helix_length = kw.filter_sscount["min_helix_length"]
+            min_helix_length = int(min_helix_length)
+        except:
+            log.warning(f"Could not convert {kw.filter_sscount['min_helix_length']} to integer, reverting to default value (4)")
+            min_helix_length = 4
     else:
         min_helix_length = 4
 
     if "min_sheet_length" in kw.filter_sscount:
-        min_sheet_length = kw.filter_sscount["min_sheet_length"]
+        try:
+            min_sheet_length = kw.filter_sscount["min_sheet_length"]
+            min_sheet_length = int(min_sheet_length)
+        except:
+            log.warning(f"Coult not convert {kw.filter['min_sheet_length']} to integer, reverting to default value (3).")
+            min_sheet_length = 3
     else:
         min_sheet_length = 3
 
     if "min_loop_length" in kw.filter_sscount:
-        min_loop_length = kw.filter_sscount["min_loop_length"]
+        try:
+            min_loop_length = kw.filter_sscount["min_loop_length"]
+            min_loop_length = int(min_loop_length)
+        except:
+            log.warning(f"Could not convert {kw.filter['min_sheet_length']} to integer, reverting to default value (1)")
+            min_loop_length = 1
     else:
         min_loop_length = 1
 
     if "min_element_resis" in kw.filter_sscount:
-        min_element_resis = kw.filter_sscount["min_element_resis"]
+        try:
+            min_element_resis = kw.filter_sscount["min_element_resis"]
+            min_element_resis = int(min_element_resis)
+        except:
+            log.warning(f"Could not convert min_element_resis {kw.filter['min_element_resis']} to integer, reverting to default value (1)")
+            min_element_resis = 1
     else:
         min_element_resis = 1
 
     if "max_dist" in kw.filter_sscount:
-        max_dist = kw.filter_sscount["max_dist"]
+        try:
+            max_dist = kw.filter_sscount["max_dist"]
+            max_dist = int(max_dist)
+        except:
+            log.warning(f"Could not convert max_dist {kw.filter_sscount['max_dist']} to integer, reverting to default value (9)")
     else:
-        max_dist = 9.2
+        max_dist = 9
 
     if "sstype" in kw.filter_sscount:
-        sstype = kw.filter_sscount["sstype"]
+        try:
+            sstype = kw.filter_sscount["sstype"]
+            sstype = str(sstype)
+        except:
+            log.warning(f"Could not convert sstype {kw.filter_sscount['sstype']} to string, reverting to default value ('EHL')")
+            sstype = "EHL"
     else:
         sstype = "EHL"
 
     if "confidence" in kw.filter_sscount:
-        confidence = kw.filter_sscount["confidence"]
+        try:
+            confidence = kw.filter_sscount["confidence"]
+            confidence = bool(confidence)
+        except:
+            log.warning(f"Could not convert confidence {kw.filter_sscount['confidence']} to boolean, reverting to default value (False)")
+            confidence = False
     else:
-        confidence = 0
+        confidence = False
 
     if "min_ss_count" in kw.filter_sscount:
-        min_ss_count = kw.filter_sscount["min_ss_count"]
+        try:
+            min_ss_count = kw.filter_sscount["min_ss_count"]
+            min_ss_count = int(min_ss_count)
+        except:
+            log.warning(f"Could not convert min_ss_count {kw.filter_sscount['min_ss_count']} to integer, reverting to default value (3)")
     else:
         min_ss_count = 3
 
     if "simple" in kw.filter_sscount:
-        simple = kw.filter_sscount["simple"]
+        try:
+            simple = kw.filter_sscount["simple"]
+            simple = bool(simple)
+        except:
+            log.warning(f"Could not convert argument 'simple' {kw.filter_sscount['simple']} to boolean, reverting to default (True)")
+            simple = True
     else:
         simple = True
 
     if "strict" in kw.filter_sscount:
-        strict = kw.filter_sscount["strict"]
+        try:
+            strict = kw.filter_sscount["strict"]
+            strict = bool(strict)
+        except:
+            log.warning(f"Could not convert argument 'strict' {kw.filter_sscount['strict']} to boolean, reverting to default value (False)")
     else:
         strict = False
 
@@ -115,7 +163,7 @@ def filter_sscount(xforms, body, **kw):
     else:
         B = body.copy_with_sym(spec.nfold, spec.axis)
         pos1 = xforms.reshape(-1, 4, 4)  #@ body.pos
-        pos2 = spec.to_neighbor_olig @ X
+        pos2 = spec.to_neighbor_olig @ pos1
         body1 = B
         body2 = B
 
@@ -249,12 +297,12 @@ def filter_sscount(xforms, body, **kw):
             ss_counts[i] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
             sscounts_data.append(temp_result)
 
-    if confidence==1:
+    if confidence:
         bbest = ss_counts >= min_ss_count
         ibest = ibest[bbest]
-        return ibest, ss_counts[ibest]
+        return ibest, ss_counts
     elif simple:
-        return ibest, ss_counts[ibest]
+        return ibest, ss_counts
     else:
-        return ibest, sscounts_data[ibest]
+        return ibest, sscounts_data
 
