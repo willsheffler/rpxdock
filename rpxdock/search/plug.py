@@ -29,7 +29,7 @@ def make_plugs(plug, hole, hscore, search=hier_search, sampler=None, **kw):
    rpx, extra = evaluator.iface_scores(xforms, kw.nresl - 1, wrpx)
    ncontact, *_ = evaluator.iface_scores(xforms, kw.nresl - 1, wnct)
    ifacescores = rpx + ncontact
-   assert np.allclose(np.min(rpx + ncontact, axis=1), scores)
+   #assert np.allclose(np.min(rpx + ncontact, axis=1), scores)
    data = dict(
       attrs=dict(arg=kw, stats=stats, sym=hole.sym, ttotal=t.total, tdump=tdump,
                  output_body='all'),

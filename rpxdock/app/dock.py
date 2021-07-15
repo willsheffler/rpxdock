@@ -167,8 +167,8 @@ def dock_plug(hscore, **kw):
       logging.info(f'docking samples per splice {len(sampler)}')
    elif kw.docking_method.lower() == 'hier':
       search = rp.hier_search
-      sampler = rp.sampling.hier_axis_sampler(kw.nfold, lb=crtbnd[0], ub=crtbnd[1], resl=10,
-                                              angresl=10)
+      sampler = rp.sampling.hier_axis_sampler(lb=crtbnd[0], ub=crtbnd[1], resl=10,
+                                              angresl=10, **kw)
       logging.info(f'docking possible samples per splice {sampler.size(4)}')
    else:
       raise ValueError(f'unknown search dock_method {kw.dock_method}')
