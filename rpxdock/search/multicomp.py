@@ -39,11 +39,9 @@ def make_multicomp(
       # Apply filters
       logging.debug("Applying filters to search results")
       sbest, filter_extra = filters.filter(xforms[ibest], bodies, **kw)
-      # TODO: Add exception handling for empty array sscounts
-      logging.debug(f"Array of {len(sbest)} docks passing filters: {sbest}")
+      # TODO: Add exception handling for empty array
       ibest = ibest[sbest]
 
-   logging.debug(f"ibest post filter = {ibest} and length {len(ibest)}")
    tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw)
 
    if kw.verbose:
@@ -176,7 +174,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
                   ns_ifscore.append(
                      self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
          logging.debug(f"self scores is length {len(s_ifscore[0])}")
-         logging.debug(f"non-self scores is legnth {len(ns_ifscore[0])}")
+         logging.debug(f"non-self scores is length {len(ns_ifscore[0])}")
          logging.debug(f"OK len is {len(ok)}")
          scores_s = np.zeros((len(B), len(X)))
          #TO DO: Quinton: Make sure this actually works for three-body docking

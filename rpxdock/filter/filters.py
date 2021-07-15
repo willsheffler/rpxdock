@@ -36,15 +36,20 @@ def filter(xforms, body, **kw):
             ibest = tmp_ibest
         else:
             ibest = intersection(ibest, tmp_ibest)
-        logging.debug(f"Extra for {function}: {extra}")
+
+        logging.debug(f"Extra for {function}: {extra[filt]}")
         logging.debug(f"ibest length {len(ibest)}")
         logging.debug(f"{ibest}")
 
-    #After all filters have modified ibest, need to reshape extra
-    for filt in all_filter_data.keys():
-        extra[filt] = extra[filt][ibest]
+    if len(ibest) == 0: #handle the case where filtering removes all docks
+        # TODO Generate a log file and abort docking
+        return None
+    else:
+        #After all filters have modified ibest, need to reshape extra
+        for filt in all_filter_data.keys():
+            extra[filt] = extra[filt][ibest]
 
-    return ibest, extra
+        return ibest, extra
 
     #except:
     #logging.debug(f"Could not find config file {kw.filter_config}")

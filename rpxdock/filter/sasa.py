@@ -85,6 +85,7 @@ def filter_sasa(xforms, body, **kw):
         body2 = B[1]
         pos1 = X[:,0]
         pos2 = X[:,1]
+
     else:
         B = body.copy_with_sym(spec.nfold, spec.axis)
         pos1 = xforms.reshape(-1, 4, 4)  #@ body.pos
@@ -118,6 +119,6 @@ def filter_sasa(xforms, body, **kw):
         else:
             sasa_data[i] = len(body1_res) + len(body2_res)
     if confidence:
-        return ibest[[a and b for a, b in zip(sasa_data < min_sasa, sasa_data > max_sasa)]], sasa_data
+        return ibest[[a and b for a, b in zip(sasa_data > min_sasa, sasa_data < max_sasa)]], sasa_data
     else:
         return ibest, sasa_data

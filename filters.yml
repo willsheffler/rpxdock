@@ -22,10 +22,22 @@ sscount_near:
   strict: False #Require that both pairs of residues in the interface are in an SS element meeting the set criteria')
 sasa_estimate:
   type: filter_sasa
-  confidence: False
-  min_sasa: 4 #Min interface size. Default = 750
-  max_sasa: 3 #Max interface size. Default = 1500
+  confidence: True
+  min_sasa: 750 #Min interface size. Default = 750
+  max_sasa: 2000 #Max interface size. Default = 1500
   max_dist: 9 #Maximum distance between residues to include in interface
   apply: True #Return sasa?
   ncont: False #Return unique ncontact (instead of normal ncontact). Note if apply and ncont are both false this filter essentially returns ncontact
+quasi_symmetric:
+  type: filter_quasi
+  confidence: True
+  min_sasa_int1: 375
+  max_sasa_int2: 1750
+  max_sasa_int1: 375
+  max_sasa_int2: 1750
+  max_dist: 8
+  detailed: True
+  overlap_int1: 0.5
+  overlap_int2: 0.5
+  quasi_comp: 1 #Zero indexed
 
