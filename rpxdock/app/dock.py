@@ -32,6 +32,12 @@ def get_spec(arch):
       spec = rp.search.DockSpec2CompCage(arch)
    return spec
 
+def gcd(a,b):
+    """Compute the greatest common divisor of a and b"""
+   while b > 0:
+      a, b = b, a % b
+   return a
+
 ## All dock_cyclic, dock_onecomp, and dock_multicomp do similar things
 def dock_cyclic(hscore, inputs, architecture, **kw):
    kw = rp.Bunch(kw)
@@ -215,7 +221,11 @@ def dock_axel(hscore, **kw):
    spec = get_spec(arg.architecture)
    
    if arg.docking_method.lower() == 'hier':
-       sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0],  lb=0, ub=100, resl=5, angresl=5)
+       if spec.nfold[0] == spec.nfold[1]:
+          sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0],  lb=0, ub=100, resl=5, angresl=5)
+       else:
+          sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0]*spec.nfold[1]/gcd(spec.nfold[0],spec.nfold[1]),
+                  lb=0, ub=100, resl=5, angresl=5)
        sampler2 = rp.sampling.ZeroDHier([np.eye(4),rp.homog.hrot([1,0,0],180)])
        sampler = rp.sampling.CompoundHier(sampler2, sampler1)
        logging.info(f'num base samples {sampler.size(0):,}')

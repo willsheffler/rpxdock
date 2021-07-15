@@ -329,10 +329,13 @@ class DockSpec3CompLayer(DockSpec):
 class DockSpecAxel:
    '''Specs for sliding two components into contact along the zz axis. Can use same symmetry blocks (asu subunits) or different symmetry (full holigomers)'''   
    def __init__(self, arch):
-      assert len(arch) == 6
+      assert len(arch) >= 6
       assert int(arch.split('_')[1]) > 0
       self.arch = arch
-      self.nfold = [int(arch.split('_')[1])]*2
+      if int(arch.split('_')[1]) == 1:
+         self.nfold = [int(arch.split('_')[2]),int(arch.split('_')[3])]
+      else:
+         self.nfold = [int(arch.split('_')[1])]*2
       self.axis=np.array([[0,0,1,0],[0,0,1,0]])
       self.num_components=2
       dummy = np.eye(4)
