@@ -1,7 +1,9 @@
 from yaml import load
 from yaml import FullLoader as Loader
 from rpxdock import filter as rpx_filter, Bunch
+import rpxdock as rp
 import logging
+import sys
 
 import yaml
 def intersection(l1, l2):
@@ -43,7 +45,32 @@ def filter(xforms, body, **kw):
 
     if len(ibest) == 0: #handle the case where filtering removes all docks
         # TODO Generate a log file and abort docking
-        return None
+        print("Filters removed all docks, dumping log file")
+        data = dict(
+            attrs=dict(arg=kw, filters=all_filter_data, output_prefix=kw.output_prefix,
+                       output_body='all'),
+            xforms=(["model", "comp", "hrow", "hcol"], xforms),
+        )
+
+        for k, v in extra.items():
+            if not isinstance(v, (list, tuple)) or len(v) > 3:
+                v = ['model'], v
+            data[k] = v
+
+        default_label = [f'comp{c}' for c in 'ABCDEFD'[:len(body)]]
+
+        result = rp.Result(
+            body_=None if kw.dont_store_body_in_results else body,
+            body_label_=[] if kw.dont_store_body_in_results else default_label,
+            **data,
+        )
+        rp.util.dump(result, kw.output_prefix + '_Filter_ERROR_Log.pickle')
+
+        for filt in all_filter_data.keys():
+            extra[filt] = extra[filt][slice(0)]
+
+        return slice(0), extra
+
     else:
         #After all filters have modified ibest, need to reshape extra
         for filt in all_filter_data.keys():
