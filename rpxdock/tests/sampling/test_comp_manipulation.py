@@ -98,7 +98,7 @@ def test_fixed_wiggle():
     fw_cartub=5
     fw_rotlb=-5
     fw_rotub=5
-
+    
     for i in range(len(spec.nfold)):
         if i in fixed_wiggle:
             s =  rp.sampling.RotCart1Hier_f4(fw_cartlb,  fw_cartub, cart_nstep[i], fw_rotlb, fw_rotub, ang_nstep[i], spec.axis[i][:3])

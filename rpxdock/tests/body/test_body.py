@@ -1,9 +1,25 @@
+from decimal import MAX_PREC
+from os import supports_bytes_environ
+from rpxdock.motif.frames import stub_from_points
 import _pickle
 from time import perf_counter
 import numpy as np, rpxdock as rp, rpxdock.homog as hm
-from rpxdock.body import Body
+from rpxdock.body import Body, get_trimming_subbodies
+
+from pyrosetta import rosetta as ros, pose_from_file
+import rpxdock.rosetta.triggers_init
+
+def test_body_ss_info():
+   kw = rp.app.defaults()
+   kw.helix_trim_max = 6
+   pdb = rp.data.datadir + '/pdb/DHR14.pdb.gz'
+   pose = pose_from_file(pdb)
+   rp.rosetta.triggers_init.assign_secstruct(pose)
+   body = Body(pose, **kw)
+   # get_trimming_subbodies(body, pose)
 
 def test_body_create():
+
    pdb = rp.data.datadir + '/pdb/tiny.pdb.gz'
    b0 = Body(pdb)
    b1 = Body(pdb, allowed_res=None)
@@ -105,27 +121,29 @@ def test_body_copy_xform(body_tiny):
    assert np.allclose(rotated.squeeze(), b2.coord)
 
 if __name__ == "__main__":
-   # from rpxdock.rosetta.triggers_init import get_pose_cached
-   # from tempfile import mkdtemp
+   from rpxdock.rosetta.triggers_init import get_pose_cached
+   from tempfile import mkdtemp
 
-   # f1 = "rpxdock/data/pdb/C2_3hm4_1.pdb.gz"
-   # f2 = "rpxdock/data/pdb/C3_1nza_1.pdb.gz"
+   f1 = "rpxdock/data/pdb/C2_3hm4_1.pdb.gz"
+   f2 = "rpxdock/data/pdb/C3_1nza_1.pdb.gz"
    # f1 = "/home/sheffler/scaffolds/big/C2_3jpz_1.pdb"
    # f2 = "/home/sheffler/scaffolds/big/C3_3ziy_1.pdb"
    # f1 = "/home/sheffler/scaffolds/wheel/C3.pdb"
    # f2 = "/home/sheffler/scaffolds/wheel/C5.pdb"
-   # pose1 = get_pose_cached(f1)
-   # pose2 = get_pose_cached(f2)
-   # test_body(pose1, pose2)
+   pose1 = get_pose_cached(f1)
+   pose2 = get_pose_cached(f2)
+   test_body(pose1, pose2)
 
-   # test_body_pickle(f2, mkdtemp())
+   test_body_pickle(f2, mkdtemp())
 
-   # b = rp.data.get_body('tiny')
-   # test_body_copy_sym(b)
-   # test_body_copy_xform(b)
+   b = rp.data.get_body('tiny')
+   test_body_copy_sym(b)
+   test_body_copy_xform(b)
 
    # nres  306  309 sqnpair  307 new 17743/s orig 13511/s
    # nres  728 1371 sqnpair  999 new  8246/s orig  4287/s
    # nres 6675 8380 sqnpair 7479 new  8629/s orig   627/s
 
    test_body_create()
+
+   test_body_ss_info()
