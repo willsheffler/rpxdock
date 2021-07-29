@@ -28,16 +28,4 @@ sasa_estimate:
   max_dist: 9 #Maximum distance between residues to include in interface
   apply: True #Return sasa?
   ncont: False #Return unique ncontact (instead of normal ncontact). Note if apply and ncont are both false this filter essentially returns ncontact
-quasi_symmetric:
-  type: filter_quasi
-  confidence: True
-  min_sasa_int1: 375
-  max_sasa_int2: 1750
-  max_sasa_int1: 375
-  max_sasa_int2: 1750
-  max_dist: 8
-  detailed: True
-  overlap_int1: 0.5
-  overlap_int2: 0.5
-  quasi_comp: 1 #Zero indexed
 

@@ -271,6 +271,7 @@ def filter_quasi(xforms, body, **kw):
         max_dist,
     )
 
+    #qdata = np.zeros(max(len(pos1_int1), len(pos2_int1), len(pos1_int2), len(pos2_int2)))
     qdata = []
     passing = []
     ibest = np.array(range(0, max(len(pos1_int1), len(pos2_int1), len(pos1_int2), len(pos2_int2))))
@@ -300,7 +301,7 @@ def filter_quasi(xforms, body, **kw):
                 qdata.append(temp.to_dict())
             else:
                 log.debug(f"Standard quasi_filter output")
-                qdata.append(temp.quasi_overlap())
+                qdata(temp.quasi_overlap())
 
             if (temp.int1_sasa > min_sasa_int1) & (temp.int1_sasa < max_sasa_int1) & (temp.int2_sasa > min_sasa_int2) & (temp.int2_sasa < max_sasa_int2):
                 #filter passes sasa requirements
@@ -312,9 +313,11 @@ def filter_quasi(xforms, body, **kw):
                     passing.append(False)
             else:
                 passing.append(False)
-
-    print(f"ibest and ibest[passing]: {ibest} \n {ibest[passing]}")
+    qdata = np.array(qdata)
     if confidence:
+        print(f"ibest and ibest[passing]: {ibest} \n {ibest[passing]}")
         return ibest[passing], qdata
     else:
+        print (qdata)
+        print (f"length of qdata is: {len(qdata)}")
         return ibest, qdata
