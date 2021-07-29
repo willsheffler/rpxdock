@@ -57,7 +57,7 @@ def test_plug_hier_trim(hscore, plug, hole):
 
    #rp.dump(result, 'rpxdock/data/testdata/test_plug_hier_trim.pickle')
    ref = rp.data.get_test_data('test_plug_hier_trim')
-   # rp.search.assert_results_close(result, ref)
+   rp.search.assert_results_close(result, ref)
 
 def test_plug_olig_hier(hscore, body_c3_mono, hole):
    kw = testarg().sub(plug_fixed_olig=True, max_trim=100)
@@ -90,7 +90,7 @@ def test_plug_olig_grid(hscore, body_c3_mono, hole):
    # result = make_plugs(plug, hole, hscore, rp.grid_search, xgrid, **kw)
    result = make_plugs(body_c3_mono, hole, hscore, rp.grid_search, xgrid, **kw)
 
-   # result.dump_pdbs_top_score(10)
+   #result.dump_pdbs_top_score(10)
 
    #rp.dump(result, 'rpxdock/data/testdata/test_plug_olig_grid.pickle')
    ref = rp.data.get_test_data('test_plug_olig_grid')
@@ -103,7 +103,9 @@ if __name__ == "__main__":
    # rp.dump(c3m, rp.data.datadir + '/body/test_c3_mono.pickle')
    # hole = rp.Body(rp.data.datadir + '/pdb/small_c3_hole.pdb', sym=3)
    # rp.dump(hole, rp.data.datadir + '/body/small_c3_hole.pickle')
-
+   hole = rp.data.get_body('small_c3_hole_sym3')
+   plug = rp.data.get_body('dhr64')
+   body_c3_mono = rp.data.get_body('test_c3_mono')
    #hole = rp.data.get_body('/home/erinyang/projects/ph_plugs/20200427_rpxdock/input/scaffolds/cage/i523_z.pdb')
    #plug = rp.data.get_body('/home/erinyang/projects/ph_plugs/20200427_rpxdock/input/scaffolds/plug/C3_HFuse-pH192-3_0046_chA.pdb')
    # hole = rp.Body(
@@ -133,7 +135,7 @@ if __name__ == "__main__":
    plug = rp.data.get_body('test_c3_mono')
 
    # hole.dump_pdb('ref.pdb', use_body_sym=True)
-   # test_plug_hier(hscore, plug, hole)
-   # test_plug_hier_trim(hscore, plug, hole)
-   # test_plug_olig_hier(hscore, body_c3_mono, hole)
+   test_plug_hier(hscore, plug, hole)
+   test_plug_hier_trim(hscore, plug, hole)
+   test_plug_olig_hier(hscore, body_c3_mono, hole)
    test_plug_olig_grid(hscore, plug, hole)
