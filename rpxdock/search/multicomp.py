@@ -35,7 +35,7 @@ def make_multicomp(
    ibest = rp.filter_redundancy(xforms, bodies, scores, **kw)
    logging.debug(f"ibest = {ibest} and length {len(ibest)}")
    logging.debug(f"Apply filters to docks? {kw.filter_config}")
-   if kw.filter_config != '':
+   if kw.filter_config:
       # Apply filters
       logging.debug("Applying filters to search results")
       sbest, filter_extra = filters.filter(xforms[ibest], bodies, **kw)
@@ -71,7 +71,7 @@ def make_multicomp(
          v = ['model'], v
       data[k] = v
 
-   if kw.filter_config != "":
+   if kw.filter_config:
       #add the filter data to data
       for k, v in filter_extra.items():
          if not isinstance(v, (list, tuple)) or len(v) > 3:

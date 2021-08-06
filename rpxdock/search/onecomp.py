@@ -40,7 +40,7 @@ def make_onecomp(
    ibest = rp.filter_redundancy(xforms, body, scores, **kw)
    # tdump = _debug_dump_cage(xforms, body, spec, scores, ibest, evaluator, **kw)
 
-   if kw.filter_config != '':
+   if kw.filter_config:
       # Apply filters
       logging.debug("Applying filters to search results")
       sbest, filter_extra = filters.filter(xforms[ibest], body, **kw)
@@ -69,7 +69,7 @@ def make_onecomp(
    )
 
    #add the filter data to data
-   if kw.filter_config != '':
+   if kw.filter_config:
       for k, v in filter_extra.items():
          if not isinstance(v, (list, tuple)) or len(v) > 3:
             v = ['model'], v

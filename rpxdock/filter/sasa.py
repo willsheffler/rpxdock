@@ -1,5 +1,6 @@
 import logging, numpy as np, rpxdock as rp
 from rpxdock.app import dock
+from rpxdock.filter import filter_body as fb
 
 log = logging.getLogger(__name__)
 
@@ -76,22 +77,23 @@ def filter_sasa(xforms, body, **kw):
     else:
         confidence = False
 
-    spec = dock.get_spec(kw.architecture)
+    #spec = dock.get_spec(kw.architecture)
 
-    if len(body) == 2:
-        X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
-        B = [b.copy_with_sym(spec.nfold[i], spec.axis[i]) for i, b in enumerate(body)]
-        body1 = B[0]
-        body2 = B[1]
-        pos1 = X[:,0]
-        pos2 = X[:,1]
+    #if len(body) == 2:
+    #    X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
+    #    B = [b.copy_with_sym(spec.nfold[i], spec.axis[i]) for i, b in enumerate(body)]
+    #    body1 = B[0]
+    #    body2 = B[1]
+    #    pos1 = X[:,0]
+    #    pos2 = X[:,1]
 
-    else:
-        B = body.copy_with_sym(spec.nfold, spec.axis)
-        pos1 = xforms.reshape(-1, 4, 4)  #@ body.pos
-        pos2 = spec.to_neighbor_olig @ pos1
-        body1 = B
-        body2 = B
+    #else:
+    #    B = body.copy_with_sym(spec.nfold, spec.axis)
+    #    pos1 = xforms.reshape(-1, 4, 4)  #@ body.pos
+    #    pos2 = spec.to_neighbor_olig @ pos1
+    #    body1 = B
+    #    body2 = B
+    body1, body2, pos1, pos2 = fb.filter_body(body, xforms, kw.architecture)
 
     pairs, lbub = rp.bvh.bvh_collect_pairs_vec(
         body1.bvh_cen,
