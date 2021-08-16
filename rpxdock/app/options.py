@@ -313,9 +313,9 @@ def default_cli_parser(parent=None, **kw):
       help='If sscount_confidence is set, docks below the threshold number of ss elements in the interface will not be included in the output'
    )
    addarg("--sscount_min_helix_length", default=4, type=int,
-          help='Min resis in helix to count as ss element. default 4')
+      help='Min resis in helix to count as ss element. default 4')
    addarg("--sscount_min_sheet_length", default=3, type=int,
-          help='Min resis in sheet to count as ss element. default 3')
+      help='Min resis in sheet to count as ss element. default 3')
    addarg("--sscount_min_loop_length", default=1, type=int,
       help='Min resis in loop to count as ss element. default 1')
    addarg("--sscount_max_dist", type=float, default=8,
