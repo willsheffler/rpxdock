@@ -24,7 +24,7 @@ sasa_estimate:
   type: filter_sasa
   confidence: True
   min_sasa: 750 #Min interface size. Default = 750
-  max_sasa: 2000 #Max interface size. Default = 1500
+  max_sasa: 1500 #Max interface size. Default = 1500
   max_dist: 9 #Maximum distance between residues to include in interface
   apply: True #Return sasa?
   ncont: False #Return unique ncontact (instead of normal ncontact). Note if apply and ncont are both false this filter essentially returns ncontact
