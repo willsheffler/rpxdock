@@ -105,9 +105,9 @@ def filter_sscount(xforms, body, **kw):
             sstype = str(sstype)
         except:
             log.warning(f"Could not convert sstype {kw.filter_sscount['sstype']} to string, reverting to default value ('EHL')")
-            sstype = "EHL"
+            sstype = "EH"
     else:
-        sstype = "EHL"
+        sstype = "EH"
 
     if "confidence" in kw.filter_sscount:
         try:
