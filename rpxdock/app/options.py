@@ -306,38 +306,8 @@ def default_cli_parser(parent=None, **kw):
       "--function", type=str, default='stnd',
       help='score function to use for scoring. Default is stnd scorefunction. Example: stnd, sasa_priority, mean, exp, median. Full list is defined in score/scorefunctions.py'
    )
-   addarg("--sscount_filter", action='store_true', default=False,
-          help='calculate the ss_count in the interface')
-   addarg(
-      "--sscount_confidence", action='store_true', default=False,
-      help='If sscount_confidence is set, docks below the threshold number of ss elements in the interface will not be included in the output'
-   )
-   addarg("--sscount_min_helix_length", default=4, type=int,
-      help='Min resis in helix to count as ss element. default 4')
-   addarg("--sscount_min_sheet_length", default=3, type=int,
-      help='Min resis in sheet to count as ss element. default 3')
-   addarg("--sscount_min_loop_length", default=1, type=int,
-      help='Min resis in loop to count as ss element. default 1')
-   addarg("--sscount_max_dist", type=float, default=8,
-      help='Max distance between residue centroids to be considered in interface. default 8')
-   addarg("--sscount_min_element_resis", default=3, type=int,
-      help='Min interface resis in ss_element to include in ss count. default 3')
-   addarg("--sscount_sstype", default="EHL", type=str,
-      help='Types of secondary structure to include in count. defaults to all (EHL)')
-   addarg("--sscount_min_ss_count", default=3, type=int,
-      help='If sscount_confidence set, minimum number of ss elements to pass the filter. default 3')
-   addarg("--sscount_strict", action='store_true', default=False,
-      help='Require that both pairs of residues in the interface are in an SS element meeting the set criteria')
    addarg("--filter_config", 
-      help='Path to a yaml file containing the configurations for filters.')
-   addarg("--sasa_filter", action='store_true', default=False,
-      help='calculate the SASA of the interface')
-   addarg("--sasa_min_sasa", default=750,
-      help='the minimum allowed SASA of the interface')
-   addarg("--sasa_max_sasa", default=1500,
-      help='the maximum allowed SASA of the interface')
-   addarg("--sasa_confidence", action='store_true', default=False,
-      help='If set to 1, outside the threshold interface SASA will not be included in the output')
+      help='NOTE: filters only work for cyclic, onecomp, and multicomp docking (ie. not for plug or asymetric docking). Path to a yaml file containing the configurations for filters.')
    addarg("--helix_trim_max", default=0,
           help='Allow trimming of N helices from N or C term as specified by --trim_direction')
 
