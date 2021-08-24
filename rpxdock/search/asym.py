@@ -1,5 +1,6 @@
 import logging, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search
+from rpxdock.filter import filters
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +32,13 @@ def make_asym(bodies, hscore, sampler, search=hier_search, **kw):
    evaluator = AsymEvaluator(bodies, hscore, **kw)
    xforms, scores, extra, stats = search(sampler, evaluator, **kw)
    ibest = rp.filter_redundancy(xforms, bodies[1], scores, **kw)
+
+   #Not sure how to test this so leaving it commented out
+   #if kw.filter_config:
+   #   # Apply filters
+   #   logging.debug("Applying filters to search results")
+   #   sbest, filter_extra = filters.filter(xforms[ibest], bodies, **kw)
+   #   ibest = ibest[sbest]
 
    if kw.verbose:
       print(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")

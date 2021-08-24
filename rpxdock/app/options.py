@@ -306,33 +306,8 @@ def default_cli_parser(parent=None, **kw):
       "--function", type=str, default='stnd',
       help='score function to use for scoring. Default is stnd scorefunction. Example: stnd, sasa_priority, mean, exp, median. Full list is defined in score/scorefunctions.py'
    )
-   addarg("--sscount_filter", action='store_true', default=False,
-          help='calculate the ss_count in the interface')
-   addarg(
-      "--sscount_confidence", action='store_true', default=False,
-      help='If sscount_confidence is set, docks below the threshold number of ss elements in the interface will not be included in the output'
-   )
-   addarg("--sscount_min_helix_length", default=4, type=int,
-          help='Min resis in helix to count as ss element. default 4')
-   addarg("--sscount_min_sheet_length", default=3, type=int,
-          help='Min resis in sheet to count as ss element. default 3')
-   addarg("--sscount_min_loop_length", default=1, type=int,
-          help='Min resis in loop to count as ss element. default 1')
-   addarg("--sscount_max_dist", default=8, type=float,
-          help='Min resis in loop to count as ss element. default 1')
-   addarg("--sscount_min_element_resis", default=3, type=int,
-          help='Min interface resis in ss_element to include in ss count. default 3')
-   addarg("--sscount_sstype", default="EHL", type=str,
-          help='Types of secondary structure to include in count. defaults to all (EHL)')
-   addarg(
-      "--sscount_min_ss_count", default=3, type=int,
-      help='If sscount_confidence set, minimum number of ss elements to pass the filter. default 3'
-   )
-   addarg(
-      "--sscount_strict", action='store_true', default=False,
-      help='Require that both pairs of residues in the interface are in an SS element meeting the set criteria'
-   )
-
+   addarg("--filter_config", 
+      help='NOTE: filters only work for cyclic, onecomp, and multicomp docking (ie. not for plug or asymetric docking). Path to a yaml file containing the configurations for filters.')
    addarg("--helix_trim_max", default=0,
           help='Allow trimming of N helices from N or C term as specified by --trim_direction')
 
@@ -372,7 +347,7 @@ def process_cli_args(options, **kw):
 
    _extract_weights(options)
    _extract_sscount(options)
-
+   _extract_sasa(options)
    set_loglevel(options.loglevel)
 
    options.score_only_aa = options.score_only_aa.upper()
@@ -565,6 +540,19 @@ def _extract_sscount(kw):
    for k in todel:
       del kw[k]
    kw.ssc = ssc
+
+def _extract_sasa(kw):
+   pref = 'sasa_'
+   sasa = rp.Bunch()
+   todel = list()
+   for k in kw:
+      if k.startswith(pref):
+         sasa_type = k.replace(pref, '')
+         sasa[sasa_type] = kw[k]
+         todel.append(k)
+   for k in todel:
+      del kw[k]
+   kw.sasa = sasa
 
 def _process_arg_sspair(kw):
    kw.score_only_sspair = [''.join(sorted(p)) for p in kw.score_only_sspair]

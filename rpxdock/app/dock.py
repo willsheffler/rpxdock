@@ -31,7 +31,7 @@ def get_spec(arch):
    return spec
 
 ## All dock_cyclic, dock_onecomp, and dock_multicomp do similar things
-def dock_cyclic(hscore, inputs, architecture, **kw):
+def dock_cyclic(hscore, **kw):
    kw = rp.Bunch(kw)
    bodies = [
       rp.Body(inp, allowed_res=allowedres, **kw)
@@ -47,7 +47,7 @@ def dock_cyclic(hscore, inputs, architecture, **kw):
             pool.submit(
                rp.search.make_cyclic,
                bod,
-               architecture.upper(),
+               kw.architecture.upper(),
                hscore,
                **kw,
             ))
