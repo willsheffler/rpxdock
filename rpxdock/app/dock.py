@@ -33,7 +33,6 @@ def get_spec(arch):
    return spec
 
 def gcd(a,b):
-    """Compute the greatest common divisor of a and b"""
    while b > 0:
       a, b = b, a % b
    return a
@@ -78,7 +77,7 @@ def dock_onecomp(hscore, **kw):
    if kw.docking_method == 'grid':
       flip=list(spec.flip_axis[:3])
       if not kw.flip_components[0]:
-         flip = None
+         flip = None   
       sampler = rp.sampling.grid_sym_axis(
          cart=np.arange(crtbnd[0], crtbnd[1], kw.grid_resolution_cart_angstroms),
          ang=np.arange(0, 360 / spec.nfold, kw.grid_resolution_ori_degrees),
@@ -217,41 +216,72 @@ def dock_plug(hscore, **kw):
    return result
 
 def dock_axel(hscore, **kw):
-   arg = rp.Bunch(kw)
-   spec = get_spec(arg.architecture)
-   
-   if arg.docking_method.lower() == 'hier':
+   kw = rp.Bunch(kw)
+   spec = get_spec(kw.architecture)
+   flip = spec.flip_axis
+
+   if kw.docking_method.lower() == 'hier':
+       if not kw.flip_components[0]:
+          flip[0] = None
        if spec.nfold[0] == spec.nfold[1]:
           sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0],  lb=0, ub=100, resl=5, angresl=5)
        else:
           sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0]*spec.nfold[1]/gcd(spec.nfold[0],spec.nfold[1]),
                   lb=0, ub=100, resl=5, angresl=5)
        sampler2 = rp.sampling.ZeroDHier([np.eye(4),rp.homog.hrot([1,0,0],180)])
+       if len(kw.flip_components) is 1 and not kw.flip_components[0]:
+          sampler2 = np.eye(4)
+       if len(kw.flip_components) is not 1 and not kw.flip_components[1]:
+          sampler2 = np.eye(4)
        sampler = rp.sampling.CompoundHier(sampler2, sampler1)
        logging.info(f'num base samples {sampler.size(0):,}')
        search = rp.hier_search
-   elif arg.docking_method.lower() =='grid':
-       sampler1 = rp.sampling.grid_sym_axis(
-         cart=np.arange(0, 100, arg.grid_resolution_cart_angstroms),
-         ang=np.arange(0, 360 / spec.nfold[0], arg.grid_resolution_ori_degrees),
-         axis=spec.axis[0],
-         )
+   elif kw.docking_method.lower() =='grid':
+       flip[0]=list(spec.flip_axis[0,:3])
+       if not kw.flip_components[0]:
+          flip[0] = None
+       if spec.nfold[0] == spec.nfold[1]:
+          sampler1 = rp.sampling.grid_sym_axis(
+            cart=np.arange(0, 100, kw.grid_resolution_cart_angstroms),
+            ang=np.arange(0, 360 / spec.nfold[0], kw.grid_resolution_ori_degrees),
+            axis=spec.axis[0],
+            flip=flip[0]
+            )
+       else:
+          sampler1 = rp.sampling.grid_sym_axis(
+            cart=np.arange(0, 100, kw.grid_resolution_cart_angstroms),
+            ang=np.arange(0, 360 / (spec.nfold[0]*spec.nfold[1]/gcd(spec.nfold[0],spec.nfold[1])), kw.grid_resolution_ori_degrees),
+            axis=spec.axis[0],
+            flip=flip[0]
+            )
        assert sampler1.ndim == 3
-       shape = (2,)+sampler1.shape
-       sampler = np.zeros(shape=shape)
-       sampler[0] = sampler1
-       sampler[1] = np.eye(4)
+       if len(kw.flip_components)<2 and not kw.flip_components[1]:
+          shape = (2,)*sampler1.shape
+          sampler = np.zeros(shape=shape)
+          sampler[0,]=sampler1
+          sampler[1,]=np.eye(4)
+       else:
+          shape = (2,2*len(sampler1),4,4)
+          sampler = np.zeros(shape=shape)
+          sampler[0,:len(sampler1)] = sampler1
+          sampler[0,len(sampler1):] = sampler1
+          sampler[1,:len(sampler1)] = np.eye(4)
+          sampler[1,len(sampler1):] = rp.homog.hrot([1,0,0],180)
        sampler = np.swapaxes(sampler,0,1)
        logging.info(f'num base samples {sampler.shape}')
        search = rp.grid_search
    else:
-       raise ValueError(f'not compatible with docking method {arg.dock_method}')   
+       raise ValueError(f'not compatible with docking method {kw.dock_method}')   
    
-   bodies = [[rp.Body(fn, **arg) for fn in inp] for inp in arg.inputs]
+   bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
+             for fn, ar2 in zip(inp, ar)]
+             for inp, ar in zip(kw.inputs, kw.allowed_residues)]
    assert len(bodies) == spec.num_components
+#   bodies = [[rp.Body(fn, **kw) for fn in inp] for inp in kw.inputs]
+#   assert len(bodies) == spec.num_components
 
    exe = concurrent.futures.ProcessPoolExecutor
-   with exe(arg.ncpu) as pool:
+   with exe(kw.ncpu) as pool:
       futures = list()
       for ijob, bod in enumerate(itertools.product(*bodies)):
          futures.append(
@@ -262,7 +292,7 @@ def dock_axel(hscore, **kw):
                hscore,
                search,
                sampler,
-               **arg,
+               **kw,
             ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
@@ -339,13 +369,13 @@ def main():
 
    # TODO: redefine archs WHS or others with a monster list of if statements
    if arch.startswith('C'):
-      result = dock_cyclic(hscore, **arg)
+      result = dock_cyclic(hscore, **kw)
    elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
-      result = dock_onecomp(hscore, **arg)
+      result = dock_onecomp(hscore, **kw)
    elif arch.startswith('PLUG'):
-      result = dock_plug(hscore, **arg)
+      result = dock_plug(hscore, **kw)
    elif arch.startswith('AXEL_'):
-      result = dock_axel(hscore, **arg)
+      result = dock_axel(hscore, **kw)
    else:
       result = dock_multicomp(hscore, **kw)
 
