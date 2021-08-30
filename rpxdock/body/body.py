@@ -1,4 +1,7 @@
 import os, copy, numpy as np, rpxdock, logging, rpxdock as rp
+from pandas.core.internals.concat import trim_join_unit
+from rpxdock.filter.sscount import secondary_structure_map
+from pyrosetta import rosetta as ros
 
 log = logging.getLogger(__name__)
 _CLASHRAD = 1.75
@@ -12,6 +15,8 @@ class Body:
       sym="C1",
       symaxis=[0, 0, 1],
       allowed_res=None,
+      trim_direction='NC',
+      is_subbody=False,
       **kw,
    ):
       kw = rpxdock.Bunch(kw)
@@ -41,6 +46,7 @@ class Body:
       self.ssid = rp.motif.ss_to_ssid(self.ss)
       self.chain = np.repeat(0, self.seq.shape[0])
       self.resno = np.arange(len(self.seq))
+      # self.trim_direction = trim_direction
       self.trim_direction = kw.trim_direction if kw.trim_direction else 'NC'
       if allowed_res is None:
          self.allowed_residues = np.ones(len(self.seq), dtype='?')
@@ -49,6 +55,13 @@ class Body:
          for i in allowed_res(self, **kw):
             self.allowed_residues[i - 1] = True
       self.init_coords(sym, symaxis, **kw)
+
+      self.is_subbody = is_subbody
+      if not is_subbody:
+         self.trimN_subbodies, self.trimC_subbodies = get_trimming_subbodies(self, pose, **kw)
+         print('trimN_subbodies', len(self.trimN_subbodies))
+         print('trimC_subbodies', len(self.trimC_subbodies))
+         # assert 0
 
    def init_coords(self, sym, symaxis, xform=np.eye(4), ignored_aas='CGP', **kw):
       kw = rp.Bunch(kw)
@@ -332,3 +345,94 @@ class Body:
    def __repr__(self):
       source = self.pdbfile if self.pdbfile else '<rosetta Pose of unknown origin>'
       return f'Body(source="{source}")'
+
+def get_trimming_subbodies(body, pose, debug=False, **kw):
+   kw = rp.Bunch(kw)
+   if kw.helix_trim_max == 0 or kw.helix_trim_max is None:
+      return [], []
+   print('body.ss', ''.join(body.ss))
+   ssmap = secondary_structure_map()
+   ssmap.map_body_ss(body)
+   # print(ssmap.ss_index)
+   # print(ssmap.ss_type_assignments)
+   # print(ssmap.ss_element_start)
+   # print(ssmap.ss_element_end)
+   ssid = np.array(ssmap.ss_index)
+   sstype = np.array(ssmap.ss_type_assignments)
+   selection = sstype == 'H'
+   ssid = ssid[selection]
+   sstype = sstype[selection]
+   lb = np.array(ssmap.ss_element_start)[selection]
+   ub = np.array(ssmap.ss_element_end)[selection] + 1
+   # TODO direction matters here !!!
+   print(lb)
+   print(ub)
+   # print()
+
+   # trim_place_nc = 197  # len(body) - max_trim
+   # trim_place_cn = 100  # max_trim
+   lb_nc = lb.copy()
+   ub_nc = ub.copy()
+   lb_nc[0] = 0
+   lb_nc[1:] = ub[:-1]
+
+   #  # # print(ssid)
+   # print('lb_nc', lb_nc)
+   # print('ub_nc', ub_nc)
+   # nhelix = np.sum(lb_nc >= trim_place_nc)
+   # print(nhelix)
+   # print(lb_nc[-nhelix:])
+   # print(ub_nc[-nhelix:])
+   # print()
+   # assert nhelix == 6
+
+   lb_cn = lb.copy()
+   ub_cn = ub.copy()
+   # print(len(body.ss))
+   ub_cn[-1] = len(body.ss)
+   ub_cn[:-1] = lb_cn[1:]
+   # # lb_cn[0] = 0
+   # # lb_cn[1:] = ub[:-1]
+   # # print(ssid)
+   # print('lb_cn', lb_cn)
+   # print('ub_cn', ub_cn)
+   # nhelix = np.sum(ub_cn <= trim_place_cn)
+   # print(nhelix)
+   # print(lb_cn[:nhelix])
+   # print(ub_cn[:nhelix])
+   # print()
+   # print()
+   # assert nhelix == 5
+
+   hmt = kw.helix_trim_max
+   htnie = kw.helix_trim_nres_ignore_end
+
+   trimC_subbodies = list()
+   p = ros.core.pose.Pose()
+   ros.core.pose.append_subpose_to_pose(p, pose, 1, ub_nc[-hmt - 1])
+   trimC_subbodies.append(Body(p, is_subbody=True))
+   for i, (start, end) in enumerate(zip(lb_nc[-hmt:], ub_nc[-hmt:])):
+      p = ros.core.pose.Pose()
+      ros.core.pose.append_subpose_to_pose(p, pose, start + 1, end - htnie)
+      # print('nc_%i.pdb' % i)
+      trimC_subbodies.append(Body(p, is_subbody=True))
+   trimN_subbodies = list()
+   p = ros.core.pose.Pose()
+   ros.core.pose.append_subpose_to_pose(p, pose, lb_cn[hmt] + htnie, pose.size())
+   trimN_subbodies.append(Body(p, is_subbody=True))
+   for i, (start, end) in enumerate(zip(lb_cn[:hmt], ub_cn[:hmt])):
+      p = ros.core.pose.Pose()
+      ros.core.pose.append_subpose_to_pose(p, pose, start + 1 + htnie, end)
+      # print('cn_%i.pdb' % i)
+      trimN_subbodies.append(Body(p, is_subbody=True))
+
+   if debug:
+      for i, b in enumerate(trimC_subbodies):
+         print('dump body %i' % i)
+         b.dump_pdb('trimC_%i.pdb' % i)
+
+      for i, b in enumerate(trimN_subbodies):
+         print('dump body %i' % i)
+         b.dump_pdb('trimN_%i.pdb' % i)
+
+   return trimN_subbodies, trimC_subbodies

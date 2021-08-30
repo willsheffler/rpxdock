@@ -1,5 +1,7 @@
 import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
+import logging
+from rpxdock.filter import filters
 
 def make_onecomp(
    body,
@@ -38,6 +40,14 @@ def make_onecomp(
    ibest = rp.filter_redundancy(xforms, body, scores, **kw)
    # tdump = _debug_dump_cage(xforms, body, spec, scores, ibest, evaluator, **kw)
 
+   if kw.filter_config:
+      # Apply filters
+      logging.debug("Applying filters to search results")
+      sbest, filter_extra = filters.filter(xforms[ibest], body, **kw)
+      # TODO: Add exception handling for empty array sscounts
+      logging.debug(f"Array of {len(sbest)} docks passing filters: {sbest}")
+      ibest = ibest[sbest]
+
    if kw.verbose:
       print(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f}")
       print("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
@@ -48,6 +58,7 @@ def make_onecomp(
    wnct = kw.wts.sub(rpx=0, ncontact=1)
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
    ncontact, *_ = evaluator(xforms, kw.nresl - 1, wnct)
+
    data = dict(
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, output_prefix=kw.output_prefix,
                  output_body='all', sym=spec.arch),
@@ -56,6 +67,13 @@ def make_onecomp(
       rpx=(["model"], rpx.astype("f4")),
       ncontact=(["model"], ncontact.astype("f4")),
    )
+
+   #add the filter data to data
+   if kw.filter_config:
+      for k, v in filter_extra.items():
+         if not isinstance(v, (list, tuple)) or len(v) > 3:
+            v = ['model'], v
+         data[k] = v
 
    # put additional geom stuff into data
    for k, v in extra.items():
@@ -138,6 +156,16 @@ class OneCompEvaluator:
          sampling at highest resl probably 0.6A due to ori + cart
          returns score # for each "dock"
       '''
+      '''
+      bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
+      sfxn: hscore.scorepos scores stuff from the hscore that got passed 
+         takes two pos of bodies (the same monomer in this case)
+         xforms: not clashing xforms 
+         iresl: stage of hierarchical search (grid spacing: 4A --> 2A --> 1A --> 0.5A --> 0.25A)
+         sampling at highest resl probably 0.6A due to ori + cart
+         returns score # for each "dock"
+      '''
+
       '''
       bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
       sfxn: hscore.scorepos scores stuff from the hscore that got passed 

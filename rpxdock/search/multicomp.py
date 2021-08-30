@@ -1,5 +1,6 @@
 import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
+from rpxdock.filter import filters
 import logging
 
 def make_multicomp(
@@ -28,9 +29,21 @@ def make_multicomp(
    evaluator = Evaluator(bodies, spec, hscore, **kw)
 
    # do search
-   xforms, scores, extra, stats = search(sampler, evaluator, **kw)
+   #TODO: Quinton: spec and bodies are added to test resolution level score function weighting
+   xforms, scores, extra, stats = search(sampler, evaluator, spec=spec, bodies=bodies, **kw)
 
    ibest = rp.filter_redundancy(xforms, bodies, scores, **kw)
+   logging.debug(f"ibest = {ibest} and length {len(ibest)}")
+   logging.debug(f"Apply filters to docks? {kw.filter_config}")
+   if kw.filter_config:
+      # Apply filters
+      logging.debug("Applying filters to search results")
+      sbest, filter_extra = filters.filter(xforms[ibest], bodies, **kw)
+      # TODO: Add exception handling for empty array
+      print (sbest)
+      print (ibest)
+      ibest = ibest[sbest]
+
    tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw)
 
    if kw.verbose:
@@ -52,10 +65,19 @@ def make_multicomp(
       rpx=(["model"], rpx.astype("f4")),
       ncontact=(["model"], ncontact.astype("f4")),
    )
+
    for k, v in extra.items():
       if not isinstance(v, (list, tuple)) or len(v) > 3:
          v = ['model'], v
       data[k] = v
+
+   if kw.filter_config:
+      #add the filter data to data
+      for k, v in filter_extra.items():
+         if not isinstance(v, (list, tuple)) or len(v) > 3:
+            v = ['model'], v
+         data[k] = v
+
    if kw.score_self:
       for k, v in ncont_extra.items():
          if not isinstance(v, (list, tuple)) or len(v) > 3:
@@ -127,7 +149,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          ifscore = list()
          for i in range(len(B)):
             for j in range(i):
-               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, function=kw.function, wts=wts))
+               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
                # ifscore = np.stack(ifscore)
                logging.debug(f"ifscore is {len(ifscore)} long and is a {type(ifscore)}")
 
@@ -154,10 +176,10 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
                   ns_ifscore.append(
                      self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, function=kw.function, wts=wts))
          logging.debug(f"self scores is length {len(s_ifscore[0])}")
-         logging.debug(f"non-self scores is legnth {len(ns_ifscore[0])}")
+         logging.debug(f"non-self scores is length {len(ns_ifscore[0])}")
          logging.debug(f"OK len is {len(ok)}")
          scores_s = np.zeros((len(B), len(X)))
-         #TO DO: Quinton: Make sure this actually works for three-body docking
+         #TODO: Quinton: Make sure this actually works for three-body docking
          scores_ns = np.zeros((len(B) - 1, len(X)))
 
          #Only keep non-clashing interface scores
@@ -168,9 +190,14 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          logging.debug(f"Scores self is shape {scores_s.shape}")
          logging.debug(f"Scores not-self is shape {scores_ns.shape}")
          logging.debug("Done Scoring")
-         #Normal scoring for consistency in output. This may be the same as one of the cross component scores depending on arg.iface_summary()
+
+         #Make score_self actually do something
          scores = np.zeros(len(X))
-         scores[ok] = kw.iface_summary(ns_ifscore, axis=0)
+         scores[ok] = np.sum(s_ifscore, axis=0) + np.sum(ns_ifscore, axis=0)
+         #print(scores)
+         #print("Normal Scores")
+         #print(kw.iface_summary(ns_ifscore, axis=0))
+         #scores[ok] = kw.iface_summary(ns_ifscore, axis=0)
 
          #Package all scores in a dict that can be bunched
          all_scores = {}
