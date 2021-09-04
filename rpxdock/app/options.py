@@ -84,8 +84,7 @@ def add_argument_unless_exists(parser, *arg, **kw):
 def default_cli_parser(parent=None, **kw):
    parser = parent if parent else argparse.ArgumentParser(allow_abbrev=False)
    addarg = add_argument_unless_exists(parser)
-   addarg("--inputs", nargs="*", type=str, default=[],
-          help=argparse.SUPPRESS)
+   addarg("--inputs", nargs="*", type=str, default=[], help=argparse.SUPPRESS)
    addarg(
       "--inputs1", nargs="*", type=str, default=[],
       help='input structures for single component protocols or first component for 2+ protocols, plug input structure for plug protocol. Can be inputted as a string or list of strings'
@@ -94,16 +93,23 @@ def default_cli_parser(parent=None, **kw):
       "--inputs2", nargs="*", type=str, default=[],
       help='input structures for second component for 2+ component protocols, hole input structure for plug protocol. Can be inputted as a string or list of strings'
    )
-   addarg("--inputs3", nargs="*", type=str, default=[],
-          help='input structures for third component for 3+ component protocols. Can be inputted as a string or list of strings')
-   addarg("--allowed_residues", nargs="*", type=str, default=[],
-          help=argparse.SUPPRESS)
-   addarg("--allowed_residues1", nargs="*", type=str, default=[],
-          help='allowed residues list for single component protocols or first component of 2+ component protocols or the monomeric plug for plug protocol. Takes either nothing (if you leave them out), a single file which applies to all the corresponding inputs, or a list of files which must have the same length as the list of inputs. The files themselves must contain a whitespace separated list of either numbers or ranges.')
-   addarg("--allowed_residues2", nargs="*", type=str, default=[],
-          help='allowed residues list for second component for 2+ component protocols or the hole for the plug protocol. Takes either nothing (if you leave them out), a single file which applies to all the corresponding inputs, or a list of files which must have the same length as the list of inputs. The files themselves must contain a whitespace separated list of either numbers or ranges.')
-   addarg("--allowed_residues3", nargs="*", type=str, default=[],
-          help='allowed residues for third component for 3+ component protocols. Takes either nothing (if you leave them out), a single file which applies to all the corresponding inputs, or a list of files which must have the same length as the list of inputs. The files themselves must contain a whitespace separated list of either numbers or ranges.')
+   addarg(
+      "--inputs3", nargs="*", type=str, default=[],
+      help='input structures for third component for 3+ component protocols. Can be inputted as a string or list of strings'
+   )
+   addarg("--allowed_residues", nargs="*", type=str, default=[], help=argparse.SUPPRESS)
+   addarg(
+      "--allowed_residues1", nargs="*", type=str, default=[],
+      help='allowed residues list for single component protocols or first component of 2+ component protocols or the monomeric plug for plug protocol. Takes either nothing (if you leave them out), a single file which applies to all the corresponding inputs, or a list of files which must have the same length as the list of inputs. The files themselves must contain a whitespace separated list of either numbers or ranges.'
+   )
+   addarg(
+      "--allowed_residues2", nargs="*", type=str, default=[],
+      help='allowed residues list for second component for 2+ component protocols or the hole for the plug protocol. Takes either nothing (if you leave them out), a single file which applies to all the corresponding inputs, or a list of files which must have the same length as the list of inputs. The files themselves must contain a whitespace separated list of either numbers or ranges.'
+   )
+   addarg(
+      "--allowed_residues3", nargs="*", type=str, default=[],
+      help='allowed residues for third component for 3+ component protocols. Takes either nothing (if you leave them out), a single file which applies to all the corresponding inputs, or a list of files which must have the same length as the list of inputs. The files themselves must contain a whitespace separated list of either numbers or ranges.'
+   )
    addarg(
       "--ncpu", type=int, default=rp.util.cpu_count(),
       help='number of cpu cores available. defaults to all cores or cores available according to slurm allocation'
@@ -201,14 +207,14 @@ def default_cli_parser(parent=None, **kw):
       "--weight_hole", type=float, default=1.0,
       help='Only for monomer-to-plug docking. score weight of plug / cage hole interface. defaults to 1.0'
    )
-   addarg(
-      "--weight_sasa", type=float, default=1152,
-      help="Desired SASA used to weight dock scoring for sasa_priority scorefunction"
-   )
+
+   addarg("--weight_sasa", type=float, default=1152,
+          help="Desired SASA used to weight dock scoring for sasa_priority scorefunction")
    addarg(
       "--weight_error", type=float, default=4,
       help="Standard deviation used to calculate the distribution of SASA weighting for sasa_priority scorefunction"
-      )
+   )
+
    addarg(
       "--output_prefix", nargs="?", default="rpxdock", type=str,
       help="output file prefix. will output pickles for a base ResPairScore plus --hierarchy_depth hier XMaps"
@@ -248,10 +254,10 @@ def default_cli_parser(parent=None, **kw):
       "--ori_resl", default=30.0, type=float,
       help='resolution of top level orientation, sometimes ignored, and resl is taken from hscore data instead. default 30'
    )
-   addarg("--grid_resolution_cart_angstroms", type=float, default=1, 
-   	  help='cartesian resolution in Angstroms during grid search. default 1')
-   addarg("--grid_resolution_ori_degrees", type=float, default=1, 
-   	  help='rotation orientation resolution in degrees during grid search. default 1')
+   addarg("--grid_resolution_cart_angstroms", type=float, default=1,
+          help='cartesian resolution in Angstroms during grid search. default 1')
+   addarg("--grid_resolution_ori_degrees", type=float, default=1,
+          help='rotation orientation resolution in degrees during grid search. default 1')
    # tcdock
    addarg(
       "--architecture", type=str, default=None,
@@ -263,14 +269,22 @@ def default_cli_parser(parent=None, **kw):
       "--flip_components", nargs='+', default=[True], type=str2bool,
       help='list of boolean value or values specifying if and which components should be allowed to flip in axis aligned docking protocols. Defaults to flipping all components'
    )
-   addarg("--fixed_rot", nargs='+', type=int, default=[],
-          help='list of components (0,1,2 etc) which should be fixed from rotating in hierarchical docking')
-   addarg("--fixed_trans", nargs='+', type=int, default=[],
-          help='list of components (0,1,2 etc) which should be fixed from translating in hierarchical docking')
-   addarg("--fixed_components", nargs='+', type=int, default=[],
-          help='list of components (0,1,2 etc) which should be fixed from rotating *and* translating in hierarchical docking')
-   addarg("--fixed_wiggle", nargs='+', type=int, default=[],
-          help='Similar to fixed_components (input as list 0,1,2,etc) but allows user-inputted translation and rotation wiggling about orientation axis in hierarchical docking')
+   addarg(
+      "--fixed_rot", nargs='+', type=int, default=[],
+      help='list of components (0,1,2 etc) which should be fixed from rotating in hierarchical docking'
+   )
+   addarg(
+      "--fixed_trans", nargs='+', type=int, default=[],
+      help='list of components (0,1,2 etc) which should be fixed from translating in hierarchical docking'
+   )
+   addarg(
+      "--fixed_components", nargs='+', type=int, default=[],
+      help='list of components (0,1,2 etc) which should be fixed from rotating *and* translating in hierarchical docking'
+   )
+   addarg(
+      "--fixed_wiggle", nargs='+', type=int, default=[],
+      help='Similar to fixed_components (input as list 0,1,2,etc) but allows user-inputted translation and rotation wiggling about orientation axis in hierarchical docking'
+   )
    addarg("--fw_cartlb", default=-5.0, type=float,
           help='Lower bound for fixed_wiggle translation (in Angstroms) Default 5.0')
    addarg("--fw_cartub", default=5.0, type=float,
@@ -281,35 +295,24 @@ def default_cli_parser(parent=None, **kw):
           help='Upper bound for fixed_wiggle rotation (in degrees) Default 5.0')
    addarg("--use_orig_coords", action='store_true', default=False,
           help='remember and output the original sidechains from the input structures')
-   addarg("--primary_iface_cut", default=None, 
-   		  help='score cut for helix primary interface')
+   addarg("--primary_iface_cut", default=None, help='score cut for helix primary interface')
    addarg("--symframe_num_helix_repeats", default=10,
           help='number of helix repeat frames to dump. Default 10')
    addarg("--ignored_aas", default='CGP', help='Amino acids to ignore in scoring. Default CGP')
    addarg("--score_self", action='store_true', default=False,
           help='score each interface seperately and dump in output pickle')
-   addarg("--function", type=str, default='stnd',
-          help='score function to use for scoring. Default is stnd scorefunction. Example: stnd, sasa_priority, mean, exp, median. Full list is defined in score/scorefunctions.py')
-   addarg("--sscount_filter", action='store_true', default=False,
-      help='calculate the ss_count in the interface')
-   addarg("--sscount_confidence", action='store_true', default=False,
-      help='If sscount_confidence is set, docks below the threshold number of ss elements in the interface will not be included in the output')
-   addarg("--sscount_min_helix_length", default=4, type=int,
-      help='Min resis in helix to count as ss element. default 4')
-   addarg("--sscount_min_sheet_length", default=3, type=int,
-      help='Min resis in sheet to count as ss element. default 3')
-   addarg("--sscount_min_loop_length", default=1, type=int,
-      help='Min resis in loop to count as ss element. default 1')
-   addarg("--sscount_max_dist", default=8, type=float,
-      help='Min resis in loop to count as ss element. default 1')
-   addarg("--sscount_min_element_resis", default=3, type=int,
-      help='Min interface resis in ss_element to include in ss count. default 3')
-   addarg("--sscount_sstype", default="EHL", type=str,
-      help='Types of secondary structure to include in count. defaults to all (EHL)')
-   addarg("--sscount_min_ss_count", default=3, type=int,
-      help='If sscount_confidence set, minimum number of ss elements to pass the filter. default 3')
-   addarg("--sscount_strict", action='store_true', default=False,
-      help='Require that both pairs of residues in the interface are in an SS element meeting the set criteria')
+
+   addarg(
+      "--function", type=str, default='stnd',
+      help='score function to use for scoring. Default is stnd scorefunction. Example: stnd, sasa_priority, mean, exp, median. Full list is defined in score/scorefunctions.py'
+   )
+   addarg("--filter_config", 
+      help='NOTE: filters only work for cyclic, onecomp, and multicomp docking (ie. not for plug or asymetric docking). Path to a yaml file containing the configurations for filters.')
+   addarg("--helix_trim_max", default=0,
+          help='Allow trimming of N helices from N or C term as specified by --trim_direction')
+
+   addarg("--helix_trim_nres_ignore_end", default=1, help='Trim N extra residues off helix end')
+
    parser.has_rpxdock_args = True
    return parser
 
@@ -344,7 +347,7 @@ def process_cli_args(options, **kw):
 
    _extract_weights(options)
    _extract_sscount(options)
-
+   _extract_sasa(options)
    set_loglevel(options.loglevel)
 
    options.score_only_aa = options.score_only_aa.upper()
@@ -538,6 +541,18 @@ def _extract_sscount(kw):
       del kw[k]
    kw.ssc = ssc
 
+def _extract_sasa(kw):
+   pref = 'sasa_'
+   sasa = rp.Bunch()
+   todel = list()
+   for k in kw:
+      if k.startswith(pref):
+         sasa_type = k.replace(pref, '')
+         sasa[sasa_type] = kw[k]
+         todel.append(k)
+   for k in todel:
+      del kw[k]
+   kw.sasa = sasa
 
 def _process_arg_sspair(kw):
    kw.score_only_sspair = [''.join(sorted(p)) for p in kw.score_only_sspair]

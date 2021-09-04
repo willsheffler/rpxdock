@@ -1,6 +1,7 @@
 import logging
 import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
+from rpxdock.filter import filters
 
 log = logging.getLogger(__name__)
 
@@ -17,6 +18,12 @@ def make_plugs(plug, hole, hscore, search=hier_search, sampler=None, **kw):
 
    ibest = rp.filter_redundancy(xforms, plug, scores, **kw)
    tdump = _debug_dump_plugs(xforms, plug, hole, scores, ibest, evaluator, **kw)
+
+   #DEPENDENT ON FIGURING OUT SPEC FOR PLUGS
+   #if kw.filter_config:
+   #   # Apply filters
+   #   sbest, filter_extra = filters.filter(xforms[ibest], (plug, hole), **kw)
+   #   ibest = ibest[sbest]
 
    log.debug(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
    log.debug("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))

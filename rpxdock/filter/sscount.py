@@ -1,4 +1,7 @@
 import logging, numpy as np, rpxdock as rp
+from rpxdock.app import dock
+from rpxdock.filter import filter_body as fb
+
 
 log = logging.getLogger(__name__)
 
@@ -42,8 +45,131 @@ class secondary_structure_map:
                 temp_start = i
                 temp_ss = ss_at_resi
 
-def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_length=3, min_loop_length=1, min_element_resis=1, max_dist=8.0,
-                   sstype="EHL", confidence=0, min_ss_count=3, simple=True, strict=False, **kw):
+def filter_sscount(xforms, body, **kw):
+
+    kw = rp.Bunch(kw)
+    #Check if values are set in kw, otherwise use the default value. Also try to sanitize input and if not able to, revert
+    #to the default value.
+    if "min_helix_length" in kw.filter_sscount:
+        try:
+            min_helix_length = kw.filter_sscount["min_helix_length"]
+            min_helix_length = int(min_helix_length)
+        except:
+            log.warning(f"Could not convert {kw.filter_sscount['min_helix_length']} to integer, reverting to default value (4)")
+            min_helix_length = 4
+    else:
+        min_helix_length = 4
+
+    if "min_sheet_length" in kw.filter_sscount:
+        try:
+            min_sheet_length = kw.filter_sscount["min_sheet_length"]
+            min_sheet_length = int(min_sheet_length)
+        except:
+            log.warning(f"Coult not convert {kw.filter['min_sheet_length']} to integer, reverting to default value (3).")
+            min_sheet_length = 3
+    else:
+        min_sheet_length = 3
+
+    if "min_loop_length" in kw.filter_sscount:
+        try:
+            min_loop_length = kw.filter_sscount["min_loop_length"]
+            min_loop_length = int(min_loop_length)
+        except:
+            log.warning(f"Could not convert {kw.filter['min_sheet_length']} to integer, reverting to default value (1)")
+            min_loop_length = 1
+    else:
+        min_loop_length = 1
+
+    if "min_element_resis" in kw.filter_sscount:
+        try:
+            min_element_resis = kw.filter_sscount["min_element_resis"]
+            min_element_resis = int(min_element_resis)
+        except:
+            log.warning(f"Could not convert min_element_resis {kw.filter['min_element_resis']} to integer, reverting to default value (1)")
+            min_element_resis = 1
+    else:
+        min_element_resis = 1
+
+    if "max_dist" in kw.filter_sscount:
+        try:
+            max_dist = kw.filter_sscount["max_dist"]
+            max_dist = int(max_dist)
+        except:
+            log.warning(f"Could not convert max_dist {kw.filter_sscount['max_dist']} to integer, reverting to default value (9)")
+    else:
+        max_dist = 9
+
+    if "sstype" in kw.filter_sscount:
+        try:
+            sstype = kw.filter_sscount["sstype"]
+            sstype = str(sstype)
+        except:
+            log.warning(f"Could not convert sstype {kw.filter_sscount['sstype']} to string, reverting to default value ('EHL')")
+            sstype = "EH"
+    else:
+        sstype = "EH"
+
+    if "confidence" in kw.filter_sscount:
+        try:
+            confidence = kw.filter_sscount["confidence"]
+            confidence = bool(confidence)
+        except:
+            log.warning(f"Could not convert confidence {kw.filter_sscount['confidence']} to boolean, reverting to default value (False)")
+            confidence = False
+    else:
+        confidence = False
+
+    if "min_ss_count" in kw.filter_sscount:
+        try:
+            min_ss_count = kw.filter_sscount["min_ss_count"]
+            min_ss_count = int(min_ss_count)
+        except:
+            log.warning(f"Could not convert min_ss_count {kw.filter_sscount['min_ss_count']} to integer, reverting to default value (3)")
+    else:
+        min_ss_count = 3
+
+    if "simple" in kw.filter_sscount:
+        try:
+            simple = kw.filter_sscount["simple"]
+            simple = bool(simple)
+        except:
+            log.warning(f"Could not convert argument 'simple' {kw.filter_sscount['simple']} to boolean, reverting to default (True)")
+            simple = True
+    else:
+        simple = True
+
+    if "strict" in kw.filter_sscount:
+        try:
+            strict = kw.filter_sscount["strict"]
+            strict = bool(strict)
+        except:
+            log.warning(f"Could not convert argument 'strict' {kw.filter_sscount['strict']} to boolean, reverting to default value (False)")
+    else:
+        strict = False
+
+    #spec = dock.get_spec(kw.architecture)
+    logging.debug(f"sscount filter args:\n"
+                  f"confidence : {confidence}\nmin_helix_length : {min_helix_length}\n"
+                  f"min_sheet_length : {min_sheet_length}\nmin_loop_length : {min_loop_length}\n"
+                  f"max_dist : {max_dist}\nmin_element_resis: {min_element_resis}\nsstype:{sstype}\n"
+                  f"min_ss_count: {min_ss_count}\nstrict: {strict}")
+
+    #TODO: Make this work for n-component docking problems
+    #if len(body) == 2:
+    #    X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
+    #    B = [b.copy_with_sym(spec.nfold[i], spec.axis[i]) for i, b in enumerate(body)]
+    #    body1 = B[0]
+    #    body2 = B[1]
+    #    pos1 = X[:,0]
+    #    pos2 = X[:,1]
+    #else:
+    #    B = body.copy_with_sym(spec.nfold, spec.axis)
+    #    pos1 = xforms.reshape(-1, 4, 4)  #@ body.pos
+    #    pos2 = spec.to_neighbor_olig @ pos1
+    #    body1 = B
+    #    body2 = B
+    logging.debug(f"Architecture in sscount filter is {kw.architecture}")
+    body1, body2, pos1, pos2 = fb.filter_body(body, xforms, kw.architecture)
 
     pairs, lbub = rp.bvh.bvh_collect_pairs_vec(
         body1.bvh_cen,
@@ -60,6 +186,7 @@ def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_lengt
 
     sscounts_data = []
     ss_counts = np.zeros(max(len(pos1), len(pos2)))
+    ibest = np.array(range(0, len(ss_counts)))
     for i, (lb, ub) in enumerate(lbub):
 
         #this loses context information.
@@ -174,10 +301,12 @@ def filter_sscount(body1, body2, pos1, pos2, min_helix_length=4, min_sheet_lengt
             ss_counts[i] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
             sscounts_data.append(temp_result)
 
-    if confidence==1:
-        return ss_counts >= min_ss_count
+    if confidence:
+        bbest = ss_counts >= min_ss_count
+        ibest = ibest[bbest]
+        return ibest, ss_counts
     elif simple:
-        return ss_counts
+        return ibest, ss_counts
     else:
-        return sscounts_data
+        return ibest, sscounts_data
 
