@@ -293,10 +293,6 @@ def default_cli_parser(parent=None, **kw):
       "--fixed_wiggle", nargs='+', type=int, default=[],
       help='Similar to fixed_components (input as list 0,1,2,etc) but allows user-inputted translation and rotation wiggling about orientation axis in hierarchical docking'
    )
-   addarg("--fw_cartlb", default=-5.0, type=float,
-          help='Lower bound for fixed_wiggle translation (in Angstroms) Default 5.0')
-   addarg("--fw_cartub", default=5.0, type=float,
-          help='Upper bound for fixed_wiggle translation (in Angstroms) Default 5.0')
    addarg("--fw_rotlb", default=-5.0, type=float,
           help='Lower bound for fixed_wiggle rotation (in degrees) Default 5.0')
    addarg("--fw_rotub", default=5.0, type=float,
