@@ -85,7 +85,7 @@ def hier_multi_axis_sampler(
 
    ang = 360 / spec.nfold
    ang_nstep = np.ceil(ang / angresl).astype('i')
-   assert np.all(ang_nstep > 0) 
+   assert np.all(ang_nstep > 0)
    
    samp = []
    for i in range(len(spec.nfold)):
@@ -94,16 +94,25 @@ def hier_multi_axis_sampler(
       elif i in fixed_rot: 
          s = LineHier(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], spec.axis[i])
       elif i in fixed_trans: 
-         s = rp.sampling.RotHier_f4(0, ang[i], ang_nstep[i], spec.axis[i][:3]) #TODO: MDL try this
+         s = rp.sampling.RotHier_f4(0, ang[i], ang_nstep[i], spec.axis[i][:3])
       elif i in fixed_components:
          s = rp.ZeroDHier([np.eye(4)])
       elif i in fixed_wiggle:
+          cart_bounds = np.array([0,abs(fw_cartlb)+abs(fw_cartub)] * spec.num_components)
+          cart_bounds = np.array([cart_bounds])
+          assert len(cart_bounds) in (1, len(spec.nfold))
+          cart_bounds = np.tile(cart_bounds, [8, 1])
+          cart_nstep = np.ceil((cart_bounds[:, 1] - cart_bounds[:, 0]) / resl).astype('i')
+          assert np.all(cart_nstep > 0)
+          
+          ang = (abs(fw_rotlb)+abs(fw_rotub)) / spec.nfold
+          ang_nstep = np.ceil(ang / angresl).astype('i')
+          assert np.all(ang_nstep > 0)
           s = rp.sampling.RotCart1Hier_f4(fw_cartlb,  fw_cartub, cart_nstep[i], fw_rotlb, fw_rotub, ang_nstep[i], spec.axis[i][:3])
       else:
          s = rp.sampling.RotCart1Hier_f4(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], 0,
                                          ang[i], ang_nstep[i], spec.axis[i][:3])
       samp.append(s)
-    
 
    for i, s in enumerate(samp):
       if flip_components[i]:
