@@ -212,7 +212,7 @@ class RpxHier:
       score_fx = score_functions.get(self.function)
 
       if score_fx:
-         scores = score_fx(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, wts=kw.wts, iresl=iresl)
+         scores = score_fx(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, pairs=pairs, wts=kw.wts, iresl=iresl)
       else:
          logging.info(f"Failed to find score function {self.function}, falling back to 'stnd'")
          scores = score_functions["stnd"](pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, wts=kw.wts)

@@ -27,6 +27,14 @@ def hier_axis_sampler(
    angresl,
    axis=[0, 0, 1],
    flipax=[0, 1, 0],
+   fixed_rot=[],
+   fixed_components=[],
+   fixed_trans=[],
+   fixed_wiggle=[],
+   fw_cartlb=-5,
+   fw_cartub=5,
+   fw_rotlb=-5,
+   fw_rotub=5,
    **kw,
 ):
    '''
@@ -43,9 +51,19 @@ def hier_axis_sampler(
    cart_nstep = int(np.ceil((ub - lb) / resl))
    ang = 360 / nfold
    ang_nstep = int(np.ceil(ang / angresl))
-   samp = rp.sampling.RotCart1Hier_f4(lb, ub, cart_nstep, 0, ang, ang_nstep, axis[:3])
-   if flipax is not None:
-      print("setting flipax")
+   if fixed_rot == [0]: 
+      samp = LineHier(lb, ub, cart_nstep, axis)
+   elif fixed_trans == [0]: 
+      samp = rp.sampling.RotHier_f4(0, ang, ang_nstep, axis[:3])
+   elif fixed_components == [0]:
+      samp = rp.ZeroDHier([np.eye(4)])
+   elif fixed_wiggle == [0]:
+      #Samples +/- 3 angstroms along sym axis, and same value around the symaxis
+      samp = rp.sampling.RotCart1Hier_f4(fw_cartlb,  fw_cartub, cart_nstep, fw_rotlb, fw_rotub, ang_nstep, axis[:3])
+   else:
+      samp = rp.sampling.RotCart1Hier_f4(lb, ub, cart_nstep, 0,
+                                      ang, ang_nstep, axis[:3])
+   if kw.flip_components[0]:
       flip = rp.ZeroDHier([np.eye(4), rp.homog.hrot(flipax, 180)])
       samp = rp.ProductHier(samp, flip)
    return samp
@@ -64,8 +82,6 @@ def hier_multi_axis_sampler(
    fw_cartub=5,
    fw_rotlb=-5,
    fw_rotub=5,
-   fw_cartnc=1,
-   fw_rotnc=1,
    **kw,
 ):
    if not (hasattr(spec, 'nfold') and hasattr(spec, 'axis') and hasattr(spec, 'xflip')):
@@ -102,10 +118,7 @@ def hier_multi_axis_sampler(
          s = rp.ZeroDHier([np.eye(4)])
       elif i in fixed_wiggle: #TODO: MDL try this
          #Samples +/- 3 angstroms along sym axis, and same value around the symaxis
-         if fw_cartnc and fw_rotnc: 
-             s = rp.sampling.RotCart1Hier_f4(fw_cartlb,  fw_cartub, fw_cartnc, fw_rotlb, fw_rotub, fw_rotnc, spec.axis[i][:3])
-         else:
-             s =  rp.sampling.RotCart1Hier_f4(fw_cartlb,  fw_cartub, cart_nstep[i], fw_rotlb, fw_rotub, ang_nstep[i], spec.axis[i][:3])
+         s = rp.sampling.RotCart1Hier_f4(fw_cartlb,  fw_cartub, cart_nstep[i], fw_rotlb, fw_rotub, ang_nstep[i], spec.axis[i][:3])
       else:
          s = rp.sampling.RotCart1Hier_f4(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], 0,
                                          ang[i], ang_nstep[i], spec.axis[i][:3])

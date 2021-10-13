@@ -1,5 +1,6 @@
 import numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, grid_search
+from rpxdock.filter import filters
 
 def make_cyclic_hier_sampler(monomer, hscore, **kw):
    '''
@@ -58,6 +59,12 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
       print("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
       print("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
 
+
+   if kw.filter_config:
+      # Apply filters
+      sbest, filter_extra = filters.filter(xforms[ibest], monomer, **kw)
+      ibest = ibest[sbest]
+
    xforms = xforms[ibest]
    '''
    dump pickle: (multidimensional pandas df) 
@@ -73,15 +80,31 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
    wnct = kw.wts.sub(rpx=0, ncontact=1)
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
    ncontact, _ = evaluator(xforms, kw.nresl - 1, wnct)
-   return rp.Result(
-      body_=None if kw.dont_store_body_in_results else [monomer],
+
+
+   data = dict(
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, sym=sym),
       scores=(["model"], scores[ibest].astype("f4")),
       xforms=(["model", "hrow", "hcol"], xforms),
       rpx=(["model"], rpx.astype("f4")),
       ncontact=(["model"], ncontact.astype("f4")),
-      reslb=(["model"], extra.reslb),
-      resub=(["model"], extra.resub),
+   )
+
+   for k, v in extra.items():
+      if not isinstance(v, (list, tuple)) or len(v) > 3:
+         v = ['model'], v
+      data[k] = v
+
+   if kw.filter_config:
+      #add the filter data to data
+      for k, v in filter_extra.items():
+         if not isinstance(v, (list, tuple)) or len(v) > 3:
+            v = ['model'], v
+         data[k] = v
+
+   return rp.Result(
+      body_=None if kw.dont_store_body_in_results else [monomer],
+      **data,
    )
 
 class CyclicEvaluator:
