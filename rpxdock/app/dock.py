@@ -218,24 +218,25 @@ def dock_plug(hscore, **kw):
 def dock_axel(hscore, **kw):
    kw = rp.Bunch(kw)
    spec = get_spec(kw.architecture)
-   flip = spec.flip_axis
+   flip = list(spec.flip_axis)
 
    if kw.docking_method.lower() == 'hier':
        if not kw.flip_components[0]:
           flip[0] = None
        if spec.nfold[0] == spec.nfold[1]:
-          sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0],  lb=0, ub=100, resl=5, angresl=5)
+          sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0],  lb=0, ub=100, resl=5, angresl=5, axis=[0,0,1], flipax=flip[0])
        else:
           sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0]*spec.nfold[1]/gcd(spec.nfold[0],spec.nfold[1]),
-                  lb=0, ub=100, resl=5, angresl=5)
+                  lb=0, ub=100, resl=5, angresl=5, axis=[0,0,1], flipax=flip[0])
        sampler2 = rp.sampling.ZeroDHier([np.eye(4),rp.homog.hrot([1,0,0],180)])
        if len(kw.flip_components) is 1 and not kw.flip_components[0]:
-          sampler2 = np.eye(4)
+          sampler2 = rp.sampling.ZeroDHier(np.eye(4))
        if len(kw.flip_components) is not 1 and not kw.flip_components[1]:
-          sampler2 = np.eye(4)
+          sampler2 = rp.sampling.ZeroDHier(np.eye(4))
        sampler = rp.sampling.CompoundHier(sampler2, sampler1)
        logging.info(f'num base samples {sampler.size(0):,}')
        search = rp.hier_search
+  
    elif kw.docking_method.lower() =='grid':
        flip[0]=list(spec.flip_axis[0,:3])
        if not kw.flip_components[0]:
@@ -255,7 +256,7 @@ def dock_axel(hscore, **kw):
             flip=flip[0]
             )
        assert sampler1.ndim == 3
-       if len(kw.flip_components)<2 and not kw.flip_components[1]:
+       if (len(kw.flip_components)==1 and not kw.flip_components[0]) or (len(kw.flip_components)==2 and not kw.flip_components[1]):
           shape = (2,)*sampler1.shape
           sampler = np.zeros(shape=shape)
           sampler[0,]=sampler1
