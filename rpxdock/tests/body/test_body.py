@@ -4,10 +4,11 @@ from rpxdock.motif.frames import stub_from_points
 import _pickle
 from time import perf_counter
 import numpy as np, rpxdock as rp, rpxdock.homog as hm
-from rpxdock.body import Body, get_trimming_subbodies
 
 from pyrosetta import rosetta as ros, pose_from_file
 import rpxdock.rosetta.triggers_init
+
+from rpxdock.body.body import Body
 
 def test_body_ss_info():
    kw = rp.app.defaults()

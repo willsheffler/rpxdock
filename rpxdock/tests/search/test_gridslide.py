@@ -28,7 +28,7 @@
 #    # for arch in "T2".split():
 #    for arch in "I3 I2 O3 O2 T3 T2".split():
 #       nfold = int(arch[1])
-#       pose = C3_1nza if nfold is 3 else C2_3hm4
+#       pose = C3_1nza if nfold== 3 else C2_3hm4
 #       spec = DockSpec1CompCage(arch)
 #       body = Body(pose, nfold, score_only_ss="HEL")
 #

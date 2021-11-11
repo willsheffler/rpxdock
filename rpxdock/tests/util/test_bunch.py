@@ -32,7 +32,7 @@ def test_bunch_init():
    assert b3.a == 2
    assert b3.b == "bee"
    assert b3.missing is None
-   assert b3.c is 3
+   assert b3.c == 3
    assert b3.d is "dee"
 
    foo = Namespace(a=1, b='c')

@@ -13,7 +13,7 @@ def hier_search(sampler, evaluator, **kw):
    kw = rp.Bunch(kw)
    neval, indices, scores = list(), None, None
    nresl = kw.nresl if kw.nresl else evaluator.hscore.actual_nresl
-   
+
    #Uncomment to dump docking metrics at each resolution level of the search.
    #iresl_list = []
    #data_list = []
@@ -25,7 +25,7 @@ def hier_search(sampler, evaluator, **kw):
       neval.append((t, len(scores)))
       log.info(f"{kw.output_prefix} iresl {iresl} ntot {len(scores):11,} " +
                f"nonzero {np.sum(scores > 0):5,}")
-   #Uncomment to dump docking metrics at each resolution level of the search. 
+   #Uncomment to dump docking metrics at each resolution level of the search.
    """
       iresl_list.append(iresl)
       wrpx = kw.wts.sub(rpx=1, ncontact=0)
@@ -137,7 +137,7 @@ def expand_samples(iresl, sampler, indices=None, scores=None, beam_size=None, **
 #    for i in range(nstep):
 #       npair[i], pos[i] = rp.search.gridslide.find_connected_2xCyclic_slide(
 #          spec, body1, body2, samples, min_contacts=mct[-1], **kw)
-#       if len(npair[i]) is 0:
+#       if len(npair[i])== 0:
 #          return npair[i - 1], pos[i - 1]
 #       if i + 1 < nstep:
 #          newresl /= 2

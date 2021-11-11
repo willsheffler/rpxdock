@@ -39,7 +39,7 @@
 #          prune_minkeep=prune_minkeep,
 #       )
 #       print("search time", perf_counter() - t)
-#       npair0 = npair[:, 0] if npair.ndim is 2 else npair
+#       npair0 = npair[:, 0] if npair.ndim== 2 else npair
 #
 #       if len(npair0) == 0:
 #          print("no results")

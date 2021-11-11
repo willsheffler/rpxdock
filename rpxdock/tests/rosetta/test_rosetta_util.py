@@ -1,3 +1,5 @@
+import os
+import rpxdock as rp
 from rpxdock.rosetta.rosetta_util import *
 from rpxdock.data import pdbdir
 
@@ -21,12 +23,45 @@ def test_get_sc_coords(top7):
        [1.56929971, 14.18810902, 0.42478765, 1], [3.07664604, 15.07775054, 0.58810302, 1],
        [4.21952131, 13.64757636, -0.92852648, 1], [2.96013644, 12.41752788, -0.84807989, 1]])
 
-   aset = set()
-   for a in anames:
-      aset.update(a)
-   print(aset)
+   # aset = set()
+   # for a in anames:
+   #    aset.update(a)
+   # print(aset)
+
+def test_get_trimmed_poses(dhr14):
+
+   print(os.getcwd())
+   os.system('rm nterm?.pdb')
+   os.system('rm cterm?.pdb')
+
+   n, c = get_trimmed_poses(
+      dhr14,
+      helix_trim_max=5,
+      helix_trim_nres_ignore_end=3,
+      individual_pieces=False,
+      trim_from_N=True,
+      trim_from_C=True,
+   )
+   # for i, p in enumerate(n):
+   # p.dump_pdb('nterm%i.pdb' % i)
+   # for i, p in enumerate(c):
+   # print(p.size())
+   # p.dump_pdb('cterm%i.pdb' % i)
+
+   nlen = [316, 297, 277, 257, 237, 217]
+   clen = [314, 294, 274, 254, 234, 217]
+   assert [p.size() for p in n] == nlen
+   assert [p.size() for p in c] == clen
+
+   nseq = 'NERVKQLAEK VIEIVKELAE VNEIVKQLAE VIYIVKILAE VNEIVKQLAE VIYIVKILAE'.split()
+   cseq = 'EHIEKILEEL NEIVKQLEEV IYIVKILAEL NEIVKQLAEV IYIVKILAEL VKQLAEVAKE'.split()
+   assert [p.sequence()[:10] for p in n] == nseq
+   assert [p.sequence()[-10:] for p in c] == cseq
 
 if __name__ == '__main__':
    from rpxdock.rosetta.triggers_init import get_pose_cached
 
-   test_get_sc_coords(get_pose_cached('top7.pdb.gz', pdbdir))
+   # test_get_sc_coords(get_pose_cached('top7.pdb.gz', pdbdir))
+   test_get_trimmed_poses(get_pose_cached('DHR14.pdb.gz', pdbdir))
+   # test_get_trimmed_poses(get_pose_cached('top7.pdb.gz', pdbdir))
+   print('DONE')

@@ -47,23 +47,23 @@ def hier_axis_sampler(
    :param flipax: flip subunits
    :return: "arrays of pos" to check for a given search resolution where pos are represented by matrices
    '''
-   kw=rp.Bunch(kw)
+   kw = rp.Bunch(kw)
    cart_nstep = int(np.ceil((ub - lb) / resl))
    ang = 360 / nfold
    ang_nstep = int(np.ceil(ang / angresl))
-   
-   if fixed_rot == [0]: 
+
+   if fixed_rot == [0]:
       samp = LineHier(lb, ub, cart_nstep, axis)
-   elif fixed_trans == [0]: 
+   elif fixed_trans == [0]:
       samp = rp.sampling.RotHier_f4(0, ang, ang_nstep, axis[:3])
    elif fixed_components == [0]:
       samp = rp.ZeroDHier([np.eye(4)])
    elif fixed_wiggle == [0]:
       #Samples +/- 3 angstroms along sym axis, and same value around the symaxis
-      samp = rp.sampling.RotCart1Hier_f4(fw_cartlb,  fw_cartub, cart_nstep, fw_rotlb, fw_rotub, ang_nstep, axis[:3])
+      samp = rp.sampling.RotCart1Hier_f4(fw_cartlb, fw_cartub, cart_nstep, fw_rotlb, fw_rotub,
+                                         ang_nstep, axis[:3])
    else:
-      samp = rp.sampling.RotCart1Hier_f4(lb, ub, cart_nstep, 0,
-                                      ang, ang_nstep, axis[:3])
+      samp = rp.sampling.RotCart1Hier_f4(lb, ub, cart_nstep, 0, ang, ang_nstep, axis[:3])
    if kw.flip_components[0]:
       flip = rp.ZeroDHier([np.eye(4), rp.homog.hrot(flipax, 180)])
       samp = rp.ProductHier(samp, flip)
@@ -90,11 +90,11 @@ def hier_multi_axis_sampler(
    assert len(spec.nfold) == len(spec.axis) == len(spec.xflip)
    if isinstance(flip_components, bool):
       flip_components = [flip_components]
-   if len(flip_components) is 1:
+   if len(flip_components) == 1:
       flip_components = flip_components * len(spec.nfold)
    # for i, flip in enumerate(flip_components):
    # flip_components[i] = flip_components[i] and not spec.comp_is_dihedral[i]
-   if len(cart_bounds) is 2 and isinstance(cart_bounds[0], int):
+   if len(cart_bounds) == 2 and isinstance(cart_bounds[0], int):
       cart_bounds = np.array([cart_bounds] * spec.num_components)
    cart_bounds = np.array(cart_bounds)
    assert len(cart_bounds) in (1, len(spec.nfold))
@@ -105,21 +105,23 @@ def hier_multi_axis_sampler(
 
    ang = 360 / spec.nfold
    ang_nstep = np.ceil(ang / angresl).astype('i')
-   assert np.all(ang_nstep > 0) 
-   
+   assert np.all(ang_nstep > 0)
+
    samp = []
    for i in range(len(spec.nfold)):
       if spec.comp_is_dihedral[i]:
          s = LineHier(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], spec.axis[i])
-      elif i in fixed_rot: 
+      elif i in fixed_rot:
          s = LineHier(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], spec.axis[i])
-      elif i in fixed_trans: 
-         s = rp.sampling.RotHier_f4(0, ang[i], ang_nstep[i], spec.axis[i][:3]) #TODO: MDL try this
+      elif i in fixed_trans:
+         s = rp.sampling.RotHier_f4(0, ang[i], ang_nstep[i],
+                                    spec.axis[i][:3])  #TODO: MDL try this
       elif i in fixed_components:
          s = rp.ZeroDHier([np.eye(4)])
-      elif i in fixed_wiggle: #TODO: MDL try this
+      elif i in fixed_wiggle:  #TODO: MDL try this
          #Samples +/- 3 angstroms along sym axis, and same value around the symaxis
-         s = rp.sampling.RotCart1Hier_f4(fw_cartlb,  fw_cartub, cart_nstep[i], fw_rotlb, fw_rotub, ang_nstep[i], spec.axis[i][:3])
+         s = rp.sampling.RotCart1Hier_f4(fw_cartlb, fw_cartub, cart_nstep[i], fw_rotlb, fw_rotub,
+                                         ang_nstep[i], spec.axis[i][:3])
       else:
          s = rp.sampling.RotCart1Hier_f4(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], 0,
                                          ang[i], ang_nstep[i], spec.axis[i][:3])

@@ -120,7 +120,7 @@ def test_inputs_read_allowed_res():
       allowed_residues=[rp.data.datadir + '/example_allowed_residues.txt'],
    )
    kw = process_cli_args(kw)
-   assert len(kw.allowed_residues) is 1
+   assert len(kw.allowed_residues) == 1
    assert kw.allowed_residues[0](range(1, 11)) == {3, 6, 7, 8, 9, 10}
    assert kw.allowed_residues[0](range(1, 21)) == {3, 6, 7, 8, 9, 10, 11, 17, 18, 19, 20}
    kw = defaults(process_args=False).sub(inputs=['foo'])

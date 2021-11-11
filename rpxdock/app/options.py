@@ -306,8 +306,10 @@ def default_cli_parser(parent=None, **kw):
       "--function", type=str, default='stnd',
       help='score function to use for scoring. Default is stnd scorefunction. Example: stnd, sasa_priority, mean, exp, median. Full list is defined in score/scorefunctions.py'
    )
-   addarg("--filter_config", 
-      help='NOTE: filters only work for cyclic, onecomp, and multicomp docking (ie. not for plug or asymetric docking). Path to a yaml file containing the configurations for filters.')
+   addarg(
+      "--filter_config",
+      help='NOTE: filters only work for cyclic, onecomp, and multicomp docking (ie. not for plug or asymetric docking). Path to a yaml file containing the configurations for filters.'
+   )
    addarg("--helix_trim_max", default=0,
           help='Allow trimming of N helices from N or C term as specified by --trim_direction')
 
@@ -397,26 +399,26 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
 
    if not opt.inputs:
       msg = '--allowed_residues cant be used if --inputs not used'
-      assert len(opt.allowed_residues) is 0, msg
+      assert len(opt.allowed_residues) == 0, msg
    if not opt.inputs1:
       msg = '--allowed_residues1 cant be used if --inputs1 not used'
-      assert len(opt.allowed_residues1) is 0, msg
+      assert len(opt.allowed_residues1) == 0, msg
    if not opt.inputs2:
       msg = '--allowed_residues2 cant be used if --inputs2 not used'
-      assert len(opt.allowed_residues2) is 0, msg
+      assert len(opt.allowed_residues2) == 0, msg
    if not opt.inputs3:
       msg = '--allowed_residues3 cant be used if --inputs3 not used'
-      assert len(opt.allowed_residues3) is 0, msg
+      assert len(opt.allowed_residues3) == 0, msg
 
-   if len(opt.allowed_residues) is 1: opt.allowed_residues *= len(opt.inputs)
-   if len(opt.allowed_residues1) is 1: opt.allowed_residues1 *= len(opt.inputs1)
-   if len(opt.allowed_residues2) is 1: opt.allowed_residues2 *= len(opt.inputs2)
-   if len(opt.allowed_residues3) is 1: opt.allowed_residues3 *= len(opt.inputs3)
+   if len(opt.allowed_residues) == 1: opt.allowed_residues *= len(opt.inputs)
+   if len(opt.allowed_residues1) == 1: opt.allowed_residues1 *= len(opt.inputs1)
+   if len(opt.allowed_residues2) == 1: opt.allowed_residues2 *= len(opt.inputs2)
+   if len(opt.allowed_residues3) == 1: opt.allowed_residues3 *= len(opt.inputs3)
 
-   if len(opt.allowed_residues) is 0: opt.allowed_residues = [None] * len(opt.inputs)
-   if len(opt.allowed_residues1) is 0: opt.allowed_residues1 = [None] * len(opt.inputs1)
-   if len(opt.allowed_residues2) is 0: opt.allowed_residues2 = [None] * len(opt.inputs2)
-   if len(opt.allowed_residues3) is 0: opt.allowed_residues3 = [None] * len(opt.inputs3)
+   if len(opt.allowed_residues) == 0: opt.allowed_residues = [None] * len(opt.inputs)
+   if len(opt.allowed_residues1) == 0: opt.allowed_residues1 = [None] * len(opt.inputs1)
+   if len(opt.allowed_residues2) == 0: opt.allowed_residues2 = [None] * len(opt.inputs2)
+   if len(opt.allowed_residues3) == 0: opt.allowed_residues3 = [None] * len(opt.inputs3)
 
    if read_allowed_res_files:
       opt.allowed_residues = [_read_allowed_res_file(_) for _ in opt.allowed_residues]
@@ -495,7 +497,7 @@ def _read_allowed_res_file(fname):
 
 def _process_cart_bounds(cart_bounds):
    if not cart_bounds: cart_bounds = 0, 500
-   elif len(cart_bounds) is 1: cart_bounds = [0, cart_bounds[0]]
+   elif len(cart_bounds) == 1: cart_bounds = [0, cart_bounds[0]]
    tmp = list()
    for i in range(0, len(cart_bounds), 2):
       tmp.append(cart_bounds[i:i + 2])

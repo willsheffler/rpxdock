@@ -29,7 +29,7 @@ def karney_data_path(fname):
 
 def quats_from_karney_file(fname):
    with gzip.open(fname) as input:
-      if sys.version_info.major is 3:
+      if sys.version_info.major == 3:
          quat, weight = read_karney_orientations(str(input.read(), "utf-8"))
       else:
          quat, weight = read_karney_orientations(str(input.read()))

@@ -111,9 +111,9 @@ def test_score_function():
    t = TrimComp()
    s = ScoreComp()
    func = BodyPairEvaluator([f1, f2, f3, f4, t, t, s])
-   assert len(func.filters) is 4
-   assert len(func.trimmers) is 2
-   assert len(func.scorefuncs) is 1
+   assert len(func.filters) == 4
+   assert len(func.trimmers) == 2
+   assert len(func.scorefuncs) == 1
    assert func.filters == [f4, f2, f3, f1]
 
    with pytest.raises(TypeError):

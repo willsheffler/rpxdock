@@ -10,7 +10,7 @@ def dock_helix(hscore, body, **kw):
    # kw.executor = ThreadPoolExecutor(8)
    kw.executor = None
 
-   assert len(kw.cart_bounds) is 3, 'improper cart_bounds'
+   assert len(kw.cart_bounds) == 3, 'improper cart_bounds'
    cartlb = np.array([kw.cart_bounds[0][0], kw.cart_bounds[1][0], kw.cart_bounds[2][0]])
    cartub = np.array([kw.cart_bounds[0][1], kw.cart_bounds[1][1], kw.cart_bounds[2][1]])
    cartbs = np.ceil((cartub - cartlb) / kw.cart_resl).astype('i')

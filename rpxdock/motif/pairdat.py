@@ -39,7 +39,7 @@ class ResPairData:
    def subset_by_pdb(self, keep, sanity_check=False, update_p_res=True, **kw):
       """keep subset of data in same order as original"""
       keepers = self._get_keepers_by_pdb(keep, **kw)
-      if np.sum(keepers) is 0: raise ValueError('no pdbs remain')
+      if np.sum(keepers) == 0: raise ValueError('no pdbs remain')
       residx = np.isin(self.data.r_pdbid, keepers)
       pairidx = np.isin(self.data.p_pdbid, keepers)
 
@@ -74,7 +74,7 @@ class ResPairData:
 
    def subset_by_res(self, keepers, sanity_check=False):
       assert len(keepers) == len(self.data.resid)
-      if np.sum(keepers) is 0: raise ValueError('no residues remain')
+      if np.sum(keepers) == 0: raise ValueError('no residues remain')
 
       # t1 = time.perf_counter()
       # remove residues w/o removing pdbs

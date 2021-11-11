@@ -32,7 +32,7 @@ class DockSpec1CompCage(DockSpec):
       assert arch[:2] in "T2 T3 O2 O3 O4 I2 I3 I5 D2 D3 D4 D5 D6 D8".split()
       if arch[0] == 'D':
          self.sym = arch[:2]
-         if len(arch) is 4:
+         if len(arch) == 4:
             assert arch[2] == '_'
             self.nfold = int(arch[3])
             assert self.nfold in (2, int(arch[1]))

@@ -105,9 +105,9 @@ def dispatch(file, pytest_args="--duration=5"):
 t = perf_counter()
 
 post = ""
-if len(sys.argv) is 1:
+if len(sys.argv) == 1:
    cmd = "pytest"
-elif len(sys.argv) is 2:
+elif len(sys.argv) == 2:
    if sys.argv[1].endswith(__file__):
       cmd = ""
    else:

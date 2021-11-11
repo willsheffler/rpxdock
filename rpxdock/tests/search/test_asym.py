@@ -32,6 +32,30 @@ def test_asym(hscore, body, body2):
    ref = rp.data.get_test_data('test_asym')
    rp.search.assert_results_close(result, ref)
 
+@pytest.mark.skip()
+def test_asym_C3(hscore, body, body2):
+   'asym c3 ha ha'
+   # raise NotImplementedError()
+   assert 0, 'add Cx symmetry to asym docking (the hfuse problem)'
+   kw = testarg()
+   kw.max_trim = 0
+   kw.output_prefix = 'test_asym'
+
+   cartlb = np.array([+00, +10, +00])
+   cartub = np.array([+30, +20, +30])
+   cartbs = np.array([4, 1, 4], dtype="i")
+   sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, 30)
+
+   # sampler = rp.search.asym_get_sample_hierarchy(body2, hscore, 18)
+   # print(f'toplevel samples {sampler.size(0):,}')
+   result = rp.search.make_asym([body2, body], hscore, sampler, **kw)
+
+   result.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts, sym='C3')
+
+   # rp.dump(result, 'rpxdock/data/testdata/test_asym.pickle')
+   ref = rp.data.get_test_data('test_asym')
+   rp.search.assert_results_close(result, ref)
+
 @pytest.mark.skip
 def test_asym_trim(hscore, body, body2):
    kw = testarg()
