@@ -40,8 +40,8 @@ def make_multicomp(
       logging.debug("Applying filters to search results")
       sbest, filter_extra = filters.filter(xforms[ibest], bodies, **kw)
       # TODO: Add exception handling for empty array
-      print (sbest)
-      print (ibest)
+      print(sbest)
+      print(ibest)
       ibest = ibest[sbest]
 
    tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw)
@@ -149,7 +149,8 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          ifscore = list()
          for i in range(len(B)):
             for j in range(i):
-               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
+               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl,
+                                                   wts=wts))
                # ifscore = np.stack(ifscore)
                logging.debug(f"ifscore is {len(ifscore)} long and is a {type(ifscore)}")
 

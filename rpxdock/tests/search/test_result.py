@@ -46,9 +46,9 @@ def test_result_no_body_label(result):
 
 @pytest.mark.xfail()
 def test_result_dump_asym():
-   assert 0, 'fix dump_pdb output_asym_only'
+   # assert 0, 'fix dump_pdb output_asym_only'
    result = rp.data.get_test_data('result_test_asym_out')
-   print(result.dump_pdbs([0, 3], output_asym_only=True))
+   print(result.dump_pdbs(output_asym_only=True))
 
 if __name__ == '__main__':
    # import tempfile

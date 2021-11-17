@@ -177,29 +177,33 @@ class Result:
       if 'reslb' in self.data and 'resub' in self.data:
          bounds = np.stack([self.reslb[imodel], self.resub[imodel]], axis=-1)
       symframes = rp.geom.symframes(sym, pos=self.xforms.data[imodel], **kw)
-      if output_asym_only:
 
-         if False and len(bod) == 2:
+      if output_asym_only:
+         if len(bod) == 2:
             best = 0, None, None
-            x = self.xforms.data[imodel].copy()
-            bod0, bod1 = bod
-            bod0.pos = x[0]
+            x = self.xforms.data[imodel]
+            bod[0].pos = x[0]
             for i, f in enumerate(symframes):
-               bod1.pos = f @ x[1]
-               ctc = bod0.contact_count(bod1, 8)
-               print(i, ctc)
+               bod[1].pos = f @ x[1]
+               ctc = bod[0].contact_count(bod[1], 8)
+               # print(i, ctc)
                if ctc > best[0]:
                   best = ctc, i, f
-            print('best', best)
-            # self.xforms.data[imodel][1] = best[2] @ x[1]
-
+            # print('best', best)
+            symframes = [np.eye(4)]
+            bod[1].pos = best[2] @ self.xforms.data[imodel][1]
          elif len(bod) > 2:
             raise NotImplementedError
 
-         symframes = [np.eye(4)]
       outfnames.append(fname)
-      rp.io.dump_pdb_from_bodies(fname, bod, symframes=symframes, resbounds=bounds,
-                                 bfactor=bfactor, **kw)
+      rp.io.dump_pdb_from_bodies(
+         fname,
+         bod,
+         symframes=symframes,
+         resbounds=bounds,
+         bfactor=bfactor,
+         **kw,
+      )
       if self.pdb_extra is not None:
          with open(fname, 'a') as out:
             out.write(self.pdb_extra[int(imodel)])

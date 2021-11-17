@@ -59,7 +59,6 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
       print("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
       print("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
 
-
    if kw.filter_config:
       # Apply filters
       sbest, filter_extra = filters.filter(xforms[ibest], monomer, **kw)
@@ -80,7 +79,6 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
    wnct = kw.wts.sub(rpx=0, ncontact=1)
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
    ncontact, _ = evaluator(xforms, kw.nresl - 1, wnct)
-
 
    data = dict(
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, sym=sym),
