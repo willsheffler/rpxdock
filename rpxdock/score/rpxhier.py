@@ -3,11 +3,11 @@ from rpxdock.xbin import xbin_util as xu
 from rpxdock.score import score_functions as sfx
 
 log = logging.getLogger(__name__)
-
 """
 RpxHier holds score information at each level of searching / scoring 
 Grid search just uses the last/finest scorefunction 
 """
+
 class RpxHier:
    def __init__(self, files, max_pair_dist=8.0, hscore_data_dir=None, **kw):
       kw = rp.Bunch(kw)
@@ -112,15 +112,15 @@ class RpxHier:
 #        "pos2"_a = eye4);
 
    def scorepos(
-      self,
-      body1,
-      body2,
-      pos1,
-      pos2,
-      iresl=-1,
-      bounds=(),
-      residue_summary=np.mean,  # TODO hook up to options to select
-      **kw,
+         self,
+         body1,
+         body2,
+         pos1,
+         pos2,
+         iresl=-1,
+         bounds=(),
+         residue_summary=np.mean,  # TODO hook up to options to select
+         **kw,
    ):
       '''
       TODO WSH rearrange so ppl can add different ways of scoring
@@ -183,7 +183,8 @@ class RpxHier:
 
       #TODO: Figure out if this should be handled in the score functions below.
       if kw.wts.rpx == 0:
-         return kw.wts.ncontact * (lbub[:, 1] - lbub[:, 0]) # option to score based on ncontacts only
+         return kw.wts.ncontact * (lbub[:, 1] - lbub[:, 0]
+                                   )  # option to score based on ncontacts only
 
       xbin = self.hier[iresl].xbin
       phmap = self.hier[iresl].phmap
@@ -208,14 +209,24 @@ class RpxHier:
          pairs,
          pscore,
       )
-      score_functions = {"fun2" : sfx.score_fun2, "lin" : sfx.lin, "exp" : sfx.exp, "mean" : sfx.mean, "median" : sfx.median, "stnd" : sfx.stnd, "sasa_priority" : sfx.sasa_priority}
+      score_functions = {
+         "fun2": sfx.score_fun2,
+         "lin": sfx.lin,
+         "exp": sfx.exp,
+         "mean": sfx.mean,
+         "median": sfx.median,
+         "stnd": sfx.stnd,
+         "sasa_priority": sfx.sasa_priority
+      }
       score_fx = score_functions.get(self.function)
 
       if score_fx:
-         scores = score_fx(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, pairs=pairs, wts=kw.wts, iresl=iresl)
+         scores = score_fx(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, pairs=pairs,
+                           wts=kw.wts, iresl=iresl)
       else:
-         logging.info(f"Failed to find score function {self.function}, falling back to 'stnd'")
-         scores = score_functions["stnd"](pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, wts=kw.wts)
+         # logging.info(f"Failed to find score function {self.function}, falling back to 'stnd'")
+         scores = score_functions["stnd"](pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2,
+                                          wts=kw.wts)
       return scores
 
    def iresls(self):

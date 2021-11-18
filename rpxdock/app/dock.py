@@ -68,22 +68,20 @@ def dock_onecomp(hscore, **kw):
 
    # double normal resolution, cuz why not?
    if kw.docking_method == 'grid':
-      flip=list(spec.flip_axis[:3])
+      flip = list(spec.flip_axis[:3])
       if not kw.flip_components[0]:
          flip = None
       sampler = rp.sampling.grid_sym_axis(
-         cart=np.arange(crtbnd[0], crtbnd[1], kw.grid_resolution_cart_angstroms),
-         ang=np.arange(0, 360 / spec.nfold, kw.grid_resolution_ori_degrees),
-         axis=spec.axis,
-         flip=flip
-         )
+         cart=np.arange(crtbnd[0], crtbnd[1], kw.grid_resolution_cart_angstroms), ang=np.arange(
+            0, 360 / spec.nfold, kw.grid_resolution_ori_degrees), axis=spec.axis, flip=flip)
       search = rp.grid_search
    else:
       if spec.type == 'mirrorlayer':
          sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **kw)
       else:
          sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=crtbnd[0], ub=crtbnd[1], resl=5,
-                                                 angresl=5, axis=spec.axis, flipax=spec.flip_axis, **kw)
+                                                 angresl=5, axis=spec.axis, flipax=spec.flip_axis,
+                                                 **kw)
       search = rp.hier_search
 
    # pose info and axes that intersect
@@ -111,7 +109,7 @@ def dock_onecomp(hscore, **kw):
       result = [None] * len(futures)
       for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
-   
+
    result = rp.concat_results(result)
    return result
    # result = rp.search.make_onecomp(bodyC3, spec, hscore, rp.hier_search, sampler, **kw)
@@ -167,8 +165,8 @@ def dock_plug(hscore, **kw):
       logging.info(f'docking samples per splice {len(sampler)}')
    elif kw.docking_method.lower() == 'hier':
       search = rp.hier_search
-      sampler = rp.sampling.hier_axis_sampler(lb=crtbnd[0], ub=crtbnd[1], resl=10,
-                                              angresl=10, **kw)
+      sampler = rp.sampling.hier_axis_sampler(lb=crtbnd[0], ub=crtbnd[1], resl=10, angresl=10,
+                                              **kw)
       logging.info(f'docking possible samples per splice {sampler.size(4)}')
    else:
       raise ValueError(f'unknown search dock_method {kw.dock_method}')

@@ -281,4 +281,4 @@ def assert_results_close(r, s, n=-1):
    assert np.allclose(r.scores[:n], s.scores[:n])
    assert np.allclose(r.xforms[:n], s.xforms[:n], atol=1e-3)
    for k in r.data:
-      assert np.allclose(r[k][:n], s[k][:n])
+      assert np.allclose(r[k][:n], s[k][:n]), f'field %s no match' % k

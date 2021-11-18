@@ -40,8 +40,8 @@ def make_multicomp(
       logging.debug("Applying filters to search results")
       sbest, filter_extra = filters.filter(xforms[ibest], bodies, **kw)
       # TODO: Add exception handling for empty array
-      print (sbest)
-      print (ibest)
+      print(sbest)
+      print(ibest)
       ibest = ibest[sbest]
 
    tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw)
@@ -84,8 +84,26 @@ def make_multicomp(
             v = ['model', v]
          data[f"ncont_{k}"] = v
    for i in range(len(bodies)):
-      data[f'disp{i}'] = (['model'], np.sum(xforms[:, i, :3, 3] * spec.axis[None, i, :3], axis=1))
-      data[f'angle{i}'] = (['model'], rp.homog.angle_of(xforms[:, i]) * 180 / np.pi)
+
+      x = xforms[:, i]
+      x_flipped = x @ np.linalg.inv(spec.xflip[i])  # TODO is left multiply correct here?
+      # x_flipped = np.linalg.inv(spec.xflip[i]) @ x  # TODO is right multiply correct here?
+      axtrans = x[:, :3, 3]
+      axtrans_flipped = x_flipped[:, :3, 3]
+      ax = spec.axis[None, i, :3]
+      disp = np.sum(axtrans * ax, axis=1)
+      disp_flipped = np.sum(axtrans_flipped * ax, axis=1)
+      ang = rp.homog.angle_of(x) * 180.0 / np.pi
+      ang_flipped = rp.homog.angle_of(x_flipped) * 180.0 / np.pi
+      flipped = ang > 179.0
+      ang = np.where(flipped, ang_flipped, ang)
+
+      assert np.allclose(disp_flipped, disp), 'sanity check, if fail, maybe related to dist2x bug'
+      disp = np.where(flipped, disp_flipped, disp)  #
+
+      data[f'disp{i}'] = (['model'], disp)
+      data[f'angle{i}'] = (['model'], ang_flipped)
+
    default_label = [f'comp{c}' for c in 'ABCDEFD'[:len(bodies)]]
 
    return rp.Result(
@@ -149,7 +167,8 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          ifscore = list()
          for i in range(len(B)):
             for j in range(i):
-               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
+               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl,
+                                                   wts=wts))
                # ifscore = np.stack(ifscore)
                logging.debug(f"ifscore is {len(ifscore)} long and is a {type(ifscore)}")
 
