@@ -1,4 +1,4 @@
-import copy, logging
+import copy, logging, os
 from collections import OrderedDict, abc, defaultdict
 import numpy as np, xarray as xr, rpxdock as rp
 from rpxdock.util import sanitize_for_pickle, num_digits
@@ -14,7 +14,7 @@ class Result:
       if len(self.body_label_) != len(body_):
          raise ValueError('body_label_ must match number of bodies')
       if data_or_file:
-         assert len(kw) is 0
+         assert len(kw) == 0
          if isinstance(data_or_file, xr.Dataset):
             self.data = data_or_file
          else:
@@ -74,7 +74,7 @@ class Result:
       return which
 
    def dump_pdbs_top_score_each(self, nout_each=1, **kw):
-      if nout_each is 0: return
+      if nout_each == 0: return
       which = self.top_each(nout_each)
       if not len(which):
          raise ValueError("can't dump pdbs, no results available")
@@ -85,9 +85,19 @@ class Result:
          dumped |= self.dump_pdbs(imodel, lbl=f'job{ijob:0{ndigijob}}_top', ndigmdl=ndigmdl, **kw)
       return dumped
 
-   def dump_pdbs(self, which, ndigwhich=None, ndigmdl=None, lbl='', skip=[], output_prefix='rpx',
-                 **kw):
-      if len(which) is 0: return set()
+   def dump_pdbs(
+      self,
+      which='all',
+      ndigwhich=None,
+      ndigmdl=None,
+      lbl='',
+      skip=[],
+      output_prefix='rpx',
+      **kw,
+   ):
+      if which == 'all':
+         which = range(len(self.data))
+      if len(which) == 0: return set()
       if isinstance(which, abc.Mapping):
          raise ValueError('dump_pdbs takes sequence not mapping')
       if 'fname' in kw and kw['fname'] is not None:
@@ -106,8 +116,22 @@ class Result:
             self.dump_pdb(imodel, output_prefix=prefix_tmp, **kw)
       return dumped
 
-   def dump_pdb(self, imodel, output_prefix='', output_suffix='', fname=None, output_body='ALL',
-                sym='', sep='_', skip=[], hscore=None, output_asym_only=False, **kw):
+   def dump_pdb(
+      self,
+      imodel,
+      output_prefix='',
+      output_suffix='',
+      fname=None,
+      output_body='ALL',
+      sym='',
+      sep='_',
+      skip=[],
+      hscore=None,
+      output_asym_only=False,
+      output_closest_subunits=False,
+      **kw,
+   ):
+      outfnames = list()
       if not sym and 'sym' in self.attrs: sym = self.attrs['sym']
       if not sym and 'sym' in self.data: sym = self.data.sym.data[imodel]
       sym = sym if sym else "C1"
@@ -138,6 +162,7 @@ class Result:
          middle = '__'.join(body_names)
          output_suffix = sep + output_suffix if output_suffix else ''
          fname = output_prefix + middle + output_suffix + '.pdb'
+      fname = os.path.abspath(fname)
       log.info(f'dumping pdb {fname} score {self.scores.data[imodel]}')
       bfactor = None
       # hscore scores residue pairs and puts bfactor in pdb
@@ -153,9 +178,33 @@ class Result:
       if 'reslb' in self.data and 'resub' in self.data:
          bounds = np.stack([self.reslb[imodel], self.resub[imodel]], axis=-1)
       symframes = rp.geom.symframes(sym, pos=self.xforms.data[imodel], **kw)
-      if output_asym_only: symframes = [np.eye(4)]
-      rp.io.dump_pdb_from_bodies(fname, bod, symframes=symframes, resbounds=bounds,
-                                 bfactor=bfactor, **kw)
+
+      if output_asym_only and output_closest_subunits:
+         if len(bod) == 2:
+            best = 0, None, None
+            x = self.xforms.data[imodel]
+            bod[0].pos = x[0]
+            for i, f in enumerate(symframes):
+               bod[1].pos = f @ x[1]
+               ctc = bod[0].contact_count(bod[1], 8)
+               # print(i, ctc)
+               if ctc > best[0]:
+                  best = ctc, i, f
+            # print('best', best)
+            symframes = [np.eye(4)]
+            bod[1].pos = best[2] @ self.xforms.data[imodel][1]
+         elif len(bod) > 2:
+            raise NotImplementedError
+
+      outfnames.append(fname)
+      rp.io.dump_pdb_from_bodies(
+         fname,
+         bod,
+         symframes=symframes,
+         resbounds=bounds,
+         bfactor=bfactor,
+         **kw,
+      )
       if self.pdb_extra is not None:
          with open(fname, 'a') as out:
             out.write(self.pdb_extra[int(imodel)])
@@ -165,6 +214,7 @@ class Result:
          rp.io.dump_pdb_from_bodies(fname + '_hbase.pdb', bod, symframes=symframes,
                                     resbounds=bounds, bfactor=bfactor, **kw)
          # assert 0, 'testing helix dump'
+      return outfnames
 
    def __len__(self):
       return len(self.model)
@@ -185,7 +235,7 @@ def dict_coherent_entries(alldicts):
             sets[k].add(v)
          except:
             badkeys.add(k)
-   return {k: v.pop() for k, v in sets.items() if len(v) is 1 and not k in badkeys}
+   return {k: v.pop() for k, v in sets.items() if len(v) == 1 and not k in badkeys}
 
 def concat_results(results, **kw):
    if isinstance(results, Result): results = [results]

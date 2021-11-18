@@ -306,12 +306,17 @@ def default_cli_parser(parent=None, **kw):
       "--function", type=str, default='stnd',
       help='score function to use for scoring. Default is stnd scorefunction. Example: stnd, sasa_priority, mean, exp, median. Full list is defined in score/scorefunctions.py'
    )
-   addarg("--filter_config", 
-      help='NOTE: filters only work for cyclic, onecomp, and multicomp docking (ie. not for plug or asymetric docking). Path to a yaml file containing the configurations for filters.')
+   addarg(
+      "--filter_config",
+      help='NOTE: filters only work for cyclic, onecomp, and multicomp docking (ie. not for plug or asymetric docking). Path to a yaml file containing the configurations for filters.'
+   )
    addarg("--helix_trim_max", default=0,
           help='Allow trimming of N helices from N or C term as specified by --trim_direction')
 
    addarg("--helix_trim_nres_ignore_end", default=1, help='Trim N extra residues off helix end')
+
+   addarg("--output_closest_subunits", action='store_true', default=False,
+          help='for two component stuff, output subunit 2 most contacting subunit 1')
 
    parser.has_rpxdock_args = True
    return parser
