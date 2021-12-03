@@ -95,8 +95,11 @@ class Result:
       output_prefix='rpx',
       **kw,
    ):
-      if which == 'all':
-         which = range(len(self.data))
+      if isinstance(which, str):
+         if which == 'all':
+            which = range(len(self.data))
+         else:
+            raise ValueError(f'dump_pdbs only understandes "all" or sequence, not {which}')
       if len(which) == 0: return set()
       if isinstance(which, abc.Mapping):
          raise ValueError('dump_pdbs takes sequence not mapping')
