@@ -40,8 +40,8 @@ def make_multicomp(
       logging.debug("Applying filters to search results")
       sbest, filter_extra = filters.filter(xforms[ibest], bodies, **kw)
       # TODO: Add exception handling for empty array
-      print (sbest)
-      print (ibest)
+      print(sbest)
+      print(ibest)
       ibest = ibest[sbest]
 
    tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw)
@@ -84,10 +84,11 @@ def make_multicomp(
             v = ['model', v]
          data[f"ncont_{k}"] = v
    if not spec.arch.lower().startswith("axel_"):
-       for i in range(len(bodies)):
-          data[f'disp{i}'] = (['model'], np.sum(xforms[:, i, :3, 3] * spec.axis[None, i, :3], axis=1))
-          data[f'angle{i}'] = (['model'], rp.homog.angle_of(xforms[:, i]) * 180 / np.pi)
-       default_label = [f'comp{c}' for c in 'ABCDEFD'[:len(bodies)]]
+      for i in range(len(bodies)):
+         data[f'disp{i}'] = (['model'],
+                             np.sum(xforms[:, i, :3, 3] * spec.axis[None, i, :3], axis=1))
+         data[f'angle{i}'] = (['model'], rp.homog.angle_of(xforms[:, i]) * 180 / np.pi)
+   default_label = [f'comp{c}' for c in 'ABCDEFD'[:len(bodies)]]
 
    return rp.Result(
       body_=None if kw.dont_store_body_in_results else bodies,
@@ -150,7 +151,8 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          ifscore = list()
          for i in range(len(B)):
             for j in range(i):
-               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
+               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl,
+                                                   wts=wts))
                # ifscore = np.stack(ifscore)
                logging.debug(f"ifscore is {len(ifscore)} long and is a {type(ifscore)}")
 

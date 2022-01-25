@@ -94,13 +94,13 @@ if __name__ == "__main__":
 
    hscore = rp.data.small_hscore()
 
-#   C3_A = rp.data.get_body_copy('C3_1na0-1_1')
-#   C3_B = rp.data.get_body_copy('C3_1nza_1')
-#   C3_A.init_coords(3, [0,0,1,0])
-#   C3_B.init_coords(3, [0,0,1,0])
-#   C2_A = rp.data.get_body_copy('C2_3hm4_1')
-#   C2_A.init_coords(2, [0,0,1,0])
+   # C3_A = rp.data.get_body_copy('C3_1na0-1_1')
+   # C3_B = rp.data.get_body_copy('C3_1nza_1')
+   # C3_A.init_coords(3, [0, 0, 1, 0])
+   # C3_B.init_coords(3, [0, 0, 1, 0])
+   # C2_A = rp.data.get_body_copy('C2_3hm4_1')
+   # C2_A.init_coords(2, [0, 0, 1, 0])
 
-#   test_axel(hscore)
-#   test_axel_asym(hscore)
-#   test_axel_grid(hscore, C3_A, C3_B)
+   test_axel(hscore)
+   test_axel_asym(hscore)
+   test_axel_grid(hscore)
