@@ -30,6 +30,7 @@ def test_asym(hscore, body, body2):
 
    # rp.dump(result, 'rpxdock/data/testdata/test_asym.pickle')
    ref = rp.data.get_test_data('test_asym')
+   print(result, ref)
    rp.search.assert_results_close(result, ref)
 
 @pytest.mark.skip
