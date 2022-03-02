@@ -17,14 +17,18 @@ class Body:
       allowed_res=None,
       trim_direction='NC',
       is_subbody=False,
+      modified_term=[False,False],
+      original=True,
       **kw,
    ):
       kw = rpxdock.Bunch(kw)
 
+      import rpxdock.rosetta.triggers_init as ros
+      print(source)
       # pose stuff
       pose = source
       if isinstance(source, str):
-         import rpxdock.rosetta.triggers_init as ros
+         # import rpxdock.rosetta.triggers_init as ros
          self.pdbfile = source
          if kw.posecache:
             pose = ros.get_pose_cached(source)
@@ -37,6 +41,16 @@ class Body:
       self.ss = np.array(list(pose.secstruct()))
       self.coord = rp.rosetta.get_bb_coords(pose)
       self.set_asym_body(pose, sym, **kw)
+      self.modified_term = modified_term
+      self.original = original
+      if not self.original:
+         tmp=ros.core.pose.Pose()
+         tmp.detached_copy(pose)
+         for ch in range(sum(self.modified_term)):rp.rosetta.helix_trix.remove_helix_chain(tmp)
+         self.og_body = rp.Body(source=tmp, sym=sym,symaxis=symaxis,allowed_res=allowed_res,
+                        trim_direction=trim_direction,is_subbody=is_subbody,modified_term=[False,False],
+                        original=True, **kw)
+      else: self.og_body = None
 
       self.label = kw.label
       if self.label is None and self.pdbfile:
@@ -50,7 +64,15 @@ class Body:
       # self.trim_direction = trim_direction
       self.trim_direction = kw.trim_direction if kw.trim_direction else 'NC'
       if allowed_res is None:
-         self.allowed_residues = np.ones(len(self.seq), dtype='?')
+         # print(True in modified_term)
+         if True in modified_term:
+            self.allowed_residues = np.zeros(len(self.seq), dtype='?')
+            # print(self.seq)
+            for j in range(0, len(pose.chain_sequence(1))):
+               self.allowed_residues[j] = True
+            # for val in range(len(self.seq)):
+            #    print(str(self.seq[val]), str(self.allowed_residues[val]))
+         else: self.allowed_residues = np.ones(len(self.seq), dtype='?')
       else:
          self.allowed_residues = np.zeros(len(self.seq), dtype='?')
          for i in allowed_res(self, **kw):

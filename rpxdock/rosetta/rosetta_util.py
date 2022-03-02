@@ -66,3 +66,13 @@ def get_sc_coords(pose, which_resi=None):
       hcrd[:, :3] = np.array(crd)
       resacrd.append(hcrd)
    return resaname, resacrd
+
+def get_pose(pdbfile, posecache=None):
+   import rpxdock.rosetta.triggers_init as ros
+   if isinstance(pdbfile, str):
+      if posecache:
+         pose = ros.get_pose_cached(pdbfile)
+      else:
+         pose = ros.pose_from_file(pdbfile)
+         ros.assign_secstruct(pose)
+   return pose

@@ -117,16 +117,37 @@ def dock_onecomp(hscore, **kw):
    spec = get_spec(kw.architecture)
    crtbnd = kw.cart_bounds[0]
 
+   # If term_access or directions for termini given
+   if (True in kw.term_access1) or (True in kw.termini_dir1) or (False in kw.termini_dir1):
+      kw.poses = []
+      kw.force_flip = [False] * len(kw.inputs)
+      N_in = None
+      C_in = None
+      pose = rp.rosetta.get_pose(kw.inputs1[0], kw.posecache)
+      if kw.termini_dir1[0] is not None: N_in = rp.rosetta.helix_trix.N_term_in(pose, kw.term_access1[0])
+      elif kw.term_access1[0]: rp.rosetta.helix_trix.append_Nhelix(pose)
+      if kw.termini_dir1[1] is not None: C_in = rp.rosetta.helix_trix.C_term_in(pose, kw.term_access1[1])
+      elif kw.term_access1[1]: rp.rosetta.helix_trix.append_Chelix(pose)
+      
+      if sum(kw.term_access1) > 0: kw.poses.append(pose) #Only update pose if adding on helices to termini
+      dir_possible, error_msg = rp.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, 1, **kw)
+      if not dir_possible: raise ValueError(error_msg)
+      #assert dir_possible, error_msg
+
    # double normal resolution, cuz why not?
    if kw.docking_method == 'grid':
       flip=list(spec.flip_axis[:3])
+      force_flip=False if kw.force_flip is None else kw.force_flip[0]
+      # print("force flip: ", force_flip)
+      # print("flip componenets: ", kw.flip_components)
       if not kw.flip_components[0]:
          flip = None
       sampler = rp.sampling.grid_sym_axis(
          cart=np.arange(crtbnd[0], crtbnd[1], kw.grid_resolution_cart_angstroms),
          ang=np.arange(0, 360 / spec.nfold, kw.grid_resolution_ori_degrees),
          axis=spec.axis,
-         flip=flip
+         flip=flip,
+         force_flip=force_flip
          )
       search = rp.grid_search
    else:
@@ -137,11 +158,18 @@ def dock_onecomp(hscore, **kw):
                                                  angresl=5, axis=spec.axis, flipax=spec.flip_axis, **kw)
       search = rp.hier_search
 
-   # pose info and axes that intersect
-   bodies = [
-      rp.Body(inp, allowed_res=allowedres, **kw)
-      for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)
-   ]
+   # pose info and axes that intersect. Use list of modified poses to make bodies if such list exists
+   if kw.poses and len(kw.poses) > 0:
+      og = True if sum(kw.term_access1) is 0 else False
+      bodies = [
+         rp.Body(inp, allowed_res=allowedres, modified_term=modterm, original=og, **kw)
+         for inp, allowedres, modterm in zip(kw.poses, kw.allowed_residues1, kw.term_access)
+      ]
+   else:
+      bodies = [
+         rp.Body(inp, allowed_res=allowedres, **kw)
+         for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)
+      ]
 
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
@@ -170,14 +198,26 @@ def dock_onecomp(hscore, **kw):
 def dock_multicomp(hscore, **kw):
    kw = rp.Bunch(kw)
    spec = get_spec(kw.architecture)
+   # Determine accessibility and flip restriction before we make sampler
+   kw.poses = []
+   rp.rosetta.helix_trix.init_termini(**kw)
+   # print(kw.poses, kw.force_flip, sep='\n')
+   # assert False
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
    logging.info(f'num base samples {sampler.size(0):,}')
 
-   bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
-              for fn, ar2 in zip(inp, ar)]
-             for inp, ar in zip(kw.inputs, kw.allowed_residues)]
+   # Then use poses if needed 
+   if len(kw.poses) > 0:
+      bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
+               for fn, ar2 in zip(inp, ar)]
+               for inp, ar in zip(kw.poses, kw.allowed_residues)]
+   else:
+      bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
+               for fn, ar2 in zip(inp, ar)]
+               for inp, ar in zip(kw.inputs, kw.allowed_residues)]
    assert len(bodies) == spec.num_components
 
+   assert False
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
    with exe(kw.ncpu) as pool:
