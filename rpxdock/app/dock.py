@@ -162,8 +162,8 @@ def dock_onecomp(hscore, **kw):
    if kw.poses and len(kw.poses) > 0:
       og = True if sum(kw.term_access1) is 0 else False
       bodies = [
-         rp.Body(inp, allowed_res=allowedres, modified_term=modterm, original=og, **kw)
-         for inp, allowedres, modterm in zip(kw.poses, kw.allowed_residues1, kw.term_access)
+         rp.Body(pose1, allowed_res=allowedres, modified_term=modterm, original=og, og_source=inp, **kw)
+         for pose1, allowedres, modterm, inp in zip(kw.poses, kw.allowed_residues1, kw.term_access, kw.inputs)
       ]
    else:
       bodies = [
@@ -201,23 +201,23 @@ def dock_multicomp(hscore, **kw):
    # Determine accessibility and flip restriction before we make sampler
    kw.poses = []
    rp.rosetta.helix_trix.init_termini(**kw)
-   # print(kw.poses, kw.force_flip, sep='\n')
-   # assert False
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
    logging.info(f'num base samples {sampler.size(0):,}')
 
    # Then use poses if needed 
    if len(kw.poses) > 0:
-      bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
-               for fn, ar2 in zip(inp, ar)]
-               for inp, ar in zip(kw.poses, kw.allowed_residues)]
+      og = []
+      for i in range(len(kw.inputs)):
+         og.append([False]) if sum(kw.term_access[i]) > 0 else og.append([True])
+      bodies = [[rp.Body(pose2, allowed_res=ar2,original=og2, og_source=inp2, **kw)
+               for pose2, ar2, og2, inp2 in zip(pose1, ar, og1, inp)]
+               for pose1, ar, og1, inp in zip(kw.poses, kw.allowed_residues, og, kw.inputs)]
    else:
       bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
                for fn, ar2 in zip(inp, ar)]
                for inp, ar in zip(kw.inputs, kw.allowed_residues)]
    assert len(bodies) == spec.num_components
 
-   assert False
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
    with exe(kw.ncpu) as pool:

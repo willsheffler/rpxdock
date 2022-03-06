@@ -80,6 +80,7 @@ def hier_multi_axis_sampler(
    fixed_components=[],
    fixed_trans=[],
    fixed_wiggle=[],
+   force_flip=[],
    fw_cartlb=-5,
    fw_cartub=5,
    fw_rotlb=-5,
@@ -127,10 +128,11 @@ def hier_multi_axis_sampler(
          s = rp.sampling.RotCart1Hier_f4(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], 0,
                                          ang[i], ang_nstep[i], spec.axis[i][:3])
       samp.append(s)
-
    for i, s in enumerate(samp):
-      if flip_components[i]:
-         samp[i] = rp.sampling.ProductHier(s, rp.ZeroDHier([np.eye(4), spec.xflip[i]]))
+      if flip_components[i]: # Just also look at force flip for these as well, already defined properly
+         flip = rp.ZeroDHier([np.eye(4), spec.xflip[i]])
+         if force_flip[i]: flip = rp.ZeroDHier([spec.xflip[i]])
+         samp[i] = rp.sampling.ProductHier(s, flip)
 
    if spec.type == 'layer':
       sampler = rp.sampling.LatticeHier(samp, spec.directions)

@@ -19,14 +19,13 @@ class Body:
       is_subbody=False,
       modified_term=[False,False],
       original=True,
+      og_source=None,
       **kw,
    ):
       kw = rpxdock.Bunch(kw)
 
       import rpxdock.rosetta.triggers_init as ros
-      print(source)
       # pose stuff
-      pose = source
       if isinstance(source, str):
          # import rpxdock.rosetta.triggers_init as ros
          self.pdbfile = source
@@ -43,10 +42,12 @@ class Body:
       self.set_asym_body(pose, sym, **kw)
       self.modified_term = modified_term
       self.original = original
+      self.og_source = og_source
       if not self.original:
-         tmp=ros.core.pose.Pose()
-         tmp.detached_copy(pose)
-         for ch in range(sum(self.modified_term)):rp.rosetta.helix_trix.remove_helix_chain(tmp)
+         tmp = og_source
+         # tmp=ros.core.pose.Pose()
+         # tmp.detached_copy(pose)
+         # for ch in range(sum(self.modified_term)):rp.rosetta.helix_trix.remove_helix_chain(tmp)
          self.og_body = rp.Body(source=tmp, sym=sym,symaxis=symaxis,allowed_res=allowed_res,
                         trim_direction=trim_direction,is_subbody=is_subbody,modified_term=[False,False],
                         original=True, **kw)

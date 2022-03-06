@@ -570,7 +570,9 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
                opt.term_access.append(opt.term_access3)
                opt.termini_dir.append(opt.termini_dir3)
 
-   opt.force_flip = [False] * len(opt.inputs) 
+   opt.force_flip = [False] * len(opt.inputs)
+   if len(opt.flip_components) != len(opt.inputs):
+      opt.flip_components = opt.flip_components * len(opt.inputs) 
 
    return opt
 

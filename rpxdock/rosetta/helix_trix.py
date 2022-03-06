@@ -129,13 +129,9 @@ def N_term_in(pose, keep_helix=False):
    if not keep_helix: remove_helix_chain(pose)
    return N_point_in
 
-# Wrapper 
+# Wrapper. Maybe rewrite 1 comp to work with this as well
 def init_termini(**kw):
    kw = rpxdock.Bunch(kw)
-   # Might be good to move this else where (probably options.py)
-   if len(kw.flip_components) != len(kw.inputs): kw.flip_components = kw.flip_components * len(kw.inputs)
-   # kw.force_flip = [False] * len(kw.inputs)
-   # import rpxdock.rosetta.triggers_init as ros
    for i in range(len(kw.inputs)):
       access = kw.term_access[i] 
       direction = kw.termini_dir[i]
