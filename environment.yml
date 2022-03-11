@@ -1,15 +1,21 @@
-name: rpxdock
+name: rpxdock39
 channels:
  - conda-forge
+ - schrodinger
  - https://pose:foldtree@conda.graylab.jhu.edu
 dependencies:
- - python>=3.7
+ - python<3.10
+ - pymol-bundle
  - pyrosetta
- - numpy=1.16.3
+ # - numpy=1.16.3
+ - numpy 
  - numba
  - seaborn
- - pandas=0.24.2
- - xarray=0.11.3
+ # - pandas=0.24.2
+ # - xarray=0.11.3
+ - pandas
+ - xarray
+ - netcdf4
  - ipython
  - cffi
  - tqdm
@@ -19,13 +25,13 @@ dependencies:
  - pytest-repeat
  - pytest-sugar
  - pytest-xdist
- - sphinx>=2.0
- - doxygen
+ - pytest-parallel 
+ # - sphinx>=2.0
+ # - doxygen
  - rmsd
  - pip
  - pip:
-   - homog >= 0.1.10
-   - xbin >= 0.1.5
    - cppimport
-   - breathe>=4.13.0
-   - exhale
+   - deferred-import
+   # - breathe>=4.13.0
+   # - exhale

@@ -31,6 +31,7 @@ REQUIRED = [
    'cppimport',
    'cffi',
    'tabulate',
+   'deferred-import',
 ]
 
 # What packages are optional?

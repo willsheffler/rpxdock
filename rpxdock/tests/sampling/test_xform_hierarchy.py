@@ -3,8 +3,8 @@ import pytest
 import itertools as it
 import numpy as np
 from cppimport import import_hook
-from cppimport.config import turn_off_strict_prototypes
-turn_off_strict_prototypes()
+# from cppimport.config import turn_off_strict_prototypes
+# turn_off_strict_prototypes()
 from rpxdock.sampling import *
 from rpxdock.bvh.bvh_nd import *
 import rpxdock.homog as hm

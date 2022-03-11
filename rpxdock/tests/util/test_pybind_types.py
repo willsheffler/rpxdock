@@ -1,6 +1,6 @@
 from cppimport import import_hook
-from cppimport.config import turn_off_strict_prototypes
-turn_off_strict_prototypes()
+# from cppimport.config import turn_off_strict_prototypes
+# turn_off_strict_prototypes()
 from rpxdock.util import pybind_types_test
 import numpy as np
 

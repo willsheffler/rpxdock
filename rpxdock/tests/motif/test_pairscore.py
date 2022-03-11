@@ -28,6 +28,11 @@ def test_res_pair_score_pickle(respairscore, tmpdir):
    assert rps.score_map == rps2.score_map
    assert rps.range_map == rps2.range_map
 
+def test_res_pair_score_portable_store(respairscore, tmpdir):
+   for member in dir(respairscore):
+      if member.startswith('__'): continue
+      print(member, type(getattr(respairscore, member)))
+
 def test_pair_score(respairscore):
    rps = respairscore
    print(rps.respair.shape, rps.ssid.shape)
@@ -155,16 +160,28 @@ def terrible_sanity_check():
    assert np.all(x == v)
    print(t)
 
-if 0:  # __name__ == "__main__":
+if __name__ == "__main__":
 
-   make_score_files_moveme()
+   # make_score_files_moveme()
 
    # import tempfile
    # with open(f, "rb") as inp:
    # rp = ResPairData(_pickle.load(inp))
    # test_create_res_pair_score(rp, tempfile.mkdtemp())
+   import rpxdock as rp
+   import tempfile
+   with tempfile.TemporaryDirectory() as tmpdir:
 
-   # rps = load_respairscore(f2)
-   # test_pair_score(rps)
-   # test_bin_get_all_data(rps)
-   # test_bin_score(rps)
+      rps = rp.data.small_respairscore()
+
+      test_res_pair_score_portable_store(rps, tmpdir)
+      assert 0
+      rpd = rp.data.small_respairdat()
+      test_pair_score(rps)
+      test_bin_get_all_data(rps)
+      test_bin_score(rps)
+      test_res_pair_score_pickle(rps, tmpdir)
+
+      # rpd = rp.motif.ResPairData(rp.data.small_respairdat())
+
+      test_create_res_pair_score(rpd, tmpdir)

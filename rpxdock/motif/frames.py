@@ -1,7 +1,7 @@
 import os, sys, time, _pickle
 from cppimport import import_hook
-from cppimport.config import turn_off_strict_prototypes
-turn_off_strict_prototypes()
+# from cppimport.config import turn_off_strict_prototypes
+# turn_off_strict_prototypes()
 import numpy as np, xarray as xr
 
 from rpxdock.xbin import xbin_util as xu
