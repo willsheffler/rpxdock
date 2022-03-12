@@ -30,8 +30,8 @@ def test_cage_hier_no_trim(hscore, body_cageA, body_cageB):
    result = rp.search.make_multicomp([body_cageA, body_cageB], spec, hscore, rp.hier_search,
                                      sampler, **kw)
    # print(result)
-   result.dump_pdbs_top_score(hscore=hscore,
-                              **kw.sub(nout_top=10, output_prefix='old_test_cage_hier_no_trim'))
+   # result.dump_pdbs_top_score(hscore=hscore,
+   # **kw.sub(nout_top=10, output_prefix='old_test_cage_hier_no_trim'))
 
 @pytest.mark.skip
 def test_cage_hier_fixed0(hscore, body_cageA, body_cageB):
@@ -80,8 +80,8 @@ def test_cage_hier_trim(hscore, body_cageA_extended, body_cageB_extended):
    # result.dump_pdbs_top_score(hscore=hscore,
    # **kw.sub(nout_top=10, output_prefix="test_cage_hier_trim"))
    # result.resub[:] = np.max(result.resub, axis=0)
-   result.dump_pdbs_top_score(hscore=hscore,
-                              **kw.sub(nout_top=10, output_prefix="old_test_cage_hier_trim"))
+   # result.dump_pdbs_top_score(hscore=hscore,
+   # **kw.sub(nout_top=10, output_prefix="old_test_cage_hier_trim"))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_hier_trim.pickle')
    ref = rp.data.get_test_data('test_cage_hier_trim')
@@ -98,8 +98,8 @@ def test_cage_hier_3comp(hscore, bodyC4, bodyC3, bodyC2):
    sampler = rp.sampling.hier_multi_axis_sampler(spec, [70, 90], flip_components=False)
    result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **kw)
 
-   result.dump_pdbs_top_score(hscore=hscore,
-                              **kw.sub(nout_top=10, output_prefix='old_cage_hier_3comp'))
+   # result.dump_pdbs_top_score(hscore=hscore,
+   # **kw.sub(nout_top=10, output_prefix='old_cage_hier_3comp'))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_hier_3comp.pickle')
    ref = rp.data.get_test_data('test_cage_hier_3comp')
@@ -123,11 +123,11 @@ def test_layer_hier_3comp(hscore, bodyC6, bodyC3, bodyC2):
    # flip_components=False)
    result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **kw)
 
-   result.dump_pdbs_top_score(hscore=hscore,
-                              **kw.sub(
-                                 nout_top=10,
-                                 output_prefix='test_layer_hier_3comp',
-                              ))
+   # result.dump_pdbs_top_score(hscore=hscore,
+   # **kw.sub(
+   # nout_top=10,
+   # output_prefix='test_layer_hier_3comp',
+   # ))
    # assert 0
    # rp.dump(result, 'rpxdock/data/testdata/test_layer_hier_3comp.pickle')
    ref = rp.data.get_test_data('test_layer_hier_3comp')

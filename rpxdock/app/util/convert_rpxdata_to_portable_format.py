@@ -5,19 +5,33 @@ import rpxdock as rp
 
 def get_cli_args():
    opts = argparse.ArgumentParser(allow_abbrev=False)
-   opts.add_argument('datafiles', nargs='+', type=str)
+   opts.add_argument('datafiles', nargs='*', type=str)
    opts = opts.parse_args(sys.argv[1:])
    return rp.Bunch(opts)
 
 def main():
    opts = get_cli_args()
    print(opts.datafiles)
+   if not opts.datafiles:
+      print('HARD-CODED DATA FILES')
+      opts.datafiles.extend([
+         './rpxdock/data/respairdat10.pickle',
+         './rpxdock/data/respairdat10_plus_xmap_rots.pickle',
+      ])
+   for fname in opts.datafiles:
+      convert_rpxdata_to_netcdf(fname)
    print('DONE')
 
 def convert_rpxdata_to_netcdf(fname):
    dat = rp.load(fname)
-   if isinstance(dat, xr.DataSet) and 'r_pdbid' in dat:
-      convert_respairdat_to_netcdf(dat, fname + '.nc')
+   if isinstance(dat, xr.Dataset) and 'r_pdbid' in dat:
+      # new file name
+      newfname = fname + '.nc'
+      if fname.endswith('.pickle'):
+         newfname = fname.rstrip('.pickle') + '.nc'
+      # convert
+      print('converting', newfname)
+      convert_respairdat_to_netcdf(dat, newfname)
    else:
       print('ignoring data from file', fname)
 
@@ -48,18 +62,18 @@ def convert_respairdat_to_netcdf(rpd, newfname):
          newchains[i, j] = be
    rpd = rpd.drop('chains')
    rpd = rpd.assign(chains=xr.Variable(('pdbid', 'nchain', 'chainbegend'), newchains))
-   print(rpd.chains.shape, rpd.chains.dtype, rpd.chains.dims)
+   # print(rpd.chains.shape, rpd.chains.dtype, rpd.chains.dims)
 
    # assert 0
    stub = rpd.stub.data
-   print(rpd.stub.shape, rpd.stub.dtype, rpd.stub.dims)
+   # print(rpd.stub.shape, rpd.stub.dtype, rpd.stub.dims)
    rpd = rpd.drop('stub')
    rpd = rpd.assign(stub=xr.Variable(('resid', 'hrow', 'hcol'), stub))
-   print(rpd.stub.shape, rpd.stub.dtype, rpd.stub.dims)
+   # print(rpd.stub.shape, rpd.stub.dtype, rpd.stub.dims)
 
    rpd.to_netcdf(newfname)
 
-   print('DONE!')
+   # print('DONE!')
 
 if __name__ == '__main__':
    main()

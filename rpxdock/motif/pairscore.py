@@ -1,5 +1,7 @@
 import os, _pickle
 import numpy as np
+import xarray as xr
+import rpxdock as rp
 from rpxdock.util import Bunch
 from rpxdock.phmap import PHMap_u8u8, PHMap_u8f8
 from rpxdock.motif import bb_stubs, add_xbin_to_respairdat
@@ -31,6 +33,7 @@ class Xmap:
       return len(self.phmap)
 
    def __eq__(self, other):
+      if not rp.util.check_eq_json(self.attr, other.attr): return False
       return self.xbin == other.xbin and self.phmap == other.phmap
 
    def key_of(self, x_or_k):
@@ -55,28 +58,41 @@ class Xmap:
       return self.xbin.bincen_of(self.phmap.keys(n))
 
 class ResPairScore:
-   def __init__(self, xbin, keys, score_map, range_map, res1, res2, rotspace, rp):
-      assert np.all(score_map.has(keys))
-      assert np.all(range_map.has(keys))
-      self.xbin = xbin
-      self.rotspace = rotspace
-      self.keys = keys
-      self.score_map = score_map
-      self.range_map = range_map
-      self.respair = np.stack([res1.astype("i4"), res2.astype("i4")], axis=1)
-      self.aaid = rp.aaid.data.astype("u1")
-      self.ssid = rp.ssid.data.astype("u1")
-      self.rotid = rp.rotid.data
-      self.stub = rp.stub.data.astype("f4")
-      self.pdb = rp.pdb.data[rp.r_pdbid.data]
-      self.resno = rp.resno.data
-      self.rotchi = rp.rotchi
-      self.rotlbl = rp.rotlbl
-      self.id2aa = rp.id2aa.data
-      self.id2ss = rp.id2ss.data
-      self.hier_maps = []
-      self.hier_resls = np.array([])
-      self.attr = Bunch()
+   def __init__(
+      self,
+      xbin=None,
+      keys=None,
+      score_map=None,
+      range_map=None,
+      res1=None,
+      res2=None,
+      rotspace=None,
+      rpd=None,
+   ):
+      if xbin is None:
+         pass  # creating empty object
+      else:
+         assert np.all(score_map.has(keys))
+         assert np.all(range_map.has(keys))
+         self.xbin = xbin
+         self.rotspace = rotspace
+         self.keys = keys
+         self.score_map = score_map
+         self.range_map = range_map
+         self.respair = np.stack([res1.astype("i4"), res2.astype("i4")], axis=1)
+         self.aaid = rpd.aaid.data.astype("u1")
+         self.ssid = rpd.ssid.data.astype("u1")
+         self.rotid = rpd.rotid.data
+         self.stub = rpd.stub.data.astype("f4")
+         self.pdb = rpd.pdb.data[rpd.r_pdbid.data]
+         self.resno = rpd.resno.data
+         self.rotchi = rpd.rotchi
+         self.rotlbl = rpd.rotlbl
+         self.id2aa = rpd.id2aa.data
+         self.id2ss = rpd.id2ss.data
+         self.hier_maps = []
+         self.hier_resls = np.array([])
+         self.attr = Bunch()
 
    def add_hier_score(self, resl, scoremap):
       self.hier_resls = np.append(self.hier_resls, resl)
@@ -136,6 +152,48 @@ class ResPairScore:
               f"cart_resl {self.xbin.cart_resl:5.2f} " + f"ori_resl {self.xbin.ori_resl:6.2f}" +
               f" max_cart {self.xbin.max_cart:7.2f} \n        Xmap: " +
               f"score_map {len(self.score_map):,} " + f"range_map {len(self.range_map):,}")
+
+   def __eq__(self, other):
+      for f in [
+            'xbin', 'rotspace', 'keys', 'score_map', 'range_map', 'respair', 'aaid', 'ssid',
+            'rotid', 'stub', 'pdb', 'resno', 'rotchi', 'rotlbl', 'id2aa', 'id2ss', 'hier_maps',
+            'hier_resls'
+      ]:
+         # print(f, type(getattr(self, f)))
+         vself, vother = getattr(self, f), getattr(other, f)
+
+         if type(vself) != type(vother):
+            if f == 'rotchi':
+               if len(vself) != len(vother): return False
+            else:
+               assert 0  # this is weird enough to assert
+               print('!!!!!!!!!!!!', f, type(vself))
+               return False
+
+         elif f == 'xbin':
+            if self.xbin != other.xbin:
+               return False
+
+         elif f == 'attr':
+            jself = json.loads(json.dumps(self.attr))
+            jother = json.loads(json.dumps(other.attr))
+            if not rp.util.check_eq_json(self.attr, other.attr):
+               assert 0
+               return False
+
+         elif isinstance(vself, np.ndarray):
+            if np.any(vself != vother): return False
+
+         elif f == 'rotspace':
+            # rot res and labels may be stored separately
+            vself = vself.drop('dim_0') if 'dim_0' in vself else vself
+            vother = vother.drop('dim_0') if 'dim_0' in vother else vother
+
+         elif vself != vother:
+            # print(f, type(vself), type(vother))
+            return False
+            # assert 0
+      return True
 
 def create_res_pair_score_map(rp, xbin, min_bin_score, **kw):
    kij, kji = get_pair_keys(rp, xbin, **kw)

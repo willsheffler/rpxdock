@@ -6,3 +6,4 @@ from rpxdock.motif.frames import *
 from rpxdock.motif.pairdat import *
 from rpxdock.motif.pairscore import *
 from rpxdock.motif.rpxgen import *
+from rpxdock.motif.motif_io import *

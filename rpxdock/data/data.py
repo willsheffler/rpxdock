@@ -28,9 +28,13 @@ def get_body(name):
 
 @lru_cache()
 def small_respairdat():
-   from rpxdock import ResPairData
-   with open(os.path.join(datadir, "respairdat10_plus_xmap_rots.pickle"), "rb") as inp:
-      return ResPairData(_pickle.load(inp))
+   import xarray as xr, rpxdock as rp
+   fn = os.path.join(datadir, "respairdat10_plus_xmap_rots.nc")
+   # with open(fn, "rb") as inp:
+   #   return ResPairData(_pickle.load(inp))
+   with xr.open_dataset(fn, decode_cf=True) as rpd:
+      rpd.load()
+      return rp.ResPairData(rpd)
 
 @lru_cache()
 def small_respairscore():

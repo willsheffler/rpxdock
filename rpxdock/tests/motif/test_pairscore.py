@@ -1,8 +1,44 @@
 import time
+import rpxdock as rp
 from rpxdock.motif.pairdat import *
 from rpxdock.motif.pairscore import *
 from rpxdock.xbin import Xbin
 import _pickle
+
+def main():
+   # make_score_files_moveme()
+
+   # import tempfile
+   # with open(f, "rb") as inp:
+   # rp = ResPairData(_pickle.load(inp))
+   # test_create_res_pair_score(rp, tempfile.mkdtemp())
+   import rpxdock as rp
+   import tempfile
+   with tempfile.TemporaryDirectory() as tmpdir:
+
+      rps = rp.data.small_respairscore()
+      test_res_pair_score_portable_store(rps, tmpdir)
+
+      return
+
+      rpd = rp.data.small_respairdat()
+      test_pair_score(rps)
+      test_bin_get_all_data(rps)
+      test_bin_score(rps)
+      test_res_pair_score_pickle(rps, tmpdir)
+
+      # rpd = rp.motif.ResPairData(rp.data.small_respairdat())
+
+      test_create_res_pair_score(rpd, tmpdir)
+
+def test_res_pair_score_portable_store(respairscore, tmpdir):
+   rps = respairscore
+
+   fname = rp.motif.respairscore_to_tarball(rps, 'test_rps_tarball', overwrite=True)
+   rps2 = rp.motif.respairscore_from_tarball(fname)
+   # print(set(dir(rps)) - set(dir(rps2)))
+
+   assert rps == rps2
 
 def test_create_res_pair_score(respairdat, tmpdir):
    xbin = Xbin(1, 15)
@@ -27,11 +63,6 @@ def test_res_pair_score_pickle(respairscore, tmpdir):
    assert np.all(rps.stub == rps2.stub)
    assert rps.score_map == rps2.score_map
    assert rps.range_map == rps2.range_map
-
-def test_res_pair_score_portable_store(respairscore, tmpdir):
-   for member in dir(respairscore):
-      if member.startswith('__'): continue
-      print(member, type(getattr(respairscore, member)))
 
 def test_pair_score(respairscore):
    rps = respairscore
@@ -161,27 +192,4 @@ def terrible_sanity_check():
    print(t)
 
 if __name__ == "__main__":
-
-   # make_score_files_moveme()
-
-   # import tempfile
-   # with open(f, "rb") as inp:
-   # rp = ResPairData(_pickle.load(inp))
-   # test_create_res_pair_score(rp, tempfile.mkdtemp())
-   import rpxdock as rp
-   import tempfile
-   with tempfile.TemporaryDirectory() as tmpdir:
-
-      rps = rp.data.small_respairscore()
-
-      test_res_pair_score_portable_store(rps, tmpdir)
-      assert 0
-      rpd = rp.data.small_respairdat()
-      test_pair_score(rps)
-      test_bin_get_all_data(rps)
-      test_bin_score(rps)
-      test_res_pair_score_pickle(rps, tmpdir)
-
-      # rpd = rp.motif.ResPairData(rp.data.small_respairdat())
-
-      test_create_res_pair_score(rpd, tmpdir)
+   main()

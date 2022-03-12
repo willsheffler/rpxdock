@@ -122,3 +122,6 @@ def unbunchify(x):
       return type(x)(unbunchify(v) for v in x)
    else:
       return x
+
+# def is_bunch(b):
+# return isinstance(b,Bunch)

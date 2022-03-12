@@ -1,7 +1,7 @@
 import time, numpy, pytest
 from rpxdock import Timer
 
-def test_timer():
+def _test_timer():
    with Timer() as timer:
       time.sleep(0.02)
       timer.checkpoint('foo')

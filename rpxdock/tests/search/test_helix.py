@@ -47,7 +47,7 @@ def test_helix(hscore, body_tiny):
    print(f'toplevel samples {sampler.size(0):,}')
    result = rp.search.make_helix(body_tiny, hscore, sampler, **kw)
    print(result)
-   result.dump_pdbs_top_score(hscore=hscore, **kw)
+   # result.dump_pdbs_top_score(hscore=hscore, **kw)
 
    # rp.dump(result, 'rpxdock/data/testdata/test_asym.pickle')
    # ref = rp.data.get_test_data('test_asym')

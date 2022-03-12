@@ -87,8 +87,8 @@ def debug_marisa_dhr01():
 
    body = rp.Body('/home/sheffler/debug/marisa/input/dhr01.pdb', **kw)
    result = rp.search.make_cyclic(body, "C2", hscore, **kw)
-   result.dump_pdbs_top_score(**kw.sub(nout_top=50, output_prefix='debug_marisa'))
-   print('num results:', len(result))
+   # result.dump_pdbs_top_score(**kw.sub(nout_top=50, output_prefix='debug_marisa'))
+   # print('num results:', len(result))
    result = rp.concat_results([result])
    rp.dump(result, 'result_test.pickle')
 

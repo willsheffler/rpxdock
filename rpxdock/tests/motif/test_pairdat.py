@@ -107,4 +107,4 @@ if __name__ == '__main__':
    with Timer() as t:
       test_pairdat_subset_by_aa(rp)
    print('total', t.total)
-   # test_pairdat_subset_by_ss(rp)
+   test_pairdat_subset_by_ss(rp)

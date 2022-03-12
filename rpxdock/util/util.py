@@ -1,4 +1,4 @@
-import _pickle, os, multiprocessing, threading, copy, hashlib, logging, concurrent, time, gzip, bz2, lzma, zipfile
+import _pickle, os, multiprocessing, threading, copy, hashlib, logging, concurrent, time, gzip, bz2, lzma, zipfile, json
 from collections import abc
 import numpy as np, xarray as xr
 
@@ -149,3 +149,6 @@ class NonFuture:
       if self.dummy:
          return self.fn
       return self.fn(*self.args, **self.kw)
+
+def check_eq_json(a, b):
+   return json.loads(json.dumps(a)) == json.loads(json.dumps(b))

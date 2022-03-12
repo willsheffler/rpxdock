@@ -15,6 +15,7 @@ _overrides = {
 }
 
 _file_mappings = {
+   "motif_io.py": ["rpxdock/tests/motif/test_pairscore.py"],
    "rosetta.py": ["rpxdock/tests/test_body.py"],
    "bvh_algo.hpp": ["rpxdock/tests/bvh/test_bvh_nd.py"],
    "bvh.cpp": ["rpxdock/tests/bvh/test_bvh.py"],
