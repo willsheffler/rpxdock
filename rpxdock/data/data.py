@@ -16,8 +16,10 @@ def rosetta_patch_files():
 
 @lru_cache()
 def get_test_data(name):
-   with open(os.path.join(testdatadir, f'{name}.pickle'), 'rb') as inp:
-      return _pickle.load(inp)
+   from rpxdock.search import result_from_tarball
+   # with open(os.path.join(testdatadir, f'{name}.pickle'), 'rb') as inp:
+   # return _pickle.load(inp)
+   return result_from_tarball(os.path.join(testdatadir, f'{name}.result.txz'))
 
 @lru_cache()
 def get_body(name):
@@ -38,8 +40,10 @@ def small_respairdat():
 
 @lru_cache()
 def small_respairscore():
-   with open(os.path.join(datadir, "pairscore10.pickle"), "rb") as inp:
-      return _pickle.load(inp)
+   # with open(os.path.join(datadir, "pairscore10.pickle"), "rb") as inp:
+   # return _pickle.load(inp)
+   from rpxdock import load
+   return load(os.path.join(datadir, "pairscore10.rpx.txz"))
 
 @lru_cache()
 def small_hscore():

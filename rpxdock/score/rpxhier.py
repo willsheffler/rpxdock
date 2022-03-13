@@ -233,17 +233,28 @@ class RpxHier:
 
 def _check_hscore_files_aliases(alias, hscore_data_dir):
    # try:
-   pattern = os.path.join(hscore_data_dir, alias, '*.pickle*')
-   g = sorted(glob.glob(pattern))
+   picklepattern = os.path.join(hscore_data_dir, alias, '*.pickle*')
+   picklefiles = sorted(glob.glob(picklepattern))
+   xmappattern = os.path.join(hscore_data_dir, alias, '*.txz')
+   txzfiles = sorted(glob.glob(xmappattern))
+   fnames = picklefiles
+   if len(txzfiles):
+      assert len(picklefiles) in (0, len(txzfiles))
+      fnames = txzfiles
+      assert sum([s.count('base') for s in txzfiles]) == 1
+      assert sum([s.count('.rpx.txz') for s in txzfiles]) == 1
+   else:
+      print('WARNING: using legacy .pickle format, convert to tarball format!')
+
    # check for consistency
-   for filetype in '.pickle .pickle.gz .pickle.bz2 .pickle.zip'.split():
-      if g[0].endswith(filetype):
+   for filetype in '.txz .pickle .pickle.gz .pickle.bz2 .pickle.zip'.split():
+      if fnames[0].endswith(filetype):
          log.info(f'Detected hscore files filetype: "{filetype}"')
-         for f in g:
+         for f in fnames:
             assert f.endswith(
                filetype
             ), 'inconsistent hscore filetypes, all must be same (.gz, .bz2, .pickle, etc)'
-   if len(g) > 0: return g
+   if len(fnames) > 0: return fnames
 
 # except:
 #    pass

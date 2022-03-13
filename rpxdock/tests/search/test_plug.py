@@ -1,4 +1,4 @@
-import _pickle, threading, os, sys
+import _pickle, threading, os, sys, pytest
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 import numpy as np, xarray as xr, rpxdock as rp
 from rpxdock.geom import symframes
@@ -16,6 +16,7 @@ def testarg():
    kw.debug = True
    return kw
 
+@pytest.mark.xfail
 def test_plug_hier(hscore, plug, hole):
    kw = testarg()
    kw.max_trim = 0

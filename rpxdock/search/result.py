@@ -1,9 +1,58 @@
-import copy, logging
+import copy, logging, os, tempfile, tarfile, io
 from collections import OrderedDict, abc, defaultdict
 import numpy as np, xarray as xr, rpxdock as rp
 from rpxdock.util import sanitize_for_pickle, num_digits
 
 log = logging.getLogger(__name__)
+
+def result_from_tarball(fname):
+   with tarfile.open(fname) as tar:
+
+      for m in tar.getmembers():
+         raw = tar.extractfile(m)
+         inp = io.BytesIO()
+         inp.write(raw.read())
+         inp.seek(0)
+
+         assert m.name == 'dataset.nc'
+         data = xr.open_dataset(inp)
+
+   return rp.search.Result(data)
+
+def result_to_tarball(result, fname, overwrite=False):
+
+   if not fname.endswith(('.txz', '.tar.xz')):
+      fname += '.txz'
+
+   if os.path.exists(fname) and not overwrite:
+      raise FileExistsError(f'file exists {fname}')
+
+   if type(result) is not rp.search.Result:
+      raise TypeError()
+
+   attrs = sanitize_for_pickle(result.data.attrs)
+   attrs = rp.util.unbunchify(attrs)
+   if 'arg' in result.data.attrs:
+      if 'executor' in attrs['arg']: del attrs['arg']['executor']
+      if 'iface_summary' in attrs['arg']: del attrs['arg']['iface_summary']
+
+   todel = list()
+   attrs2 = attrs.copy()
+   for k, v in attrs.items():
+      if isinstance(v, dict):
+         attrs2[k + '_keys'] = '|'.join(v.keys())
+         attrs2[k + '_vals'] = '|'.join(repr(_) for _ in v.values())
+         del attrs2[k]
+   result.data.attrs = attrs2
+
+   with tempfile.TemporaryDirectory() as td:
+
+      with open(td + '/dataset.nc', 'wb') as out:
+         result.data.to_netcdf(out)
+
+      cmd = f'cd {td} && tar cjf {os.path.abspath(fname)} *'
+      assert not os.system(cmd)
+   return fname
 
 class Result:
    def __init__(self, data_or_file=None, body_=[], body_label_=None, **kw):

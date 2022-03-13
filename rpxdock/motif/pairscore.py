@@ -164,7 +164,9 @@ class ResPairScore:
 
          if type(vself) != type(vother):
             if f == 'rotchi':
-               if len(vself) != len(vother): return False
+               if len(vself) != len(vother):
+                  assert 0
+                  return False
             else:
                assert 0  # this is weird enough to assert
                print('!!!!!!!!!!!!', f, type(vself))
@@ -172,6 +174,7 @@ class ResPairScore:
 
          elif f == 'xbin':
             if self.xbin != other.xbin:
+               assert 0
                return False
 
          elif f == 'attr':
@@ -182,7 +185,17 @@ class ResPairScore:
                return False
 
          elif isinstance(vself, np.ndarray):
-            if np.any(vself != vother): return False
+            if np.any(vself != vother):
+               a = vself.reshape(-1)
+               b = vother.reshape(-1)
+               a = a[~np.isnan(a)]
+               b = b[~np.isnan(b)]
+               if np.any(a != b):
+                  # print(f)
+                  # print(vself.shape, vother.shape)
+                  # print(np.sum(vself == vother))
+                  # assert 0
+                  return False
 
          elif f == 'rotspace':
             # rot res and labels may be stored separately
@@ -190,7 +203,7 @@ class ResPairScore:
             vother = vother.drop('dim_0') if 'dim_0' in vother else vother
 
          elif vself != vother:
-            # print(f, type(vself), type(vother))
+            print(f, type(vself), type(vother))
             return False
             # assert 0
       return True

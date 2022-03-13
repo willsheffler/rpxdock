@@ -116,80 +116,80 @@ def test_bin_get_all_data(respairscore):
    print(len(binrots), totsize)
    print(f"perf perrot: {int(totsize / t):,} perkey: {int(len(binrots) / t):,}")
 
-def make_score_files_moveme():
-   # f = "/home/sheffler/debug/rpxdock/respairdat_si30.pickle"
-   # # f2 = "/home/sheffler/debug/rpxdock/datafiles/respairdat_si30_rotamers"
-   # f = "rpxdock/data/respairdat10_plus_xmap_rots.pickle"
-   # f2 = "rpxdock/data/respairscore10"
-   # f = "rpxdock/data/respairdat10.pickle"
-   f = "/home/sheffler/debug/derp_learning/pdb_res_pair_data_si30_10.pickle"
-   f1 = "rpxdock/data/respairdat10_plus_xmap_rots.pickle"
-   f2 = "rpxdock/data/pairscore10.pickle"
-   with open(f, "rb") as inp:
-      rp = ResPairData(_pickle.load(inp))
-   rp.data["stub"] = ["resid", "hrow", ""], bb_stubs(rp.n, rp.ca, rp.c)
-   xbin = Xbin(1.0, 20)
-   add_xbin_to_respairdat(rp, xbin, min_ssep=10)
-   rotspace = get_rotamer_space()
-   add_rots_to_respairdat(rp, rotspace)
-   with open(f1, "wb") as out:
-      _pickle.dump(rp.data, out)
-   rps = create_res_pair_score(rp, min_ssep=10)
-   with open(f2, "wb") as out:
-      _pickle.dump(rps, out)
-
-def terrible_sanity_check():
-   f = "/home/sheffler/debug/rpxdock/pdb_res_pair_data_si30_pairscore.pickle"
-   with open(f, "rb") as inp:
-      rps = _pickle.load(inp)
-
-   f2 = "/home/sheffler/debug/rpxdock/pdb_res_pair_data_si30_pairscore/resdata.pickle"
-   with open(f2, "rb") as inp:
-      rd = _pickle.load(inp)
-
-   assert rps.stub.shape == rd.stub.shape
-   assert rps.xbin.cart_resl == rd.xbin.cart_resl
-   assert rps.keys.shape == rd.keys.shape
-   assert len(rps.score_map) == len(rd.keys)
-   assert len(rps.range_map) == len(rd.keys)
-   assert rps.respair.shape == rd.respair.shape
-   assert rps.aaid.shape == rd.aaid.shape
-   assert rps.ssid.shape == rd.ssid.shape
-   assert rps.rotid.shape == rd.rotid.shape
-   assert rps.stub.shape == rd.stub.shape
-   assert rps.pdb.shape == rd.pdb.shape
-   assert rps.resno.shape == rd.resno.shape
-   for i in range(len(rps.rotchi)):
-      assert list(rps.rotchi[i]) == list(rd.rotchi[i])
-   assert rps.rotlbl == rd.rotlbl
-   assert rps.id2aa.shape == rd.id2aa.shape
-   assert rps.id2ss.shape == rd.id2ss.shape
-
-   f = "/home/sheffler/debug/rpxdock/pdb_res_pair_data_si30_pairscore.pickle"
-   with open(f, "rb") as inp:
-      rps = _pickle.load(inp)
-
-   # f2 = "/home/sheffler/debug/rpxdock/pdb_res_pair_data_si30_pairscore/resdata.pickle"
-   # with open(f2, "rb") as inp:
-   # rd = _pickle.load(inp)
-
-   print(len(rps.score_map) / 1000000)
-   k, v = rps.score_map.items_array()
-
-   from time import perf_counter
-   from rpxdock.phmap import PHMap_u8f8
-
-   t = perf_counter()
-   x = rps.score_map[k]
-   t = perf_counter() - t
-   assert np.all(x == v)
-   print(t)
-   t = perf_counter()
-   p = PHMap_u8f8()
-   p[k] = v
-   t = perf_counter() - t
-   assert np.all(x == v)
-   print(t)
+# def make_score_files_moveme():
+#    # f = "/home/sheffler/debug/rpxdock/respairdat_si30.pickle"
+#    # # f2 = "/home/sheffler/debug/rpxdock/datafiles/respairdat_si30_rotamers"
+#    # f = "rpxdock/data/respairdat10_plus_xmap_rots.pickle"
+#    # f2 = "rpxdock/data/respairscore10"
+#    # f = "rpxdock/data/respairdat10.pickle"
+#    f = "rpxdock/data/pdb_res_pair_data_si30_10.pickle"
+#    f1 = "rpxdock/data/respairdat10_plus_xmap_rots.pickle"
+#    f2 = "rpxdock/data/pairscore10.pickle"
+#    with open(f, "rb") as inp:
+#       rp = ResPairData(_pickle.load(inp))
+#    rp.data["stub"] = ["resid", "hrow", ""], bb_stubs(rp.n, rp.ca, rp.c)
+#    xbin = Xbin(1.0, 20)
+#    add_xbin_to_respairdat(rp, xbin, min_ssep=10)
+#    rotspace = get_rotamer_space()
+#    add_rots_to_respairdat(rp, rotspace)
+#    with open(f1, "wb") as out:
+#       _pickle.dump(rp.data, out)
+#    rps = create_res_pair_score(rp, min_ssep=10)
+#    with open(f2, "wb") as out:
+#       _pickle.dump(rps, out)
+#
+# def terrible_sanity_check():
+#    f = "/home/sheffler/debug/rpxdock/pdb_res_pair_data_si30_pairscore.pickle"
+#    with open(f, "rb") as inp:
+#       rps = _pickle.load(inp)
+#
+#    f2 = "/home/sheffler/debug/rpxdock/pdb_res_pair_data_si30_pairscore/resdata.pickle"
+#    with open(f2, "rb") as inp:
+#       rd = _pickle.load(inp)
+#
+#    assert rps.stub.shape == rd.stub.shape
+#    assert rps.xbin.cart_resl == rd.xbin.cart_resl
+#    assert rps.keys.shape == rd.keys.shape
+#    assert len(rps.score_map) == len(rd.keys)
+#    assert len(rps.range_map) == len(rd.keys)
+#    assert rps.respair.shape == rd.respair.shape
+#    assert rps.aaid.shape == rd.aaid.shape
+#    assert rps.ssid.shape == rd.ssid.shape
+#    assert rps.rotid.shape == rd.rotid.shape
+#    assert rps.stub.shape == rd.stub.shape
+#    assert rps.pdb.shape == rd.pdb.shape
+#    assert rps.resno.shape == rd.resno.shape
+#    for i in range(len(rps.rotchi)):
+#       assert list(rps.rotchi[i]) == list(rd.rotchi[i])
+#    assert rps.rotlbl == rd.rotlbl
+#    assert rps.id2aa.shape == rd.id2aa.shape
+#    assert rps.id2ss.shape == rd.id2ss.shape
+#
+#    f = "/home/sheffler/debug/rpxdock/pdb_res_pair_data_si30_pairscore.pickle"
+#    with open(f, "rb") as inp:
+#       rps = _pickle.load(inp)
+#
+#    # f2 = "/home/sheffler/debug/rpxdock/pdb_res_pair_data_si30_pairscore/resdata.pickle"
+#    # with open(f2, "rb") as inp:
+#    # rd = _pickle.load(inp)
+#
+#    print(len(rps.score_map) / 1000000)
+#    k, v = rps.score_map.items_array()
+#
+#    from time import perf_counter
+#    from rpxdock.phmap import PHMap_u8f8
+#
+#    t = perf_counter()
+#    x = rps.score_map[k]
+#    t = perf_counter() - t
+#    assert np.all(x == v)
+#    print(t)
+#    t = perf_counter()
+#    p = PHMap_u8f8()
+#    p[k] = v
+#    t = perf_counter() - t
+#    assert np.all(x == v)
+#    print(t)
 
 if __name__ == "__main__":
    main()

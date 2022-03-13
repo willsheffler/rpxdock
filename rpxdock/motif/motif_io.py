@@ -8,8 +8,8 @@ def save_bunch(bunch, path):
    with open(path, 'w') as out:
       json.dump(nobunches, out)
 
-def load_bunch(bunch, inp):
-   return rp.Bunch(json.load(inp))
+def load_bunch(inp):
+   return rp.util.bunchify(json.load(inp))
 
 def save_phmap(phmap, path):
    k, v = phmap.items_array()
@@ -65,12 +65,78 @@ def save_xmap(xmap, path):
    save_phmap(xmap.phmap, path)
    save_bunch(xmap.attr, path + '.attr.json')
 
-def respairscore_to_tarball(rps, fname, overwrite=False):
+def xmap_to_tarball(xmap, fname, overwrite=False):
+
    if not fname.endswith(('.txz', '.tar.xz')):
       fname += '.txz'
 
    if os.path.exists(fname) and not overwrite:
       raise FileExistsError(f'file exists {fname}')
+
+   if type(xmap) is not rp.motif.Xmap:
+      raise TypeError()
+
+   with tempfile.TemporaryDirectory() as td:
+      save_xmap(xmap, td + '/Xmap')
+      cmd = f'cd {td} && tar cjf {os.path.abspath(fname)} *'
+      assert not os.system(cmd)
+      return fname
+
+def xmap_from_tarball(fname):
+   with tarfile.open(fname) as tar:
+
+      for m in tar.getmembers():
+         raw = tar.extractfile(m)
+         inp = io.BytesIO()
+         inp.write(raw.read())
+         inp.seek(0)
+
+         # print(m.name)
+         xm, f, ext = m.name.split('.')
+         assert xm == 'Xmap'
+
+         if f == 'attr':
+            assert ext == 'json'
+            attr = load_bunch(inp)
+         elif f.endswith('_keys'):
+            assert ext == 'npy'
+            phmaptype1 = f[:-5]
+            keys = np.load(inp)
+         elif f.endswith('_vals'):
+            assert ext == 'npy'
+            phmaptype2 = f[:-5]
+            vals = np.load(inp)
+         elif f == 'xbin':
+            xbin = load_xbin(inp)
+         else:
+            print(m.name)
+            print(mname, f, ext)
+            assert 0, 'Xmap madness in pairscore tarball!'
+
+      assert phmaptype1 == phmaptype2
+      if phmaptype1 == 'PHMap_u8f8':
+         phm = rp.phmap.PHMap_u8f8()
+         assert vals.dtype == np.dtype('f8')
+      elif phmaptype1 == 'PHMap_u8u8':
+         phm = rp.phmap.PHMap_u8u8()
+         assert vals.dtype == np.dtype('u8')
+      else:
+         assert 0, 'madness in stored respairscore phmap info'
+
+      phm[keys] = vals
+
+   return rp.motif.Xmap(xbin, phm, attr)
+
+def respairscore_to_tarball(rps, fname, overwrite=False):
+
+   if not fname.endswith(('.txz', '.tar.xz')):
+      fname += '.txz'
+
+   if os.path.exists(fname) and not overwrite:
+      raise FileExistsError(f'file exists {fname}')
+
+   if type(rps) is not rp.motif.ResPairScore:
+      raise TypeError()
 
    with tempfile.TemporaryDirectory() as td:
 
@@ -96,7 +162,8 @@ def respairscore_to_tarball(rps, fname, overwrite=False):
             assert len(member) == 0, 'dont know how to serialize hier_maps, do individually'
 
          elif mname == 'rotspace':
-            member = member.drop('dim_0')
+            if 'dim_0' in member:
+               member = member.drop('dim_0')
             with open(td + '/' + mname + '.nc', 'wb') as out:
                member.to_netcdf(out)
 
@@ -153,7 +220,7 @@ def respairscore_from_tarball(fname):
             assert xm == 'Xmap'
             if f == 'attr':
                assert ext == 'json'
-               xmaps[mname][f] = json.load(inp)
+               xmaps[mname][f] = load_bunch(inp)
             elif f.startswith('PHMap_u8f8_'):
                assert ext == 'npy'
                xmaps[mname][f] = np.load(inp)
@@ -182,7 +249,7 @@ def respairscore_from_tarball(fname):
             mname = m.name[:-5]
             val = json.load(inp)
             if isinstance(val, dict):
-               val = val
+               val = rp.util.bunchify(val)
             setattr(rps, mname, val)
 
          elif m.name.endswith('.nc'):
@@ -227,3 +294,47 @@ def respairscore_from_tarball(fname):
    # add xmaps
 
    return rps
+
+def convert_respairdat_to_netcdf(rpd, fname, overwrite=False):
+   assert fname.endswith('.nc')
+   if os.path.exists(fname) and not overwrite:
+      raise FileExistsError(f'file exists {fname}')
+
+   # print(rpd)
+
+   # replace weights with key/val lists
+   rpd.attrs['eweights_k'] = list(rpd.attrs['eweights'].keys())
+   rpd.attrs['eweights_v'] = list(rpd.attrs['eweights'].values())
+   del rpd.attrs['eweights']
+
+   # replace rotchi with masked array
+   if 'rotchi' in rpd.attrs:
+      rotchi = np.empty((len(rpd.attrs['rotchi']), 4), dtype='f8')
+      rotchi.fill(np.nan)
+      for i, chis in enumerate(rpd.attrs['rotchi']):
+         for j, chi in enumerate(chis):
+            rotchi[i, j] = chi
+      rpd.attrs['rotchi'] = rotchi.reshape(-1)
+
+   # replace chain lists with masked array
+   maxchains = max(len(_.data.item()) for _ in rpd.chains)
+   newchains = np.empty((len(rpd.chains), maxchains, 2), dtype='i')
+   newchains.fill(np.nan)
+   for i, ch in enumerate(rpd.chains):
+      for j, be in enumerate(ch.item()):
+         newchains[i, j] = be
+   rpd = rpd.drop('chains')
+   rpd = rpd.assign(chains=xr.Variable(('pdbid', 'nchain', 'chainbegend'), newchains))
+   # print(rpd.chains.shape, rpd.chains.dtype, rpd.chains.dims)
+
+   # assert 0
+   if 'stub' in rpd:
+      stub = rpd.stub.data
+      # print(rpd.stub.shape, rpd.stub.dtype, rpd.stub.dims)
+      rpd = rpd.drop('stub')
+      rpd = rpd.assign(stub=xr.Variable(('resid', 'hrow', 'hcol'), stub))
+      # print(rpd.stub.shape, rpd.stub.dtype, rpd.stub.dims)
+
+   rpd.to_netcdf(fname)
+
+   # print('DONE!')

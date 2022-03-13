@@ -2,6 +2,10 @@ import numpy as np
 import rpxdock.homog as hm
 import rpxdock
 
+def main():
+   hscore = rpxdock.data.small_hscore()
+   test_rpxhier(hscore)
+
 def rand_xform_sphere(n, radius, maxang=0):
    t = radius * 2 * (np.random.rand(3 * n + 10, 3) - 0.5)
    t = t[np.linalg.norm(t, axis=-1) <= radius]
@@ -97,3 +101,6 @@ def test_rpxhier(hscore, N=1000):
    # print("base", hscore.base.xbin.cart_resl, hscore.base.xbin.ori_resl)
    # for h in hscore.hier:
    #     print("hier", h.xbin.cart_resl, h.xbin.ori_resl)
+
+if __name__ == '__main__':
+   main()

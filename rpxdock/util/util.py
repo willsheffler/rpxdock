@@ -5,6 +5,7 @@ import numpy as np, xarray as xr
 log = logging.getLogger(__name__)
 
 def load(f, verbose=True):
+   from rpxdock.motif import respairscore_from_tarball, xmap_from_tarball
    if isinstance(f, str):
       if verbose: log.debug(f'loading{f}')
 
@@ -16,6 +17,12 @@ def load(f, verbose=True):
          readfun = lzma.open
       elif f.endswith('.zip'):
          readfun = zipfile.Zipfile
+      elif f.endswith('.xmap.txz'):
+         return xmap_from_tarball(f)
+      elif f.endswith('.rpx.txz'):
+         return respairscore_from_tarball(f)
+      elif f.endswith('.nc'):
+         return xr.load_dataset(f)
       else:
          readfun = open
       with readfun(f, "rb") as inp:

@@ -1,6 +1,21 @@
 import _pickle, collections, pytest
 from rpxdock.search.result import *
 
+def main():
+   import tempfile
+   # test_result(dummy_result(1000))
+   # test_result_pickle(dummy_result(1000), tempfile.mkdtemp())
+   # test_result_attrs()
+   # test_mismatch_len(dummy_result(1000))
+   # test_top_each(dummy_result(1000))
+   # test_result_no_body_label(dummy_result(1000))
+   # test_result_coords()
+   test_result_tarball(dummy_result(100))
+
+# def test_result_tarball(result):
+# testresult = rp.data.get_test_data('test_cage_hier_onecomp_notrim')
+# result_to_tarball(testresult, 'test.result.txz', overwrite=True)
+
 def test_result(result):
    a = result.copy()
    a.attrs['foo'] = 1
@@ -56,11 +71,4 @@ def test_result_coords():
    assert 0
 
 if __name__ == '__main__':
-   import tempfile
-   # test_result(dummy_result(1000))
-   # test_result_pickle(dummy_result(1000), tempfile.mkdtemp())
-   # test_result_attrs()
-   # test_mismatch_len(dummy_result(1000))
-   # test_top_each(dummy_result(1000))
-   # test_result_no_body_label(dummy_result(1000))
-   test_result_coords()
+   main()
