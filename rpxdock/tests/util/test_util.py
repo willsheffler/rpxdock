@@ -5,7 +5,7 @@ from cppimport import import_hook
 # turn_off_strict_prototypes()
 from rpxdock.util.dilated_int_test import *
 from rpxdock.util import sanitize_for_pickle, load_threads, dump, can_pickle, num_digits
-from rpxdock import Bunch
+from willutil import Bunch
 
 class dummyclass:
    pass

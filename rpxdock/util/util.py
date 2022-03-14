@@ -1,6 +1,6 @@
 import _pickle, os, multiprocessing, threading, copy, hashlib, logging, concurrent, time, gzip, bz2, lzma, zipfile, json
 from collections import abc
-import numpy as np, xarray as xr
+import numpy as np
 
 log = logging.getLogger(__name__)
 
@@ -22,6 +22,7 @@ def load(f, verbose=True):
       elif f.endswith('.rpx.txz'):
          return respairscore_from_tarball(f)
       elif f.endswith('.nc'):
+         import xarray as xr
          return xr.load_dataset(f)
       else:
          readfun = open
@@ -92,6 +93,7 @@ def hash_str_to_int(s):
    return int(abs(np.frombuffer(buf, dtype="i8")[0]))
 
 def sanitize_for_pickle(data):
+   import xarray as xr
    data = copy.copy(data)
    if isinstance(data, (np.ndarray, xr.Dataset, xr.DataArray, int, float, str)):
       pass

@@ -18,7 +18,7 @@ def _reduce_dataset(dat):
 
 def main():
 
-   kw = rp.Bunch(
+   kw = Bunch(
       min_helix1_len=14,
       max_helix1_len=28,
       min_turn_len=3,

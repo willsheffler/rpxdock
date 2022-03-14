@@ -2,6 +2,7 @@ import numpy as np, rpxdock as rp
 from pyrosetta.rosetta.numeric import xyzVector_double_t as rVec
 from pyrosetta.rosetta.numeric import xyzMatrix_double_t as rMat
 from pyrosetta import AtomID
+from willutil import Bunch
 
 def rosetta_init(opts="-beta -mute all"):
    from pyrosetta import init
@@ -42,7 +43,7 @@ def get_bb_coords(pose, which_resi=None, recenter_input=False, **kw):
    return coords
 
 def get_cb_coords(pose, which_resi=None, recenter_input=False, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw)
    if which_resi is None:
       which_resi = list(range(1, pose.size() + 1))
    cbs = []
@@ -63,7 +64,7 @@ def get_cb_coords(pose, which_resi=None, recenter_input=False, **kw):
    return coords
 
 def get_sc_coords(pose, which_resi=None, recenter_input=False, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw)
    if which_resi is None:
       which_resi = list(range(1, pose.size() + 1))
    resaname, resacrd = list(), list()

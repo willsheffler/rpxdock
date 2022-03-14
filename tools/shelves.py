@@ -146,7 +146,7 @@ def diagonal_side():
       # print('left offsets ', imperial(left_back_offset), imperial(left_front_offset))
       prev = None
       for i, d in enumerate(shelf_depths[:-1]):
-         if L[i] is 0: continue
+         if L[i] == 0: continue
          print('----------------')
          alpha = np.arctan(d / shelf_depths[0])
          diaglen = shelf_depths[0] / np.cos(alpha)

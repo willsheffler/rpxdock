@@ -1,4 +1,4 @@
-import numpy as np, rpxdock as rp
+import numpy as np, rpxdock as rp, pytest
 from rpxdock.rotamer.etable import (_get_etable, get_etables, make_2res_gly_poses,
                                     earray_rosetta_sfxn, earray_score_2res_pose)
 from pyrosetta import pose_from_file
@@ -21,6 +21,7 @@ def scale_raw_score(e):
    s[e < 0] = -np.sqrt(-e[e < 0])
    return s
 
+@pytest.mark.skip
 def test_etable_v_rosetta_2res(Ntest=1, N=100, plot=False):
 
    #  64             9398230856304585

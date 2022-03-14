@@ -1,5 +1,6 @@
-import time
+import time, tempfile
 import rpxdock as rp
+from willutil import Bunch
 from rpxdock.motif.pairdat import *
 from rpxdock.motif.pairscore import *
 from rpxdock.xbin import Xbin
@@ -12,8 +13,7 @@ def main():
    # with open(f, "rb") as inp:
    # rp = ResPairData(_pickle.load(inp))
    # test_create_res_pair_score(rp, tempfile.mkdtemp())
-   import rpxdock as rp
-   import tempfile
+
    with tempfile.TemporaryDirectory() as tmpdir:
 
       rps = rp.data.small_respairscore()

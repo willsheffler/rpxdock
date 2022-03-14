@@ -1,9 +1,10 @@
 import logging, numpy as np, rpxdock as rp
+from willutil import Bunch
 
 log = logging.getLogger(__name__)
 
 def filter_redundancy(xforms, body, scores=None, categories=None, every_nth=10, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw)
    if scores is None:
       scores = np.repeat(0, len(xforms))
    if len(scores) == 0: return []

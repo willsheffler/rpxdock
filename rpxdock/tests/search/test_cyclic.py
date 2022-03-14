@@ -1,9 +1,10 @@
 import concurrent, os, argparse, sys, numpy as np, rpxdock as rp, pytest
 from rpxdock.search import grid_search
+from willutil import Bunch
 
 def get_arg():
    kw = rp.app.defaults()
-   kw.wts = rp.Bunch(ncontact=0.1, rpx=1.0)
+   kw.wts = Bunch(ncontact=0.1, rpx=1.0)
    kw.beam_size = 1e4
    kw.max_bb_redundancy = 2.0
    kw.max_longaxis_dot_z = 0.5
@@ -58,7 +59,7 @@ def test_make_cyclic_hier_trim(hscore, body):
 
 # def test_make_cyclic_grid(hscore, body):
 #    kw = rp.app.defaults()
-#    kw.wts = rp.Bunch(ncontact=0.1, rpx=0.0)
+#    kw.wts = Bunch(ncontact=0.1, rpx=0.0)
 #    kw.beam_size = 1e4
 #    kw.max_bb_redundancy = 2.0
 #    # kw.nout_debug = 3
@@ -72,7 +73,7 @@ def test_make_cyclic_hier_trim(hscore, body):
 
 def debug_marisa_dhr01():
    kw = rp.app.defaults()
-   kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
+   kw.wts = Bunch(ncontact=0.01, rpx=1.0)
    kw.beam_size = 1e4
    kw.max_bb_redundancy = 2.0
    kw.recenter_input = True

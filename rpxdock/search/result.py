@@ -1,11 +1,12 @@
 import copy, logging, os, tempfile, tarfile, io
 from collections import OrderedDict, abc, defaultdict
-import numpy as np, xarray as xr, rpxdock as rp
+import numpy as np, rpxdock as rp
 from rpxdock.util import sanitize_for_pickle, num_digits
 
 log = logging.getLogger(__name__)
 
 def result_from_tarball(fname):
+   import xarray as xr
    with tarfile.open(fname) as tar:
 
       for m in tar.getmembers():
@@ -56,6 +57,7 @@ def result_to_tarball(result, fname, overwrite=False):
 
 class Result:
    def __init__(self, data_or_file=None, body_=[], body_label_=None, **kw):
+      import xarray as xr
       if isinstance(body_, rp.Body): body_ = [body_]
       self.bodies = [body_]
       self.body_label_ = body_label_ if body_label_ else ['body%i' % i for i in range(len(body_))]
@@ -63,7 +65,7 @@ class Result:
       if len(self.body_label_) != len(body_):
          raise ValueError('body_label_ must match number of bodies')
       if data_or_file:
-         assert len(kw) is 0
+         assert len(kw) == 0
          if isinstance(data_or_file, xr.Dataset):
             self.data = data_or_file
          else:
@@ -103,6 +105,7 @@ class Result:
       return self.data.to_dict()
 
    def setstate(self, state):
+      import xarray as xr
       self.data = xr.Dataset.from_dict(state)
 
    def sel(self, *args, **kw):
@@ -123,7 +126,7 @@ class Result:
       return which
 
    def dump_pdbs_top_score_each(self, nout_each=1, **kw):
-      if nout_each is 0: return
+      if nout_each == 0: return
       which = self.top_each(nout_each)
       if not len(which):
          raise ValueError("can't dump pdbs, no results available")
@@ -136,7 +139,7 @@ class Result:
 
    def dump_pdbs(self, which, ndigwhich=None, ndigmdl=None, lbl='', skip=[], output_prefix='rpx',
                  **kw):
-      if len(which) is 0: return set()
+      if len(which) == 0: return set()
       if isinstance(which, abc.Mapping):
          raise ValueError('dump_pdbs takes sequence not mapping')
       if 'fname' in kw and kw['fname'] is not None:
@@ -234,9 +237,10 @@ def dict_coherent_entries(alldicts):
             sets[k].add(v)
          except:
             badkeys.add(k)
-   return {k: v.pop() for k, v in sets.items() if len(v) is 1 and not k in badkeys}
+   return {k: v.pop() for k, v in sets.items() if len(v) == 1 and not k in badkeys}
 
 def concat_results(results, **kw):
+   import xarray as xr
    if isinstance(results, Result): results = [results]
    assert len(results) > 0
    ijob = np.repeat(np.arange(len(results)), [len(r) for r in results])

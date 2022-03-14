@@ -1,9 +1,9 @@
-import seaborn as sns
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-
 def coplot(data, show=True):
+   import seaborn as sns
+   import numpy as np
+   import pandas as pd
+   import matplotlib.pyplot as plt
+
    try:
       g = sns.PairGrid(data)
    except (IndexError, AttributeError):

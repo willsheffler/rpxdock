@@ -1,6 +1,6 @@
 from rpxdock.motif import ResPairData
 from rpxdock.motif.pairdat import _change_seq_ss_to_ids
-from rpxdock.util.timer import Timer
+from willutil import Timer
 import numpy as np
 import xarray as xr
 import pytest

@@ -147,7 +147,8 @@ def axis_angle_of_3x3(rots):
    tr = np.trace(rots, axis1=-1, axis2=-2)
    cos_angl = np.clip((tr - 1) / 2, -1, 1)
    angl = np.arctan2(sin_angl, cos_angl)
-   axis = axis / np.linalg.norm(axis, axis=-1)[..., np.newaxis]
+   norm = np.linalg.norm(axis, axis=-1)[..., np.newaxis]
+   axis = axis / np.maximum(1e-9, norm)
    return axis, angl
 
 def angle_of_3x3(rots):
@@ -185,7 +186,7 @@ def angle_of(xforms):
 def rot(axis, angle, degrees='auto', dtype='f8', shape=(3, 3)):
    axis = np.array(axis, dtype=dtype)
    angle = np.array(angle, dtype=dtype)
-   if degrees is 'auto': degrees = guess_is_degrees(angle)
+   if degrees == 'auto': degrees = guess_is_degrees(angle)
    angle = angle * np.pi / 180.0 if degrees else angle
    if axis.shape and angle.shape and not is_broadcastable(axis.shape[:-1], angle.shape):
       raise ValueError('axis and angle not compatible: ' + str(axis.shape) + ' ' +

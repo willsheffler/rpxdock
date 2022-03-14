@@ -39,7 +39,7 @@ def expand_xforms_rand(
    for idepth in range(depth):
       which = np.random.choice(len(generators), trials)
       xdelta = generators[which]
-      if idepth is 0:
+      if idepth == 0:
          frames[idepth] = xdelta
       else:
          frames[idepth] = xdelta @ frames[idepth - 1]
@@ -91,14 +91,14 @@ def _test_expand_xforms_various_count(expand_xforms_func, trials=3):
          hm.hrot([1, 1, 1], 120.0, [0, 0, 0]),
       ]
       ex, *_ = expand_xforms_func(generators, depth=100, trials=100, radius=9e9)
-      assert len(ex) is 12
+      assert len(ex) == 12
 
       generators = [  # O
          hm.hrot([0, 1, 1], 180.0, [0, 0, 0]),
          hm.hrot([1, 1, 1], 120.0, [0, 0, 0]),
       ]
       ex, *_ = expand_xforms_func(generators, depth=100, trials=100, radius=9e9)
-      assert len(ex) is 24
+      assert len(ex) == 24
 
       generators = [  # D2
          hm.hrot([1, 0, 0], 180.0, [0, 0, 0]),
@@ -165,7 +165,7 @@ def do_test_expand_xforms(
             nmissing += 1
    if nmissing > 0:
       print('missing num', nmissing, 'frac', nmissing / 1000_000)
-      assert nmissing is 0
+      assert nmissing == 0
 
 def test_expand_xforms_p213_rand(trials=10):
    generators = np.array([
@@ -203,7 +203,7 @@ def test_expand_xforms_p4132_2_3(trials=10):
    )
 
 if __name__ == '__main__':
-   t = rp.Timer().start()
+   t = Timer().start()
    # test_expand_xforms_rand()
    t.checkpoint('start')
    test_expand_xforms_various_count_cpp(trials=1)

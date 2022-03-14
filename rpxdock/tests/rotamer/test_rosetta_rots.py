@@ -1,5 +1,6 @@
 import numpy as np, rpxdock as rp
 from rpxdock.rotamer.rosetta_rots import (get_rosetta_rots, core, Pose, ala_to_virtCB)
+from willutil import Timer
 
 def test_rosetta_rots_1res(**kw):
 
@@ -19,7 +20,7 @@ def test_rosetta_rots_1res(**kw):
       'coords', 'rotnum', 'atomnum', 'resname', 'atomname', 'atomtype', 'rosetta_atom_type_index'
    ]
 
-   t = rp.Timer().start()
+   t = Timer().start()
 
    rotdata = get_rosetta_rots(pose, [8], sfxn, **kw)
    for f in fields:
@@ -72,7 +73,7 @@ def test_rosetta_rots(**kw):
       'rosetta_atom_type_index',
    ]
 
-   t = rp.Timer().start()
+   t = Timer().start()
 
    rotdata = get_rosetta_rots(pose, [8], sfxn, **kw)
    for f in fields:

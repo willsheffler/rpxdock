@@ -36,13 +36,13 @@ def small_respairdat():
    #   return ResPairData(_pickle.load(inp))
    with xr.open_dataset(fn, decode_cf=True) as rpd:
       rpd.load()
-      return rp.ResPairData(rpd)
+      return rp.motif.pairdat.ResPairData(rpd)
 
 @lru_cache()
 def small_respairscore():
    # with open(os.path.join(datadir, "pairscore10.pickle"), "rb") as inp:
    # return _pickle.load(inp)
-   from rpxdock import load
+   from rpxdock.util import load
    return load(os.path.join(datadir, "pairscore10.rpx.txz"))
 
 @lru_cache()

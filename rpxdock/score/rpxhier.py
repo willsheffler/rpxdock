@@ -1,14 +1,15 @@
 import os, logging, glob, numpy as np, rpxdock as rp
 from rpxdock.xbin import xbin_util as xu
+from willutil import Bunch
 
 log = logging.getLogger(__name__)
 
 class RpxHier:
    def __init__(self, files, max_pair_dist=8.0, hscore_data_dir=None, **kw):
-      kw = rp.Bunch(kw)
+      kw = Bunch(kw)
       if isinstance(files, str): files = [files]
-      if len(files) is 0: raise ValueError('RpxHier given no datafiles')
-      if len(files) is 1: files = _check_hscore_files_aliases(files[0], hscore_data_dir)
+      if len(files) == 0: raise ValueError('RpxHier given no datafiles')
+      if len(files) == 1: files = _check_hscore_files_aliases(files[0], hscore_data_dir)
       if len(files) > 8:
          for f in files:
             log.error(f)
@@ -42,7 +43,7 @@ class RpxHier:
       self.max_pair_dist = [max_pair_dist + h.attr.cart_extent for h in self.hier]
       self.map_pairs_multipos = xu.ssmap_pairs_multipos if self.use_ss else xu.map_pairs_multipos
       self.map_pairs = xu.ssmap_of_selected_pairs if self.use_ss else xu.map_of_selected_pairs
-      self.score_only_sspair = kw.score_only_sspair
+      self.score_only_sspair = kw.get('score_only_sspair')
 
    def __len__(self):
       return len(self.hier)
@@ -57,7 +58,7 @@ class RpxHier:
       pairs, lbub = rp.bvh.bvh_collect_pairs_vec(body.bvh_cen, body.bvh_cen, np.eye(4), np.eye(4),
                                                  self.max_pair_dist[iresl])
       pairs = body.filter_pairs(pairs, self.score_only_sspair)
-      assert len(lbub) is 1
+      assert len(lbub) == 1
       xmap = self.hier[iresl]
       ssstub = body.ssid, body.ssid, body.stub, body.stub
       if not self.use_ss: ssstub = ssstub[2:]
@@ -78,7 +79,7 @@ class RpxHier:
             xsym @ bodyB.pos,
             self.max_pair_dist[iresl],
          )
-         assert len(lbub) is 1
+         assert len(lbub) == 1
          pairs = bodyA.filter_pairs(pairs, self.score_only_sspair, other=bodyB, **kw)
          xmap = self.hier[iresl]
          ssstub = bodyA.ssid, bodyB.ssid, bodyA.pos @ bodyA.stub, xsym @ bodyB.pos @ bodyB.stub
@@ -129,13 +130,13 @@ class RpxHier:
       :return:
       '''
 
-      kw = rp.Bunch(kw)
+      kw = Bunch(kw)
       pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
       # if not bounds:
       # bounds = [-2e9], [2e9], nsym[0], [-2e9], [2e9], nsym[1]
-      # if len(bounds) is 2:
+      # if len(bounds) == 2:
       # bounds += nsym[1],
-      # if len(bounds) is 3:
+      # if len(bounds) == 3:
       # bounds += [-2e9], [2e9], 1
       bounds = list(bounds)
       if len(bounds) > 2 and (bounds[2] is None or bounds[2] < 0):

@@ -1,5 +1,6 @@
 import _pickle, numpy as np, itertools as it, sys
 from time import perf_counter
+from willutil import Timer
 
 # from cppimport import import_hook
 # from cppimport.config import turn_off_strict_prototypes
@@ -10,6 +11,7 @@ from time import perf_counter
 # # cppimport.set_quiet(False)
 #
 import rpxdock as rp
+from willutil import Bunch
 from rpxdock.bvh import bvh_test
 from rpxdock.bvh import BVH, bvh
 import rpxdock.homog as hm
@@ -53,7 +55,7 @@ def test_bvh_isect_fixed():
    print("total times", totbvh, totnaive / totbvh, totnaive)
 
 def test_bvh_isect():
-   t = rp.Timer().start()
+   t = Timer().start()
 
    N1, N2 = 10, 10
    N = N1 * N2
@@ -905,7 +907,7 @@ def test_bvh_isect_range_lb_ub(body=None, cart_sd=0.3, N1=3, N2=20, mindist=0.02
    Npts = 1000
    nhit, nrangefail = 0, 0
    kws = [
-      rp.Bunch(maxtrim=a, maxtrim_lb=b, maxtrim_ub=c) for a in (-1, 400) for b in (-1, 300)
+      Bunch(maxtrim=a, maxtrim_lb=b, maxtrim_ub=c) for a in (-1, 400) for b in (-1, 300)
       for c in (-1, 300)
    ]
    for ibvh, kw in it.product(range(N1), kws):
@@ -1081,7 +1083,7 @@ def test_bvh_threading_mindist_may_fail():
    print("bvh_min_dist", tottmain / tottthread)
 
 def bvh_perf():
-   timer = rp.Timer().start()
+   timer = Timer().start()
    N = 10
    Npts = 50 * 50 * 4
    for j in range(N):
@@ -1098,7 +1100,7 @@ def bvh_perf():
       timer.checkpoint('setup')
 
       # cold vs hot doesn't seem to matter
-      timer2 = rp.Timer().start()
+      timer2 = Timer().start()
       pairs, lbub = bvh.bvh_collect_pairs_vec(bvh1, bvh2, pos1, pos2, mindist)
       timer2.checkpoint('bvh cold')
       timer.checkpoint('bvh cold')

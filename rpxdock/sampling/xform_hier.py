@@ -1,4 +1,6 @@
-import rpxdock as rp, numpy as np
+import rpxdock as rp
+from willutil import Bunch
+import numpy as np
 
 class LineHier:
    def __init__(self, lb, ub, nstep, axis):
@@ -61,11 +63,11 @@ def hier_multi_axis_sampler(
    assert len(spec.nfold) == len(spec.axis) == len(spec.xflip)
    if isinstance(flip_components, bool):
       flip_components = [flip_components]
-   if len(flip_components) is 1:
+   if len(flip_components) == 1:
       flip_components = flip_components * len(spec.nfold)
    # for i, flip in enumerate(flip_components):
    # flip_components[i] = flip_components[i] and not spec.comp_is_dihedral[i]
-   if len(cart_bounds) is 2 and isinstance(cart_bounds[0], int):
+   if len(cart_bounds) == 2 and isinstance(cart_bounds[0], int):
       cart_bounds = np.array([cart_bounds] * spec.num_components)
    cart_bounds = np.array(cart_bounds)
    assert len(cart_bounds) in (1, len(spec.nfold))

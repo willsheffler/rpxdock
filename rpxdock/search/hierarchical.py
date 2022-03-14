@@ -1,4 +1,5 @@
 import logging, itertools, numpy as np, rpxdock as rp
+from willutil import Bunch
 
 log = logging.getLogger(__name__)
 
@@ -10,7 +11,7 @@ def hier_search(sampler, evaluator, **kw):
    :return:
    gets positions and scores and stuff for sampling
    '''
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw)
    neval, indices, scores = list(), None, None
    nresl = kw.nresl if kw.nresl else evaluator.hscore.actual_nresl
    for iresl in range(kw.nresl):
@@ -20,7 +21,7 @@ def hier_search(sampler, evaluator, **kw):
       log.info(f"{kw.output_prefix} iresl {iresl} ntot {len(scores):11,} " \
                f"nonzero {np.sum(scores > 0):6,}" \
                f' best {np.max(scores) if len(scores) else -1:7.3f}')
-   stats = rp.Bunch(ntot=sum(x[1] for x in neval), neval=neval)
+   stats = Bunch(ntot=sum(x[1] for x in neval), neval=neval)
    return xforms, scores, extra, stats
 
 def expand_samples(iresl, sampler, indices=None, scores=None, beam_size=None, **kw):
@@ -100,7 +101,7 @@ def tccage_slide_hier_depricated(spec, body1, body2, base_resl=16, nstep=5, base
    for i in range(nstep):
       npair[i], pos[i] = rp.search.gridslide.find_connected_2xCyclic_slide(
          spec, body1, body2, samples, min_contacts=mct[-1], **kw)
-      if len(npair[i]) is 0:
+      if len(npair[i]) == 0:
          return npair[i - 1], pos[i - 1]
       if i + 1 < nstep:
          newresl /= 2

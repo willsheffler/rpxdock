@@ -1,5 +1,4 @@
 import sys, os, argparse, _pickle, logging, functools, numpy as np, rpxdock
-from rpxdock.util import Bunch
 from rpxdock.motif import ResPairData, make_and_dump_hier_score_tables
 
 def get_opts():

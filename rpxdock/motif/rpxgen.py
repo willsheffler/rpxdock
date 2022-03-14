@@ -11,7 +11,7 @@ def create_xbin_even_nside(cart_resl, ori_resl, max_cart):
    return xbin
 
 def make_and_dump_hier_score_tables(pairdat, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw)
    fnames = list()
 
    resls, xhresl, nbase_nm3 = rp.sampling.xform_hier_guess_sampling_covrads(**kw)
@@ -49,7 +49,7 @@ def make_and_dump_hier_score_tables(pairdat, **kw):
    return [f.replace('//', '/') for f in fnames]
 
 def make_hscore_single(pairdat, ihier, xbin_base, cart_extent, ori_extent, sstag, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw)
    smearrad, exhalf = kw.smear_params[ihier]
    cart_resl = cart_extent / (smearrad * 3 - 1 + exhalf)
    ori_nside = xbin_base.ori_nside

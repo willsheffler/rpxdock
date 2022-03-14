@@ -1,5 +1,6 @@
 import sys, os, argparse, re, functools, logging, glob
 import numpy as np, rpxdock as rp, functools as ft
+from willutil import Bunch
 
 log = logging.getLogger(__name__)
 
@@ -118,6 +119,8 @@ def default_cli_parser(parent=None, **kw):
    )
    addarg("--trial_run", action="store_true", default=False,
           help='reduce runtime by using minimal samples, smaller score files, whatever')
+   addarg("--verbose", action="store_true", default=False,
+          help='extra debugging output, use/respect of this is sporadic in the code')
    addarg(
       "--hscore_files", nargs="+", default=['ilv_h'],
       help='rpx score files using in scoring for most protocols. defaults to pairs involving only ILV and only in helices. Can be only a path-suffix, which will be appended to --hscore_data_dir. Can be a list of files. Score files with various parameters can be generated with rpxdock/app/generate_motif_scores.py.'
@@ -283,7 +286,7 @@ def get_cli_args(argv=None, parent=None, process_args=True, **kw):
    parser = default_cli_parser(parent, **kw)
    argv = sys.argv[1:] if argv is None else argv
    argv = make_argv_with_atfiles(argv, **kw)
-   options = rp.Bunch(parser.parse_args(argv))
+   options = Bunch(parser.parse_args(argv))
    if process_args: options = process_cli_args(options, **kw)
    return options
 
@@ -301,8 +304,8 @@ def set_loglevel(loglevel):
    log.info(f'set loglevel to {numeric_level}')
 
 def process_cli_args(options, **kw):
-   options = rp.Bunch(options)
-   kw = rp.Bunch(kw)
+   options = Bunch(options)
+   kw = Bunch(kw)
 
    options = _process_inputs(options, **kw)
 
@@ -324,7 +327,7 @@ def process_cli_args(options, **kw):
    if options.architecture:
       options.architecture = options.architecture.upper()
 
-   if not kw.dont_set_default_cart_bounds:
+   if not kw.get('dont_set_default_cart_bounds'):
       options.cart_bounds = _process_cart_bounds(options.cart_bounds)
 
    options.trimmable_components = options.trimmable_components.upper()
@@ -359,26 +362,26 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
 
    if not opt.inputs:
       msg = '--allowed_residues cant be used if --inputs not used'
-      assert len(opt.allowed_residues) is 0, msg
+      assert len(opt.allowed_residues) == 0, msg
    if not opt.inputs1:
       msg = '--allowed_residues1 cant be used if --inputs1 not used'
-      assert len(opt.allowed_residues1) is 0, msg
+      assert len(opt.allowed_residues1) == 0, msg
    if not opt.inputs2:
       msg = '--allowed_residues2 cant be used if --inputs2 not used'
-      assert len(opt.allowed_residues2) is 0, msg
+      assert len(opt.allowed_residues2) == 0, msg
    if not opt.inputs3:
       msg = '--allowed_residues3 cant be used if --inputs3 not used'
-      assert len(opt.allowed_residues3) is 0, msg
+      assert len(opt.allowed_residues3) == 0, msg
 
-   if len(opt.allowed_residues) is 1: opt.allowed_residues *= len(opt.inputs)
-   if len(opt.allowed_residues1) is 1: opt.allowed_residues1 *= len(opt.inputs1)
-   if len(opt.allowed_residues2) is 1: opt.allowed_residues2 *= len(opt.inputs2)
-   if len(opt.allowed_residues3) is 1: opt.allowed_residues3 *= len(opt.inputs3)
+   if len(opt.allowed_residues) == 1: opt.allowed_residues *= len(opt.inputs)
+   if len(opt.allowed_residues1) == 1: opt.allowed_residues1 *= len(opt.inputs1)
+   if len(opt.allowed_residues2) == 1: opt.allowed_residues2 *= len(opt.inputs2)
+   if len(opt.allowed_residues3) == 1: opt.allowed_residues3 *= len(opt.inputs3)
 
-   if len(opt.allowed_residues) is 0: opt.allowed_residues = [None] * len(opt.inputs)
-   if len(opt.allowed_residues1) is 0: opt.allowed_residues1 = [None] * len(opt.inputs1)
-   if len(opt.allowed_residues2) is 0: opt.allowed_residues2 = [None] * len(opt.inputs2)
-   if len(opt.allowed_residues3) is 0: opt.allowed_residues3 = [None] * len(opt.inputs3)
+   if len(opt.allowed_residues) == 0: opt.allowed_residues = [None] * len(opt.inputs)
+   if len(opt.allowed_residues1) == 0: opt.allowed_residues1 = [None] * len(opt.inputs1)
+   if len(opt.allowed_residues2) == 0: opt.allowed_residues2 = [None] * len(opt.inputs2)
+   if len(opt.allowed_residues3) == 0: opt.allowed_residues3 = [None] * len(opt.inputs3)
 
    if read_allowed_res_files:
       opt.allowed_residues = [_read_allowed_res_file(_) for _ in opt.allowed_residues]
@@ -457,7 +460,7 @@ def _read_allowed_res_file(fname):
 
 def _process_cart_bounds(cart_bounds):
    if not cart_bounds: cart_bounds = 0, 500
-   elif len(cart_bounds) is 1: cart_bounds = [0, cart_bounds[0]]
+   elif len(cart_bounds) == 1: cart_bounds = [0, cart_bounds[0]]
    tmp = list()
    for i in range(0, len(cart_bounds), 2):
       tmp.append(cart_bounds[i:i + 2])
@@ -479,7 +482,7 @@ def make_argv_with_atfiles(argv=None, **kw):
 
 def _extract_weights(kw):
    pref = 'weight_'
-   wts = rp.Bunch()
+   wts = Bunch()
    todel = list()
    for k in kw:
       if k.startswith(pref):

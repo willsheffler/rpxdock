@@ -4,6 +4,7 @@ from pyrosetta import Pose, get_score_function
 from pyrosetta.rosetta import core, numeric, utility, ObjexxFCL
 from pyrosetta.rosetta.core.pack.task import TaskFactory
 from rpxdock.rosetta.triggers_init import rts_fastd
+from willutil import Bunch
 
 _rosetta_known_atypes = [4, 5, 6, 32]
 _rosetta_atype_to_rpx_atype = -np.ones(1000, dtype='i4')
@@ -73,7 +74,7 @@ def create_rosetta_packer_task(
    badrestypes = utility.vector1_string(len(disable_restypes))
    for i, t in enumerate(disable_restypes):
       badrestypes[i + 1] = t
-   for ires in range(1, len(pose) + 1):
+   for ires in range(1, len(pose.residues) + 1):
       task.nonconst_residue_task(ires).restrict_absent_canonical_aas(aas)
       task.nonconst_residue_task(ires).disable_restypes(badrestypes)
       task.nonconst_residue_task(ires).or_ex1(extra_rots[0])
@@ -111,9 +112,9 @@ def get_rosetta_rots(
    rotsets.build_rotamers(pose, sfxn, packer_neighbor_graph)
    rotsets.prepare_sets_for_packing(pose, sfxn)
 
-   rotdata = rp.Bunch(coords=list(), resnum=list(), rotnum=list(), atomnum=list(), resname=list(),
-                      atomname=list(), atomtype=list(), rosetta_atom_type_index=list(),
-                      onebody=list())
+   rotdata = Bunch(coords=list(), resnum=list(), rotnum=list(), atomnum=list(), resname=list(),
+                   atomname=list(), atomtype=list(), rosetta_atom_type_index=list(),
+                   onebody=list())
 
    for ires in whichres:
       rotset = rotsets.rotamer_set_for_residue(ires)

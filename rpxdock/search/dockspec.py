@@ -37,7 +37,7 @@ class DockSpec1CompCage(DockSpec):
       assert arch[:2] in "T2 T3 O2 O3 O4 I2 I3 I5 D2 D3 D4 D5 D6 D8".split()
       if arch[0] == 'D':
          self.sym = arch[:2]
-         if len(arch) is 4:
+         if len(arch) == 4:
             assert arch[2] == '_'
             self.nfold = int(arch[3])
             assert self.nfold in (2, int(arch[1]))
@@ -138,7 +138,7 @@ class DockSpec2CompCage(DockSpec):
       self.axis_second = [self.axis1_second, self.axis2_second]
       self.to_neighbor_olig = np.array([self.to_neighbor_olig1, self.to_neighbor_olig2])
 
-      self.compframes = np.array([sym.symframes(self.nfold[i], self.axis[i]) for i in [0, 1]])
+      # self.compframes = np.array([sym.symframes(self.nfold[i], self.axis[i]) for i in [0, 1]])
       fax1 = hm.hcross(self.axis1, hm.hcross(self.axis1, self.axis2))
       fax2 = hm.hcross(self.axis2, hm.hcross(self.axis2, self.axis1))
       self.xflip = hm.hrot([fax1, fax2], np.pi)
@@ -231,7 +231,7 @@ class DockSpec3CompCage(DockSpec):
       self.orig = [hm.align_vector([0, 0, 1], a) for a in self.axis]
       self.axis_second = [sym.axes_second[self.sym][n] for n in self.nfold]
       self.to_neighbor_olig = [sym.to_neighbor_olig[self.sym][n] for n in self.nfold]
-      self.compframes = np.array([sym.symframes(self.nfold[i], self.axis[i]) for i in [0, 1, 2]])
+      # self.compframes = np.array([sym.symframes(self.nfold[i], self.axis[i]) for i in [0, 1, 2]])
       self.xflip = hm.hrot([
          hm.hcross(self.axis[0], hm.hcross(self.axis[0], self.axis[1])),
          hm.hcross(self.axis[1], hm.hcross(self.axis[1], self.axis[2])),

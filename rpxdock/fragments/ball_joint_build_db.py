@@ -1,4 +1,6 @@
-import rpxdock as rp, numpy as np, itertools as it
+import rpxdock as rp
+from willutil import Bunch
+import numpy as np, itertools as it
 import rpxdock.rosetta.triggers_init as rti
 
 def make_ideal_hgh(helix):

@@ -2,7 +2,7 @@ import os, sys, time, _pickle
 from cppimport import import_hook
 # from cppimport.config import turn_off_strict_prototypes
 # turn_off_strict_prototypes()
-import numpy as np, xarray as xr
+import numpy as np
 
 from rpxdock.xbin import xbin_util as xu
 from rpxdock.rotamer import get_rotamer_space, assign_rotamers, check_rotamer_deviation
@@ -23,6 +23,7 @@ def ss_to_ssid(ss):
    return ssid
 
 def _convert_point(point):
+   import xarray as xr
    if not isinstance(point, (np.ndarray, xr.DataArray)):
       point = np.array([[point[0], point[1], point[2], 1]])
    if isinstance(point, xr.DataArray):

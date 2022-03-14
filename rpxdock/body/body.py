@@ -1,4 +1,5 @@
 import os, copy, numpy as np, rpxdock, logging, rpxdock as rp
+from willutil import Bunch
 
 log = logging.getLogger(__name__)
 _CLASHRAD = 1.75
@@ -14,13 +15,13 @@ class Body:
       allowed_res=None,
       **kw,
    ):
-      kw = rpxdock.Bunch(kw)
+      kw = Bunch(kw)
       # pose stuff
       pose = source
       if isinstance(source, str):
          import rpxdock.rosetta.triggers_init as ros
          self.pdbfile = source
-         if kw.posecache:
+         if kw.get('posecache'):
             pose = ros.get_pose_cached(source)
          else:
             pose = ros.pose_from_file(source)
@@ -32,16 +33,16 @@ class Body:
       self.coord = rp.rosetta.get_bb_coords(pose, **kw)
       self.set_asym_body(pose, sym, **kw)
 
-      self.label = kw.label
+      self.label = kw.get('label')
       if self.label is None and self.pdbfile:
          self.label = os.path.basename(self.pdbfile.replace('.gz', '').replace('.pdb', ''))
       if self.label is None: self.label = 'unk'
-      self.components = kw.components if kw.components else []
-      self.score_only_ss = kw.score_only_ss if kw.score_only_ss else "EHL"
+      self.components = kw.get('components', [])
+      self.score_only_ss = kw.get('score_only_ss', 'EHL')
       self.ssid = rp.motif.ss_to_ssid(self.ss)
       self.chain = np.repeat(0, self.seq.shape[0])
       self.resno = np.arange(len(self.seq))
-      self.trim_direction = kw.trim_direction if kw.trim_direction else 'NC'
+      self.trim_direction = kw.get('trim_direction', 'NC')
       if allowed_res is None:
          self.allowed_residues = np.ones(len(self.seq), dtype='?')
       else:
@@ -51,7 +52,7 @@ class Body:
       self.init_coords(sym, symaxis, **kw)
 
    def init_coords(self, sym, symaxis, xform=np.eye(4), ignored_aas='CGP', **kw):
-      kw = rp.Bunch(kw)
+      kw = Bunch(kw)
       if isinstance(sym, np.ndarray):
          assert len(sym) == 1
          sym = sym[0]
@@ -136,6 +137,18 @@ class Body:
       self.bvh_bb = None
       self.bvh_cen = None
       self.asym_body = None
+
+   @property
+   def pos(self):
+      if not hasattr(self, '_pos'):
+         self._pos = np.eye(4)
+      return self._pos
+
+   @pos.setter
+   def pos(self, xform):
+      if not hasattr(self, '_pos'):
+         self._pos = np.eye(4)
+      self._pos = xform
 
    def com(self):
       return self.bvh_bb.com()

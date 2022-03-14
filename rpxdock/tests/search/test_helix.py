@@ -1,8 +1,10 @@
-import rpxdock as rp, numpy as np, pytest
+import rpxdock as rp
+from willutil import Bunch
+import numpy as np, pytest
 
-def testarg():
+def _test_args():
    kw = rp.app.defaults()
-   kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
+   kw.wts = Bunch(ncontact=0.01, rpx=1.0)
    kw.beam_size = 1e4
    kw.max_bb_redundancy = 3.0
    kw.max_longaxis_dot_z = 0.5
@@ -13,7 +15,7 @@ def testarg():
 
 @pytest.mark.skip
 def test_helix(hscore, body_tiny):
-   kw = testarg()
+   kw = _test_args()
    kw.max_trim = 0
    kw.output_prefix = 'test_helix'
    kw.beam_size = 1e5

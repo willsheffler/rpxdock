@@ -1,5 +1,6 @@
-import logging, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
+import logging, numpy as np, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search
+from willutil import Timer
 
 log = logging.getLogger(__name__)
 
@@ -24,10 +25,10 @@ def helix_get_sample_hierarchy(body, hscore, extent=100):
    return xh
 
 def make_helix(body, hscore, sampler, search=hier_search, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw)
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else sym
-   t = rp.Timer().start()
+   t = Timer().start()
    assert sampler is not None, 'sampler is required'
 
    evaluator = HelixEvaluator(body, hscore, **kw)
@@ -104,7 +105,7 @@ def get_xtrema_coords(bodyA, bodyB):
 
 def get_tether_xform(tether_xform, **kw):
    if not tether_xform: return None
-   assert len(tether_xform) is 2
+   assert len(tether_xform) == 2
    bodyA = rp.body.Body(tether_xform[0])
    bodyB = rp.body.Body(tether_xform[1])
    coordA, coordB = get_xtrema_coords(bodyA, bodyB)
@@ -124,9 +125,9 @@ def get_tether_xform(tether_xform, **kw):
    ).squeeze()
 
    xhat = stubB @ np.linalg.inv(stubA)
-   # if kw['tmpa'] is 1: xhat = stubB @ np.linalg.inv(stubA)
-   # if kw['tmpa'] is 2: xhat = stubA @ np.linalg.inv(stubB)
-   # if kw['tmpa'] is 3: xhat = np.linalg.inv(stubA) @ stubB
+   # if kw['tmpa'] == 1: xhat = stubB @ np.linalg.inv(stubA)
+   # if kw['tmpa'] == 2: xhat = stubA @ np.linalg.inv(stubB)
+   # if kw['tmpa'] == 3: xhat = np.linalg.inv(stubA) @ stubB
    # if kw['tmpa'] is 4: xhat = np.linalg.inv(stubB) @ stubA
 
    # print(coordA.shape, xhat.shape)
@@ -154,9 +155,9 @@ def check_tether(xforms, xhat, dist, ang, cart_extent, ori_extent, coordA, coord
    # is this right???
    # xrel = xforms @ np.linalg.inv(xhat)  # inverse of A->B, but ok?? and faster
    xrel = np.linalg.inv(xhat) @ xforms
-   # if kw['tmpb'] is 1: xrel = np.linalg.inv(xhat) @ xforms
-   # if kw['tmpb'] is 2: xrel = np.linalg.inv(xforms) @ xhat
-   # if kw['tmpb'] is 3: xrel = xforms @ np.linalg.inv(xhat)
+   # if kw['tmpb'] == 1: xrel = np.linalg.inv(xhat) @ xforms
+   # if kw['tmpb'] == 2: xrel = np.linalg.inv(xforms) @ xhat
+   # if kw['tmpb'] == 3: xrel = xforms @ np.linalg.inv(xhat)
    # if kw['tmpb'] is 4: xrel = xhat @ np.linalg.inv(xforms)
    d = np.linalg.norm(xrel[..., :3, 3], axis=-1)
    d0 = np.linalg.norm(xforms[..., :3, 3], axis=-1)
@@ -178,7 +179,7 @@ def check_tether(xforms, xhat, dist, ang, cart_extent, ori_extent, coordA, coord
 
 class HelixEvaluator:
    def __init__(self, body, hscore, **kw):
-      self.kw = rp.Bunch(kw)
+      self.kw = Bunch(kw)
       self.body = body.copy()
       self.hscore = hscore
       self.tether_xform, self.tmp_ca, self.tmp_cb = get_tether_xform(**kw)
@@ -284,7 +285,7 @@ class HelixEvaluator:
 
       helix_cyclic = np.repeat(1, len(scores))
 
-      return scores, rp.Bunch(
+      return scores, Bunch(
          helix_n_to_primary=np.repeat(1, len(scores)),
          helix_n_to_secondry=which2,
          reslb=np.tile(0, len(scores)),

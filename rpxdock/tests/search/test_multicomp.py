@@ -1,8 +1,9 @@
 import concurrent, os, argparse, sys, numpy as np, rpxdock as rp, pytest
+from willutil import Bunch
 
 def get_arg(**kw):
    arg = rp.app.defaults()
-   arg.wts = rp.Bunch(ncontact=0.3, rpx=1.0)
+   arg.wts = Bunch(ncontact=0.3, rpx=1.0)
    arg.beam_size = 2e4
    arg.max_bb_redundancy = 2.0
    arg.max_delta_h = 9999

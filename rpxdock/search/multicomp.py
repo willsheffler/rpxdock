@@ -1,7 +1,9 @@
-import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
+import itertools, functools, numpy as np, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
+from willutil import Bunch
 from numpy.linalg import inv
 import logging
+from willutil import Timer
 
 def make_multicomp(
    bodies,
@@ -12,8 +14,8 @@ def make_multicomp(
    components_already_aligned_to_sym_axes=False,
    **kw,
 ):
-   kw = rp.Bunch(kw)
-   t = rp.Timer().start()
+   kw = Bunch(kw)
+   t = Timer().start()
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else spec.arch
    logging.debug("Docking multicomp")
@@ -74,8 +76,8 @@ def make_multicomp(
    )
 
 class MultiCompEvaluatorBase:
-   def __init__(self, bodies, spec, hscore, wts=rp.Bunch(ncontact=0.1, rpx=1.0), **kw):
-      self.kw = rp.Bunch(kw)
+   def __init__(self, bodies, spec, hscore, wts=Bunch(ncontact=0.1, rpx=1.0), **kw):
+      self.kw = Bunch(kw)
       self.hscore = hscore
       self.symrots = [rp.geom.symframes(n) for n in spec.nfold]
       self.spec = spec
@@ -139,7 +141,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          logging.debug(f"scores is shaped like {scores.shape} and is a {type(scores)}")
          scores[ok] = kw.iface_summary(ifscore, axis=0)
          logging.debug(f"scores is now shaped like {scores.shape}")
-         extra = rp.Bunch()
+         extra = Bunch()
       else:  #return all of the interface scores
          logging.debug("Scoring self")
          s_ifscore = list()
@@ -194,12 +196,12 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
                   all_scores[f'cross_comp_score_{i}{j}'] = (['model'], scores_ns[ind])
                   ind += 1
 
-         extra = rp.Bunch(all_scores)
+         extra = Bunch(all_scores)
       return scores, extra
       #else:
       #   scores[ok] = arg.iface_summary(ifscore, axis=0)
-      #   return scores, rp.Bunch()
-      #return scores, rp.Bunch()
+      #   return scores, Bunch()
+      #return scores, Bunch()
 
 class TwoCompEvaluatorWithTrim(MultiCompEvaluatorBase):
    def __init__(self, *arg, trimmable_components="AB", **kw):
@@ -218,7 +220,7 @@ class TwoCompEvaluatorWithTrim(MultiCompEvaluatorBase):
          assert self.trimmable_components.upper() in "AB"
          scores, lb, ub = self.eval_trim_one(self.trimmable_components, *arg, **kw)
 
-      extra = rp.Bunch(reslb=(['model', 'component'], lb), resub=(['model', 'component'], ub))
+      extra = Bunch(reslb=(['model', 'component'], lb), resub=(['model', 'component'], ub))
       return scores, extra
 
    def eval_trim_one(self, trim_component, x, iresl=-1, wts={}, **kw):
@@ -292,8 +294,8 @@ class TwoCompEvaluatorWithTrim(MultiCompEvaluatorBase):
       return scores, np.stack([lbA, lbB], axis=1), np.stack([ubA, ubB], axis=1)
 
 def _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw):
-   kw = rp.Bunch(kw)
-   t = rp.Timer().start()
+   kw = Bunch(kw)
+   t = Timer().start()
    nout_debug = min(10 if kw.nout_debug is None else kw.nout_debug, len(ibest))
    for iout in range(nout_debug):
       i = ibest[iout]

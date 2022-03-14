@@ -1,4 +1,5 @@
 import rpxdock as rp
+from willutil import Bunch
 
 class DeathStar(object):
    """represents data for asymmetrized cage"""

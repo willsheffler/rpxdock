@@ -1,7 +1,7 @@
 from rpxdock.util.plot import *
 import seaborn as sns
 import numpy as np
-import pandas as pdb
+import pandas as pd
 
 def test_plot():
    data = np.random.normal(0, 1, (100, 4))

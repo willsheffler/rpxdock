@@ -1,7 +1,9 @@
-import rpxdock as rp, pytest, numpy as np, itertools as it, functools as ft
-
+import rpxdock as rp
+from willutil import Bunch
+import pytest, numpy as np, itertools as it, functools as ft
 from rpxdock.homog import *
 import rpxdock.homog as hm
+from willutil import Timer
 
 def test_sym():
    assert rp.geom.sym.tetrahedral_frames.shape == (12, 4, 4)
@@ -147,8 +149,8 @@ def test_intersect_planes():
          np.array([[0, 0, 0, 1], [0, 0, 0, 1]]).T)
    with pytest.raises(ValueError):
       intersect_planes(
-         np.array([[0, 0, 1], [0, 0, 0, 0]]).T,
-         np.array([[0, 0, 1], [0, 0, 0, 1]]).T)
+         np.array([[0, 0, 1, 0], [0, 0, 0, 0]]).T,
+         np.array([[0, 0, 1, 0], [0, 0, 0, 1]]).T)
    with pytest.raises(ValueError):
       intersect_planes(np.array(9 * [[[0, 0], [0, 0], [0, 0], [1, 0]]]),
                        np.array(2 * [[[0, 0], [0, 0], [0, 0], [1, 0]]]))
@@ -257,7 +259,7 @@ def test_axis_ang_cen_of_rand():
 
 def test_axis_angle_vs_axis_angle_cen_performance():
    N = 10000
-   t = rp.Timer().start()
+   t = Timer().start()
    xforms = rand_xform(N)
    t.checkpoint('setup')
    axis, ang = axis_angle_of(xforms)

@@ -52,7 +52,7 @@ _file_mappings = {
    "component.py": ['rpxdock/tests/score/test_scorefunc.py'],
    "xform_hier.py": ['rpxdock/tests/search/test_multicomp.py'],
    "lattice_hier.py": ['rpxdock/tests/search/test_multicomp.py'],
-   "basic.py": ["rpxdock/tests/search/test_onecomp.py"],
+   # "basic.py": ["rpxdock/tests/search/test_onecomp.py"],
    "dockspec.py": ["rpxdock/tests/search/test_onecomp.py"],
    "pymol.py": ["rpxdock/tests/test_homog.py"],
    "ball_joint_build_db.py": ['rpxdock/tests/fragments/test_ball_joint.py'],

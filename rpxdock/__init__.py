@@ -3,7 +3,7 @@ __email__ = "willsheffler@gmail.com"
 __version__ = "0.1"
 
 import os
-
+from deferred_import import deferred_import
 # os.environ["CC"] = "gcc-7"  # no idea if this works
 # os.environ["CXX"] = "g++-7"  # no idea if this works
 
@@ -17,7 +17,6 @@ if hasattr(numpy.__config__, 'mkl_info'):
    mkl_rt = ctypes.CDLL('libmkl_rt.so')
    mkl_rt.mkl_set_num_threads(ctypes.byref(ctypes.c_int(1)))
 
-from rpxdock.util import Bunch, Timer, load, dump
 from rpxdock import app
 from rpxdock import body
 from rpxdock import bvh
@@ -25,10 +24,12 @@ from rpxdock import cluster
 from rpxdock import data
 from rpxdock import fragments
 from rpxdock import geom
+from rpxdock import phmap
 from rpxdock import io
 from rpxdock import motif
-from rpxdock import phmap
-from rpxdock import rosetta  # dosn't import actual pyrosetta
+
+rosetta = deferred_import('rpxdock.rosetta')
+# from rpxdock import rosetta  # dosn't import actual pyrosetta
 from rpxdock import rotamer
 from rpxdock import sampling
 from rpxdock import search

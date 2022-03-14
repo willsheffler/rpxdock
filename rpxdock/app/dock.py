@@ -32,7 +32,7 @@ def get_spec(arch):
 
 ## All dock_cyclic, dock_onecomp, and dock_multicomp do similar things
 def dock_cyclic(hscore, inputs, architecture, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw)
    bodies = [
       rp.Body(inp, allowed_res=allowedres, **kw)
       for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)
@@ -62,7 +62,7 @@ def dock_cyclic(hscore, inputs, architecture, **kw):
    return result
 
 def dock_onecomp(hscore, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw)
    spec = get_spec(kw.architecture)
    crtbnd = kw.cart_bounds[0]
    # double normal resolution, cuz why not?
@@ -112,7 +112,7 @@ def dock_onecomp(hscore, **kw):
    # result = rp.search.make_onecomp(bodyC3, spec, hscore, rp.hier_search, sampler, **kw)
 
 def dock_multicomp(hscore, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw)
    spec = get_spec(kw.architecture)
 
    # sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
@@ -158,7 +158,7 @@ def dock_multicomp(hscore, **kw):
    return result
 
 def dock_plug(hscore, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw)
    kw.plug_fixed_olig = True
 
    arch = kw.architecture

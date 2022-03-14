@@ -4,7 +4,7 @@ import sys, os
 # somecode = cppimport.imp("somecode") #This will pause for a moment to compile the module
 
 def main():
-   assert len(sys.argv) is 2
+   assert len(sys.argv) == 2
 
    file = sys.argv[1]
    # !!!!!!!!!!!! WILL BREAK!

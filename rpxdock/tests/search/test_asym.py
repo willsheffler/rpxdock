@@ -1,19 +1,23 @@
-import rpxdock as rp, numpy as np, pytest
+import sys, pytest
+import numpy as np
+import rpxdock as rp
+from willutil import Bunch
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
-def testarg():
+def _test_args():
    kw = rp.app.defaults()
-   kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
+   kw.wts = Bunch(ncontact=0.01, rpx=1.0)
    kw.beam_size = 1e4
    kw.max_bb_redundancy = 3.0
    kw.max_longaxis_dot_z = 0.5
-   kw.executor = ThreadPoolExecutor(min(4, kw.ncpu / 2))
+   if not 'pytest' in sys.modules:
+      kw.executor = ThreadPoolExecutor(min(4, kw.ncpu / 2))
    kw.multi_iface_summary = np.min
    kw.debug = True
    return kw
 
-def test_asym(hscore, body, body2):
-   kw = testarg()
+def _test_asym(hscore, body, body2):
+   kw = _test_args()
    kw.max_trim = 0
    kw.output_prefix = 'test_asym'
 
@@ -33,8 +37,8 @@ def test_asym(hscore, body, body2):
    rp.search.assert_results_close(result, ref)
 
 @pytest.mark.skip
-def test_asym_trim(hscore, body, body2):
-   kw = testarg()
+def _test_asym_trim(hscore, body, body2):
+   kw = _test_args()
    kw.max_trim = 100
    kw.output_prefix = 'test_asym_trim'
 

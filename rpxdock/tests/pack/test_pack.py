@@ -1,9 +1,12 @@
 import os
-import rpxdock as rp, numpy as np
+import rpxdock as rp
+from willutil import Bunch
+import numpy as np
 from rpxdock.rosetta.triggers_init import pose_from_file
 from rpxdock.rotamer import rosetta_rots
 from pyrosetta.rosetta.core.pack import pack_rotamers
 from rpxdock.rosetta.triggers_init import create_residue, Pose, AtomID
+from willutil import Timer
 
 # _iface2_ires = [x - 23 for x in (24, 25, 27, 28, 31, 32, 34, 35, 38, 39, 41, 42)]
 
@@ -43,7 +46,7 @@ def build_packing_data(poseA, poseB, **kw):
    # pairsBB, _ = rp.bvh.bvh_collect_pairs_vec(bvh_b, bvh_b, np.eye(4), np.eye(4), 6.0)
    # print('bvh sizes ', len(bvh_a), len(bvh_b))
 
-   t = rp.Timer().start()
+   t = Timer().start()
    pairsAB, _ = rp.bvh.bvh_collect_pairs_vec(bvh_a, bvh_b, np.eye(4), rp.homog.htrans([0, 0, 0]),
                                              6.0)
    t.checkpoint('bvh get atom pairs ')
@@ -68,7 +71,7 @@ def rosetta_pack_test(pose):
    task = rosetta_rots.create_rosetta_packer_task(pose, _iface_ires, extra_rots=_ex)
 
    # pose.dump_pdb('pack_before.pdb')
-   t = rp.Timer().start()
+   t = Timer().start()
    pack_rotamers(pose, sfxn, task)
    t.checkpoint('rosetta pack iface')
    print(t.report(scale=1000, precision='10.3f'))
@@ -91,7 +94,7 @@ def perf_hash_vs_array():
    Nfull = int(1e6)
    Nrel = int(1e4)
 
-   t = rp.Timer().start()
+   t = Timer().start()
 
    nonzero = np.random.randint(0, Nfull, Nrel, dtype='u8')
    check = nonzero[np.random.randint(0, Nrel, Nsamp, dtype='u8')]

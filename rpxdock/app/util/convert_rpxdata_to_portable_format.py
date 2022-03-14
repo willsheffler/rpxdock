@@ -2,13 +2,14 @@ import argparse, sys
 import numpy as np
 import xarray as xr
 import rpxdock as rp
+from willutil import Bunch
 
 def get_cli_args():
    opts = argparse.ArgumentParser(allow_abbrev=False)
    opts.add_argument('datafiles', nargs='*', type=str)
    opts.add_argument('--overwrite', action='store_true', default=False)
    opts = opts.parse_args(sys.argv[1:])
-   return rp.Bunch(opts)
+   return Bunch(opts)
 
 def main():
    opts = get_cli_args()

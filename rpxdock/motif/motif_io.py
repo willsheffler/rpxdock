@@ -1,15 +1,16 @@
 import os, tempfile, json, tarfile, io, collections
 import numpy as np
-import xarray as xr
+
 import rpxdock as rp
+from willutil import Bunch, bunchify, unbunchify
 
 def save_bunch(bunch, path):
-   nobunches = rp.util.bunch.unbunchify(bunch)
+   nobunches = unbunchify(bunch)
    with open(path, 'w') as out:
       json.dump(nobunches, out)
 
 def load_bunch(inp):
-   return rp.util.bunchify(json.load(inp))
+   return bunchify(json.load(inp))
 
 def save_phmap(phmap, path):
    k, v = phmap.items_array()
@@ -198,6 +199,7 @@ def respairscore_to_tarball(rps, fname, overwrite=False):
       return fname
 
 def respairscore_from_tarball(fname):
+   import xarray as xr
    rps = rp.motif.ResPairScore()
    rps.hier_maps = []
    xmaps = collections.defaultdict(dict)
@@ -249,7 +251,7 @@ def respairscore_from_tarball(fname):
             mname = m.name[:-5]
             val = json.load(inp)
             if isinstance(val, dict):
-               val = rp.util.bunchify(val)
+               val = bunchify(val)
             setattr(rps, mname, val)
 
          elif m.name.endswith('.nc'):
@@ -296,6 +298,7 @@ def respairscore_from_tarball(fname):
    return rps
 
 def convert_respairdat_to_netcdf(rpd, fname, overwrite=False):
+   import xarray as xr
    assert fname.endswith('.nc')
    if os.path.exists(fname) and not overwrite:
       raise FileExistsError(f'file exists {fname}')
