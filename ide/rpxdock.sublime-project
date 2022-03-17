@@ -32,6 +32,10 @@
 		{
 			"name": "test_rosetta_rots",
 			"shell_cmd": "cd $folder; python rpxdock/tests/rotamer/test_rosetta_rots.py  &> sublime_build.log"
+		},
+		{
+			"name": "test_body_viz",
+			"shell_cmd": "cd $folder; PYTHONPATH=/home/sheffler/src/rpxdock python rpxdock/tests/viz/test_body_viz.py  &> sublime_build.log"
 		}
 
 		

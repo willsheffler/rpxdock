@@ -1,1 +1,1 @@
-from rpxdock.viz.pymol import *
+from rpxdock.viz.body_viz import *

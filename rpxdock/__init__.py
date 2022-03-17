@@ -17,6 +17,7 @@ if hasattr(numpy.__config__, 'mkl_info'):
    mkl_rt = ctypes.CDLL('libmkl_rt.so')
    mkl_rt.mkl_set_num_threads(ctypes.byref(ctypes.c_int(1)))
 
+rosetta = deferred_import('rpxdock.rosetta')
 from rpxdock import app
 from rpxdock import body
 from rpxdock import bvh
@@ -27,14 +28,10 @@ from rpxdock import geom
 from rpxdock import phmap
 from rpxdock import io
 from rpxdock import motif
-
-rosetta = deferred_import('rpxdock.rosetta')
-# from rpxdock import rosetta  # dosn't import actual pyrosetta
 from rpxdock import rotamer
 from rpxdock import sampling
 from rpxdock import search
 from rpxdock import util
-from rpxdock import viz
 from rpxdock import xbin
 
 from rpxdock.search import dockspec
@@ -51,5 +48,7 @@ from rpxdock.geom import symframes
 from rpxdock.sampling import ProductHier, ZeroDHier, CompoundHier
 from rpxdock.util.cache import GLOBALCACHE, CachedProxy
 from rpxdock.xbin import Xbin
+
+from rpxdock import viz
 
 rootdir = os.path.dirname(__file__)

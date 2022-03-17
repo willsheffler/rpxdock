@@ -51,7 +51,14 @@ class Body:
             self.allowed_residues[i - 1] = True
       self.init_coords(sym, symaxis, **kw)
 
-   def init_coords(self, sym, symaxis, xform=np.eye(4), ignored_aas='CGP', **kw):
+   def init_coords(
+         self,
+         sym,
+         symaxis=np.array([0, 0, 1, 0]),
+         xform=np.eye(4),
+         ignored_aas='CGP',
+         **kw,
+   ):
       kw = Bunch(kw)
       if isinstance(sym, np.ndarray):
          assert len(sym) == 1
@@ -83,7 +90,6 @@ class Body:
       assert len(self.seq) == len(self.coord)
       assert len(self.ss) == len(self.coord)
       assert len(self.chain) == len(self.coord)
-
       self.nres = len(self.coord)
       self.stub = rp.motif.bb_stubs(self.coord)
       ids = np.repeat(np.arange(self.nres, dtype=np.int32), self.coord.shape[1])
@@ -110,6 +116,20 @@ class Body:
       self.cen = self.allcen[self.which_cen]
       self.pos = np.eye(4, dtype="f4")
       self.pcavals, self.pcavecs = rp.util.numeric.pca_eig(self.cen)
+
+   def copy_with_sym(self, sym, symaxis=[0, 0, 1]):
+      b = copy.deepcopy(self.asym_body)
+      b.pos = np.eye(4, dtype='f4')
+      b.init_coords(sym, symaxis)
+      b.asym_body = self.asym_body
+      return b
+
+   def copy_xformed(self, xform):
+      b = copy.deepcopy(self.asym_body)
+      b.pos = np.eye(4, dtype='f4')
+      b.init_coords('C1', [0, 0, 1], xform)
+      b.asym_body = b
+      return b
 
    def set_asym_body(self, pose, sym, **kw):
       if isinstance(sym, int): sym = "C%i" % sym
@@ -302,20 +322,6 @@ class Body:
       b.pos = np.eye(4, dtype="f4")  # mutable state can't be same ref as orig
       assert b.pos is not self.pos
       assert b.coord is self.coord
-      return b
-
-   def copy_with_sym(self, sym, symaxis=[0, 0, 1]):
-      b = copy.deepcopy(self.asym_body)
-      b.pos = np.eye(4, dtype='f4')
-      b.init_coords(sym, symaxis)
-      b.asym_body = self.asym_body
-      return b
-
-   def copy_xformed(self, xform):
-      b = copy.deepcopy(self.asym_body)
-      b.pos = np.eye(4, dtype='f4')
-      b.init_coords('C1', [0, 0, 1], xform)
-      b.asym_body = b
       return b
 
    def filter_pairs(self, pairs, score_only_sspair, other=None, lbub=None, sanity_check=True):

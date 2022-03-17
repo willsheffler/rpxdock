@@ -1,1 +1,1 @@
-from .body import *
+from rpxdock.body.body import *

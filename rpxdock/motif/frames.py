@@ -23,11 +23,12 @@ def ss_to_ssid(ss):
    return ssid
 
 def _convert_point(point):
-   import xarray as xr
-   if not isinstance(point, (np.ndarray, xr.DataArray)):
+   if not isinstance(point, np.ndarray):
+      # if not isinstance(point, (np.ndarray, xr.DataArray)):
       point = np.array([[point[0], point[1], point[2], 1]])
-   if isinstance(point, xr.DataArray):
-      return point.data
+   assert isinstance(point, np.ndarray)
+   # if isinstance(point, xr.DataArray):
+   # return point.data
    return point
 
 def stub_from_points(cen, pa=None, pb=None, dtype="f4"):
