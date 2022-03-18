@@ -34,8 +34,9 @@ def main():
 def test_res_pair_score_portable_store(respairscore, tmpdir):
    rps = respairscore
 
-   fname = rp.motif.respairscore_to_tarball(rps, 'test_rps_tarball', overwrite=True)
-   rps2 = rp.motif.respairscore_from_tarball(fname)
+   with tempfile.TemporaryDirectory() as tmpdir:
+      fname = rp.motif.respairscore_to_tarball(rps, tmpdir + '/test_rps_tarball', overwrite=True)
+      rps2 = rp.motif.respairscore_from_tarball(fname)
    # print(set(dir(rps)) - set(dir(rps2)))
 
    assert rps == rps2

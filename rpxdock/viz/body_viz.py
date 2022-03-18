@@ -12,19 +12,27 @@ def pymol_load_Body(
       hideprev=True,
       **kw,
 ):
-   from pymol import cmd
-   cmd.disable('all')
-   pos = pos.reshape(-1, 4, 4)
+   # _try_to_use_pymol_objs(body, state, name, pos, hideprev, **kw)
+   # return
 
-   ncac = body.coord
-   # print('body', type(body), type(ncac), ncac.shape, ncac.strides)
+   from pymol import cmd
+   cmd.set('suspend_updates', 'on')
+   # cmd.disable('all')
+   cmd.delete('all')
+   pos = pos.reshape(-1, 4, 4)
+   breaks = len(body) // len(body.asym_body) * len(pos)
+
+   coord = body.coord
+   # print('body', type(body), type(coord), coord.shape, coord.strides)
    # wu.viz.pymol_cgo.showsphere([1, 2, 3, 1], 4)
 
-   ncac = pos[:, None, None] @ ncac[None, :, :3, :, None]
-   ncac = ncac.reshape(-1, 3, 4)
-   # print(ncac.shape)
-   wu.viz.pymol_viz.show_ndarray_line_strip(ncac, state=state, name=name, hideprev=hideprev, **kw)
-   # cmd.png(f'/home/sheffler/tmp/{name}.png')
+   # # coord = pos[:, None, None] @ coord[None, :, :3, :, None]
+   # # coord = coord.reshape(-1, 3, 4)
+   coord = pos[:, None, None] @ coord[None, :, 0, :, None]
+   coord = coord.reshape(-1, 4)
+   wu.viz.show_ndarray_line_strip(coord, state=state, name=name, hideprev=hideprev, breaks=breaks,
+                                  **kw)
+
    cmd.hide('sticks')
    cmd.hide('cartoon')
    cmd.show('lines')
@@ -38,13 +46,14 @@ def _try_to_use_pymol_objs(
    hideprev,
    **kw,
 ):
+   '''this is slow and incorrct... not sure why'''
    from pymol import cmd
    pos = pos.reshape(-1, 4, 4)
    cmd.set('suspend_updates', 'on')
    pymol_objs = cmd.get_object_list()
    name0 = name + '_0'
    # create all objs if necessary
-   if not name + '_0' in pymol_objs:
+   if not name0 in pymol_objs:
       print('CREATING NEW OBJECTS', flush=True)
       cmd.delete('all')
       with tempfile.TemporaryDirectory() as tmpdir:
@@ -56,11 +65,6 @@ def _try_to_use_pymol_objs(
       for i in range(len(pos) - 1):
          cmd.create(name + '_' + str(i + 1), name0)
       pymol_objs = cmd.get_object_list()
-   else:
-      print('CREATING NEW STATES', flush=True)
-      for i in range(len(pos)):
-         n = name + '_' + str(i)
-         cmd.create(n, n, 1, -1)
 
    assert len(pymol_objs) == len(pos)
    nstates = cmd.count_states(name0)
