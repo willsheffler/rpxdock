@@ -184,11 +184,11 @@ def filter_sscount(xforms, body, **kw):
     body2_ss_map.map_body_ss(body2, min_helix_length, min_sheet_length, min_loop_length)
     bod_len = (body1.asym_body.nres, body2.asym_body.nres)
 
-    sscounts_data = []
+    sscounts_data = np.zeros(max(len(pos1), len(pos2)))
     ss_counts = np.zeros(max(len(pos1), len(pos2)))
     ibest = np.array(range(0, len(ss_counts)))
     for i, (lb, ub) in enumerate(lbub):
-
+`
         #this loses context information.
         body1_res, body2_res = np.unique(pairs[lb:ub][:,0]), np.unique(pairs[lb:ub][:,1])
         #store residues in an SS element 
@@ -296,10 +296,10 @@ def filter_sscount(xforms, body, **kw):
             temp_result["A"]["paired_resis"] = temp_result["B"]["resis"]
             temp_result["total_count"] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
             ss_counts[i] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
-            sscounts_data.append(temp_result)
+            sscounts_data[i] = temp_results
         else:
             ss_counts[i] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
-            sscounts_data.append(temp_result)
+            sscounts_data[i] = temp_result
 
     if confidence:
         bbest = ss_counts >= min_ss_count
