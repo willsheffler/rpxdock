@@ -9,7 +9,9 @@ def pymol_load_Body(
       state,
       name,
       pos=np.eye(4),
-      hideprev=True,
+      delprev=True,
+      resrange=(0, -1),
+      sym=None,
       **kw,
 ):
    # _try_to_use_pymol_objs(body, state, name, pos, hideprev, **kw)
@@ -18,24 +20,30 @@ def pymol_load_Body(
    from pymol import cmd
    cmd.set('suspend_updates', 'on')
    # cmd.disable('all')
-   cmd.delete('all')
+
+   if delprev:
+      cmd.delete(f'{name}*')
+
+   sym = wu.sym.frames(sym)
+
    pos = pos.reshape(-1, 4, 4)
-   breaks = len(body) // len(body.asym_body) * len(pos)
+   bbsnfold = len(body) // len(body.asym_body)
+   breaks = bbsnfold * len(pos) * len(sym)
+   breaks_groups = bbsnfold
 
-   coord = body.coord
-   # print('body', type(body), type(coord), coord.shape, coord.strides)
-   # wu.viz.pymol_cgo.showsphere([1, 2, 3, 1], 4)
-
-   # # coord = pos[:, None, None] @ coord[None, :, :3, :, None]
-   # # coord = coord.reshape(-1, 3, 4)
-   coord = pos[:, None, None] @ coord[None, :, 0, :, None]
+   coord = body.coord  # [resrange[0]:resrange[1]]
+   coord = pos[:, None, None] @ coord[None, :, 1, :, None]
    coord = coord.reshape(-1, 4)
-   wu.viz.show_ndarray_line_strip(coord, state=state, name=name, hideprev=hideprev, breaks=breaks,
-                                  **kw)
 
-   cmd.hide('sticks')
-   cmd.hide('cartoon')
-   cmd.show('lines')
+   coord = sym[:, None] @ coord[None, :, :, None]
+   coord = coord.reshape(-1, 4)
+
+   wu.viz.show_ndarray_line_strip(coord, state=state, name=name, breaks=breaks,
+                                  breaks_groups=breaks_groups, **kw)
+
+   # cmd.hide('sticks')
+   # cmd.hide('cartoon')
+   # cmd.show('lines')
    cmd.set('suspend_updates', 'off')
 
 def _try_to_use_pymol_objs(
