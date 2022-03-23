@@ -1,10 +1,26 @@
-import os, copy, numpy as np, rpxdock, logging, rpxdock as rp
-from willutil import Bunch
+import os, copy, functools, logging
+import numpy as np
+import rpxdock as rp
+import willutil as wu
 
 log = logging.getLogger(__name__)
 _CLASHRAD = 1.75
 
 #TODO add masking somewhere in this script by take them out of pose when checking for scoring WHS YH
+
+@functools.lru_cache
+def get_body(
+   fname,
+   cachedir='.',
+   **kw,
+):
+   cache_fname = os.path.join(cachedir, os.path.basename(fname) + '.body.pickle')
+   if os.path.exists(cache_fname):
+      body = rp.load(cache_fname)
+   else:
+      body = Body(fname, **kw)
+      rp.dump(body, cache_fname)
+   return body
 
 class Body:
    def __init__(
@@ -15,7 +31,7 @@ class Body:
       allowed_res=None,
       **kw,
    ):
-      kw = Bunch(kw)
+      kw = wu.Bunch(kw)
       # pose stuff
       pose = source
       if isinstance(source, str):
@@ -59,15 +75,17 @@ class Body:
          ignored_aas='CGP',
          **kw,
    ):
-      kw = Bunch(kw)
+      kw = wu.Bunch(kw)
       if isinstance(sym, np.ndarray):
          assert len(sym) == 1
          sym = sym[0]
       if isinstance(sym, (int, np.int32, np.int64, np.uint32, np.uint64)):
          sym = "C%i" % sym
+      sym = sym.upper()
       self.sym = sym
       self.symaxis = symaxis
       self.nfold = int(sym[1:])
+      self.symframes = np.eye(4).reshape(1, 4, 4)
       if sym and sym[0] == "C" and int(sym[1:]):
          n = self.coord.shape[0]
          nfold = int(sym[1:])
@@ -79,10 +97,13 @@ class Body:
          newcoord = np.empty((nfold * n, ) + self.coord.shape[1:])
          newcoord[:n] = self.coord
          new_orig_coords = self.orig_coords
+         symframes = [np.eye(4)]
          for i in range(1, nfold):
-            self.pos = rpxdock.homog.hrot(self.symaxis, 360.0 * i / nfold)
+            symframes.append(wu.hrot(self.symaxis, 360.0 * i / nfold))
+            self.pos = symframes[-1]
             newcoord[i * n:][:n] = self.positioned_coord()
             new_orig_coords.extend(self.positioned_orig_coords())
+         self.symframes = np.stack(symframes)
          self.coord = (xform @ newcoord[:, :, :, None]).reshape(-1, 5, 4)
          self.orig_coords = [(xform @ oc[:, :, None]).reshape(-1, 4) for oc in new_orig_coords]
       else:
@@ -95,6 +116,7 @@ class Body:
       ids = np.repeat(np.arange(self.nres, dtype=np.int32), self.coord.shape[1])
       self.bvh_bb = rp.BVH(self.coord[..., :3].reshape(-1, 3), [], ids)
       self.bvh_bb_atomno = rp.BVH(self.coord[..., :3].reshape(-1, 3), [])
+      self._symcom = wu.homog.hxform(self.symframes, wu.homog.htrans(self.asym_body.bvh_bb.com()))
       self.allcen = self.stub[:, :, 3]
       which_cen = np.repeat(False, len(self.ss))
       for ss in "EHL":
@@ -117,18 +139,22 @@ class Body:
       self.pos = np.eye(4, dtype="f4")
       self.pcavals, self.pcavecs = rp.util.numeric.pca_eig(self.cen)
 
-   def copy_with_sym(self, sym, symaxis=[0, 0, 1]):
+   def copy_with_sym(self, sym, symaxis=[0, 0, 1], newaxis=None, phase=0):
+      x = np.eye(4)
+      if newaxis is not None:
+         x = wu.homog.align_vector(symaxis, newaxis)
+         x = wu.hrot(newaxis, phase) @ x
       b = copy.deepcopy(self.asym_body)
       b.pos = np.eye(4, dtype='f4')
-      b.init_coords(sym, symaxis)
       b.asym_body = self.asym_body
+      b.init_coords(sym, symaxis, xform=x)
       return b
 
    def copy_xformed(self, xform):
       b = copy.deepcopy(self.asym_body)
       b.pos = np.eye(4, dtype='f4')
-      b.init_coords('C1', [0, 0, 1], xform)
       b.asym_body = b
+      b.init_coords('C1', [0, 0, 1], xform)
       return b
 
    def set_asym_body(self, pose, sym, **kw):
@@ -351,3 +377,18 @@ class Body:
    def __repr__(self):
       source = self.pdbfile if self.pdbfile else '<rosetta Pose of unknown origin>'
       return f'Body(source="{source}")'
+
+   def symcom(self, pos=np.eye(4).reshape(-1, 4, 4), flat=False):
+      return wu.homog.hxform(pos, self._symcom, outerprod=True, flat=flat)
+
+   def symcomdist(self, pos=np.eye(4).reshape(-1, 4, 4), pos2=None, mask=False):
+      if pos2 is None: pos2 = pos
+      else: mask = False
+      coms = self.symcom(pos)
+      coms2 = self.symcom(pos2)
+      dist = wu.homog.hdist(coms, coms2)
+      if mask and pos2 is not None:
+         for i in range(len(pos)):
+            for j in range(i + 1):
+               dist[i, :, j, :] = 9e9
+      return dist

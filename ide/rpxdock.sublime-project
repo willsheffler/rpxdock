@@ -36,6 +36,10 @@
 		{
 			"name": "test_body_viz",
 			"shell_cmd": "cd $folder; PYTHONPATH=/home/sheffler/src/rpxdock python rpxdock/tests/viz/test_body_viz.py  &> sublime_build.log"
+		},
+		{
+			"name": "test_deathstar",
+			"shell_cmd": "cd $folder; PYTHONPATH=/home/sheffler/src/rpxdock python rpxdock/tests/ds/test_deathstar.py  &> sublime_build.log"
 		}
 
 		

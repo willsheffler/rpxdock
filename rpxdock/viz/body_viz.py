@@ -9,9 +9,11 @@ def pymol_load_Body(
       state,
       name,
       pos=np.eye(4),
-      delprev=True,
+      delprev=False,
       resrange=(0, -1),
       sym=None,
+      showpos=False,
+      nbrs=None,
       **kw,
 ):
    # _try_to_use_pymol_objs(body, state, name, pos, hideprev, **kw)
@@ -29,7 +31,9 @@ def pymol_load_Body(
    pos = pos.reshape(-1, 4, 4)
    bbsnfold = len(body) // len(body.asym_body)
    breaks = bbsnfold * len(pos) * len(sym)
+
    breaks_groups = bbsnfold
+   # print(breaks, breaks_groups)
 
    coord = body.coord  # [resrange[0]:resrange[1]]
    coord = pos[:, None, None] @ coord[None, :, 1, :, None]
@@ -40,6 +44,16 @@ def pymol_load_Body(
 
    wu.viz.show_ndarray_line_strip(coord, state=state, name=name, breaks=breaks,
                                   breaks_groups=breaks_groups, **kw)
+
+   if showpos:
+      wu.viz.pymol_visualize_xforms(body.symcom(pos), state, scale=1, xyzlen=[9, 10, 11])
+
+   if nbrs is not None:
+      pt1 = wu.homog.hxform(pos[nbrs[:, 0]], body.bvh_bb.com())
+      pt2 = wu.homog.hxform(pos[nbrs[:, 1]], body.bvh_bb.com())
+      vec = pt2 - pt1
+      ray = np.stack([pt1, vec], axis=-1)
+      wu.viz.show_ndarray_lines(ray, state, scale=1.0, bothsides=True)
 
    # cmd.hide('sticks')
    # cmd.hide('cartoon')

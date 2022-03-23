@@ -1,1 +1,1 @@
-from rpxdock.deathstar.deathstar import *
+from rpxdock.ds.deathstar import *

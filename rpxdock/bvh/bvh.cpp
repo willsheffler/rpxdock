@@ -1086,13 +1086,14 @@ template <typename F>
 V4<F> bvh_obj_com(BVH<F> &b) {
   py::gil_scoped_release release;
   int n = b.objs.size();
-  V4<F> com(0, 0, 0, 1);
+  V4<F> com(0, 0, 0, 0);
   for (int i = 0; i < n; ++i) {
     com[0] += b.objs[i].pos[0];
     com[1] += b.objs[i].pos[1];
     com[2] += b.objs[i].pos[2];
   }
   com /= n;
+  com[3] = 1.0;
   return com;
 }
 
