@@ -47,7 +47,7 @@ def main():
       ])
       opts.overwrite = True
 
-      convert_rpx_data(**opts)
+   convert_rpx_data(**opts)
    print('DONE')
 
 def convert_rpx_data(datafiles, **opts):

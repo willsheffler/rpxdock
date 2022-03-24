@@ -8,20 +8,6 @@ _CLASHRAD = 1.75
 
 #TODO add masking somewhere in this script by take them out of pose when checking for scoring WHS YH
 
-@functools.lru_cache
-def get_body(
-   fname,
-   cachedir='.',
-   **kw,
-):
-   cache_fname = os.path.join(cachedir, os.path.basename(fname) + '.body.pickle')
-   if os.path.exists(cache_fname):
-      body = rp.load(cache_fname)
-   else:
-      body = Body(fname, **kw)
-      rp.dump(body, cache_fname)
-   return body
-
 class Body:
    def __init__(
       self,
@@ -145,6 +131,7 @@ class Body:
          x = wu.homog.align_vector(symaxis, newaxis)
          x = wu.hrot(newaxis, phase) @ x
       b = copy.deepcopy(self.asym_body)
+      if sym == 'c1': return b
       b.pos = np.eye(4, dtype='f4')
       b.asym_body = self.asym_body
       b.init_coords(sym, symaxis, xform=x)
@@ -392,3 +379,24 @@ class Body:
             for j in range(i + 1):
                dist[i, :, j, :] = 9e9
       return dist
+
+def get_body_cached(
+      fname,
+      csym='c1',
+      xaln=np.eye(4),
+      cachedir='.',
+      **kw,
+):
+
+   cache_fname = os.path.join(cachedir, os.path.basename(fname))
+   cache_fname += '_' + csym
+   cache_fname += '_xaln%i' % rp.util.hash_str_to_int(repr(xaln))
+   cache_fname += '.body.pickle'
+   if os.path.exists(cache_fname):
+      body = rp.load(cache_fname)
+   else:
+      body = Body(fname, **kw)
+      body = body.copy_xformed(xaln)
+      body = body.copy_with_sym(csym)
+      rp.dump(body, cache_fname)
+   return body

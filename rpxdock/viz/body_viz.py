@@ -1,64 +1,67 @@
-import tempfile
+import tempfile, sys
 import numpy as np
 import rpxdock as rp
 import willutil as wu
 
-@wu.viz.pymol_viz.pymol_load.register(rp.Body)
-def pymol_load_Body(
-      body,
-      state,
-      name,
-      pos=np.eye(4),
-      delprev=False,
-      resrange=(0, -1),
-      sym=None,
-      showpos=False,
-      nbrs=None,
-      **kw,
-):
-   # _try_to_use_pymol_objs(body, state, name, pos, hideprev, **kw)
-   # return
+if 'pymol' in sys.modules:
 
-   from pymol import cmd
-   cmd.set('suspend_updates', 'on')
-   # cmd.disable('all')
+   @wu.viz.pymol_viz.pymol_load.register(rp.Body)
+   def pymol_load_Body(
+         body,
+         state,
+         name,
+         pos=np.eye(4),
+         delprev=False,
+         resrange=(0, -1),
+         sym=None,
+         showpos=False,
+         nbrs=None,
+         **kw,
+   ):
+      # _try_to_use_pymol_objs(body, state, name, pos, hideprev, **kw)
+      # return
 
-   if delprev:
-      cmd.delete(f'{name}*')
+      from pymol import cmd
+      cmd.set('suspend_updates', 'on')
+      # cmd.disable('all')
 
-   sym = wu.sym.frames(sym)
+      if delprev:
+         cmd.delete(f'{name}*')
 
-   pos = pos.reshape(-1, 4, 4)
-   bbsnfold = len(body) // len(body.asym_body)
-   breaks = bbsnfold * len(pos) * len(sym)
+      sym = wu.sym.frames(sym)
 
-   breaks_groups = bbsnfold
-   # print(breaks, breaks_groups)
+      pos = pos.reshape(-1, 4, 4)
+      bbsnfold = len(body) // len(body.asym_body)
+      breaks = bbsnfold * len(pos) * len(sym)
 
-   coord = body.coord  # [resrange[0]:resrange[1]]
-   coord = pos[:, None, None] @ coord[None, :, 1, :, None]
-   coord = coord.reshape(-1, 4)
+      breaks_groups = bbsnfold
+      # print(breaks, breaks_groups)
 
-   coord = sym[:, None] @ coord[None, :, :, None]
-   coord = coord.reshape(-1, 4)
+      coord = body.coord  # [resrange[0]:resrange[1]]
+      coord = pos[:, None, None] @ coord[None, :, 1, :, None]
+      coord = coord.reshape(-1, 4)
 
-   wu.viz.show_ndarray_line_strip(coord, state=state, name=name, breaks=breaks,
-                                  breaks_groups=breaks_groups, **kw)
+      coord = sym[:, None] @ coord[None, :, :, None]
+      coord = coord.reshape(-1, 4)
 
-   if showpos:
-      wu.viz.pymol_visualize_xforms(body.symcom(pos), state, scale=1, xyzlen=[9, 10, 11])
+      wu.viz.show_ndarray_line_strip(coord, state=state, name=name, breaks=breaks,
+                                     breaks_groups=breaks_groups, **kw)
 
-   if nbrs is not None:
-      pt1 = wu.homog.hxform(pos[nbrs[:, 0]], body.bvh_bb.com())
-      pt2 = wu.homog.hxform(pos[nbrs[:, 1]], body.bvh_bb.com())
-      vec = pt2 - pt1
-      ray = np.stack([pt1, vec], axis=-1)
-      wu.viz.show_ndarray_lines(ray, state, scale=1.0, bothsides=True)
+      if showpos:
+         wu.viz.pymol_visualize_xforms(body.symcom(pos), state, scale=1, weight=3,
+                                       xyzlen=[9, 10, 11])
 
-   # cmd.hide('sticks')
-   # cmd.hide('cartoon')
-   # cmd.show('lines')
-   cmd.set('suspend_updates', 'off')
+      if nbrs is not None:
+         pt1 = wu.homog.hxform(pos[nbrs[:, 0]], body.bvh_bb.com())
+         pt2 = wu.homog.hxform(pos[nbrs[:, 1]], body.bvh_bb.com())
+         vec = pt2 - pt1
+         ray = np.stack([pt1, vec], axis=-1)
+         wu.viz.show_ndarray_lines(ray, state, scale=1.0, bothsides=True)
+
+      # cmd.hide('sticks')
+      # cmd.hide('cartoon')
+      # cmd.show('lines')
+      cmd.set('suspend_updates', 'off')
 
 def _try_to_use_pymol_objs(
    body,

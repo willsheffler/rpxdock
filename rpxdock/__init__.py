@@ -37,7 +37,7 @@ from rpxdock import xbin
 
 from rpxdock.search import dockspec
 from rpxdock.app import options
-from rpxdock.body import Body, get_body
+from rpxdock.body import Body, get_body_cached
 from rpxdock.bvh import BVH
 from rpxdock.data import datadir
 from rpxdock.ds import DeathStar
