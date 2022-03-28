@@ -23,7 +23,7 @@ def main():
    origin = htrans([0, 0, 113]) @ hrot([1, 0, 0], 180) @ hrot([0, 0, 1], 95)
    _test_body_viz(body, 'icos', 'c3', origin=origin)
    return
-   # wu.viz.showme(body, psym='icos', csym='c3', pos=origin)
+   # wu.showme(body, psym='icos', csym='c3', pos=origin)
 
    forig = '/home/sheffler/debug/deathstar/cage_examples/I3_AK/I3ak_orig.pdb'
    body = rp.get_body(forig)
@@ -59,9 +59,9 @@ def _test_body_viz(body, psym='icos', csym='c3', origin=np.eye(4)):
    # sympos2 = sympos2[flb:fub]
    # sympos1 = wu.sym.frames(psym, bbsym=csym, axis=[0, 0, 1])
 
-   # wu.viz.showme(body)
-   # wu.viz.showme(body, pos=origin)
-   # wu.viz.showme(body, pos=wu.sym.frames('icos', axis=[0, 0, 1]) @ origin)
+   # wu.showme(body)
+   # wu.showme(body, pos=origin)
+   # wu.showme(body, pos=wu.sym.frames('icos', axis=[0, 0, 1]) @ origin)
    # assert 0s
 
    pos1 = sympos1 @ np.linalg.inv(sympos1[0]) @ origin
@@ -69,7 +69,7 @@ def _test_body_viz(body, psym='icos', csym='c3', origin=np.eye(4)):
    pos = np.concatenate([pos1[flb:fub], pos2])
 
    symcom = body.symcom(pos1)
-   wu.viz.showme(symcom)
+   wu.showme(symcom)
    comdist1 = body.symcomdist(pos1[flb:fub], mask=True)
    comdist2 = body.symcomdist(pos1[flb:fub], pos2)
    if len(pos1[flb:fub]) > 1:
@@ -83,17 +83,17 @@ def _test_body_viz(body, psym='icos', csym='c3', origin=np.eye(4)):
    # print(pos[0])
    # return
 
-   wu.viz.showme(body, name='test0', pos=pos, delprev=False, hideprev=False, linewidth=5,
-                 col='rand', nbrs=nbrs, **kw)
+   wu.showme(body, name='test0', pos=pos, delprev=False, hideprev=False, linewidth=5, col='rand',
+             nbrs=nbrs, **kw)
 
    sympos = wu.sym.frames(psym, axis=[0, 0, 1], bbsym=csym, asym_of=csym)
    pos = sympos @ np.linalg.inv(sympos[0]) @ origin
-   wu.viz.showme(body, name='test0', pos=pos, delprev=False, hideprev=False, linewidth=5,
-                 col='rand', **kw)
+   wu.showme(body, name='test0', pos=pos, delprev=False, hideprev=False, linewidth=5, col='rand',
+             **kw)
    sympos = wu.sym.frames(psym, axis=[0, 0, 1], bbsym=csym)
    pos = sympos @ np.linalg.inv(sympos[0]) @ origin
-   wu.viz.showme(body, name='test0', pos=pos, delprev=False, hideprev=False, linewidth=5,
-                 col='rand', **kw)
+   wu.showme(body, name='test0', pos=pos, delprev=False, hideprev=False, linewidth=5, col='rand',
+             **kw)
    assert 0
 
    # pseudo-symmetrize
@@ -108,8 +108,8 @@ def _test_body_viz(body, psym='icos', csym='c3', origin=np.eye(4)):
       delta = wu.homog.rand_xform_small(len(sympos), cart_sd=0.1, rot_sd=0.003)
       # delta = sympos @ delta @ np.linalg.inv(sympos)
       sympos = sympos @ delta
-      wu.viz.showme(body, name='test0', pos=sympos, sym=vsym, delprev=True, hideprev=False,
-                    stateno=i + 2, linewidth=5, col='rand', **kw)
+      wu.showme(body, name='test0', pos=sympos, sym=vsym, delprev=True, hideprev=False,
+                stateno=i + 2, linewidth=5, col='rand', **kw)
 
    # print('DONE 3984948', flush=True)
 

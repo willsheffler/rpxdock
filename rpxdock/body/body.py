@@ -303,22 +303,28 @@ class Body:
    def positioned_orig_coords(self):
       return [(self.pos @ x[..., None]).squeeze() for x in self.orig_coords]
 
-   def contact_pairs(self, other, maxdis, buf=None, use_bb=False, atomno=False):
+   def contact_pairs(self, other, pos1=None, pos2=None, maxdis=10, buf=None, use_bb=False,
+                     atomno=False):
+      if pos1 is None: pos1 = self.pos
+      if pos2 is None: pos2 = other.pos
       if not buf:
          buf = np.empty((10000, 2), dtype="i4")
       pairs, overflow = rp.bvh.bvh_collect_pairs(
          self.bvh_bb_atomno if atomno else (self.bvh_bb if use_bb else self.bvh_cen),
-         other.bvh_bb_atomno if atomno else (other.bvh_bb if use_bb else other.bvh_cen),
-         self.pos,
-         other.pos,
-         maxdis,
-         buf,
-      )
+         other.bvh_bb_atomno if atomno else (other.bvh_bb if use_bb else other.bvh_cen), pos1,
+         pos2, maxdis, buf)
       assert not overflow
       return pairs
 
-   def contact_count(self, other, maxdis):
-      return rp.bvh.bvh_count_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis)
+   def contact_count(self, other, pos1=None, pos2=None, maxdis=10):
+      if pos1 is None: pos1 = self.pos
+      if pos2 is None: pos2 = other.pos
+      return rp.bvh.bvh_count_pairs_vec(self.bvh_cen, other.bvh_cen, pos1, pos2, maxdis)
+
+   def contact_count_bb(self, other, pos1=None, pos2=None, maxdis=10):
+      if pos1 is None: pos1 = self.pos
+      if pos2 is None: pos2 = other.pos
+      return rp.bvh.bvh_count_pairs_vec(self.bvh_bb, other.bvh_bb, pos1, pos2, maxdis)
 
    def dump_pdb(self, fname, **kw):
       # import needs to be here to avoid cyclic import
@@ -366,13 +372,14 @@ class Body:
       return f'Body(source="{source}")'
 
    def symcom(self, pos=np.eye(4).reshape(-1, 4, 4), flat=False):
+      # print('symcom', pos.shape)
       return wu.homog.hxform(pos, self._symcom, outerprod=True, flat=flat)
 
    def symcomdist(self, pos=np.eye(4).reshape(-1, 4, 4), pos2=None, mask=False):
       if pos2 is None: pos2 = pos
       else: mask = False
-      coms = self.symcom(pos)
-      coms2 = self.symcom(pos2)
+      coms = self.symcom(pos, flat=False)
+      coms2 = self.symcom(pos2, flat=False)
       dist = wu.homog.hdist(coms, coms2)
       if mask and pos2 is not None:
          for i in range(len(pos)):
@@ -384,10 +391,10 @@ def get_body_cached(
       fname,
       csym='c1',
       xaln=np.eye(4),
-      cachedir='.',
+      cachedir='.rpxcache',
       **kw,
 ):
-
+   os.makedirs(cachedir, exist_ok=True)
    cache_fname = os.path.join(cachedir, os.path.basename(fname))
    cache_fname += '_' + csym
    cache_fname += '_xaln%i' % rp.util.hash_str_to_int(repr(xaln))

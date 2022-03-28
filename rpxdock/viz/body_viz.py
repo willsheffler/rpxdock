@@ -7,22 +7,24 @@ if 'pymol' in sys.modules:
 
    @wu.viz.pymol_viz.pymol_load.register(rp.Body)
    def pymol_load_Body(
-         body,
-         state,
-         name,
-         pos=np.eye(4),
-         delprev=False,
-         resrange=(0, -1),
-         sym=None,
-         showpos=False,
-         nbrs=None,
-         **kw,
+      body,
+      state,
+      name,
+      pos=np.eye(4),
+      delprev=False,
+      resrange=(0, -1),
+      sym=None,
+      showpos=False,
+      nbrs=None,
+      suspend_updates=True,
+      scale=1.0,
+      **kw,
    ):
       # _try_to_use_pymol_objs(body, state, name, pos, hideprev, **kw)
       # return
 
       from pymol import cmd
-      cmd.set('suspend_updates', 'on')
+      if suspend_updates: cmd.set('suspend_updates', 'on')
       # cmd.disable('all')
 
       if delprev:
@@ -43,13 +45,14 @@ if 'pymol' in sys.modules:
 
       coord = sym[:, None] @ coord[None, :, :, None]
       coord = coord.reshape(-1, 4)
+      coord *= scale
 
-      wu.viz.show_ndarray_line_strip(coord, state=state, name=name, breaks=breaks,
+      wu.viz.show_ndarray_line_strip(coord, state=state, name=name + '_bbone', breaks=breaks,
                                      breaks_groups=breaks_groups, **kw)
 
       if showpos:
-         wu.viz.pymol_visualize_xforms(body.symcom(pos), state, scale=1, weight=3,
-                                       xyzlen=[9, 10, 11])
+         wu.viz.pymol_visualize_xforms(body.symcom(pos), state, name=name + '_frames', scale=1,
+                                       weight=3, xyzlen=[9, 10, 11])
 
       if nbrs is not None:
          pt1 = wu.homog.hxform(pos[nbrs[:, 0]], body.bvh_bb.com())
@@ -61,7 +64,7 @@ if 'pymol' in sys.modules:
       # cmd.hide('sticks')
       # cmd.hide('cartoon')
       # cmd.show('lines')
-      cmd.set('suspend_updates', 'off')
+      if suspend_updates: cmd.set('suspend_updates', 'off')
 
 def _try_to_use_pymol_objs(
    body,
