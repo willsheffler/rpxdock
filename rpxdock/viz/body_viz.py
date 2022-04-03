@@ -14,7 +14,7 @@ if 'pymol' in sys.modules:
       delprev=False,
       resrange=(0, -1),
       sym=None,
-      showpos=False,
+      showframes=False,
       nbrs=None,
       suspend_updates=True,
       scale=1.0,
@@ -50,7 +50,7 @@ if 'pymol' in sys.modules:
       wu.viz.show_ndarray_line_strip(coord, state=state, name=name + '_bbone', breaks=breaks,
                                      breaks_groups=breaks_groups, **kw)
 
-      if showpos:
+      if showframes:
          wu.viz.pymol_visualize_xforms(body.symcom(pos), state, name=name + '_frames', scale=1,
                                        weight=3, xyzlen=[9, 10, 11])
 

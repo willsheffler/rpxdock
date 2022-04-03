@@ -4,10 +4,10 @@ import pytest
 def main():
    # test_deathstar_onecomp()
    # helper_test_deathstar('icos', 'c3', showme=True)
-   test_deathstar_mc('icos', 'c3')
+   _test_deathstar_mc('icos', 'c3')
    print('DONE')
 
-def test_deathstar_onecomp():
+def _test_deathstar_onecomp():
    helper_test_deathstar('icos', 'c3')
    helper_test_deathstar('icos', 'c5')
    helper_test_deathstar('icos', 'c2')
@@ -69,29 +69,38 @@ def helper_test_deathstar(sym, csym, showme=False):
    assert np.max(d) < np.min(d) + 0.1
 
    if showme:
-      wu.showme(ds, whole=False, asymframes=False, delprev=False)
+      wu.showme(ds, whole=False, asymframes=False, delprev=False, linewidth=3)
 
-def test_deathstar_mc(sym, csym, showme=True):
+def _test_deathstar_mc(sym, csym, showme=True):
 
    ds = helper_get_deathstar(sym, csym)
-   import glob
-   g = sorted(glob.glob('dstar_mc/dstar_mc_best_*.pickle'))
-   print('-' * 80)
-   if g:
-      print('loading', g[0])
-      ds = rp.load(g[0])
-      # ds.set_dofs(wu.hrand(len(ds.dofs()), cart_sd=0.5, rot_sd=0.01) @ ds.dofs())
-   else:
-      print('starting over')
-   print('-' * 80)
-   if 1:
-      sc = ds.scoredofs(ds.dofs(), tether=True)
-      tmp = ds.scoredofs(ds.dofs(), tether=False)
-      xy = ds.getspread()
-      print(f'START  {sc:9.5f} {xy/tmp:9.5f} {tmp:9.5f} {xy:7.3f} {ds.ncontacts():3}', flush=True)
+   if True:
+      import glob
+      g = sorted(glob.glob('dstar_mc/dstar_mc_best_*.pickle'))
+      print('-' * 80)
+      if g:
+         print('loading', g[0])
+         ds = rp.load(g[0])
+         # ds = rp.load('dstar_mc/dstar_mc_best_088.247.pickle')
+         ds.set_dofs(ds.dofs())
+         # ds.set_dofs(wu.hrand(len(ds.dofs()), cart_sd=0.5, rot_sd=0.01) @ ds.dofs())
+      else:
+         print('starting over')
+         # assert 0
+      print('-' * 80)
+      if 1:
+         # if not hasattr(ds, 'begnbr'):
+         # ds.begnbr = 1
+         # ds.ref_iface_idx = -1
+         sc = ds.scoredofs(ds.dofs(), tether=True)
+         tmp = ds.scoredofs(ds.dofs(), tether=False)
+         xy = ds.getspread()
+         print(f'START  {sc:6.3f} {xy/tmp:6.3f} {tmp:6.3f} {xy:6.3f} {ds.ncontacts():3}',
+               flush=True)
 
    if showme:
-      wu.showme(ds, saveview=False, whole=True, linewidth=1)
+      wu.showme(ds, saveview=False, linewidth=2, connsphere=4.0, conncyl=1.0,
+                show_aligned_ifaces=True)
    # assert 0
 
    T = wu.Timer()
@@ -99,7 +108,7 @@ def test_deathstar_mc(sym, csym, showme=True):
    Ninner = 100_000
    Nouter = 100_000
    # temp = 0.03
-   temp = 0.2
+   temp = 0.40
    cart_sd = 0.005
    rot_sd = cart_sd / 30
    # temp = 0.002
@@ -131,8 +140,10 @@ def test_deathstar_mc(sym, csym, showme=True):
 
          i = Ninner * outer + inner
          dofs = ds.dofs()
-         if i % 1000 == 0: dofs = mc.bestconfig
+         if i % 1000 == 0 and mc.bestconfig is not None:
+            dofs = mc.bestconfig
          dofs = dofs @ xrand[inner]
+         # assert 0
          T.checkpoint('purturb')
          accepted = mc.try_this(dofs, timer=T)
 
@@ -141,9 +152,9 @@ def test_deathstar_mc(sym, csym, showme=True):
             # rimcom = ds.laser.symcom(ds.frames[1])[0, 1, :2, 3]
             xy = ds.getspread()
             print(
-               f'ACCEPT {i:10,} {mc.naccept/i:9.5f} {mc.low:9.5f} {mc.best:9.5f} | {xy/tmp:9.5f} {tmp:9.5f} {xy:7.3f} {ds.ncontacts():3} {int(inner/(perf_counter()-tstart)):5}',
+               f'A{i:7,} {mc.naccept/i:6.3f} {mc.best:6.3f} | {xy/tmp:6.3f} {tmp:6.3f} {xy:6.3f} {ds.ncontacts():3} {int(inner/(perf_counter()-tstart)):5}',
                flush=True)
-            # if showme: wu.showme(ds, whole=True, delprev=True)
+            # if showme: wu.showme(ds, delprev=True)
          T.checkpoint('trythis')
          if accepted:
             ds.set_dofs(dofs)
@@ -152,10 +163,10 @@ def test_deathstar_mc(sym, csym, showme=True):
             # rimcom = ds.laser.symcom(ds.frames[1])[0, 1, :2, 3]
             xy = ds.getspread()
             print(
-               f'BEST   {i:10,} {mc.naccept/i:9.5f} {mc.low:9.5f} {mc.best:9.5f} | {xy/tmp:9.5f} {tmp:9.5f} {xy:7.3f} {ds.ncontacts():3} {int(inner/(perf_counter()-tstart)):5}',
+               f'B{i:7,} {mc.naccept/i:6.3f} {mc.best:6.3f} | {xy/tmp:6.3f} {tmp:6.3f} {xy:6.3f} {ds.ncontacts():3} {int(inner/(perf_counter()-tstart)):5}',
                flush=True)
-            if showme: wu.showme(ds, whole=True, delprev=True)
-            rp.dump(ds, f'dstar_mc/dstar_mc_best_{mc.best+100:07.3f}.pickle')
+            if showme: wu.showme(ds, delprev=True)
+            rp.dump(ds, f'dstar_mc/dstar_mc_best_{mc.best+100:06.3f}.pickle')
 
          T.checkpoint('iter')  # T.checkpoint('accept')
 
