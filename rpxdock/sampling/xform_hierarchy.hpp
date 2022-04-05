@@ -31,7 +31,7 @@ struct CartHier {
   Fn cart_cell_width_;
   In cart_bs_pref_prod_;
   I cart_ncell_;
-
+  CartHier() {}
   CartHier(Fn cartlb, Fn cartub, In cartbs) {
     for (int i = 0; i < CART_DIM; ++i) {
       this->cart_lb_[i] = cartlb[i];
@@ -185,6 +185,7 @@ struct OriHier {
   F recip_nside_;
   I ori_ncell_;
   F ori_resl_;
+  OriHier() {}
   OriHier(F ori_resl) {
     onside_ = ori_get_nside_for_rot_resl_deg(ori_resl);
     recip_nside_ = 1.0 / (F)onside_;
@@ -315,7 +316,7 @@ struct XformHier : public OriHier<F, I>, public CartHier<3, F, I> {
   using X = X3<F>;
 
   I ncell_;
-
+  XformHier() {}
   XformHier(F3 cartlb, F3 cartub, I3 cartbs, F ori_resl)
       : OriHier<F, I>(ori_resl),
         CartHier<CART_DIM, F, I>(cartlb, cartub, cartbs) {
