@@ -38,6 +38,50 @@ def gcd(a,b):
    return a
 
 ## All dock_cyclic, dock_onecomp, and dock_multicomp do similar things
+   
+def dock_asym(hscore, **kw):
+   kw = rp.Bunch(kw)
+   if kw.cart_bounds[0]:
+      crtbnd = kw.cart_bounds[0]
+      extent = crtbnd[1]
+      cartlb = np.array([crtbnd[0], crtbnd[0], crtbnd[0]])
+      cartub = np.array([crtbnd[1], crtbnd[1], crtbnd[1]])
+   else: 
+      extent = 100 
+      cartlb = np.array([-extent] * 3)
+      cartub = np.array([extent] * 3)
+   
+   cartbs = np.array([kw.cart_resl] * 3, dtype="i")
+   
+   sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, kw.ori_resl)
+   logging.info(f'num base samples {sampler.size(0):,}')
+
+   bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
+              for fn, ar2 in zip(inp, ar)]
+             for inp, ar in zip(kw.inputs, kw.allowed_residues)]
+
+   
+   exe = concurrent.futures.ProcessPoolExecutor
+   # exe = rp.util.InProcessExecutor
+   with exe(kw.ncpu) as pool:
+      futures = list()
+      for ijob, bod in enumerate(itertools.product(*bodies)):
+         futures.append(
+            pool.submit(
+               rp.search.make_asym,
+               bod,
+               hscore,
+               sampler,
+               rp.hier_search,
+               **kw,
+            ))
+         futures[-1].ijob = ijob
+      result = [None] * len(futures)
+      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+         result[f.ijob] = f.result()
+   result = rp.concat_results(result)
+   return result
+
 def dock_cyclic(hscore, **kw):
    kw = rp.Bunch(kw)
    bodies = [
@@ -318,6 +362,8 @@ def main():
    # TODO: redefine archs WHS or others with a monster list of if statements
    if arch.startswith('C'):
       result = dock_cyclic(hscore, **kw)
+   elif arch == 'ASYM':
+      result = dock_asym(hscore, **kw)
    elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
       result = dock_onecomp(hscore, **kw)
    elif arch.startswith('PLUG'):
