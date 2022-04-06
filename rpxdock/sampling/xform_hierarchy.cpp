@@ -231,7 +231,12 @@ template <typename F, typename I>
 auto XH_set_state(py::tuple state) {
   using F3 = Eigen::Matrix<F, 3, 1>;
   using I3 = Eigen::Matrix<I, 3, 1>;
-  auto h = std::make_unique<XformHier<F, I>>();  // dummy
+
+  F3 cartlb(0, 0, 0);
+  F3 cartub(0, 0, 0);
+  I3 cartbs(0, 0, 0);
+  auto h =
+      std::make_unique<XformHier<F, I>>(cartlb, cartub, cartbs, (F)0);  // dummy
   //
   h->onside_ = py::cast<I>(state[0]);
   h->recip_nside_ = py::cast<F>(state[1]);
