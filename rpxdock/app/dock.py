@@ -41,17 +41,26 @@ def gcd(a,b):
    
 def dock_asym(hscore, **kw):
    kw = rp.Bunch(kw)
-   crtbnd = kw.cart_bounds[0]
-   cartlb = np.array([+00, +10, +00])
-   cartub = np.array([+30, +20, +30])
-   cartbs = np.array([4, 1, 4], dtype="i")
-   sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, 30)
+   if kw.cart_bounds[0]:
+      crtbnd = kw.cart_bounds[0]
+      extent = crtbnd[1]
+      cartlb = np.array([crtbnd[0], crtbnd[0], crtbnd[0]])
+      cartub = np.array([crtbnd[1], crtbnd[1], crtbnd[1]])
+   else: 
+      extent = 100 
+      cartlb = np.array([-extent] * 3)
+      cartub = np.array([extent] * 3)
+   
+   cartbs = np.array([kw.cart_resl] * 3, dtype="i")
+   
+   sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, kw.ori_resl)
    logging.info(f'num base samples {sampler.size(0):,}')
 
    bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
               for fn, ar2 in zip(inp, ar)]
              for inp, ar in zip(kw.inputs, kw.allowed_residues)]
 
+   
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
    with exe(kw.ncpu) as pool:
