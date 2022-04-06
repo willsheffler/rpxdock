@@ -225,7 +225,7 @@ template <typename F, typename I>
 py::tuple XH_get_state(XformHier<F, I> const& h) {
   return py::make_tuple(h.onside_, h.recip_nside_, h.ori_ncell_, h.ori_resl_,
                         h.cart_lb_, h.cart_ub_, h.cart_bs_, h.cart_cell_width_,
-                        h.cart_bs_pref_prod_, h.cart_ncell_);
+                        h.cart_bs_pref_prod_, h.cart_ncell_, h.ncell_);
 }
 template <typename F, typename I>
 auto XH_set_state(py::tuple state) {
@@ -248,6 +248,7 @@ auto XH_set_state(py::tuple state) {
   h->cart_cell_width_ = py::cast<F3>(state[7]);
   h->cart_bs_pref_prod_ = py::cast<I3>(state[8]);
   h->cart_ncell_ = py::cast<I>(state[9]);
+  h->ncell_ = py::cast<I>(state[10]);
   //
   // I onside_;
   // F recip_nside_;
