@@ -18,9 +18,14 @@ class DeathStar(object):
          origin=np.eye(4),
          contact_dist=6,
          clash_dist=3,
-         begnbr=0,
+         begnbr=1,
+         origframes=None,
+         capcen=np.eye(4),
+         capaln=np.eye(4),
    ):
       super(DeathStar, self).__init__()
+
+      self.cap_xform = wu.htrans([0, 9, 0]) @ wu.hrot([1, 0, 0], -3, degrees=True)
 
       self.hull = hull
       self.laser = laser
@@ -30,6 +35,10 @@ class DeathStar(object):
       self.begnbr = begnbr
       self.contact_dist = contact_dist
       self.clash_dist = clash_dist
+      self.symx = wu.sym.frames(cycsym)
+      self.capcen = capcen
+      self.capaln = capaln
+      self.timer = wu.Timer()
 
       foo = cage_to_cyclic(hull, cagesym, cycsym, origin)
       self.frames = foo.frames
@@ -37,22 +46,31 @@ class DeathStar(object):
       self.nbrs_internal = foo.nbrs_internal
       self.follows = foo.follows
       self.asymunit = foo.asymunit
-      self.asymframes = self.frames[self.asymunit]
-
+      # self.asymframes = self.frames[self.asymunit]
       self.ref_iface_idx = len(self.neighbors) - 1 - self.begnbr  # totally arbitrary
+
+      self.origframes = self.frames if origframes is None else origframes
+      self.orig_iface_rel_xforms, _ = self.iface_rel_xforms(original=True)
+      assert np.allclose(self.orig_iface_rel_xforms, self.orig_iface_rel_xforms[0], atol=1e-4)
 
       self.topid = 0
       self.bottomid = len(self.frames) - 1
       self.dofids = np.arange(len(self.frames) - 2) + 1
-
-      self.symx = wu.sym.frames(cycsym)
 
       # self.xorig1to0 = wu.hinv(self.frames[1]) @ self.frames[0]
       self.set_dofs(self.frames)
 
       self.__ctact = 0
 
-      self.lever = 20
+      self.lever = 30
+
+      # ca = self.capaln
+      # cc = self.capcen
+      # cia = wu.hinv(self.capaln)
+      # cic = wu.hinv(self.capcen)
+
+   def get_asym_frames(self):
+      return self.frames[self.asymunit]
 
    def body(self, isub):
       return self.laser if isub == 0 else self.hull
@@ -72,27 +90,17 @@ class DeathStar(object):
    def set_dofs(self, frames):
       assert self.dofs_are_valid(frames)
       self.frames[1:] = frames[1:]
-      # self.frames = frames
-
-      # xint = wu.hrot([0, 0, 1], 0)
-      # inbr = 1
-      # xnbr = wu.hinv(self.frames[self.neighbors[inbr, 0]]) @ self.frames[self.neighbors[inbr, 1]]
-      # xnbr =  self.xorig1to0
 
       xint = wu.hrot([0, 0, 1], 240)  # ???
       # np.set_printoptions(precision=5, suppress=True)
       xnbrs = self.iface_positions()
       xnbrs = wu.hinv(xnbrs[1:, 1]) @ xnbrs[1:, 0]
-      # print(xnbrs)
       xnbr = wu.hmean(xnbrs)
-      # print('mean')
-      # print(np.mean(xnbrs, axis=0))
-      # print('xnbr0')
-      # print(xnbr)
-      # assert 0
 
-      self.frames[0] = self.frames[1] @ xnbr @ xint
+      frame0 = self.frames[1] @ xnbr @ self.cap_xform @ xint
+      self.frames[0] = frame0
       self.symmetrize()
+      self.timer.checkpoint('set_dofs')
 
    def ncontacts(self):
       return int(
@@ -109,24 +117,33 @@ class DeathStar(object):
       # xiface = self.iface_xforms()
       # x = xiface[1:]
 
-      clash_counts = self.hull.contact_count_bb(
+      # clash_counts = self.hull.contact_count_bb(
+      #    self.hull,
+      #    self.frames[self.neighbors[self.begnbr:, 0]],
+      #    self.frames[self.neighbors[self.begnbr:, 1]],
+      #    self.clash_dist,
+      # )
+      # clash = np.mean(clash_counts)
+      # if clash > 0 and fullscore: return 9e9
+      clashdist = self.hull.distance_to(
          self.hull,
          self.frames[self.neighbors[self.begnbr:, 0]],
          self.frames[self.neighbors[self.begnbr:, 1]],
-         self.clash_dist,
       )
-      clash = np.mean(clash_counts)
-      if clash > 0 and fullscore: return 9e9
-      # print(clash_counts, )
-      # assert 0
-      contact_counts = self.hull.contact_count(
-         self.hull,
-         self.frames[self.neighbors[self.begnbr:, 0]],
-         self.frames[self.neighbors[self.begnbr:, 1]],
-         self.contact_dist,
-      )
-      ctact = np.mean(contact_counts)
-      if ctact < 10 and fullscore: return 9e9
+      clashdist = np.min(clashdist)
+      # print(clashdist, )
+      # if clashdist < 2.5 and fullscore: return 9e9
+
+      #
+
+      #contact_counts = self.hull.contact_count(
+      #   self.hull,
+      #   self.frames[self.neighbors[self.begnbr:, 0]],
+      #   self.frames[self.neighbors[self.begnbr:, 1]],
+      #   self.contact_dist,
+      #)
+      #ctact = np.mean(contact_counts)
+      #if ctact < 10 and fullscore: return 9e9
 
       score = 0
       if fullscore:
@@ -148,71 +165,199 @@ class DeathStar(object):
       # self.ref_iface_idx = np.argmax(contact_counts)
 
       # rmsds, fitted = self.iface_joint_rmsd(report=not fullscore)
-      diffs = self.iface_joint_xform_diff(report=not fullscore)
-      diff = np.max(diffs)
+      diff, origdiff, ifacesep = self.iface_joint_xform_diff(report=not fullscore)
+      # diff = np.max(diffs)
       # print(diffs)
       # score += max(0, max(diffs) - 0.5)**2
 
       if not fullscore:
          return diff
 
-      # print(spread, np.max(diffs))
-      diffwellwidth = 0
-      diffdscore = max(0, diff - diffwellwidth)**4
-      return -spread * 2.0 + 2 * diffdscore - ctact / 200
+      clashsc = min(0, 3.8 - clashdist)**4 * 10
+      # ctact = 1000
+      # ctactsc = -ctact / 1000
+      ctactsc = 0
 
-   def iface_positions(self, pairs=None):
+      # origdiff = wu.hdiff(self.origframes[[2]], self.frames[[2]], self.lever)
+
+      # print(origdiff)
+      # if not fullscore: print(origdiff, end='')
+
+      # print(spread, np.max(diffs))
+      diffwellwidth = 0.0  # pretty loose, rms's around 1.8
+      diffscore = max(0, diff - diffwellwidth)**4
+
+      self.timer.checkpoint('iface_score')
+
+      axscore = self.getspread()
+
+      # print(diff, diffscore)
+      # print(origdiff)
+      # return diffscore
+
+      return sum([
+         # -spread,
+         10 * axscore,
+         1 * diffscore,
+         # ctactsc,
+         clashsc,
+         # -10 * origdiff,
+         # -100 * ifacesep,
+      ])
+
+   def dump_pdb(self, fprefix):
+      # for i in range(0,9): print(cmd.fit('dstar_test_iface%iA and resi -80'%i, 'dstar_test_iface8A and resi -80'))
+      asym = self.frames[self.asymunit]
+      # fprefix = fprefix.replace('.pdb', '')
+      self.laser.pos = self.frames[0]
+      rp.io.dump_pdb_from_bodies(fprefix + '_cap.pdb', [self.laser])
+
+      self.hull.pos = self.frames[-1]
+      rp.io.dump_pdb_from_bodies(fprefix + '_bottom.pdb', [self.hull])
+      for i, f in enumerate(asym):
+         for j, x in enumerate(self.symx):
+            self.hull.pos = x @ f
+            rp.io.dump_pdb_from_bodies(f'{fprefix}_hull{i}{j}.pdb', [self.hull])
+
+      ifacepos = self.iface_positions()
+      xaln = np.eye(4)
+      for inbr, (pos1, pos2) in enumerate(ifacepos):
+         x1 = xaln @ np.eye(4)  #wu.hinv(pos1) @ pos1
+         x2 = xaln @ wu.hinv(pos1) @ pos2
+         ha, hb = self.hull.copy(), self.hull.copy()
+         ha.pos = x1
+         hb.pos = x2
+         rp.io.dump_pdb_from_bodies(f'{fprefix}_iface{inbr}.pdb', [ha, hb])
+      #
+
+      # whitetopn = 1
+      # capstop = 0
+      # pos = np.concatenate([self.frames[:capstop], pos])
+      # pos = wu.hxform(self.symx, pos, outerprod=True).swapaxes(0, 1).reshape(-1, 4, 4)
+      # pos = np.concatenate([self.frames[:1 - capstop], pos, self.frames[-1:]])
+      #
+      # bodies = [self.hull.copy() for i in range(len(pos) - 1)]
+      # for i in range(len(pos) - 1):
+      #    bodies[i].pos = pos[i + 1]
+      # self.laser.pos = pos[0]
+      # bodies.append(self.laser)
+      # s, _ = rp.io.make_pdb_from_bodies(bodies)
+      # assert s
+      # with open(fname, 'w') as out:
+      #    out.write(s)
+
+   def getspread(self):
+      axscore = np.sqrt(np.sum(self.frames[0, :2, 2]**2)) * self.lever
+      axscore += np.sqrt(np.sum(self.frames[0, :2, 3]**2))
+      # + wu.homog.line_line_distance_pa(
+      # [0, 0, 0, 1],
+      # [0, 0, 1, 0],
+      # self.frames[0, :, 3],
+      # self.frames[0, :, 2],
+      # )
+      return axscore
+      # return wu.hdiff(self.frames[0], self.origframes[0], lever=self.lever)
+
+   def iface_positions(self, pairs=None, original=False):
+      self.timer.checkpoint('iface_positions_beg')
+      frames = self.frames
+      if original:
+         frames = self.origframes
       nbrs = self.neighbors[self.begnbr:]
       nbrsint = self.nbrs_internal[self.begnbr:]
       if pairs is None:
-         xa0 = self.frames[nbrs[self.ref_iface_idx, 0]]
-         xb0 = self.frames[nbrs[self.ref_iface_idx, 1]]
+         xa0 = frames[nbrs[self.ref_iface_idx, 0]]
+         xb0 = frames[nbrs[self.ref_iface_idx, 1]]
          pairs = self.hull.contact_pairs(self.hull, xa0, xb0, maxdis=self.contact_dist)
          if len(pairs) == 0: raise DSError
+      self.timer.checkpoint('hull.contact_pairs')
       x = list()
       for inb, (nbr1, nbr2) in enumerate(nbrs):
-         pos1 = self.frames[nbr1]
-         pos2 = self.frames[nbr2]
+         self.timer.checkpoint('ifp beg')
+         pos1 = frames[nbr1]
+         pos2 = frames[nbr2]
+         # print(inb, nbr1, nbr2, 'wu.hdist(pos1, pos2)', wu.hdist(pos1, pos2))
          coord1 = self.hull.coord[pairs[0, 0]].reshape(-1, 4)
          coord2 = self.hull.coord[pairs[0, 1]].reshape(-1, 4)
          com1 = np.mean(coord1, axis=0)
          com2 = np.mean(coord2, axis=0)
+         self.timer.checkpoint('ifp coms')
          symcom1 = self.hull.symcom(pos1)[0, nbrsint[inb, 0], :, 3]
          symcom2 = self.hull.symcom(pos2)[0, nbrsint[inb, 1], :, 3]
+         self.timer.checkpoint('ifp symcoms')
          # print((wu.hnorm(symcom1 - wu.hxform(self.symx, com1))))
+         # print(symcom1.shape, pos1.shape, com1.shape, self.symx.shape)
          comdelta1 = wu.hnorm(symcom1 - wu.hxform(pos1, wu.hxform(self.symx, com1)))
          comdelta2 = wu.hnorm(symcom2 - wu.hxform(pos2, wu.hxform(self.symx, com2)))
+         self.timer.checkpoint('ifp comsdeltas')
          # print(comdelta1, comdelta2)
          iint1 = np.argmin(comdelta1)
          iint2 = np.argmin(comdelta2)
+         self.timer.checkpoint('ifp argmin')
          # print(iint1, iint2)
-         x.append([pos1 @ self.symx[iint1], pos2 @ self.symx[iint2]])
+         # for i in range(3):
+         #    for j in range(3):
+         #       print(i, j, wu.hdist(pos1 @ self.symx[i], pos2 @ self.symx[j]))
+         pos1 = pos1 @ self.symx[iint1]
+         pos2 = pos2 @ self.symx[iint2]
+
+         # assert wu.hdist(pos1, pos2) < 50
+         x.append([pos1, pos2])
+
+      self.timer.checkpoint('iface_positions')
       return np.array(x)
 
-   def getspread(self):
-      return np.linalg.norm(self.frames[0, :2, 3])
-
-   def iface_joint_xform_diff(self, report=False):
-      ifacepos = self.iface_positions()
+   def iface_rel_xforms(self, original=False):
+      self.timer.checkpoint('iface_rel_xforms beg')
+      ifacepos = self.iface_positions(original=original)
       xaln = np.eye(4)
       xaln = wu.hinv(ifacepos[self.ref_iface_idx, 0]) @ ifacepos[self.ref_iface_idx, 1]
-      xaln = wu.hrot([0, 1, 0], 45) @ wu.hinv(xaln)
-      # xaln = wu.hrot([1, 0, 0], 90) @ xaln
+      xaln = wu.hinv(xaln)
       ifpos = xaln @ wu.hinv(ifacepos[:, 0]) @ ifacepos[:, 1]
+      self.timer.checkpoint('iface_rel_xforms')
+      return ifpos, xaln
+
+   def iface_joint_xform_diff(self, report=False):
+      #ifacepos = self.iface_positions()
+      #xaln = np.eye(4)
+      #xaln = wu.hinv(ifacepos[self.ref_iface_idx, 0]) @ ifacepos[self.ref_iface_idx, 1]
+      ## xaln = wu.hrot([0, 1, 0], 45) @ wu.hinv(xaln)
+      ## xaln = wu.hrot([1, 0, 0], 90) @ xaln
+      #ifpos = xaln @ wu.hinv(ifacepos[:, 0]) @ ifacepos[:, 1]
+      ifpos, _ = self.iface_rel_xforms()
+      # ifpos = ifpos[self.begnbr:]
+
       ifmean = wu.hmean(ifpos)
       # ang = wu.hangle_of(ifmean, ifpos)
       # print(ang, wu.hnorm(ifpos))
       diff = wu.hdiff(ifmean, ifpos, self.lever)
+      # wu.PING(diff)
+      # if np.random.rand() < 0.001: assert 0
+      # origdiff = wu.hdiff(ifmean, self.orig_iface_rel_xforms, self.lever)
+      origdiff = wu.hdiff(ifmean, self.orig_iface_rel_xforms[0], self.lever)
+
+      # np.set_printoptions(suppress=True, precision=5)
+      # print(len(self.neighbors), np.linalg.norm(ifpos[:, :3, 3], axis=-1))
+      # print(ifmean[:3, 3])
+      sep = np.linalg.norm(ifmean[:3, 3])
+      sep = NotImplemented
+      # print(sep)
+      # assert sep < 10
+      # if np.random.rand() < 0.01: assert 0
+
       # xdiff = wu.hinv(ifpos) @ ifmean
       # diff = wu.hnorm2(xdiff[:, 3]) + wu.hangle(xdiff)**2 * self.lever**2
       # diff = np.sqrt(diff)
-      if report:
-         print('iface_joint_xform_diff', diff)
+      # if report:
+      # print('iface_joint_xform_diff', diff)
       # print('iface_joint_xform_diff', diff)
       # assert 0
-      return np.max(diff)
+      self.timer.checkpoint('iface_joint_xform_diff')
+      # print(origdiff)
+      return np.max(diff), origdiff, sep
 
    def iface_joint_rmsd_sketchy(self, report=False):
+      raise NotImplementedError
       nbrs = self.neighbors[self.begnbr:]
       nbrsint = self.nbrs_internal[self.begnbr:]
       xa0 = self.frames[nbrs[self.ref_iface_idx, 0]]
@@ -260,6 +405,7 @@ class DeathStar(object):
          self.set_dofs(dofs)
          score = self.iface_score(tether)
          self.set_dofs(old)
+         self.timer.checkpoint('scoredofs')
          return score
       except DSError:
          return 9e9
@@ -267,6 +413,7 @@ class DeathStar(object):
    def symmetrize(self):
       for i, j in self.follows.items():
          self.frames[i] = self.symx[1] @ self.frames[j]
+      self.timer.checkpoint('symmetrize')
 
    def dofs_are_valid(self, frames):
       return True
@@ -369,3 +516,28 @@ def get_followers_z(cycsym, pos1, pos2):
       newpos2[i + 1] = symx[1] @ x
       follows[i + 1 + len(pos1)] = i
    return follows, newpos2
+
+'''
+Times(name=Timer, order=longest, summary=sum):
+            ifp comsdeltas  785.20412
+      iface_rel_xforms beg  696.42333
+                  ifp coms  501.75818
+                symmetrize  365.08607
+               ifp symcoms  343.06837
+                      iter  242.01698
+    iface_joint_xform_diff  217.73740
+                   purturb  205.78882
+                ifp argmin  161.80018
+       iface_positions_beg  158.54520
+                   ifp beg  158.43132
+        hull.contact_pairs   82.02490
+          iface_rel_xforms   43.13096
+               iface_score   18.17109
+           iface_positions   15.49444
+                MonteCarlo    7.97622
+                  set_dofs    6.68384
+                 scoredofs    2.27779
+                   trythis    1.96153
+          MonteCarlo score    1.51781
+                   genrand    0.02778
+'''

@@ -1,6 +1,6 @@
 import logging, numpy as np, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search
-from willutil import Timer
+from willutil import Timer, Bunch
 
 log = logging.getLogger(__name__)
 

@@ -7,8 +7,8 @@ from pyrosetta.rosetta.core.scoring import get_score_function
 def get_init_string():
    s = ' -beta '
    s += ' -mute all '
-   s += ' -extra_res_fa '
-   s += ' '.join(rp.data.rosetta_params_files())
+   # s += ' -extra_res_fa '
+   # s += ' '.join(rp.data.rosetta_params_files())
    s += ' -renumber_pdb'
    # s += ' -extra_patch_fa '
    # s += ' '.join(rp.data.rosetta_patch_files())

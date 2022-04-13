@@ -276,8 +276,11 @@ class Body:
    def clash_ok(self, *args, **kw):
       return np.logical_not(self.intersect(*args, **kw))
 
-   def distance_to(self, other):
-      return rp.bvh.bvh_min_dist(self.bvh_bb, other.bvh_bb, self.pos, other.pos)
+   def distance_to(self, other, spos=None, opos=None):
+      spos = self.pos if spos is None else spos
+      opos = self.pos if opos is None else opos
+      dist, i1, i2 = rp.bvh.bvh_min_dist_vec(self.bvh_bb, other.bvh_bb, spos, opos)
+      return dist
 
    def positioned_coord(self, asym=False, pos=None):
       pos = self.pos if pos is None else pos

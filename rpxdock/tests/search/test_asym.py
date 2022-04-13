@@ -26,6 +26,24 @@ def _test_asym(hscore, body, body2):
    cartbs = np.array([4, 1, 4], dtype="i")
    sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, 30)
 
+   rp.dump(sampler, 'test.pickle')
+   tmp = rp.load('test.pickle')
+   print(tmp.size(0), sampler.size(0))
+   print(tmp.cart_lb, sampler.cart_lb)
+   print(tmp.cart_ub, sampler.cart_ub)
+   print(tmp.ori_nside, sampler.ori_nside)
+   print(tmp.ori_resl, sampler.ori_resl)
+   print(tmp.cart_lb, sampler.cart_lb)
+   print(tmp.cart_ub, sampler.cart_ub)
+   print(tmp.cart_bs, sampler.cart_bs)
+   print(tmp.cart_cell_width, sampler.cart_cell_width)
+   print(tmp.cart_ncell, sampler.cart_ncell)
+   print(tmp.ori_ncell, sampler.ori_ncell)
+   print(tmp.ncell, sampler.ncell)
+   print(tmp.dim, sampler.dim)
+
+   assert 0
+
    # sampler = rp.search.asym_get_sample_hierarchy(body2, hscore, 18)
    # print(f'toplevel samples {sampler.size(0):,}')
    result = rp.search.make_asym([body2, body], hscore, sampler, **kw)
@@ -75,7 +93,7 @@ def main():
 
    # body1 = rp.data.get_body('top7b')
 
-   test_asym(hscore, body1, body2)
+   _test_asym(hscore, body1, body2)
    # test_asym_trim(hscore, body1, body2)
 
 if __name__ == '__main__':

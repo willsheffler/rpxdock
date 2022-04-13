@@ -21,10 +21,11 @@ if 'pymol' in sys.modules:
       saveview=True,
       linewidth=3,
       show_aligned_ifaces=True,
-      showcapcopies=True,
+      showcapcopies=False,
       showaxis=True,
       connsphere=2,
       conncyl=1,
+      showcaporigin=True,
       **kw,
    ):
       # _try_to_use_pymol_objs(body, state, name, pos, hideprev, **kw)
@@ -41,6 +42,13 @@ if 'pymol' in sys.modules:
       if asymframes or whole:
          pos = ds.frames[ds.asymunit]
 
+      if showcaporigin:
+         cappos = ds.frames[0]
+         c = cappos[:, 3]
+         ax = cappos[:, 2] * 100
+         wu.viz.show_ndarray_lines(
+            np.array([c - ax, 2 * ax]).T, state=state, name=f'{name}_capaxis')
+
       whitetopn = 0
       if whole:
          whitetopn = 3 if showcapcopies else 1
@@ -56,29 +64,74 @@ if 'pymol' in sys.modules:
                                       delprev=delprev)
       if show_aligned_ifaces:
          # show aligned ifaces
-         ifacepos = ds.iface_positions()
-         xaln = np.eye(4)
-         xaln = wu.hinv(ifacepos[ds.ref_iface_idx, 0]) @ ifacepos[ds.ref_iface_idx, 1]
-         xaln = wu.hinv(xaln)
-         xaln = wu.hrot([0, 0, 1], 90) @ xaln
-         xaln = wu.htrans([-35, 180, 0]) @ xaln
+         # ifacepos = ds.iface_positions()
+         # xorigin = np.eye(4)
+         # xorigin = wu.hinv(ifacepos[ds.ref_iface_idx, 0]) @ ifacepos[ds.ref_iface_idx, 1]
+         # xorigin = wu.hinv(xorigin)
+         # xorigin = wu.hrot([0, 0, 1], 90) @ xorigin
+         # xorigin = wu.htrans([-35, 180, 0]) @ xorigin
 
-         ifpos = xaln @ wu.hinv(ifacepos[:, 0]) @ ifacepos[:, 1]
-         mean = wu.hmean(ifpos)
-         # ang = wu.hangle_of(mean, ifpos)
-         # print(ang, wu.hnorm(ifpos))
-         # print('VIZ', wu.hdiff(ifpos, mean, ds.lever).T)
-         # print('VIZ', wu.hdist(ifpos, mean).T)
+         #
+         #         xaln = wu.hrot([0, 0, 1], 90)
+         #         xaln = wu.htrans([-35, 180, 0]) @ xaln
+         #
+         #         ifpos0, xorigin0 = ds.iface_rel_xforms(original=True)
+         #         print(ifpos0[3])
+         #         ifpos0 = xaln @ ifpos0
+         #         xorigin0 = xaln @ xorigin0
+         #         rp.viz.body_viz.pymol_load_Body(ds.hull, state, name + '_nbrsorigin', pos=xorigin0,
+         #                                         delprev=delprev, resrange=(0, -1), showframes=False,
+         #                                         col=[1, 0, 0], whitetopn=0, suspend_updates=False,
+         #                                         linewidth=linewidth, **kw)
+         #         for inbr, x in enumerate(ifpos0):
+         #            rp.viz.body_viz.pymol_load_Body(
+         #               ds.hull, state, name + 'nbr%i' % inbr, pos=x, resrange=(0, -1), showframes=False,
+         #               col=[1, 0,
+         #                    0], whitetopn=0, scale=1.0, suspend_updates=False, linewidth=linewidth, **kw)
+         #
+         #         #
+         #
+         #         ifpos, xorigin = ds.iface_rel_xforms()
+         #         print(ifpos[3])
+         #         ifpos = xaln @ ifpos
+         #         xorigin = xaln @ xorigin
+         #
+         #         # foo = wu.hinv(xorigin) @ xorigin0
+         #         # xorigin = xorigin @ foo
+         #         # ifpos = ifpos @ foo
+         #
+         #         rp.viz.body_viz.pymol_load_Body(ds.hull, state, name + '_nbrsorigin', pos=xorigin,
+         #                                         delprev=delprev, resrange=(0, -1), showframes=False,
+         #                                         col='rand', whitetopn=1, suspend_updates=False,
+         #                                         linewidth=linewidth, **kw)
+         #         for inbr, x in enumerate(ifpos):
+         #            rp.viz.body_viz.pymol_load_Body(ds.hull, state, name + 'nbr%i' % inbr, pos=x,
+         #                                            resrange=(0, -1), showframes=False, col='rand',
+         #                                            whitetopn=1, scale=1.0, suspend_updates=False,
+         #                                            linewidth=linewidth, **kw)
 
-         rp.viz.body_viz.pymol_load_Body(ds.hull, state, name + '_nbrsorigin', pos=xaln,
-                                         delprev=delprev, resrange=(0, -1), showframes=False,
-                                         col='rand', whitetopn=1, suspend_updates=False,
-                                         linewidth=linewidth, **kw)
-         for inbr, x in enumerate(ifpos):
-            rp.viz.body_viz.pymol_load_Body(ds.hull, state, name + 'nbr%i' % inbr, pos=x,
-                                            resrange=(0, -1), showframes=False, col='rand',
-                                            whitetopn=1, scale=1.0, suspend_updates=False,
-                                            linewidth=linewidth, **kw)
+         xaln = wu.hrot([0, 0, 1], 0)
+         xaln = wu.hrot([1, 0, 0], -50) @ xaln
+         # xaln = wu.htrans([-35, 180, 0]) @ xaln
+         xaln = wu.htrans([0, 60, 180]) @ xaln
+         xaln = wu.hrot([1, 0, 0], -0) @ xaln
+
+         for iorig in (True, False):
+            ifacepos = ds.iface_positions(original=iorig)
+            for inbr, (pos1, pos2) in enumerate(ifacepos):
+               x1 = xaln @ np.eye(4)  #wu.hinv(pos1) @ pos1
+               x2 = xaln @ wu.hinv(pos1) @ pos2
+               wot = 0 if iorig else 1
+               rp.viz.body_viz.pymol_load_Body(ds.hull, state, name + 'nbr%i' % inbr, pos=x1,
+                                               resrange=(0, -1), showframes=False, col=[1, 0, 0],
+                                               whitetopn=wot, scale=1.0, suspend_updates=False,
+                                               linewidth=linewidth, **kw)
+               rp.viz.body_viz.pymol_load_Body(ds.hull, state, name + 'nbr%i' % inbr, pos=x2,
+                                               resrange=(0, -1), showframes=False, col=[1, 0, 0],
+                                               whitetopn=wot, scale=1.0, suspend_updates=False,
+                                               linewidth=linewidth, **kw)
+
+      #
 
       rp.viz.body_viz.pymol_load_Body(ds.hull, state, name, pos=pos, resrange=(0, -1),
                                       showframes=showframes, col='rand', whitetopn=whitetopn,
