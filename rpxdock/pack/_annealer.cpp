@@ -1,7 +1,7 @@
 /*/*cppimport
 <%
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w', '-O1','--verbose']
+cfg['compiler_args'] = ['-std=c++2a', '-w', '-O1','--verbose']
 
 cfg['parallel'] = False
 

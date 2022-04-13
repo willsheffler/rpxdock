@@ -3,7 +3,7 @@
 
 
 cfg['include_dirs'] = ['../..', '../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
+cfg['compiler_args'] = ['-std=c++2a', '-w', '-Ofast']
 cfg['dependencies'] = ['../util/dilated_int.hpp', '../util/numeric.hpp',
 'xform_hierarchy.hpp']
 
@@ -40,7 +40,7 @@ using std::endl;
 
 template <int N, typename F, typename I>
 py::tuple get_trans(CartHier<N, F, I> ch, int resl, Vx<I> idx) {
-  std::vector<size_t> xshape{idx.size(), N};
+  std::vector<size_t> xshape{(size_t)idx.size(), N};
   py::array_t<bool> iout(idx.size());
   py::array_t<F> xout(xshape);
   bool* iptr = (bool*)iout.request().ptr;
@@ -57,7 +57,7 @@ py::tuple get_trans(CartHier<N, F, I> ch, int resl, Vx<I> idx) {
 }
 template <typename Hier, typename F, typename I, typename X = M3<F>>
 py::tuple get_ori(Hier const& h, int resl, Vx<I> idx) {
-  std::vector<size_t> orishape{idx.size(), dim_of<X>(), dim_of<X>()};
+  std::vector<size_t> orishape{(size_t)idx.size(), dim_of<X>(), dim_of<X>()};
   py::array_t<bool> iout(idx.size());
   py::array_t<F> oriout(orishape);
   bool* iptr = (bool*)iout.request().ptr;
@@ -75,7 +75,7 @@ py::tuple get_ori(Hier const& h, int resl, Vx<I> idx) {
 
 template <typename H, typename F, typename I>
 py::tuple get_xforms(H xh, int resl, Vx<I> idx) {
-  std::vector<size_t> xshape{idx.size(), 4, 4};
+  std::vector<size_t> xshape{(size_t)idx.size(), 4, 4};
   py::array_t<bool> iout(idx.size());
   py::array_t<F> xout(xshape);
   bool* iptr = (bool*)iout.request().ptr;
@@ -100,7 +100,7 @@ template <typename H, typename F, typename I>
 py::tuple expand_top_N_impl(H xh, int N, int resl,
                             std::vector<std::pair<double, I>> si) {
   N = std::min<int>(si.size(), N);
-  std::vector<size_t> xshape{N * 64, 4, 4};
+  std::vector<size_t> xshape{N * 64u, 4, 4};
   py::array_t<F> xout(xshape);
   X3<F>* xptr = (X3<F>*)xout.request().ptr;
   py::array_t<I> iout(N * 64);

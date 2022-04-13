@@ -17,47 +17,6 @@ def _test_deathstar_onecomp():
    helper_test_deathstar('tet', 'c3')
    helper_test_deathstar('tet', 'c2')
 
-def sort_ncac_coords(coords):
-   # sort atom pairs within residues
-   for i, j in [
-      (0, 1),  # N Ca
-      (1, 2),  # Ca C
-      (1, 4),  # Ca Cb
-      (2, 3),  # C O
-   ]:
-      dist = np.linalg.norm(coords[None, :, i] - coords[:, None, j], axis=-1)
-      # np.fill_diagonal(dist, 9e9)
-      closeres = np.argmin(dist, axis=0)
-      # print(np.min(dist, axis=0))
-      coords[:, j] = coords[closeres, j]
-      # print(np.linalg.norm(coords[:, i] - coords[:, j], axis=-1))
-      assert np.all(np.linalg.norm(coords[:, i] - coords[:, j], axis=-1) < 2)
-
-   # now permute whole res to N-C is connected
-   dist = np.linalg.norm(coords[None, :, 2] - coords[:, None, 0], axis=-1)
-   # np.fill_diagonal(dist, 9e9)
-   nextres = np.argmin(dist, axis=0)[:-1]
-   newcoords = [coords[0]]
-   prev = 0
-   for i in range(len(nextres)):
-      prev = nextres[prev]
-      newcoords.append(coords[prev])
-   newcoords = np.stack(newcoords)
-   coords = newcoords
-   print(coords.shape)
-   distnc = np.linalg.norm(newcoords[:-1, 2] - newcoords[1:, 0], axis=-1)
-   assert np.all(distnc < 2)
-
-   # wu.showme(coords[:, :2], line_strip=True)
-   dist2 = np.linalg.norm(newcoords[None, :, 2] - newcoords[:, None, 0], axis=-1)
-   np.fill_diagonal(dist2, 9e9)
-   nextres2 = np.argmin(dist2, axis=0)[:-1]
-   assert np.allclose(nextres2, np.arange(1, len(nextres2) + 1))
-
-   wu.showme(coords[:, :4], line_strip=True)
-
-   return newcoords
-
 def helper_get_deathstar(sym, csym):
    forig = '/home/sheffler/debug/deathstar/cage_examples/I3_AK/I3ak_orig.pdb'
    body = rp.get_body_cached(forig)
@@ -73,57 +32,67 @@ def helper_get_deathstar(sym, csym):
    rad = np.linalg.norm(body.bvh_bb.com())
    xaln = wu.align_vector([1, 1, 1], [0, 0, 1])
    xaln[2, 3] = -rad
-   origin = wu.hrot([0, 0, 1], wu.angle([1, 1, 1], [1, 1, 0]))
+
+   # fixes neighbors
+   origin = wu.hrot([0, 0, 1], np.pi * 2 / 3 + wu.hangle([1, 1, 1], [1, 1, 0]))
+   # origin = wu.hrot([0, 0, 1], wu.hangle([1, 1, 1], [1, 1, 0]))
    origin[2, 3] = rad
 
-   # body = body.copy_xformed(xaln)
-   # body = body.copy_with_sym(csym)
    body = rp.get_body_cached(forig, csym, xaln)
 
    # flaser = '/home/sheffler/debug/deathstar/I3ak_orig_expanded.pdb'
    # flaser = forig
-   print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-   print('!!!!!!!!!!!!!! put test pdbs into repo      !!!!!!!!!!!!!!!!!!!!!!!')
-   print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
    # laser = rp.rp.get_body_cached(flaser)
    # laser = laser.copy_xformed(xaln)
    # laser = laser.copy_with_sym(csym)
 
+   # cap_xform = wu.htrans([0, 9, 0]) @ wu.hrot([1, 0, 0], -3, degrees=True)
    # caporigin = wu.hconstruct(
-   # np.array([
-   # (0.998264, -0.055683, 0.019177),
-   # (0.052239, 0.987573, 0.148226),
-   # (-0.027193, -0.146967, 0.988768),
-   # ]), np.array((8.401961, -17.734983, 5.701402)))
-   #
-   # caporigin = wu.hconstruct(
-   # np.array([
-   # (0.998999, 0.039269, -0.021442),
-   # (-0.042080, 0.987471, -0.152085),
-   # (0.015201, 0.152835, 0.988135),
-   # ]), np.array([-7.082527, 19.054423, -2.096715]))
+   # np.array([(0.998264, -0.055683, 0.019177), (0.052239, 0.987573, 0.148226),
+   # (-0.027193, -0.146967, 0.988768)]), np.array((8.401961, -17.734983, 5.701402)))
 
-   fcap = 'test_cen.pdb'
-   alnframe = wu.hconstruct(
-      np.array([(0.310026, 0.868998, 0.385651), (-0.677772, -0.082444, 0.730636),
-                (-0.666716, 0.487899, -0.563422)]), np.array((85.476997, 25.174000, 36.908001)))
-   cenframe = wu.hconstruct(
-      np.array([(0.334448, 0.881423, 0.333524), (-0.751964, 0.036265, 0.658206),
-                (-0.568063, 0.470933, -0.674927)]), np.array((93.037003, 17.063000, 36.169998)))
+   # caporigin = wu.hconstruct(
+   # np.array([(0.998999, 0.039269, -0.021442), (-0.042080, 0.987471, -0.152085),
+   # (0.015201, 0.152835, 0.988135)]), np.array([-7.082527, 19.054423, -2.096715]))
+   # fcap = 'test_cen.pdb'
+   # alnframe = wu.hconstruct(
+   #    np.array([(0.310026, 0.868998, 0.385651), (-0.677772, -0.082444, 0.730636),
+   #              (-0.666716, 0.487899, -0.563422)]), np.array((85.476997, 25.174000, 36.908001)))
+   # cenframe = wu.hconstruct(
+   #    np.array([(0.334448, 0.881423, 0.333524), (-0.751964, 0.036265, 0.658206),
+   #              (-0.568063, 0.470933, -0.674927)]), np.array((93.037003, 17.063000, 36.169998)))
    # relframe = wu.hinv(cenframe) @ alnframe
 
-   laser = rp.get_body_cached(fcap, csym, xaln)
    # laser = laser.copy_xformed(caporigin)
 
    # wu.showme(laser, pos=np.eye(4))
    # wu.showme(laser, pos=relframe)
    # assert 0
+   # fcap = '/home/sheffler/debug/deathstar/cage_examples/I3_AK/I3ak_plusone_center_fix.pdb'
+   # laser = rp.get_body_cached(fcap, csym, xaln)
+   laser = body
+   # ds = rp.DeathStar(body, laser, sym, csym, origin=origin, capcen=cenframe, capaln=alnframe)
+   # ds = rp.DeathStar(body, laser, sym, csym, origin=origin)
 
-   ds = rp.DeathStar(body, laser, sym, csym, origin=origin, capcen=cenframe, capaln=alnframe)
-   if not os.path.exists(
-         '/home/sheffler/debug/deathstar/cage_examples/I3_AK/I3ak_orig.dstariface.npy'):
-      np.save('/home/sheffler/debug/deathstar/cage_examples/I3_AK/I3ak_orig.dstariface.npy',
-              ds.frames)
+   origin = wu.hrot([0, 0, 1], -12, degrees=True) @ origin
+   origin = wu.htrans([0, 0, 30.5]) @ origin
+
+   print('------ origin ------')
+   print(origin)
+   print('--------------------')
+
+   # assert 0
+
+   # origin[:, 3] += [0, 0, 100]
+   # print(origin)
+   # assert 0
+
+   ds = rp.DeathStar(body, laser, sym, csym, origin=origin, capxform=wu.hrot([0, 0, 1], 240))
+
+   # if not os.path.exists(
+   #       '/home/sheffler/debug/deathstar/cage_examples/I3_AK/I3ak_orig.dstariface.npy'):
+   #    np.save('/home/sheffler/debug/deathstar/cage_examples/I3_AK/I3ak_orig.dstariface.npy',
+   #            ds.frames)
    return ds
 
 def helper_test_deathstar(sym, csym, showme=False):
@@ -152,12 +121,17 @@ def helper_test_deathstar(sym, csym, showme=False):
    assert np.max(d) < np.min(d) + 0.1
 
    if showme:
-      wu.showme(ds, whole=False, asymframes=False, delprev=False, linewidth=3)
+      wu.showme(ds, whole=False, asymframes=False, delprev=False)
 
-def _test_deathstar_mc(sym, csym, showme=True):
+def _test_deathstar_mc(
+   sym,
+   csym,
+   showme=False,
+   startover=True,
+):
 
    ds = helper_get_deathstar(sym, csym)
-   if True:
+   if not startover:
       import glob
       g = sorted(glob.glob('dstar_mc/dstar_mc_best_*.pickle'))
       print('-' * 80)
@@ -184,16 +158,18 @@ def _test_deathstar_mc(sym, csym, showme=True):
       '/home/sheffler/debug/deathstar/cage_examples/I3_AK/I3ak_orig.dstariface.npy')
 
    if showme:
-      wu.showme(ds, saveview=False, linewidth=2, copy_xformconnsphere=4.0, conncyl=1.0,
+      wu.showme(ds, saveview=False, copy_xformconnsphere=4.0, conncyl=1.0,
                 show_aligned_ifaces=True)
+      # assert 0
 
    # T = wu.Timer()
    T = ds.timer
    # print(ds.scoredofs(ds.dofs()))
-   Ninner = 100_000
+   Ninner = 10_000
    Nouter = 100_000
+   # Nouter = 1
    # temp = 0.03
-   temp = 0.08
+   temp = 0.3
    cart_sd = 0.01
    rot_sd = cart_sd / 30
    symptrbfrac = 0.0
@@ -202,12 +178,11 @@ def _test_deathstar_mc(sym, csym, showme=True):
    # rot_sd = 0.0009
    # cart_sd, rot_sd = 0.0, 0.0
 
-   T.checkpoint('genrand')
-
    from time import perf_counter
 
-   mc = wu.MonteCarlo(ds.scoredofs, temperature=temp, debug=False)
-   mc.try_this(ds.dofs(), timer=T)
+   mc = wu.MonteCarlo(ds.scoredofs, temperature=temp, debug=False, timer=T)
+   mc.try_this(ds.dofs())
+   ds.timer = wu.Timer()
    for outer in range(Nouter):
       # mc.temperature = temp0 * mc.best**2 / 17
       # cart_sd = cart_sd0 * mc.best**2 / 17
@@ -216,18 +191,18 @@ def _test_deathstar_mc(sym, csym, showme=True):
       # xrandbig[-1] = wu.hrot([0, 0, 1], np.random.normal() * rot_sd * 30)
       # xrandbig[-1, 2, 3] = np.random.normal() * cart_sd * 30
       # ds.set_dofs(xrandbig @ ds.dofs())
-
       xrand = wu.hrand((Ninner, len(ds.dofs())), cart_sd=cart_sd, rot_sd=rot_sd)
       for i in [-1]:
-         xrand[:, i] = wu.hrot([0, 0, 1], np.random.normal(size=Ninner) * rot_sd * 3)
-         xrand[:, i, 2, 3] = np.random.normal(size=Ninner) * cart_sd * 3
+         xrand[:, i] = wu.hrot([0, 0, 1], np.random.normal(size=Ninner) * rot_sd * 2)
+         xrand[:, i, 2, 3] = np.random.normal(size=Ninner) * cart_sd * 2
       tstart = perf_counter()
       dofs = ds.dofs()
+
       for inner in range(1, Ninner):
          # wu.PING()
          i = Ninner * outer + inner
 
-         if i % 300 == 0 and mc.bestconfig is not None:
+         if i % 100 == 0 and mc.bestconfig is not None:
             dofs = mc.bestconfig
          # wu.PING()
          dofs0 = dofs.copy()
@@ -235,39 +210,45 @@ def _test_deathstar_mc(sym, csym, showme=True):
          # also move symmetrically
          dofs = dofs @ wu.hrand(len(dofs), cart_sd=cart_sd * symptrbfrac,
                                 rot_sd=rot_sd * symptrbfrac)
+
+         # print(origdiff, flush=True)
          # assert 0
-         T.checkpoint('purturb')
-         accepted = mc.try_this(dofs, timer=T)
-         # T.checkpoint('mc try')
+
+         # assert 0
+         accepted = mc.try_this(dofs)
          if i % 1000 == 0:
             tmp = ds.scoredofs(dofs, tether=False)
 
             # rimcom = ds.laser.symcom(ds.frames[1])[0, 1, :2, 3]
-            xy = ds.getspread()
-            print(
-               f'A{i:9,} {mc.naccept/i:6.3f} {mc.best:6.3f} | {xy/tmp:6.3f} {tmp:6.3f} {xy:6.3f} {ds.ncontacts():3} {int(inner/(perf_counter()-tstart)):5}',
-               flush=True)
+            spread = ds.getspread()
             # if showme: wu.showme(ds, delprev=True)
 
-         T.checkpoint('trythis')
          if not accepted:
             dofs = dofs0
 
          if mc.new_best_last:
-            tmp = ds.scoredofs(dofs, tether=False)
+            dofdiff = ds.scoredofs(dofs, tether=False)
             # rimcom = ds.laser.symcom(ds.frames[1])[0, 1, :2, 3]
-            xy = ds.getspread()
+            spread = ds.getspread()
+            c2diff = ds.symdiff_c2()
+            symdiff = ds.symdiff()
+            # origdiff = wu.hdiff(ds.origframes[[4]], ds.frames[[4]], ds.lever).squeeze()
             print(
-               f'B{i:9,} {mc.naccept/i:6.3f} {mc.best:6.3f} | {xy/tmp:6.3f} {tmp:6.3f} {xy:6.3f} {ds.ncontacts():3} {int(inner/(perf_counter()-tstart)):5}',
-               flush=True)
-            if showme: wu.showme(ds, delprev=True)
-            rp.dump(ds, f'dstar_mc/dstar_mc_best_{mc.best+1000000:06.3f}.pickle')
+               f'B{i:9,} {mc.naccept/(i+1):6.3f} {mc.best:9.3f} | ',
+               f'{ds.ncontacts():3}{int(inner/(perf_counter()-tstart)):5} |',
+               f'{dofdiff:6.3f} {spread:6.3f} |',
+               f'{symdiff:6.3f} {c2diff:6.3f} |',
+               f'{spread/dofdiff:6.3f} {c2diff/dofdiff:7.3f}',
+               flush=True,
+            )
+            if showme and i % 1 == 0 and i > 500:
+               wu.showme(ds, delprev=True)
+               rp.dump(ds, f'dstar_mc/dstar_mc_best_{mc.best+1000000:06.3f}.pickle')
 
-            ds.dump_pdb('dstar_best_hull')
+            # ds.dump_pdb('dstar_best_hull')
 
-         T.checkpoint('iter')  # T.checkpoint('accept')
       T.report(file='./dsprof.txt')
-   T.checkpoint('done')
+   print(T)
    # print(repr(ds.dofs()))
    # ds.set_dofs(mc.startconfig)
    # wu.showme(ds, saveview=False)

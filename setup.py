@@ -32,6 +32,7 @@ REQUIRED = [
    'cffi',
    'tabulate',
    'deferred-import',
+   'netcdf4',
 ]
 
 # What packages are optional?

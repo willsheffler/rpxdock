@@ -1,3 +1,4 @@
+assert 0
 import sys, os
 
 # import cppimport
@@ -10,14 +11,14 @@ def main():
    # !!!!!!!!!!!! WILL BREAK!
    envinc = '/home/sheffler/.conda/envs/rpxdock/include/python3.7m'
    envinc2 = '/home/sheffler/.conda/envs/rpxdock/lib/python3.7/site-packages/pybind11/include'
-   cmd = f'g++-7 -std=c++17 -w -O1 -S -Irpxdock/extern -I. -I{envinc} -I{envinc2} {file}'
+   cmd = f'g++-7 -std=c++20 -w -O1 -S -Irpxdock/extern -I. -I{envinc} -I{envinc2} {file}'
    print()
    print(cmd)
    print()
    os.system(cmd)
 
    # cfg['include_dirs'] = ['../..', '../extern']
-   # cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
+   # cfg['compiler_args'] = ['-std=c++20', '-w', '-Ofast']
    # cfg['dependencies'] = []
    # cfg['parallel'] = False
 

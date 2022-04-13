@@ -18,6 +18,7 @@ if 'pymol' in sys.modules:
       nbrs=None,
       suspend_updates=True,
       scale=1.0,
+      markfirst=False,
       **kw,
    ):
       # _try_to_use_pymol_objs(body, state, name, pos, hideprev, **kw)
@@ -32,7 +33,8 @@ if 'pymol' in sys.modules:
 
       sym = wu.sym.frames(sym)
 
-      pos = pos.reshape(-1, 4, 4)
+      pos0 = pos
+      pos = pos0.reshape(-1, 4, 4)
       bbsnfold = len(body) // len(body.asym_body)
       breaks = bbsnfold * len(pos) * len(sym)
 
@@ -49,6 +51,9 @@ if 'pymol' in sys.modules:
 
       wu.viz.show_ndarray_line_strip(coord, state=state, name=name + '_bbone', breaks=breaks,
                                      breaks_groups=breaks_groups, **kw)
+      if markfirst:
+         firstpos = coord[0:None:len(body.coord)]
+         wu.viz.showsphere(firstpos, col=[0.5, 0.5, 0.5], rad=3, lbl=name + '_firstpos')
 
       if showframes:
          wu.viz.pymol_visualize_xforms(body.symcom(pos), state, name=name + '_frames', scale=1,

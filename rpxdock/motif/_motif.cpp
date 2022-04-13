@@ -3,7 +3,7 @@
 
 
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
+cfg['compiler_args'] = ['-std=c++2a', '-w', '-Ofast']
 cfg['dependencies'] = []
 
 cfg['parallel'] = False

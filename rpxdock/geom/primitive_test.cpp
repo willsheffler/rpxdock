@@ -3,7 +3,7 @@
 
 
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w']
+cfg['compiler_args'] = ['-std=c++2a', '-w']
 cfg['dependencies'] = ['primitive.hpp','../util/assertions.hpp',
 '../util/global_rng.hpp','../util/types.hpp']
 

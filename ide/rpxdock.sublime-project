@@ -39,7 +39,7 @@
 		},
 		{
 			"name": "test_deathstar",
-			"shell_cmd": "cd $folder; PYTHONPATH=/home/sheffler/src/rpxdock python rpxdock/tests/ds/test_deathstar.py  &> sublime_build.log"
+			"shell_cmd": "cd $folder; PYTHONPATH=/home/sheffler/src/rpxdock python rpxdock/tests/ds/test_deathstar.py &> sublime_build.log"
 		}
 
 		
