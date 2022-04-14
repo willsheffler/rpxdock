@@ -143,60 +143,68 @@ struct BCC {
   //                                          bool exhalf, bool oddlast3,
   //                                          bool sphere) const noexcept {}
 
-  template <typename Iiter, typename = std::enable_if_t<DIM == 6>>
+  template <typename Iiter>
   void neighbors_6_3(I index, Iiter &iter, int rad, bool exhalf, bool oddlast3,
                      bool sphere) const noexcept {
-    bool odd = index & 1;
-    In idx0 = mod((In)((index >> 1) / nside_prefsum_), nside_);
-    In idx;
-    int lb = -rad - (exhalf && !odd);
-    int ub = +rad + (exhalf && odd);
-    int rcut = neighbor_sphere_radius_square_cut(rad, exhalf);
-    // if (sphere) std::cout << "SPHCUT " << rad << " " << rcut <<
-    // std::endl;
-    int eh = odd ? -1 : 0;
-    int oh = odd ? 0 : 1;
-    bool oddex = (odd != exhalf);
-    int l3shift = oddlast3 ? -(!odd) : 0;
-    int last3ub = oddlast3 ? 1 : 0;
 
-    for (int i5 = 0; i5 <= last3ub; ++i5) {
-      I key5 = nside_prefsum_[5] * (idx0[5] + i5 + l3shift);
-      for (int i4 = 0; i4 <= last3ub; ++i4) {
-        I key4 = key5 + nside_prefsum_[4] * (idx0[4] + i4 + l3shift);
-        for (int i3 = 0; i3 <= last3ub; ++i3) {
-          I key3 = key4 + nside_prefsum_[3] * (idx0[3] + i3 + l3shift);
+    if constexpr(DIM!=6){
 
-          for (int i2 = lb; i2 <= ub; ++i2) {
-            I key2 = key3 + nside_prefsum_[2] * (idx0[2] + i2);
-            bool edge2 = oddex ? i2 == lb : i2 == ub;
-            for (int i1 = lb; i1 <= ub; ++i1) {
-              I key1 = key2 + nside_prefsum_[1] * (idx0[1] + i1);
-              bool edge1 = edge2 || ((oddex ? i1 == lb : i1 == ub));
-              for (int i0 = lb; i0 <= ub; ++i0) {
-                I key0 = key1 + nside_prefsum_[0] * (idx0[0] + i0);
-                I key = key0 << 1;
-                bool edge = edge1 || (oddex ? i0 == lb : i0 == ub);
+      throw std::bad_function_call();
 
-                bool inoddlast3 = i5 + l3shift || i4 + l3shift || i3 + l3shift;
-                bool skip0 = inoddlast3 && !odd;
-                bool skip1 = inoddlast3 && odd;
+    } else {
 
-                if (!skip0) {
-                  int erad = sqr(2 * i2 + eh) + sqr(2 * i1 + eh) +
-                             sqr(2 * i0 + eh) /*+ sqr(i5 + l3shift) +
-                             sqr(i4 + l3shift) + sqr(i3 + l3shift)*/
-                      ;
-                  if ((!sphere || erad < rcut) && (!oddex || !edge))
-                    *iter++ = std::make_pair(key | 0, erad);
-                }
-                if (!skip1) {
-                  int orad = sqr(2 * i2 + oh) + sqr(2 * i1 + oh) +
-                             sqr(2 * i0 + oh) /* + sqr(i5 + l3shift) +
-                              sqr(i4 + l3shift) + sqr(i3 + l3shift)*/
-                      ;
-                  if ((!sphere || orad < rcut) && (oddex || !edge))
-                    *iter++ = std::make_pair(key | 1, orad);
+      bool odd = index & 1;
+      In idx0 = mod((In)((index >> 1) / nside_prefsum_), nside_);
+      In idx;
+      int lb = -rad - (exhalf && !odd);
+      int ub = +rad + (exhalf && odd);
+      int rcut = neighbor_sphere_radius_square_cut(rad, exhalf);
+      // if (sphere) std::cout << "SPHCUT " << rad << " " << rcut <<
+      // std::endl;
+      int eh = odd ? -1 : 0;
+      int oh = odd ? 0 : 1;
+      bool oddex = (odd != exhalf);
+      int l3shift = oddlast3 ? -(!odd) : 0;
+      int last3ub = oddlast3 ? 1 : 0;
+
+      for (int i5 = 0; i5 <= last3ub; ++i5) {
+        I key5 = nside_prefsum_[5] * (idx0[5] + i5 + l3shift);
+        for (int i4 = 0; i4 <= last3ub; ++i4) {
+          I key4 = key5 + nside_prefsum_[4] * (idx0[4] + i4 + l3shift);
+          for (int i3 = 0; i3 <= last3ub; ++i3) {
+            I key3 = key4 + nside_prefsum_[3] * (idx0[3] + i3 + l3shift);
+
+            for (int i2 = lb; i2 <= ub; ++i2) {
+              I key2 = key3 + nside_prefsum_[2] * (idx0[2] + i2);
+              bool edge2 = oddex ? i2 == lb : i2 == ub;
+              for (int i1 = lb; i1 <= ub; ++i1) {
+                I key1 = key2 + nside_prefsum_[1] * (idx0[1] + i1);
+                bool edge1 = edge2 || ((oddex ? i1 == lb : i1 == ub));
+                for (int i0 = lb; i0 <= ub; ++i0) {
+                  I key0 = key1 + nside_prefsum_[0] * (idx0[0] + i0);
+                  I key = key0 << 1;
+                  bool edge = edge1 || (oddex ? i0 == lb : i0 == ub);
+
+                  bool inoddlast3 = i5 + l3shift || i4 + l3shift || i3 + l3shift;
+                  bool skip0 = inoddlast3 && !odd;
+                  bool skip1 = inoddlast3 && odd;
+
+                  if (!skip0) {
+                    int erad = sqr(2 * i2 + eh) + sqr(2 * i1 + eh) +
+                               sqr(2 * i0 + eh) /*+ sqr(i5 + l3shift) +
+                               sqr(i4 + l3shift) + sqr(i3 + l3shift)*/
+                        ;
+                    if ((!sphere || erad < rcut) && (!oddex || !edge))
+                      *iter++ = std::make_pair(key | 0, erad);
+                  }
+                  if (!skip1) {
+                    int orad = sqr(2 * i2 + oh) + sqr(2 * i1 + oh) +
+                               sqr(2 * i0 + oh) /* + sqr(i5 + l3shift) +
+                                sqr(i4 + l3shift) + sqr(i3 + l3shift)*/
+                        ;
+                    if ((!sphere || orad < rcut) && (oddex || !edge))
+                      *iter++ = std::make_pair(key | 1, orad);
+                  }
                 }
               }
             }
@@ -213,39 +221,48 @@ struct BCC {
   // void neighbors_3(I index, Iiter &iter, int const rad, bool const exhalf,
   //                  bool const sphere) const noexcept {}
 
-  template <typename Iiter, typename = std::enable_if_t<DIM == 3>>
+  template <typename Iiter>
   void neighbors_3(I index, Iiter &iter, int const rad, bool const exhalf,
                    bool const sphere) const noexcept {
-    bool odd = index & 1;
-    In idx0 = mod((In)((index >> 1) / nside_prefsum_), nside_);
-    In idx;
-    int lb = -rad - (exhalf && !odd);
-    int ub = +rad + (exhalf && odd);
-    int rcut = neighbor_sphere_radius_square_cut(rad, exhalf);
-    // if (sphere) std::cout << "SPHCUT " << rad << " " << rcut <<
-    // std::endl;
-    int eh = odd ? -1 : 0;
-    int oh = odd ? 0 : 1;
-    bool oddex = (odd != exhalf);
-    for (int i2 = lb; i2 <= ub; ++i2) {
-      I key2 = nside_prefsum_[2] * (idx0[2] + i2);
-      bool edge2 = oddex ? i2 == lb : i2 == ub;
-      for (int i1 = lb; i1 <= ub; ++i1) {
-        I key1 = key2 + nside_prefsum_[1] * (idx0[1] + i1);
-        bool edge1 = edge2 || ((oddex ? i1 == lb : i1 == ub));
-        for (int i0 = lb; i0 <= ub; ++i0) {
-          I key0 = key1 + nside_prefsum_[0] * (idx0[0] + i0);
-          I key = key0 << 1;
-          bool edge = edge1 || (oddex ? i0 == lb : i0 == ub);
-          int erad = sqr(2 * i2 + eh) + sqr(2 * i1 + eh) + sqr(2 * i0 + eh);
-          int orad = sqr(2 * i2 + oh) + sqr(2 * i1 + oh) + sqr(2 * i0 + oh);
-          if ((!sphere || erad < rcut) && (!oddex || !edge))
-            *iter++ = std::make_pair(key | 0, erad);
-          if ((!sphere || orad < rcut) && (oddex || !edge))
-            *iter++ = std::make_pair(key | 1, orad);
+
+    if constexpr (DIM!=3){
+
+      throw std::bad_function_call();
+
+    } else {
+
+      bool odd = index & 1;
+      In idx0 = mod((In)((index >> 1) / nside_prefsum_), nside_);
+      In idx;
+      int lb = -rad - (exhalf && !odd);
+      int ub = +rad + (exhalf && odd);
+      int rcut = neighbor_sphere_radius_square_cut(rad, exhalf);
+      // if (sphere) std::cout << "SPHCUT " << rad << " " << rcut <<
+      // std::endl;
+      int eh = odd ? -1 : 0;
+      int oh = odd ? 0 : 1;
+      bool oddex = (odd != exhalf);
+      for (int i2 = lb; i2 <= ub; ++i2) {
+        I key2 = nside_prefsum_[2] * (idx0[2] + i2);
+        bool edge2 = oddex ? i2 == lb : i2 == ub;
+        for (int i1 = lb; i1 <= ub; ++i1) {
+          I key1 = key2 + nside_prefsum_[1] * (idx0[1] + i1);
+          bool edge1 = edge2 || ((oddex ? i1 == lb : i1 == ub));
+          for (int i0 = lb; i0 <= ub; ++i0) {
+            I key0 = key1 + nside_prefsum_[0] * (idx0[0] + i0);
+            I key = key0 << 1;
+            bool edge = edge1 || (oddex ? i0 == lb : i0 == ub);
+            int erad = sqr(2 * i2 + eh) + sqr(2 * i1 + eh) + sqr(2 * i0 + eh);
+            int orad = sqr(2 * i2 + oh) + sqr(2 * i1 + oh) + sqr(2 * i0 + oh);
+            if ((!sphere || erad < rcut) && (!oddex || !edge))
+              *iter++ = std::make_pair(key | 0, erad);
+            if ((!sphere || orad < rcut) && (oddex || !edge))
+              *iter++ = std::make_pair(key | 1, orad);
+          }
         }
       }
     }
+    
   }
 
   template <typename Iiter>
