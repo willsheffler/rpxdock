@@ -180,24 +180,6 @@ template <typename F, typename I>
 RotHier<F, I> RotHier_nside(F lb, F ub, I nside, V3<F> axis) {
   return RotHier<F, I>(lb, ub, nside, axis);
 }
-
-template <typename F, typename I>
-py::tuple RH_get_state(RotHier<F, I> const& h) {
-  return py::make_tuple(h.rot_lb_, h.rot_ub_, h.rot_cell_width_, h.rot_ncell_,
-                        h.axis_);
-}
-
-template <typename F, typename I>
-auto RH_set_state(py::tuple state) {
-  auto h = std::make_unique<RotHier<F, I>>(0.0, 0.0, (I)0, V3<F>(0,0,0));  // dummy
-  h->rot_lb_ = py::cast<F>(state[0]);
-  h->rot_ub_ = py::cast<F>(state[1]);
-  h->rot_cell_width_ = py::cast<F>(state[2]);
-  h->rot_ncell_ = py::cast<I>(state[3]);
-  h->axis_ = py::cast<V3<F>>(state[4]);
-  return h;
-}
-
 template <typename F, typename I>
 void bind_RotHier(auto m, std::string kind) {
   using THIS = RotHier<F, I>;
@@ -214,9 +196,6 @@ void bind_RotHier(auto m, std::string kind) {
       .def_property_readonly("dim", &THIS::dim)
       .def("get_ori", &get_ori<THIS, F, I, M3<F>>, "resl"_a, "idx"_a)
       .def("get_xforms", &get_ori<THIS, F, I, X3<F>>, "resl"_a, "idx"_a)
-      .def(py::pickle([](const THIS& h) { return RH_get_state<F, I>(h); },
-      	[](py::tuple t) { return RH_set_state<F, I>(t); }))
-
       /**/;
   m.def(("create_RotHier_nside_" + kind).c_str(), &RotHier_nside<F, I>, "lb"_a,
         "ub"_a, "ncell"_a, "axis"_a = V3<F>(0, 0, 1));
@@ -240,6 +219,47 @@ void bind_OriHier(auto m, std::string kind) {
       /**/;
   m.def(("create_OriHier_nside_" + kind).c_str(), &OriHier_nside<F, I>,
         "nside"_a);
+}
+
+template <typename F, typename I>
+py::tuple XH_get_state(XformHier<F, I> const& h) {
+  return py::make_tuple(h.onside_, h.recip_nside_, h.ori_ncell_, h.ori_resl_,
+                        h.cart_lb_, h.cart_ub_, h.cart_bs_, h.cart_cell_width_,
+                        h.cart_bs_pref_prod_, h.cart_ncell_, h.ncell_);
+}
+template <typename F, typename I>
+auto XH_set_state(py::tuple state) {
+  using F3 = Eigen::Matrix<F, 3, 1>;
+  using I3 = Eigen::Matrix<I, 3, 1>;
+
+  F3 cartlb(0, 0, 0);
+  F3 cartub(0, 0, 0);
+  I3 cartbs(0, 0, 0);
+  auto h =
+      std::make_unique<XformHier<F, I>>(cartlb, cartub, cartbs, (F)0);  // dummy
+  //
+  h->onside_ = py::cast<I>(state[0]);
+  h->recip_nside_ = py::cast<F>(state[1]);
+  h->ori_ncell_ = py::cast<I>(state[2]);
+  h->ori_resl_ = py::cast<F>(state[3]);
+  h->cart_lb_ = py::cast<F3>(state[4]);
+  h->cart_ub_ = py::cast<F3>(state[5]);
+  h->cart_bs_ = py::cast<I3>(state[6]);
+  h->cart_cell_width_ = py::cast<F3>(state[7]);
+  h->cart_bs_pref_prod_ = py::cast<I3>(state[8]);
+  h->cart_ncell_ = py::cast<I>(state[9]);
+  h->ncell_ = py::cast<I>(state[10]);
+  //
+  // I onside_;
+  // F recip_nside_;
+  // I ori_ncell_;
+  // F ori_resl_;
+  // F3 cart_lb_, cart_ub_;
+  // I3 cart_bs_;
+  // F3 cart_cell_width_;
+  // I3 cart_bs_pref_prod_;
+  // I cart_ncell_;
+  return h;
 }
 
 template <typename F, typename I>
@@ -274,7 +294,8 @@ void bind_XformHier(auto m, std::string kind) {
            "score_idx"_a, "null_val"_a = 0)
       .def("expand_top_N", expand_top_N_separate<THIS, F, I>, "nkeep"_a,
            "resl"_a, "score"_a, "index"_a, "null_val"_a = 0)
-
+      .def(py::pickle([](const THIS& h) { return XH_get_state<F, I>(h); },
+                      [](py::tuple t) { return XH_set_state<F, I>(t); }))
       /**/;
   m.def(("create_XformHier_nside_" + kind).c_str(), &XformHier_nside<F, I>,
         "lb"_a, "ub"_a, "bs"_a, "nside"_a);

@@ -22,6 +22,8 @@ def test_asym(hscore, body, body2):
    cartbs = np.array([4, 1, 4], dtype="i")
    sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, 30)
 
+   rp.dump(sampler, 'test.pickle')
+
    # sampler = rp.search.asym_get_sample_hierarchy(body2, hscore, 18)
    # print(f'toplevel samples {sampler.size(0):,}')
    result = rp.search.make_asym([body2, body], hscore, sampler, **kw)
@@ -30,6 +32,7 @@ def test_asym(hscore, body, body2):
 
    # rp.dump(result, 'rpxdock/data/testdata/test_asym.pickle')
    ref = rp.data.get_test_data('test_asym')
+   print(result, ref)
    rp.search.assert_results_close(result, ref)
 
 @pytest.mark.skip

@@ -261,7 +261,7 @@ def default_cli_parser(parent=None, **kw):
    # tcdock
    addarg(
       "--architecture", type=str, default=None,
-      help='architecture to be produced by docking. Can be cage I32, O43, T32 where larger axis of symmetry is listed first, Cx for cyclic, Dx_y for dihedral, where x is the dihedral symmetry and y is the symmetry of the scaffold, y=2 or y=x. For plug protocol, can be PLUG_Cx. No default value'
+      help='architecture to be produced by docking. Can be cage I32, O43, T32 where larger axis of symmetry is listed first, Cx for cyclic, Dx_y for dihedral, where x is the dihedral symmetry and y is the symmetry of the scaffold, y=2 or y=x. For sliding two scaffolds into contact use AXEL_x, where x is the symmetry of the scaffold. If wanting to dock assymetrically (two scaffolds of different symmetr) use x=1. For plug protocol, can be PLUG_Cx. No default value'
    )
    addarg("--trimmable_components", default="ABCDEFGHIJKLMNOPQRSTUVWXYZ",
           help='specify which components "ABC" etc are trimmable. defaults to all components')
@@ -306,12 +306,17 @@ def default_cli_parser(parent=None, **kw):
       "--function", type=str, default='stnd',
       help='score function to use for scoring. Default is stnd scorefunction. Example: stnd, sasa_priority, mean, exp, median. Full list is defined in score/scorefunctions.py'
    )
-   addarg("--filter_config", 
-      help='NOTE: filters only work for cyclic, onecomp, and multicomp docking (ie. not for plug or asymetric docking). Path to a yaml file containing the configurations for filters.')
+   addarg(
+      "--filter_config",
+      help='NOTE: filters only work for cyclic, onecomp, and multicomp docking (ie. not for plug or asymetric docking). Path to a yaml file containing the configurations for filters.'
+   )
    addarg("--helix_trim_max", default=0,
           help='Allow trimming of N helices from N or C term as specified by --trim_direction')
 
    addarg("--helix_trim_nres_ignore_end", default=1, help='Trim N extra residues off helix end')
+
+   addarg("--output_closest_subunits", action='store_true', default=False,
+          help='for two component stuff, output subunit 2 most contacting subunit 1')
 
    parser.has_rpxdock_args = True
    return parser

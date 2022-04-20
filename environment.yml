@@ -13,6 +13,7 @@ dependencies:
  - cffi
  - tqdm
  - yapf
+ - pyyaml
  - tabulate
  - pytest
  - pytest-repeat
