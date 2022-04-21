@@ -26,6 +26,7 @@ class Body:
 
       import rpxdock.rosetta.triggers_init as ros
       # pose stuff
+      pose = source
       if isinstance(source, str):
          # import rpxdock.rosetta.triggers_init as ros
          self.pdbfile = source

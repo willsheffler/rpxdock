@@ -163,7 +163,7 @@ def dock_onecomp(hscore, **kw):
       og = True if sum(kw.term_access1) is 0 else False
       bodies = [
          rp.Body(pose1, allowed_res=allowedres, modified_term=modterm, original=og, og_source=inp, **kw)
-         for pose1, allowedres, modterm, inp in zip(kw.poses, kw.allowed_residues1, kw.term_access, kw.inputs)
+         for pose1, allowedres, modterm, inp in zip(kw.poses, kw.allowed_residues1, kw.term_access, kw.inputs1)
       ]
    else:
       bodies = [

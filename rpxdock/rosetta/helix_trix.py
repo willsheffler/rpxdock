@@ -148,3 +148,4 @@ def init_termini(**kw):
          elif len(kw.poses) > 0: kw.poses.append([kw.inputs[i][0]])
          dir_possible, error_msg = rpxdock.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, i+1, **kw)
          if not dir_possible: raise ValueError(error_msg)
+      elif len(kw.poses) > 0: kw.poses.append([kw.inputs[i][0]])
