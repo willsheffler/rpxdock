@@ -8,8 +8,8 @@ try:
    import sys
    spread_weight = float(sys.argv[1])
 except:
-   spread_weight = 1.0
-wu.PING(f'spread weight {spread_weight}')
+   spread_weight = 3.0
+# wu.PING(f'spread weight {spread_weight}')
 
 class DSError(Exception):
    pass
@@ -238,7 +238,7 @@ class DeathStar(object):
       return sum([
          -spread_weight * spread,
          # -spread_weight * (spread + symdiff) / 2,
-         -1 * c2diff,
+         # -1 * c2diff,
          # 10 * axscore,
          diffscore,
          # ctactsc,
@@ -449,8 +449,8 @@ def cage_to_cyclic(
    cycsym,
    origin=I,
 ):
-   kw = wu.Bunch(headless=True)
-   kw.headless = False
+   # kw = wu.Bunch(headless=True)
+   # kw.headless = False
 
    sympos1 = wu.sym.frames(cagesym, axis=[0, 0, 1], asym_of=cycsym, bbsym=cycsym)
    sympos2 = wu.sym.frames(cagesym, axis=[0, 0, 1], asym_of=cycsym, bbsym=cycsym, asym_index=1)

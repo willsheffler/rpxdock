@@ -131,6 +131,7 @@ class Body:
          x = wu.homog.align_vector(symaxis, newaxis)
          x = wu.hrot(newaxis, phase) @ x
       b = copy.deepcopy(self.asym_body)
+      assert isinstance(sym, str)
       if sym == 'c1': return b
       b.pos = np.eye(4, dtype='f4')
       b.asym_body = self.asym_body

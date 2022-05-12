@@ -74,8 +74,12 @@ def helper_get_deathstar(sym, csym):
    # ds = rp.DeathStar(body, laser, sym, csym, origin=origin, capcen=cenframe, capaln=alnframe)
    # ds = rp.DeathStar(body, laser, sym, csym, origin=origin)
 
-   origin = wu.hrot([0, 0, 1], -12, degrees=True) @ origin
-   origin = wu.htrans([0, 0, 30.5]) @ origin
+   #
+
+   # origin = wu.hrot([0, 0, 1], -12, degrees=True) @ origin
+   # origin = wu.htrans([0, 0, 30.5]) @ origin
+
+   #
 
    print('------ origin ------')
    print(origin)
@@ -126,9 +130,22 @@ def helper_test_deathstar(sym, csym, showme=False):
 def _test_deathstar_mc(
    sym,
    csym,
-   showme=False,
+   showme=True,
    startover=True,
 ):
+
+   showopts = wu.Bunch(
+      saveview=False,
+      connsphere=8.0,
+      conncyl=4.5,
+      show_aligned_ifaces=False,
+      linewidth=5,
+      showaxis=True,
+      whole=True,
+      showcaporigin=False,
+      showcap=False,
+      showopening=True,
+   )
 
    ds = helper_get_deathstar(sym, csym)
    if not startover:
@@ -158,19 +175,18 @@ def _test_deathstar_mc(
       '/home/sheffler/debug/deathstar/cage_examples/I3_AK/I3ak_orig.dstariface.npy')
 
    if showme:
-      wu.showme(ds, saveview=False, copy_xformconnsphere=4.0, conncyl=1.0,
-                show_aligned_ifaces=True)
-      # assert 0
+      wu.showme(ds, **showopts)
+      assert 0
 
    # T = wu.Timer()
    T = ds.timer
    # print(ds.scoredofs(ds.dofs()))
-   Ninner = 10_000
-   Nouter = 100_000
+   Ninner = 1_000
+   Nouter = 1
    # Nouter = 1
    # temp = 0.03
    temp = 0.3
-   cart_sd = 0.01
+   cart_sd = 0.02
    rot_sd = cart_sd / 30
    symptrbfrac = 0.0
    # temp = 0.002
@@ -183,6 +199,18 @@ def _test_deathstar_mc(
    mc = wu.MonteCarlo(ds.scoredofs, temperature=temp, debug=False, timer=T)
    mc.try_this(ds.dofs())
    ds.timer = wu.Timer()
+   nframes = 0
+
+   if showme:
+      tag = 'start'
+      wu.showme(ds, png=f'dstarmc_{rp.ds.spread_weight}_{tag}.png', ray=True, **showopts)
+      # wu.showme(
+      # ds, png=f'dstarmc_{rp.ds.spread_weight}_{tag}_iface.png', ray=True,
+      # **showopts.sub(show_aligned_ifaces=True, showcap=False, showopening=False,
+      # showbody=False, showaxis=0, connsphere=0, conncyl=0))
+
+   rp.dump(ds, f'dstarmc_{rp.ds.spread_weight}_{tag}.pickle')
+
    for outer in range(Nouter):
       # mc.temperature = temp0 * mc.best**2 / 17
       # cart_sd = cart_sd0 * mc.best**2 / 17
@@ -241,13 +269,29 @@ def _test_deathstar_mc(
                f'{spread/dofdiff:6.3f} {c2diff/dofdiff:7.3f}',
                flush=True,
             )
-            if showme and i % 1 == 0 and i > 500:
-               wu.showme(ds, delprev=True)
+            if showme and i % 1 == 0 and i > 5000:
+               wu.showme(ds, delprev=True, png=f'dstarmov/frame_{nframes:04}.png', **showopts)
+               # wu.showme(
+               # ds, delprev=True, png=f'dstarmov/iface_{nframes:04}.png',
+               # **showopts.sub(show_aligned_ifaces=True, showcap=False, showopening=False,
+               # showbody=False, showaxis=0, connsphere=0, conncyl=0))
+
+               nframes += 1
                rp.dump(ds, f'dstar_mc/dstar_mc_best_{mc.best+1000000:06.3f}.pickle')
 
             # ds.dump_pdb('dstar_best_hull')
 
       T.report(file='./dsprof.txt')
+
+   if showme:
+      tag = 'end'
+      wu.showme(ds, png=f'dstarmc_{rp.ds.spread_weight}_{tag}.png', ray=True, **showopts)
+      # wu.showme(
+      # ds, png=f'dstarmc_{rp.ds.spread_weight}_{tag}_iface.png', ray=True,
+      # **showopts.sub(show_aligned_ifaces=True, showcap=False, showopening=False,
+      # showbody=False, showaxis=0, connsphere=0, conncyl=0))
+   rp.dump(ds, f'dstarmc_{rp.ds.spread_weight}_{tag}.pickle')
+
    print(T)
    # print(repr(ds.dofs()))
    # ds.set_dofs(mc.startconfig)
