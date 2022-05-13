@@ -332,8 +332,6 @@ def process_cli_args(options, **kw):
 
    options.trimmable_components = options.trimmable_components.upper()
 
-   log.info(str(options))
-
    return options
 
 def _process_inputs(opt, read_allowed_res_files=True, **kw):

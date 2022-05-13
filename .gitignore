@@ -96,3 +96,5 @@ doc/cppapi
 .idea
 
 rpxdock_Result.pickle
+
+.rpxcache
