@@ -199,7 +199,7 @@ class Result:
          elif len(bod) > 2:
             raise NotImplementedError
       elif output_asym_only:
-          symframes = [np.eye(4)]
+         symframes = [np.eye(4)]
 
       outfnames.append(fname)
       rp.io.dump_pdb_from_bodies(

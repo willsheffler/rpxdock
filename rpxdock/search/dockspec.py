@@ -331,19 +331,18 @@ class DockSpec3CompLayer(DockSpec):
       self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], ang), hm.hrot([0, 0, 1], ang)]
 
 class DockSpecAxel:
-   '''Specs for sliding two components into contact along the zz axis. Can use same symmetry blocks (asu subunits) or different symmetry (full holigomers)'''   
-
+   '''Specs for sliding two components into contact along the zz axis. Can use same symmetry blocks (asu subunits) or different symmetry (full holigomers)'''
    def __init__(self, arch):
       assert len(arch) >= 6
       assert int(arch.split('_')[1]) > 0
       self.arch = arch
       if int(arch.split('_')[1]) == 1:
-         self.nfold = [int(arch.split('_')[2]),int(arch.split('_')[3])]
+         self.nfold = [int(arch.split('_')[2]), int(arch.split('_')[3])]
       else:
-         self.nfold = [int(arch.split('_')[1])]*2
-      self.axis=np.array([[0,0,1,0],[0,0,1,0]])
-      self.flip_axis=np.array([[0,1,0,0],[0,1,0,0]])
-      self.num_components=2
+         self.nfold = [int(arch.split('_')[1])] * 2
+      self.axis = np.array([[0, 0, 1, 0], [0, 0, 1, 0]])
+      self.flip_axis = np.array([[0, 1, 0, 0], [0, 1, 0, 0]])
+      self.num_components = 2
       dummy = np.eye(4)
-      dummy[:3,3] = [10000,0,0]
-      self.to_neighbor_olig=[dummy,dummy]
+      dummy[:3, 3] = [10000, 0, 0]
+      self.to_neighbor_olig = [dummy, dummy]
