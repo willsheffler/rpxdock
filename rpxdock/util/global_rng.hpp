@@ -7,7 +7,8 @@ namespace rpxdock {
 namespace util {
 
 static std::mt19937& global_rng() {
-  static std::mt19937 rng((unsigned int)time(0) + 750374);
+  std::random_device rd;
+  static std::mt19937 rng(rd());
   return rng;
 }
 }  // namespace util

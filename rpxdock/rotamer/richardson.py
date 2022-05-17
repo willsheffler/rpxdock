@@ -3,8 +3,6 @@
 # from rif.chem.biochem import aa_name3s
 import os
 import numpy as np
-import pandas as pd
-import xarray
 
 try:
    from functools import lru_cache
@@ -14,6 +12,7 @@ except ImportError:
 boundsfields = "lb1 ub1 lb2 ub2 lb3 ub3 lb4 ub4".split()
 
 def print_full(x):
+   import pandas as pd
    pd.set_option("display.max_rows", len(x))
    print(x)
    pd.reset_option("display.max_rows")
@@ -23,6 +22,7 @@ def localpath(pth):
    return os.path.join(os.path.dirname(__file__), pth)
 
 def get_rotamer_space_raw():
+   import pandas as pd
    r = pd.read_csv(localpath("richardson.csv"), header=0, nrows=999, index_col=(0, 1))
    r.reset_index(inplace=True)
    r.sort_values(["aa", "lbl"], inplace=True)
@@ -89,6 +89,7 @@ def get_rotamer_space(concat=False, disulf=False):
       r = r.drop("B")
    if concat:
       r = concat_rotamer_space(r)
+   import xarray
    r = xarray.Dataset(r)
    r["rotid"] = "dim_0", np.arange(len(r.aa))
    return r
@@ -144,6 +145,7 @@ def concat_rotamer_space(rotspace):
          # print(chiprefix)
          # print(fixchiprefix.loc[:, boundsfields])
          newdat.append(merge_on_chi(fixchiprefix, chi=nchi))
+   import pandas as pd
    r = pd.concat(newdat)
    r = r.reset_index()
    r = r.sort_values(["aa", "lbl"])

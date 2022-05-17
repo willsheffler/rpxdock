@@ -2,6 +2,7 @@
 
 import logging, itertools, concurrent, tqdm, rpxdock as rp
 import numpy as np
+from willutil import Bunch
 
 def get_rpxdock_args():
    kw = rp.options.get_cli_args()
@@ -40,7 +41,7 @@ def gcd(a, b):
 ## All dock_cyclic, dock_onecomp, and dock_multicomp do similar things
 
 def dock_asym(hscore, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    if kw.cart_bounds[0]:
       crtbnd = kw.cart_bounds[0]
       extent = crtbnd[1]
@@ -82,13 +83,13 @@ def dock_asym(hscore, **kw):
    return result
 
 def dock_cyclic(hscore, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    bodies = [
       rp.Body(inp, allowed_res=allowedres, **kw)
       for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)
    ]
-   exe = concurrent.futures.ProcessPoolExecutor
-   # exe = rp.util.InProcessExecutor
+   # exe = concurrent.futures.ProcessPoolExecutor
+   exe = rp.util.InProcessExecutor
    with exe(kw.ncpu) as pool:
       futures = list()
       # where the magic happens
@@ -112,7 +113,7 @@ def dock_cyclic(hscore, **kw):
    return result
 
 def dock_onecomp(hscore, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    spec = get_spec(kw.architecture)
    crtbnd = kw.cart_bounds[0]
 
@@ -129,6 +130,7 @@ def dock_onecomp(hscore, **kw):
       if spec.type == 'mirrorlayer':
          sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **kw)
       else:
+         print('!!!!!!!!!! dock.py:79 !!!!!!!!!!!!!!', crtbnd)
          sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=crtbnd[0], ub=crtbnd[1], resl=5,
                                                  angresl=5, axis=spec.axis, flipax=spec.flip_axis,
                                                  **kw)
@@ -165,9 +167,22 @@ def dock_onecomp(hscore, **kw):
    # result = rp.search.make_onecomp(bodyC3, spec, hscore, rp.hier_search, sampler, **kw)
 
 def dock_multicomp(hscore, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    spec = get_spec(kw.architecture)
-   sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
+
+   # sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
+   sampler1 = rp.sampling.RotCart1Hier_f4(
+      cart_bounds[i, 0],
+      cart_bounds[i, 1],
+      cart_nstep[i],
+      0,
+      ang[i],
+      ang_nstep[i],
+      spec.axis[i][:3],
+   )
+   sampler2 = rp.ZeroDHier([np.eye(4)])
+   sampler = rp.sampling.CompoundHier(sampler1, sampler2)
+
    logging.info(f'num base samples {sampler.size(0):,}')
 
    bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
@@ -198,7 +213,7 @@ def dock_multicomp(hscore, **kw):
    return result
 
 def dock_plug(hscore, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    kw.plug_fixed_olig = True
 
    arch = kw.architecture
@@ -257,7 +272,7 @@ def dock_plug(hscore, **kw):
    return result
 
 def dock_axel(hscore, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    spec = get_spec(kw.architecture)
    flip = list(spec.flip_axis)
 
@@ -272,9 +287,9 @@ def dock_axel(hscore, **kw):
             spec.nfold[0] * spec.nfold[1] / gcd(spec.nfold[0], spec.nfold[1]), lb=0, ub=100,
             resl=5, angresl=5, axis=[0, 0, 1], flipax=flip[0])
       sampler2 = rp.sampling.ZeroDHier([np.eye(4), rp.homog.hrot([1, 0, 0], 180)])
-      if len(kw.flip_components) is 1 and not kw.flip_components[0]:
+      if len(kw.flip_components) == 1 and not kw.flip_components[0]:
          sampler2 = rp.sampling.ZeroDHier(np.eye(4))
-      if len(kw.flip_components) is not 1 and not kw.flip_components[1]:
+      if len(kw.flip_components) != 1 and not kw.flip_components[1]:
          sampler2 = rp.sampling.ZeroDHier(np.eye(4))
       sampler = rp.sampling.CompoundHier(sampler2, sampler1)
       logging.info(f'num base samples {sampler.size(0):,}')

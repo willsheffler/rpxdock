@@ -1,6 +1,7 @@
 from yaml import load
 from yaml import FullLoader as Loader
-from rpxdock import filter as rpx_filter, Bunch
+from rpxdock import filter as rpx_filter
+from willutil import Bunch
 import rpxdock as rp
 import logging
 
@@ -13,7 +14,7 @@ def filter(xforms, body, **kw):
    #    logging.warning(f"No transforms provided for filtering")
    #    return None
    #else:
-   kw = Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    #try:
    with open(kw.filter_config) as ff:  #"/home/quintond/git/rpxdock/filters.yml") as ff:
       all_filter_data = load(ff, Loader=Loader)

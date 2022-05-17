@@ -1,7 +1,8 @@
 import sys, rpxdock as rp, numpy as np, argparse
+from willutil import Bunch
 
 def dock_helix(hscore, body, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
 
    print(f'{"helix_beta.py:dock_helix starting":=^80}')
 
@@ -10,7 +11,7 @@ def dock_helix(hscore, body, **kw):
    # kw.executor = ThreadPoolExecutor(8)
    kw.executor = None
 
-   assert len(kw.cart_bounds) is 3, 'improper cart_bounds'
+   assert len(kw.cart_bounds) == 3, 'improper cart_bounds'
    cartlb = np.array([kw.cart_bounds[0][0], kw.cart_bounds[1][0], kw.cart_bounds[2][0]])
    cartub = np.array([kw.cart_bounds[0][1], kw.cart_bounds[1][1], kw.cart_bounds[2][1]])
    cartbs = np.ceil((cartub - cartlb) / kw.cart_resl).astype('i')
@@ -49,11 +50,26 @@ def get_helix_args():
       "--helix_max_primary_angle", type=float, default=None,
       help='maximum rotation around axis per step. default based on min_isecond is usually the right choice'
    )
-   parser.add_argument("--cart_cell_width", type=float, default=10,
-                       help='cartesian resolution of the initial search stage, default 10')
-   parser.add_argument("--angle_cell_width", type=float, default=30,
-                       help='angular resolution of the initial search stage, default 30')
+   # parser.add_argument("--cart_cell_width", type=float, default=10,
+   #                     help='cartesian resolution of the initial search stage, default 10')
+   # parser.add_argument("--angle_cell_width", type=float, default=30,
+   #                     help='angular resolution of the initial search stage, default 30')
+
+   parser.add_argument("--tether_xform", type=str, nargs='*', default=[],
+                       help='two structs with configuration to sample around')
+   parser.add_argument("--tether_dist", type=float, default=3,
+                       help='max dist from supplied dimer configuration')
+   parser.add_argument("--tether_ang", type=float, default=10,
+                       help='max angle from supplied dimer configuration')
+
+   parser.add_argument("--helix_min_radius", type=float, default=0, help='min helix radius')
+   parser.add_argument("--helix_max_radius", type=float, default=9e9, help='max helix radius')
+
+   parser.add_argument("--tmpa", type=int)
+   parser.add_argument("--tmpb", type=int)
+
    kw = rp.options.get_cli_args(parent=parser, dont_set_default_cart_bounds=True)
+
    if not kw.cart_bounds:
       kw.cart_bounds = np.array([(0, 100), (-100, 100), (-100, 100)])
    else:

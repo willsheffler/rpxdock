@@ -1,5 +1,6 @@
-import logging, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
+import logging, numpy as np, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search
+from willutil import Timer, Bunch
 
 log = logging.getLogger(__name__)
 
@@ -24,10 +25,10 @@ def helix_get_sample_hierarchy(body, hscore, extent=100):
    return xh
 
 def make_helix(body, hscore, sampler, search=hier_search, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else sym
-   t = rp.Timer().start()
+   t = Timer().start()
    assert sampler is not None, 'sampler is required'
 
    evaluator = HelixEvaluator(body, hscore, **kw)
@@ -67,20 +68,138 @@ def make_helix(body, hscore, sampler, search=hier_search, **kw):
       sym=(["model"], np.array(['H' + str(i) for i in extra.helix_cyclic])),
    )
 
+# final0 = x0 @ icoor
+# final = x @ icoor
+# goal: xhat @ final0 = final
+#       xhat @ x0 @ icoor = x @ icoor
+#       xhat @ x0 = x
+#       xhat = x @ inv(x0)
+
+def get_xtrema_coords(bodyA, bodyB):
+   print(bodyA.coord.shape)
+   c = bodyA.coord.reshape(-1, 4)
+   d = bodyB.coord.reshape(-1, 4)
+   print(c.shape)
+   print(np.min(c[..., 0]))
+   print(np.max(c[..., 0]))
+   a = np.stack([
+      c[np.argmin(c[..., 0])],
+      c[np.argmax(c[..., 0])],
+      c[np.argmin(c[..., 1])],
+      c[np.argmax(c[..., 1])],
+      c[np.argmin(c[..., 2])],
+      c[np.argmax(c[..., 2])],
+   ], axis=0)
+   b = np.stack([
+      d[np.argmin(c[..., 0])],
+      d[np.argmax(c[..., 0])],
+      d[np.argmin(c[..., 1])],
+      d[np.argmax(c[..., 1])],
+      d[np.argmin(c[..., 2])],
+      d[np.argmax(c[..., 2])],
+   ], axis=0)
+   # print(a)
+   # print(b)
+   # assert 0
+   return a, b
+
+def get_tether_xform(tether_xform, **kw):
+   if not tether_xform: return None
+   assert len(tether_xform) == 2
+   bodyA = rp.body.Body(tether_xform[0])
+   bodyB = rp.body.Body(tether_xform[1])
+   coordA, coordB = get_xtrema_coords(bodyA, bodyB)
+
+   # print(coordA.shape, coordA[0].shape)
+   # stubA = bodyA.stub[0]
+   # stubB = bodyB.stub[0]
+   stubA = rp.motif.stub_from_points(
+      coordA[None, 0],
+      coordA[None, 1],
+      coordA[None, 2],
+   ).squeeze()
+   stubB = rp.motif.stub_from_points(
+      coordB[None, 0],
+      coordB[None, 1],
+      coordB[None, 2],
+   ).squeeze()
+
+   xhat = stubB @ np.linalg.inv(stubA)
+   # if kw['tmpa'] == 1: xhat = stubB @ np.linalg.inv(stubA)
+   # if kw['tmpa'] == 2: xhat = stubA @ np.linalg.inv(stubB)
+   # if kw['tmpa'] == 3: xhat = np.linalg.inv(stubA) @ stubB
+   # if kw['tmpa'] is 4: xhat = np.linalg.inv(stubB) @ stubA
+
+   # print(coordA.shape, xhat.shape)
+   # print((xhat @ coordA[..., None]).shape)
+
+   # print(coordA.squeeze())
+   # print(coordB.squeeze())
+   # print((xhat @ coordA[..., None]).squeeze())
+
+   bhat = (xhat @ coordA[..., None]).squeeze()
+   assert np.allclose(coordB.squeeze(), bhat, atol=1e-2)
+
+   del bodyA, bodyB
+   return xhat, coordA.squeeze(), coordB.squeeze()
+
+def check_tether(xforms, xhat, dist, ang, cart_extent, ori_extent, coordA, coordB, **kw):
+   if xhat is None: return True
+   ori_extent = np.radians(ori_extent)
+   ang = np.radians(ang)
+
+   # print(xforms @ coordA)
+   # print(coordb)
+   # assert 0
+
+   # is this right???
+   # xrel = xforms @ np.linalg.inv(xhat)  # inverse of A->B, but ok?? and faster
+   xrel = np.linalg.inv(xhat) @ xforms
+   # if kw['tmpb'] == 1: xrel = np.linalg.inv(xhat) @ xforms
+   # if kw['tmpb'] == 2: xrel = np.linalg.inv(xforms) @ xhat
+   # if kw['tmpb'] == 3: xrel = xforms @ np.linalg.inv(xhat)
+   # if kw['tmpb'] is 4: xrel = xhat @ np.linalg.inv(xforms)
+   d = np.linalg.norm(xrel[..., :3, 3], axis=-1)
+   d0 = np.linalg.norm(xforms[..., :3, 3], axis=-1)
+   d1 = np.linalg.norm(xhat[..., :3, 3])
+   a = hm.angle_of(xrel)
+   dok = d < dist + cart_extent * 1.2
+   aok = a < ang + ori_extent * 1.2
+
+   # assert 0
+
+   # print('================= check tether ==================')
+   # print('d1, d0d0', d1, min(d0), max(d0))
+   # print(d.shape, min(d), max(d))
+   # print(np.quantile(d, np.arange(5) / 4))
+   # print(dist, cart_extent, np.sum(dok))
+   # print(ang, ori_extent, np.sum(aok))
+   # assert 0
+   return np.logical_and(dok, aok)
+
 class HelixEvaluator:
    def __init__(self, body, hscore, **kw):
-      self.kw = rp.Bunch(kw)
+      self.kw = Bunch(kw, _strict=False)
       self.body = body.copy()
       self.hscore = hscore
+      self.tether_xform, self.tmp_ca, self.tmp_cb = get_tether_xform(**kw)
+      print('--------- tether xform ----------')
+      print(self.tether_xform)
+      print('---------------------------------')
 
    def __call__(self, xforms, iresl=-1, wts={}, **kw):
       kw = self.kw.sub(wts=wts)
+
       xeye = np.eye(4, dtype="f4")
       body = self.body.copy()
       body2 = self.body.copy()
       xforms = xforms.reshape(-1, 4, 4)
       cart_extent = self.hscore.cart_extent[iresl]
       ori_extent = self.hscore.ori_extent[iresl]
+
+      ok = check_tether(xforms, self.tether_xform, kw.tether_dist, kw.tether_ang, cart_extent,
+                        ori_extent, self.tmp_ca, self.tmp_cb, **kw)
+
       if not kw.helix_max_delta_z:
          helix_max_delta_z = body.radius_max() * 2 / kw.helix_min_isecond
       else:
@@ -97,7 +216,15 @@ class HelixEvaluator:
       dhelix = np.abs(hm.hdot(axis, xforms[:, :, 3]))
       dok = np.logical_and(dhelix >= kw.helix_min_delta_z - cart_extent,
                            dhelix <= helix_max_delta_z + cart_extent)
-      ok = np.logical_and(dok, aok)
+      ok = np.logical_and(ok, np.logical_and(dok, aok))
+
+      # filter on radius
+      axis, ang, cen = hm.axis_ang_cen_of(xforms[ok])
+      rhelix = hm.hnorm(hm.proj_perp(axis, cen))
+      # print(np.quantile(rhelix, np.arange(11) / 10))
+
+      ok[ok] = np.logical_and(kw.helix_min_radius - cart_extent <= rhelix,
+                              rhelix <= cart_extent + kw.helix_max_radius)
       # ok = np.tile(True, len(xforms))
 
       scores = np.zeros((len(xforms), 2))
@@ -158,7 +285,7 @@ class HelixEvaluator:
 
       helix_cyclic = np.repeat(1, len(scores))
 
-      return scores, rp.Bunch(
+      return scores, Bunch(
          helix_n_to_primary=np.repeat(1, len(scores)),
          helix_n_to_secondry=which2,
          reslb=np.tile(0, len(scores)),

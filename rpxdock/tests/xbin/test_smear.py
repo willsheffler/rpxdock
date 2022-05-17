@@ -6,7 +6,7 @@ from rpxdock.geom import BCC6
 from rpxdock.xbin import Xbin
 from rpxdock.xbin.smear import smear
 from rpxdock.phmap import PHMap_u8f8
-from rpxdock.util import plot
+from rpxdock.util import hackplot as plot
 
 xident_f4 = np.eye(4).astype("f4")
 

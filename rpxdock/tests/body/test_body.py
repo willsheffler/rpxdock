@@ -59,7 +59,7 @@ def test_body(C2_3hm4, C3_1nza, sym1=2, sym2=3):
             nsamp += 1
             if d < 9e8:
                nhit += 1
-               p = body1.contact_pairs(body2, 8.0)
+               p = body1.contact_pairs(body2, maxdis=8.0)
                if len(p) > 0:
                   p2 = body1.positioned_cen()[p[:, 0]]
                   p3 = body2.positioned_cen()[p[:, 1]]

@@ -1,6 +1,21 @@
 import _pickle, collections, pytest, rpxdock as rp
 from rpxdock.search.result import *
 
+def main():
+   import tempfile
+   # test_result(dummy_result(1000))
+   # test_result_pickle(dummy_result(1000), tempfile.mkdtemp())
+   # test_result_attrs()
+   # test_mismatch_len(dummy_result(1000))
+   # test_top_each(dummy_result(1000))
+   # test_result_no_body_label(dummy_result(1000))
+   # test_result_coords()
+   test_result_tarball(dummy_result(100))
+
+# def test_result_tarball(result):
+# testresult = rp.data.get_test_data('test_cage_hier_onecomp_notrim')
+# result_to_tarball(testresult, 'test.result.txz', overwrite=True)
+
 def test_result(result):
    a = result.copy()
    a.attrs['foo'] = 1
@@ -59,3 +74,17 @@ if __name__ == '__main__':
    # test_top_each(dummy_result(1000))
    # test_result_no_body_label(dummy_result(1000))
    test_result_dump_asym()
+
+@pytest.mark.skip
+def test_result_coords():
+   r = rp.data.get_test_data('test_cage_hier_no_trim')
+   r = rp.concat_results([r])
+   idx = 7
+   bodyA, bodyB = r.bodies[r.ijob[idx].data]
+   crdA = bodyA.positioned_coord(pos=r.xforms[idx, 0])
+   crdB = bodyB.positioned_coord(pos=r.xforms[idx, 1])
+
+   assert 0
+
+if __name__ == '__main__':
+   main()

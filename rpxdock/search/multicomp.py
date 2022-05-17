@@ -1,7 +1,9 @@
-import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
+import itertools, functools, numpy as np, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
 from rpxdock.filter import filters
+from numpy.linalg import inv
 import logging
+from willutil import Timer, Bunch
 
 def make_multicomp(
    bodies,
@@ -9,18 +11,18 @@ def make_multicomp(
    hscore,
    search=hier_search,
    sampler=None,
-   fixed_components=False,
+   components_already_aligned_to_sym_axes=False,
    **kw,
 ):
-   kw = rp.Bunch(kw)
-   t = rp.Timer().start()
+   kw = Bunch(kw, _strict=False)
+   t = Timer().start()
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else spec.arch
    logging.debug("Docking multicomp")
 
    assert len(bodies) == spec.num_components
    bodies = list(bodies)
-   if not fixed_components:
+   if not components_already_aligned_to_sym_axes:
       for i, b in enumerate(bodies):
          bodies[i] = b.copy_xformed(rp.homog.align_vector([0, 0, 1], spec.axis[i]))
 
@@ -97,8 +99,8 @@ def make_multicomp(
    )
 
 class MultiCompEvaluatorBase:
-   def __init__(self, bodies, spec, hscore, wts=rp.Bunch(ncontact=0.1, rpx=1.0), **kw):
-      self.kw = rp.Bunch(kw)
+   def __init__(self, bodies, spec, hscore, wts=Bunch(ncontact=0.1, rpx=1.0), **kw):
+      self.kw = Bunch(kw, _strict=False)
       self.hscore = hscore
       self.symrots = [rp.geom.symframes(n) for n in spec.nfold]
       self.spec = spec
@@ -116,7 +118,6 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       # print(f"docking {len(B)} bodies")
       X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
       xnbr = self.spec.to_neighbor_olig
-
       # check for "flatness" (ok = an array of "the good stuff that passes these checks")
       delta_h = np.array(
          [hm.hdot(X[:, i] @ B[i].com(), self.spec.axis[i]) for i in range(len(B))])
@@ -132,7 +133,6 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
 
       if xnbr[0] is None and xnbr[1] is not None and xnbr[2] is not None:  # layer hack
          logging.debug("touch")
-         inv = np.linalg.inv
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[1] @ X[ok, 1], **kw)
          ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], xnbr[2] @ X[ok, 2], **kw)
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[2] @ X[ok, 1], **kw)
@@ -140,10 +140,14 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], xnbr[2] @ X[ok, 2], **kw)
          ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], xnbr[1] @ X[ok, 2], **kw)
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], inv(xnbr[1]) @ X[ok, 1], **kw)
-         # ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], inv(xnbr[2]) @ X[ok, 2], **kw)
-         # ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[2]) @ X[ok, 2], **kw)
          ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], inv(xnbr[1]) @ X[ok, 2], **kw)
          ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[1]) @ X[ok, 2], **kw)
+         # check clash, or get non-clash range
+      for i in range(len(B)):
+         if xnbr[i] is not None:
+            ok[ok] &= B[i].clash_ok(B[i], X[ok, i], xnbr[i] @ X[ok, i], **kw)
+         for j in range(i):
+            ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
 
       # score everything that didn't clash
       # Behaves normally if arg.score_self is not set
@@ -160,7 +164,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          logging.debug(f"scores is shaped like {scores.shape} and is a {type(scores)}")
          scores[ok] = kw.iface_summary(ifscore, axis=0)
          logging.debug(f"scores is now shaped like {scores.shape}")
-         extra = rp.Bunch()
+         extra = Bunch()
       else:  #return all of the interface scores
          logging.debug("Scoring self")
          s_ifscore = list()
@@ -173,11 +177,19 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
                if i == j:
                   logging.debug("found self")
                   Xsym = self.spec.to_neighbor_olig @ X
+         for i in range(len(B)):
+            for j in range(i + 1):
+               logging.debug(f"scoring body {i} against body {j}")
+               if i == j:
+                  logging.debug("found self")
+                  Xsym = self.spec.to_neighbor_olig @ X
                   s_ifscore.append(
                      self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, wts=wts))
                else:
                   ns_ifscore.append(
                      self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
+                  s_ifscore.append(
+                     self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, wts=wts))
          logging.debug(f"self scores is length {len(s_ifscore[0])}")
          logging.debug(f"non-self scores is length {len(ns_ifscore[0])}")
          logging.debug(f"OK len is {len(ok)}")
@@ -212,12 +224,12 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
                   all_scores[f'cross_comp_score_{i}{j}'] = (['model'], scores_ns[ind])
                   ind += 1
 
-         extra = rp.Bunch(all_scores)
+         extra = Bunch(all_scores)
       return scores, extra
       #else:
       #   scores[ok] = arg.iface_summary(ifscore, axis=0)
-      #   return scores, rp.Bunch()
-      #return scores, rp.Bunch()
+      #   return scores, Bunch()
+      #return scores, Bunch()
 
 class TwoCompEvaluatorWithTrim(MultiCompEvaluatorBase):
    def __init__(self, *arg, trimmable_components="AB", **kw):
@@ -236,7 +248,7 @@ class TwoCompEvaluatorWithTrim(MultiCompEvaluatorBase):
          assert self.trimmable_components.upper() in "AB"
          scores, lb, ub = self.eval_trim_one(self.trimmable_components, *arg, **kw)
 
-      extra = rp.Bunch(reslb=(['model', 'component'], lb), resub=(['model', 'component'], ub))
+      extra = Bunch(reslb=(['model', 'component'], lb), resub=(['model', 'component'], ub))
       return scores, extra
 
    def eval_trim_one(self, trim_component, x, iresl=-1, wts={}, **kw):
@@ -310,8 +322,8 @@ class TwoCompEvaluatorWithTrim(MultiCompEvaluatorBase):
       return scores, np.stack([lbA, lbB], axis=1), np.stack([ubA, ubB], axis=1)
 
 def _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw):
-   kw = rp.Bunch(kw)
-   t = rp.Timer().start()
+   kw = Bunch(kw, _strict=False)
+   t = Timer().start()
    nout_debug = min(10 if kw.nout_debug is None else kw.nout_debug, len(ibest))
    for iout in range(nout_debug):
       i = ibest[iout]

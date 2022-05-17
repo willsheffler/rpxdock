@@ -1,35 +1,58 @@
 {
-	"build_systems":
-	[
-		{
-			"name": "util_runtests.py",
-			"shell_cmd": "cd $folder; CC='ccache gcc' PYTHONPATH=. python ide/runtests.py $file &> sublime_build.log"
-		},
-		{
-			"name": "ping localhost:8080/8081",
-			"shell_cmd": "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080')\"; python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8081')\" "
-		},
-		{
-			"name": "generate_motif_scores",
-			"shell_cmd" : "cd $folder; CC='ccache gcc' PYTHONPATH=. python rpxdock/app/genrate_motif_scores.py TEST &> sublime_build.log"
-		},
-   	{
-			"name": "test_cage",
-			"shell_cmd" : "cd $folder; CC='ccache gcc' PYTHONPATH=. python rpxdock/tests/search/test_cage.py &> sublime_build.log"
-		},
-   	{
-			"name": "helix_beta",
-			"shell_cmd" : "cd $folder; python rpxdock/app/pilot/helix_beta.py --inputs1 rpxdock/data/pdb/DHR14.pdb.gz --cart_bounds 0 100 -100 100 -100 100 --dump_pdbs &> sublime_build.log"
-		},
-   	{
-			"name": "test_homog",
-			"shell_cmd" : "cd $folder; python rpxdock/tests/test_homog.py &> sublime_build.log"
-		}
+		"build_systems":
+		[
+			{
+				"name": "util_runtests.py",
+				"shell_cmd": "cd $folder; CC='ccache gcc' PYTHONPATH=. python ide/runtests.py $file &> sublime_build.log"
+			},
+				{
+				"name": "ping localhost:8080/8081",
+				"shell_cmd": "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080')\"; python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8081')\" "
+			},
+			{
+				"name": "generate_motif_scores",
+				"shell_cmd" : "cd $folder; CC='ccache gcc' PYTHONPATH=. python rpxdock/app/genrate_motif_scores.py TEST &> sublime_build.log"
+			},
+	   	{
+				"name": "test_cage",
+				"shell_cmd" : "cd $folder; CC='ccache gcc' PYTHONPATH=. python rpxdock/tests/search/test_cage.py &> sublime_build.log"
+			},	   	{
+				"name": "test_onecomp",
+				"shell_cmd" : "cd $folder; CC='ccache gcc' PYTHONPATH=. python rpxdock/tests/search/test_onecomp.py &> sublime_build.log"
+			},
+			{
+				"name": "test_multicomp",
+				"shell_cmd" : "cd $folder; CC='ccache gcc' PYTHONPATH=. python rpxdock/tests/search/test_multicomp.py &> sublime_build.log"
+			},
+	   	{
+				"name": "helix_beta",
+				"shell_cmd" : "cd $folder; python rpxdock/app/pilot/helix_beta.py --inputs1 rpxdock/data/pdb/DHR14.pdb.gz --cart_bounds 0 100 -100 100 -100 100 --dump_pdbs &> sublime_build.log"
+			},
+	   	{
+				"name": "test_homog",
+				"shell_cmd" : "cd $folder; python rpxdock/tests/test_homog.py &> sublime_build.log"
+			},
+			{
+				"name": "run expand_xforms",
+				"shell_cmd": "cd $folder; python rpxdock/tests/geom/test_expand_xforms.py  &> sublime_build.log"
+			},
+			{
+				"name": "test_rosetta_rots",
+				"shell_cmd": "cd $folder; python rpxdock/tests/rotamer/test_rosetta_rots.py  &> sublime_build.log"
+			},
+			{
+				"name": "test_body_viz",
+				"shell_cmd": "cd $folder; PYTHONPATH=/home/sheffler/src/rpxdock python rpxdock/tests/viz/test_body_viz.py  &> sublime_build.log"
+			},
+			{
+				"name": "test_deathstar",
+				"shell_cmd": "cd $folder; PYTHONPATH=/home/sheffler/src/rpxdock python rpxdock/tests/ds/test_deathstar.py &> sublime_build.log"
+			}
 
-		
+			
 
 
-	],
+		],
 	"folders":
 	[
 		{
@@ -43,13 +66,13 @@
 				"__pycache__",
 				"_build",
 				"rpxdock/extern/Eigen",
-				".*",
+				".*"
 			],
 			"file_exclude_patterns":
 			[
 				"*~",
 				".*",
-				"*.pickle",
+				"*.pickle"
 			],
 			"path": "../"
 		}

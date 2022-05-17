@@ -1,8 +1,9 @@
 import concurrent, os, argparse, sys, numpy as np, rpxdock as rp, pytest
+from willutil import Bunch
 
 def get_arg(**kw):
    arg = rp.app.defaults()
-   arg.wts = rp.Bunch(ncontact=0.3, rpx=1.0)
+   arg.wts = Bunch(ncontact=0.3, rpx=1.0)
    arg.beam_size = 2e4
    arg.max_bb_redundancy = 2.0
    arg.max_delta_h = 9999
@@ -13,6 +14,7 @@ def get_arg(**kw):
    arg.max_trim = 0
    # arg.debug = True
    arg.executor = concurrent.futures.ThreadPoolExecutor(min(4, arg.ncpu / 2))
+
    return arg.sub(kw)
 
 def _test_cage_slide(hscore, body_cageA, body_cageB):
@@ -21,7 +23,7 @@ def _test_cage_slide(hscore, body_cageA, body_cageB):
    rp.search.samples_2xCyclic_slide(spec)
 
 def test_cage_hier_no_trim(hscore, body_cageA, body_cageB):
-   kw = get_arg(fixed_components=True)
+   kw = get_arg(components_already_aligned_to_sym_axes=True)
    kw.beam_size = 5000
 
    spec = rp.search.DockSpec2CompCage('T33')
@@ -30,14 +32,30 @@ def test_cage_hier_no_trim(hscore, body_cageA, body_cageB):
                                      sampler, **kw)
    # print(result)
    # result.dump_pdbs_top_score(hscore=hscore,
+   # **kw.sub(nout_top=10, output_prefix='old_test_cage_hier_no_trim'))
+
+@pytest.mark.skip
+def test_cage_hier_fixed0(hscore, body_cageA, body_cageB):
+   kw = get_arg(components_already_aligned_to_sym_axes=True, fixed_components=[0])
+
+   kw.beam_size = 5000
+
+   print('kw.fixed_components', kw.fixed_components)
+
+   spec = rp.search.DockSpec2CompCage('T32')
+   sampler = rp.sampling.hier_multi_axis_sampler(spec, [50, 60], **kw.sub(cart_bounds=None))
+   result = rp.search.make_multicomp([body_cageA, body_cageB], spec, hscore, rp.hier_search,
+                                     sampler, **kw)
+   # print(result)
+   # result.dump_pdbs_top_score(hscore=hscore,
    #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_hier_no_trim.pickle')
-   ref = rp.data.get_test_data('test_cage_hier_no_trim')
-   rp.search.assert_results_close(result, ref)
+   # ref = rp.data.get_test_data('test_cage_hier_no_trim')
+   # rp.search.assert_results_close(result, ref)
 
 def test_cage_hier_trim(hscore, body_cageA_extended, body_cageB_extended):
-   kw = get_arg().sub(nout_debug=0, max_trim=150, fixed_components=True)
+   kw = get_arg().sub(nout_debug=0, max_trim=150, components_already_aligned_to_sym_axes=True)
    kw.output_prefix = 'test_cage_hier_trim'
    kw.wts.ncontact = 0.0
    kw.trimmable_components = 'AB'
@@ -64,7 +82,7 @@ def test_cage_hier_trim(hscore, body_cageA_extended, body_cageB_extended):
    # **kw.sub(nout_top=10, output_prefix="test_cage_hier_trim"))
    # result.resub[:] = np.max(result.resub, axis=0)
    # result.dump_pdbs_top_score(hscore=hscore,
-   # **kw.sub(nout_top=10, output_prefix="whole_test_cage_hier_trim"))
+   # **kw.sub(nout_top=10, output_prefix="old_test_cage_hier_trim"))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_hier_trim.pickle')
    ref = rp.data.get_test_data('test_cage_hier_trim')
@@ -82,7 +100,7 @@ def test_cage_hier_3comp(hscore, bodyC4, bodyC3, bodyC2):
    result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **kw)
 
    # result.dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_3comp'))
+   # **kw.sub(nout_top=10, output_prefix='old_cage_hier_3comp'))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_hier_3comp.pickle')
    ref = rp.data.get_test_data('test_cage_hier_3comp')
@@ -107,8 +125,11 @@ def test_layer_hier_3comp(hscore, bodyC6, bodyC3, bodyC2):
    result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **kw)
 
    # result.dump_pdbs_top_score(hscore=hscore,
-   # **kw.sub(nout_top=10, output_prefix='test_layer_hier_3comp'))
-
+   # **kw.sub(
+   # nout_top=10,
+   # output_prefix='test_layer_hier_3comp',
+   # ))
+   # assert 0
    # rp.dump(result, 'rpxdock/data/testdata/test_layer_hier_3comp.pickle')
    ref = rp.data.get_test_data('test_layer_hier_3comp')
    rp.search.assert_results_close(result, ref)
@@ -126,13 +147,13 @@ if __name__ == '__main__':
    # hscore = rp.RpxHier('ilv_h', hscore_data_dir='/home/sheffler/data/rpx/hscore')
    # hscore = rp.RpxHier('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
 
-   # body1 = rp.data.get_body('T33_dn2_asymA')
-   # body2 = rp.data.get_body('T33_dn2_asymB')
-   # test_cage_hier_no_trim(hscore, body1, body2)
+   body1 = rp.data.get_body('T33_dn2_asymA')
+   body2 = rp.data.get_body('T33_dn2_asymB')
+   test_cage_hier_no_trim(hscore, body1, body2)
 
-   # body1 = rp.data.get_body('T33_dn2_asymA_extended')
-   # body2 = rp.data.get_body('T33_dn2_asymB_extended')
-   # test_cage_hier_trim(hscore, body1, body2)
+   body1 = rp.data.get_body('T33_dn2_asymA_extended')
+   body2 = rp.data.get_body('T33_dn2_asymB_extended')
+   test_cage_hier_trim(hscore, body1, body2)
 
    C2 = rp.data.get_body('C2_REFS10_1')
    C3 = rp.data.get_body('C3_1na0-1_1')
@@ -144,3 +165,5 @@ if __name__ == '__main__':
    # C4 = rp.data.get_body('C4_1na0-G1_1')
    # C6 = rp.data.get_body('C6_3H22')
    # test_layer_hier_3comp(hscore, C6, C3, C2)
+
+   # test_cage_hier_fixed0(hscore, C3, C2)

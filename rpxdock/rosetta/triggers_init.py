@@ -1,16 +1,33 @@
-import os, _pickle, numpy as np
-from pyrosetta import pose_from_file, rosetta, init, version
-from pyrosetta.rosetta import core, protocols
+import os, _pickle, numpy as np, rpxdock as rp
+from pyrosetta import Pose, pose_from_file, rosetta, init, version, AtomID
+from pyrosetta.rosetta import core, protocols, numeric
 from pyrosetta.rosetta.core.scoring.dssp import Dssp
-from rpxdock.util import hash_str_to_int
+from pyrosetta.rosetta.core.scoring import get_score_function
 
-init("-beta -mute all")
+def get_init_string():
+   s = ' -beta '
+   s += ' -mute all '
+   # s += ' -extra_res_fa '
+   # s += ' '.join(rp.data.rosetta_params_files())
+   s += ' -renumber_pdb'
+   # s += ' -extra_patch_fa '
+   # s += ' '.join(rp.data.rosetta_patch_files())
+   # s += ' -include_patches VIRTUAL_CB'
+   print('===================== rosetta flags ==========================')
+   print(s)
+   print('==============================================================')
+   return s
+
+init(get_init_string())
+default_sfxn = get_score_function()
+chem_manager = core.chemical.ChemicalManager.get_instance()
+rts_fastd = chem_manager.residue_type_set('fa_standard')
 
 def assign_secstruct(pose):
    Dssp(pose).insert_ss_into_pose(pose)
 
 def rosetta_stub_from_numpy_stub(npstub):
-   rosstub = ros.core.kinematics.Stub()
+   rosstub = core.kinematics.Stub()
    rosstub.M.xx = npstub[0, 0]
    rosstub.M.xy = npstub[0, 1]
    rosstub.M.xz = npstub[0, 2]
@@ -25,9 +42,16 @@ def rosetta_stub_from_numpy_stub(npstub):
    rosstub.v.z = npstub[2, 3]
    return rosstub
 
+def create_residue(resname, typeset='fa_standard'):
+   chem_manager = rosetta.core.chemical.ChemicalManager
+   rts = chem_manager.get_instance().residue_type_set(typeset)
+   # print(rts)
+   rfactory = rosetta.core.conformation.ResidueFactory
+   return rfactory.create_residue(rts.name_map(resname))
+
 def get_pose_cached(fname, pdbdir="."):
    path = os.path.join(pdbdir, fname)
-   h = str(hash_str_to_int(version().encode()))
+   h = str(rp.util.hash_str_to_int(version().encode()))
    ppath = path + "_v" + h + ".pickle"
    if not os.path.exists(ppath):
       pose = pose_from_file(path)
@@ -51,3 +75,16 @@ def get_centroids(pose0, which_resi=None):
       cen = r.xyz("CEN")
       coords.append([cen.x, cen.y, cen.z, 1])
    return np.stack(coords).astype("f8")
+
+def remove_terminus_variants(pose):
+   for ires in range(1, pose.size() + 1):
+      if (pose.residue(ires).has_variant_type(core.chemical.UPPER_TERMINUS_VARIANT)):
+         core.pose.remove_variant_type_from_pose_residue(
+            pose, core.chemical.UPPER_TERMINUS_VARIANT, ires)
+      if (pose.residue(ires).has_variant_type(core.chemical.LOWER_TERMINUS_VARIANT)):
+         core.pose.remove_variant_type_from_pose_residue(
+            pose, core.chemical.LOWER_TERMINUS_VARIANT, ires)
+      if (pose.residue(ires).has_variant_type(core.chemical.CUTPOINT_LOWER)):
+         core.pose.remove_variant_type_from_pose_residue(pose, core.chemical.CUTPOINT_LOWER, ires)
+      if (pose.residue(ires).has_variant_type(core.chemical.CUTPOINT_UPPER)):
+         core.pose.remove_variant_type_from_pose_residue(pose, core.chemical.CUTPOINT_UPPER, ires)

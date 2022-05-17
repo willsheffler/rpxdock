@@ -1,6 +1,7 @@
-import logging, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
+import logging, numpy as np, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search
 from rpxdock.filter import filters
+from willutil import Timer, Bunch
 
 log = logging.getLogger(__name__)
 
@@ -23,10 +24,10 @@ def asym_get_sample_hierarchy(body, hscore, extent=100):
    return xh
 
 def make_asym(bodies, hscore, sampler, search=hier_search, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else sym
-   t = rp.Timer().start()
+   t = Timer().start()
    assert sampler is not None, 'sampler is required'
 
    evaluator = AsymEvaluator(bodies, hscore, **kw)
@@ -63,7 +64,7 @@ def make_asym(bodies, hscore, sampler, search=hier_search, **kw):
 
 class AsymEvaluator:
    def __init__(self, bodies, hscore, **kw):
-      self.kw = rp.Bunch(kw)
+      self.kw = Bunch(kw, _strict=False)
       self.bodies = bodies
       self.hscore = hscore
 
@@ -94,4 +95,4 @@ class AsymEvaluator:
       ub = np.ones(len(scores), dtype="i4") * (body2.nres - 1)
       if trim: lb[ok], ub[ok] = trim[0], trim[1]
 
-      return scores, rp.Bunch(reslb=lb, resub=ub)
+      return scores, Bunch(reslb=lb, resub=ub)

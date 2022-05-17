@@ -1,6 +1,7 @@
 import os, logging, glob, numpy as np, rpxdock as rp
 from rpxdock.xbin import xbin_util as xu
 from rpxdock.score import score_functions as sfx
+from willutil import Bunch
 
 log = logging.getLogger(__name__)
 """
@@ -10,10 +11,10 @@ Grid search just uses the last/finest scorefunction
 
 class RpxHier:
    def __init__(self, files, max_pair_dist=8.0, hscore_data_dir=None, **kw):
-      kw = rp.Bunch(kw)
+      kw = Bunch(kw, _strict=False)
       if isinstance(files, str): files = [files]
-      if len(files) is 0: raise ValueError('RpxHier given no datafiles')
-      if len(files) is 1: files = _check_hscore_files_aliases(files[0], hscore_data_dir)
+      if len(files) == 0: raise ValueError('RpxHier given no datafiles')
+      if len(files) == 1: files = _check_hscore_files_aliases(files[0], hscore_data_dir)
       if len(files) > 8:
          for f in files:
             log.error(f)
@@ -47,7 +48,7 @@ class RpxHier:
       self.max_pair_dist = [max_pair_dist + h.attr.cart_extent for h in self.hier]
       self.map_pairs_multipos = xu.ssmap_pairs_multipos if self.use_ss else xu.map_pairs_multipos
       self.map_pairs = xu.ssmap_of_selected_pairs if self.use_ss else xu.map_of_selected_pairs
-      self.score_only_sspair = kw.score_only_sspair
+      self.score_only_sspair = kw.get('score_only_sspair')
       self.function = kw.function
 
    def __len__(self):
@@ -63,7 +64,7 @@ class RpxHier:
       pairs, lbub = rp.bvh.bvh_collect_pairs_vec(body.bvh_cen, body.bvh_cen, np.eye(4), np.eye(4),
                                                  self.max_pair_dist[iresl])
       pairs = body.filter_pairs(pairs, self.score_only_sspair)
-      assert len(lbub) is 1
+      assert len(lbub) == 1
       xmap = self.hier[iresl]
       ssstub = body.ssid, body.ssid, body.stub, body.stub
       if not self.use_ss: ssstub = ssstub[2:]
@@ -84,7 +85,7 @@ class RpxHier:
             xsym @ bodyB.pos,
             self.max_pair_dist[iresl],
          )
-         assert len(lbub) is 1
+         assert len(lbub) == 1
          pairs = bodyA.filter_pairs(pairs, self.score_only_sspair, other=bodyB, **kw)
          xmap = self.hier[iresl]
          ssstub = bodyA.ssid, bodyB.ssid, bodyA.pos @ bodyA.stub, xsym @ bodyB.pos @ bodyB.stub
@@ -134,13 +135,14 @@ class RpxHier:
       :param kw:
       :return:
       '''
-      kw = rp.Bunch(kw)
+
+      kw = Bunch(kw, _strict=False)
       pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
       # if not bounds:
       # bounds = [-2e9], [2e9], nsym[0], [-2e9], [2e9], nsym[1]
-      # if len(bounds) is 2:
+      # if len(bounds) == 2:
       # bounds += nsym[1],
-      # if len(bounds) is 3:
+      # if len(bounds) == 3:
       # bounds += [-2e9], [2e9], 1
       bounds = list(bounds)
       if len(bounds) > 2 and (bounds[2] is None or bounds[2] < 0):
@@ -245,11 +247,30 @@ class RpxHier:
       return self.base[x_or_k]
 
 def _check_hscore_files_aliases(alias, hscore_data_dir):
-   try:
-      pattern = os.path.join(hscore_data_dir, alias, '*.pickle')
-      g = sorted(glob.glob(pattern))
-      if len(g) > 0:
-         return g
-   except:
-      pass
-   raise ValueError(f'hscore datadir {hscore_data_dir} or alias {alias} invalid')
+   # try:
+   picklepattern = os.path.join(hscore_data_dir, alias, '*.pickle*')
+   picklefiles = sorted(glob.glob(picklepattern))
+   xmappattern = os.path.join(hscore_data_dir, alias, '*.txz')
+   txzfiles = sorted(glob.glob(xmappattern))
+   fnames = picklefiles
+   if len(txzfiles):
+      assert len(picklefiles) in (0, len(txzfiles))
+      fnames = txzfiles
+      assert sum([s.count('base') for s in txzfiles]) == 1
+      assert sum([s.count('.rpx.txz') for s in txzfiles]) == 1
+   else:
+      print('WARNING: using legacy .pickle format, convert to tarball format!')
+
+   # check for consistency
+   for filetype in '.txz .pickle .pickle.gz .pickle.bz2 .pickle.zip'.split():
+      if fnames[0].endswith(filetype):
+         log.info(f'Detected hscore files filetype: "{filetype}"')
+         for f in fnames:
+            assert f.endswith(
+               filetype
+            ), 'inconsistent hscore filetypes, all must be same (.gz, .bz2, .pickle, etc)'
+   if len(fnames) > 0: return fnames
+
+# except:
+#    pass
+# raise ValueError(f'hscore datadir {hscore_data_dir} or alias {alias} invalid')

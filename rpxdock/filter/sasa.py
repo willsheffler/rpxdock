@@ -1,11 +1,12 @@
 import logging, numpy as np, rpxdock as rp
 from rpxdock.app import dock
 from rpxdock.filter import filter_body as fb
+from willutil import Bunch
 
 log = logging.getLogger(__name__)
 
 def filter_sasa(xforms, body, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
 
    if "min_sasa" in kw.filter_sasa:
       try:

@@ -4,6 +4,7 @@ from time import perf_counter
 import numpy as np
 import xarray as xr
 import rpxdock
+from willutil import Bunch
 from rpxdock.motif import RpxHier
 from rpxdock.util import GLOBALCACHE as HC
 from rpxdock.data import datadir
@@ -142,7 +143,7 @@ def multiprocess_test(cli_args):
    ]
    args = args.sub(cli_args)
 
-   if len(args.hscore_files) is 1 and args.hscore_files[0] in globals():
+   if len(args.hscore_files) == 1 and args.hscore_files[0] in globals():
       args.hscore_files = globals()[args.hscore_files[0]]
    hscore, bodies = threaded_load_hscore_and_bodies(args.hscore_files, args.holes + args.plugs,
                                                     args.nprocess * args.nthread)
@@ -279,7 +280,7 @@ def load_big_hscore():
 
 def main():
    rpxdock.rosetta.rosetta_init()
-   if len(sys.argv) is 1:
+   if len(sys.argv) == 1:
       hscore = RpxHier(load_threads(small_hscore_fnames))
       return quick_test_olig(hscore)
    parser = rpxdock.app.default_cli_parser()

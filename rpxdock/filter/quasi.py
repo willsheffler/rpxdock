@@ -1,5 +1,6 @@
 import logging, numpy as np, rpxdock as rp
 from rpxdock.app import dock
+from willutil import Bunch
 
 log = logging.getLogger(__name__)
 
@@ -140,7 +141,7 @@ class quasi_data():
             return (body.overlap_int1, body.overlap_int2)
 
 def filter_quasi(xforms, body, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
 
    if "min_sasa_int1" in kw.filter_quasi:
       try:

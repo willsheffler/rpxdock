@@ -1,7 +1,8 @@
-import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
+import itertools, functools, numpy as np, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
 import logging
 from rpxdock.filter import filters
+from willutil import Bunch, Timer
 
 def make_onecomp(
    body,
@@ -22,8 +23,8 @@ def make_onecomp(
    :param kw: all default variables we are bringing in
    :return:
    '''
-   kw = rp.Bunch(kw)
-   t = rp.Timer().start()
+   kw = Bunch(kw, _strict=False)
+   t = Timer().start()
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else spec.arch
 
@@ -99,9 +100,9 @@ class OneCompEvaluator:
    those two things get checked for intersections and clashes and scored by scorepos
    Does not check for flatness like Cyclic, because cages aren't flat.
    '''
-   def __init__(self, body, spec, hscore, wts=rp.Bunch(ncontact=0.1, rpx=1.0),
+   def __init__(self, body, spec, hscore, wts=Bunch(ncontact=0.1, rpx=1.0),
                 trimmable_components="AB", **kw):
-      self.kw = rp.Bunch(kw)
+      self.kw = Bunch(kw, _strict=False)
       self.hscore = hscore
       self.symrot = rp.geom.symframes(spec.nfold)
       self.spec = spec
@@ -147,37 +148,10 @@ class OneCompEvaluator:
          sampling at highest resl probably 0.6A due to ori + cart
          returns score # for each "dock"
       '''
-      '''
-      bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
-      sfxn: hscore.scorepos scores stuff from the hscore that got passed 
-         takes two pos of bodies (the same monomer in this case)
-         xforms: not clashing xforms 
-         iresl: stage of hierarchical search (grid spacing: 4A --> 2A --> 1A --> 0.5A --> 0.25A)
-         sampling at highest resl probably 0.6A due to ori + cart
-         returns score # for each "dock"
-      '''
-      '''
-      bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
-      sfxn: hscore.scorepos scores stuff from the hscore that got passed 
-         takes two pos of bodies (the same monomer in this case)
-         xforms: not clashing xforms 
-         iresl: stage of hierarchical search (grid spacing: 4A --> 2A --> 1A --> 0.5A --> 0.25A)
-         sampling at highest resl probably 0.6A due to ori + cart
-         returns score # for each "dock"
-      '''
-      '''
-      bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
-      sfxn: hscore.scorepos scores stuff from the hscore that got passed 
-         takes two pos of bodies (the same monomer in this case)
-         xforms: not clashing xforms 
-         iresl: stage of hierarchical search (grid spacing: 4A --> 2A --> 1A --> 0.5A --> 0.25A)
-         sampling at highest resl probably 0.6A due to ori + cart
-         returns score # for each "dock"
-      '''
 
       # record ranges used
       lb = np.zeros(len(scores), dtype="i4")
       ub = np.ones(len(scores), dtype="i4") * (body.nres - 1)
       if trim: lb[ok], ub[ok] = trim[0], trim[1]
 
-      return scores, rp.Bunch(reslb=lb, resub=ub)
+      return scores, Bunch(reslb=lb, resub=ub)

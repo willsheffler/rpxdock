@@ -3,7 +3,7 @@
 
 
 cfg['include_dirs'] = ['../..']
-cfg['compiler_args'] = ['-std=c++17', '-w']
+cfg['compiler_args'] = ['-std=c++2a', '-w']
 cfg['dependencies'] = ['dilated_int.hpp']
 
 cfg['parallel'] = False

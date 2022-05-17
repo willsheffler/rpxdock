@@ -1,13 +1,14 @@
-import _pickle, threading, os, sys
+import _pickle, threading, os, sys, pytest
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 import numpy as np, xarray as xr, rpxdock as rp
 from rpxdock.geom import symframes
 from rpxdock.sampling import RotCart1Hier_f4, grid_sym_axis
 from rpxdock.search import concat_results, make_plugs, plug_get_sample_hierarchy
+from willutil import Bunch
 
-def testarg():
+def _test_args():
    kw = rp.app.defaults()
-   kw.wts = rp.Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
+   kw.wts = Bunch(plug=1.0, hole=1.0, ncontact=0.1, rpx=1.0)
    kw.beam_size = 1e4
    kw.max_bb_redundancy = 3.0
    kw.max_longaxis_dot_z = 0.5
@@ -16,8 +17,9 @@ def testarg():
    kw.debug = True
    return kw
 
+@pytest.mark.xfail
 def test_plug_hier(hscore, plug, hole):
-   kw = testarg()
+   kw = _test_args()
    kw.max_trim = 0
 
    # kw.output_prefix = "test_plug_hier"
@@ -38,7 +40,7 @@ def test_plug_hier(hscore, plug, hole):
    rp.search.assert_results_close(result, ref)
 
 def test_plug_hier_trim(hscore, plug, hole):
-   kw = testarg()
+   kw = _test_args()
    kw.max_trim = 200
    kw.output_prefix = 'plug'
 
@@ -60,7 +62,7 @@ def test_plug_hier_trim(hscore, plug, hole):
    rp.search.assert_results_close(result, ref)
 
 def test_plug_olig_hier(hscore, body_c3_mono, hole):
-   kw = testarg().sub(plug_fixed_olig=True, max_trim=100)
+   kw = _test_args().sub(plug_fixed_olig=True, max_trim=100)
    body_c3_mono.trim_direction = "C"
 
    # kw.output_prefix = "test_plug_olig_hier"
@@ -76,7 +78,7 @@ def test_plug_olig_hier(hscore, body_c3_mono, hole):
    rp.search.assert_results_close(result, ref)
 
 def test_plug_olig_grid(hscore, body_c3_mono, hole):
-   kw = testarg().sub(plug_fixed_olig=True, max_trim=100)
+   kw = _test_args().sub(plug_fixed_olig=True, max_trim=100)
 
    # kw.output_prefix = "test_plug_olig_grid"
    # kw.nout_debug = 10

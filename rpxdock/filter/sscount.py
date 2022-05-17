@@ -1,6 +1,7 @@
 import logging, numpy as np, rpxdock as rp
 from rpxdock.app import dock
 from rpxdock.filter import filter_body as fb
+from willutil import Bunch
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ class secondary_structure_map:
 
 def filter_sscount(xforms, body, **kw):
 
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    #Check if values are set in kw, otherwise use the default value. Also try to sanitize input and if not able to, revert
    #to the default value.
    if "min_helix_length" in kw.filter_sscount:

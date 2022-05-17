@@ -1,8 +1,10 @@
-import rpxdock as rp, concurrent, pytest, numpy as np
+import rpxdock as rp
+from willutil import Bunch
+import concurrent, pytest, numpy as np
 
 def test_cage_hier_onecomp_notrim(hscore, bodyC3):
    kw = rp.app.defaults()
-   kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
+   kw.wts = Bunch(ncontact=0.01, rpx=1.0)
    kw.beam_size = 2e4
    kw.max_bb_redundancy = 2.0
    kw.max_delta_h = 9999
@@ -32,7 +34,7 @@ def test_cage_hier_onecomp_notrim(hscore, bodyC3):
 
 def test_cage_hier_D3_onecomp_notrim(hscore, bodyC3):
    kw = rp.app.defaults()
-   kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
+   kw.wts = Bunch(ncontact=0.01, rpx=1.0)
    kw.beam_size = 2e4
    kw.max_bb_redundancy = 2.0
    kw.max_delta_h = 9999
@@ -61,7 +63,7 @@ def test_cage_hier_D3_onecomp_notrim(hscore, bodyC3):
 
 def test_cage_hier_D3_2_onecomp_notrim(hscore, bodyC2):
    kw = rp.app.defaults()
-   kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
+   kw.wts = Bunch(ncontact=0.01, rpx=1.0)
    kw.beam_size = 2e4
    kw.max_bb_redundancy = 2.0
    kw.max_delta_h = 9999
@@ -91,7 +93,7 @@ def test_cage_hier_D3_2_onecomp_notrim(hscore, bodyC2):
 @pytest.mark.skip
 def test_cage_hier_onecomp_trim(hscore, bodyC3):
    kw = rp.app.defaults()
-   kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
+   kw.wts = Bunch(ncontact=0.01, rpx=1.0)
    kw.beam_size = 2e4
    kw.max_bb_redundancy = 2.0
    kw.max_delta_h = 9999
@@ -118,7 +120,8 @@ def test_cage_hier_onecomp_trim(hscore, bodyC3):
 
 def test_cage_grid_onecomp_notrim(hscore, bodyC3):
    kw = rp.app.defaults()
-   kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
+   kw.wts = Bunch(ncontact=0.01, rpx=1.0)
+   print(kw.beam_size)
    kw.beam_size = 2e4
    kw.max_bb_redundancy = 2.0
    kw.max_delta_h = 9999
@@ -146,7 +149,7 @@ def test_cage_grid_onecomp_notrim(hscore, bodyC3):
    ref = rp.data.get_test_data('test_cage_grid_onecomp_notrim')
    rp.search.assert_results_close(result, ref)
 
-   # result.dump_pdbs_top_score(10)
+   # result.dump_pdbs_top_score(3)
    # assert 0
 
 def test_deepesh_1comp_bug(hscore):
@@ -154,7 +157,7 @@ def test_deepesh_1comp_bug(hscore):
    # import sys
    # sys.stdout.flush()
    kw = rp.app.defaults()
-   kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
+   kw.wts = Bunch(ncontact=0.01, rpx=1.0)
    kw.beam_size = 2e4
    kw.max_bb_redundancy = 2
    kw.max_delta_h = 9999
@@ -196,7 +199,6 @@ def main():
    test_cage_hier_onecomp_notrim(hscore, C3)
    test_cage_hier_D3_onecomp_notrim(hscore, C3)
    test_cage_hier_D3_2_onecomp_notrim(hscore, C2)
-   # _test_cage_hier_onecomp_trim(hscore  , C3)
    test_cage_grid_onecomp_notrim(hscore, C3)
 
    # test_deepesh_1comp_bug(hscore)

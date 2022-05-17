@@ -1,12 +1,63 @@
-import copy, logging, os
+import copy, logging, os, tempfile, tarfile, io
 from collections import OrderedDict, abc, defaultdict
-import numpy as np, xarray as xr, rpxdock as rp
+import numpy as np, rpxdock as rp
 from rpxdock.util import sanitize_for_pickle, num_digits
 
 log = logging.getLogger(__name__)
 
+def result_from_tarball(fname):
+   import xarray as xr
+   with tarfile.open(fname) as tar:
+
+      for m in tar.getmembers():
+         raw = tar.extractfile(m)
+         inp = io.BytesIO()
+         inp.write(raw.read())
+         inp.seek(0)
+
+         assert m.name == 'dataset.nc'
+         data = xr.open_dataset(inp)
+
+   return rp.search.Result(data)
+
+def result_to_tarball(result, fname, overwrite=False):
+
+   if not fname.endswith(('.txz', '.tar.xz')):
+      fname += '.txz'
+
+   if os.path.exists(fname) and not overwrite:
+      raise FileExistsError(f'file exists {fname}')
+
+   if type(result) is not rp.search.Result:
+      raise TypeError()
+
+   attrs = sanitize_for_pickle(result.data.attrs)
+   attrs = rp.util.unbunchify(attrs)
+   if 'arg' in result.data.attrs:
+      if 'executor' in attrs['arg']: del attrs['arg']['executor']
+      if 'iface_summary' in attrs['arg']: del attrs['arg']['iface_summary']
+
+   todel = list()
+   attrs2 = attrs.copy()
+   for k, v in attrs.items():
+      if isinstance(v, dict):
+         attrs2[k + '_keys'] = '|'.join(v.keys())
+         attrs2[k + '_vals'] = '|'.join(repr(_) for _ in v.values())
+         del attrs2[k]
+   result.data.attrs = attrs2
+
+   with tempfile.TemporaryDirectory() as td:
+
+      with open(td + '/dataset.nc', 'wb') as out:
+         result.data.to_netcdf(out)
+
+      cmd = f'cd {td} && tar cjf {os.path.abspath(fname)} *'
+      assert not os.system(cmd)
+   return fname
+
 class Result:
    def __init__(self, data_or_file=None, body_=[], body_label_=None, **kw):
+      import xarray as xr
       if isinstance(body_, rp.Body): body_ = [body_]
       self.bodies = [body_]
       self.body_label_ = body_label_ if body_label_ else ['body%i' % i for i in range(len(body_))]
@@ -54,6 +105,7 @@ class Result:
       return self.data.to_dict()
 
    def setstate(self, state):
+      import xarray as xr
       self.data = xr.Dataset.from_dict(state)
 
    def sel(self, *args, **kw):
@@ -100,6 +152,7 @@ class Result:
             which = range(len(self.data))
          else:
             raise ValueError(f'dump_pdbs only understandes "all" or sequence, not {which}')
+
       if len(which) == 0: return set()
       if isinstance(which, abc.Mapping):
          raise ValueError('dump_pdbs takes sequence not mapping')
@@ -243,6 +296,7 @@ def dict_coherent_entries(alldicts):
    return {k: v.pop() for k, v in sets.items() if len(v) == 1 and not k in badkeys}
 
 def concat_results(results, **kw):
+   import xarray as xr
    if isinstance(results, Result): results = [results]
    assert len(results) > 0
    ijob = np.repeat(np.arange(len(results)), [len(r) for r in results])

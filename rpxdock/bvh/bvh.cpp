@@ -1,7 +1,7 @@
 /*/*cppimport
 <%
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w', '-Ofast']
+cfg['compiler_args'] = ['-std=c++2a', '-w', '-Ofast']
 cfg['dependencies'] = ['../geom/primitive.hpp','../util/assertions.hpp',
 '../util/global_rng.hpp', 'bvh.hpp', 'bvh_algo.hpp', '../util/numeric.hpp',
 '../util/pybind_types.hpp']
@@ -453,10 +453,10 @@ py::tuple bvh_isect_fixed_range_vec(BVH<F> &bvh1, BVH<F> &bvh2,
 }
 
 ///////////////////////////////////////////////////
-/* 
-variations of query (you could be operating on an atom or a BV): 
+/*
+variations of query (you could be operating on an atom or a BV):
 At the highest level of bounding volume, at the lowest resolution
-Next, check children, which checks for "touching points" at higher resolution 
+Next, check children, which checks for "touching points" at higher resolution
 
 */
 template <typename F>
@@ -498,7 +498,8 @@ struct BVHIsectRange {
     // << " nasym1 " << nasym1 << std::endl;
   }
   bool intersectVolumeVolume(Sphere<F> vol1, Sphere<F> vol2) {
-    // returns true/false to continue checking children; if volumes have interesting higher resolution thing you want to look at
+    // returns true/false to continue checking children; if volumes have
+    // interesting higher resolution thing you want to look at
     //
     //  TODO: figure out why this check doesn't work if using
     //        non-unity IDs
@@ -512,22 +513,23 @@ struct BVHIsectRange {
     // << std::endl;
     // return false;
     // }
-    // bXa --> transform b to a and multiply by vol2 
+    // bXa --> transform b to a and multiply by vol2
     // signdis --> if spheres don't touch > 0; how much they are touching < 0
     // rad --> intersect dist (radius of spheres)
     return vol1.signdis(bXa * vol2) < rad;
   }
   bool intersectVolumeObject(Sphere<F> vol1, PtIdx<F> obj2) {
     // check "light red" with "light blue"
-    // PtIdx = point index; a sphere + index # 
-    // B is side getting trimmed 
-    // if lowest res# in BV > current ub or ub res# in BV < current lb; BV is done; don't do anything. basically out of range
+    // PtIdx = point index; a sphere + index #
+    // B is side getting trimmed
+    // if lowest res# in BV > current ub or ub res# in BV < current lb; BV is
+    // done; don't do anything. basically out of range
     if (vol1.lb % nasym1 > ub || vol1.ub % nasym1 < lb) return false;
     return vol1.signdis(bXa * obj2.pos) < rad;
   }
   bool intersectObjectVolume(PtIdx<F> obj1, Sphere<F> vol2) {
     // atom and BV; trim obj is obj1 (A side)
-    // return False / keep going if already trimmed 
+    // return False / keep going if already trimmed
     if (obj1.idx % nasym1 > ub || obj1.idx % nasym1 < lb) return false;
     return (bXa * vol2).signdis(obj1.pos) < rad;
   }
@@ -555,14 +557,15 @@ struct BVHIsectRange {
   }
 };
 template <typename F>
-/* 
-Takes BVH objects, 
-pos1, pos2: positions of bodies 
+/*
+Takes BVH objects,
+pos1, pos2: positions of bodies
 mindist: clash dist
 maxtrim: maximum allowed trim (exit early if too much of protein is trimmed off)
 maxtrim_lb; maxtrim_ub: Nterm and Cterm
-nasym1: if bvh is sym, only trim asu (# asym resis); -1 = all 
-query obj takes clash dist, and calls BVIntersect and returns lb and ub arrays of N and C term trim objs
+nasym1: if bvh is sym, only trim asu (# asym resis); -1 = all
+query obj takes clash dist, and calls BVIntersect and returns lb and ub arrays
+of N and C term trim objs
 */
 py::tuple isect_range(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
                       py::array_t<F> pos2, F mindist, int maxtrim = -1,
@@ -1083,13 +1086,14 @@ template <typename F>
 V4<F> bvh_obj_com(BVH<F> &b) {
   py::gil_scoped_release release;
   int n = b.objs.size();
-  V4<F> com(0, 0, 0, 1);
+  V4<F> com(0, 0, 0, 0);
   for (int i = 0; i < n; ++i) {
     com[0] += b.objs[i].pos[0];
     com[1] += b.objs[i].pos[1];
     com[2] += b.objs[i].pos[2];
   }
   com /= n;
+  com[3] = 1.0;
   return com;
 }
 

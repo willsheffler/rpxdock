@@ -6,6 +6,8 @@ import gzip
 import pandas as pd
 
 from cppimport import import_hook
+# from cppimport.config import turn_off_strict_prototypes
+# turn_off_strict_prototypes()
 from rpxdock.sampling._orientations import read_karney_orientations
 
 if sys.version_info[0] < 3:
@@ -29,7 +31,7 @@ def karney_data_path(fname):
 
 def quats_from_karney_file(fname):
    with gzip.open(fname) as input:
-      if sys.version_info.major is 3:
+      if sys.version_info.major == 3:
          quat, weight = read_karney_orientations(str(input.read(), "utf-8"))
       else:
          quat, weight = read_karney_orientations(str(input.read()))

@@ -1,2 +1,2 @@
-from .rotamer import *
-from .richardson import *
+from rpxdock.rotamer.rotamer import *
+from rpxdock.rotamer.richardson import *

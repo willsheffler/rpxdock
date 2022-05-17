@@ -121,3 +121,7 @@ def body_tiny():
 @pytest.fixture(scope="session")
 def result():
    return dummy_result()
+
+@pytest.fixture(scope="session")
+def twocomp_result():
+   return data.twocomp_result()

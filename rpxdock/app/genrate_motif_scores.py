@@ -1,10 +1,9 @@
 import sys, os, argparse, _pickle, logging, functools, numpy as np, rpxdock
-from rpxdock.util import Bunch
 from rpxdock.motif import ResPairData, make_and_dump_hier_score_tables
 
 def get_opts():
    parser = rpxdock.options.default_cli_parser()
-   addkw = rpxdock.options.add_argument_unless_exists(parser)
+   addarg = rpxdock.options.add_argument_unless_exists(parser)
    H = "ResPairData file containing Xarray Dataset with pdb, residue, and pair info"
    addkw("respairdat_file", type=str, help=H)
    H = "final sampling resolution"

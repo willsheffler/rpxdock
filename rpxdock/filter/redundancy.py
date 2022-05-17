@@ -1,9 +1,10 @@
 import logging, numpy as np, rpxdock as rp
+from willutil import Bunch
 
 log = logging.getLogger(__name__)
 
 def filter_redundancy(xforms, body, scores=None, categories=None, every_nth=10, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    if scores is None:
       scores = np.repeat(0, len(xforms))
    if len(scores) == 0: return []
@@ -30,7 +31,7 @@ def filter_redundancy(xforms, body, scores=None, categories=None, every_nth=10, 
    # sneaky way to do categories
    crd += (categories[ibest[:nclust]] * 1_000_000)[:, None]
 
-   keep = rp.cluster.cookie_cutter(crd, kw.max_bb_redundancy * np.sqrt(ncen))
+   keep, clustid = rp.cluster.cookie_cutter(crd, kw.max_bb_redundancy * np.sqrt(ncen))
    assert len(np.unique(keep)) == len(keep)
 
    log.info(f'filter_redundancy {kw.max_bb_redundancy}A Nmax {nclust} ' +

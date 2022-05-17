@@ -1,8 +1,9 @@
 import numpy as np
 import rpxdock as rp
+from willutil import Bunch
 
 def score_fun2(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    scores = np.zeros(max(len(pos1), len(pos2)))
    for i, (lb, ub) in enumerate(lbub):
       side1 = np.mean(ressc1[lbub1[i, 0]:lbub1[i, 1]])
@@ -31,7 +32,7 @@ def score_fun2(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
    return scores
 
 def sasa_priority(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, pairs, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    scores = np.zeros(max(len(pos1), len(pos2)))
 
    #TODO: Quinton: Resolution-dependent scoring is turned off while I try to optimize it further. This does nothing right now.
@@ -97,7 +98,7 @@ def sasa_priority(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, pairs, **kw):
    return scores
 
 def stnd(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    scores = np.zeros(max(len(pos1), len(pos2)))
    for i, (lb, ub) in enumerate(lbub):
       side1 = np.sum(ressc1[lbub1[i, 0]:lbub1[i, 1]])
@@ -107,7 +108,7 @@ def stnd(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
    return scores
 
 def mean(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    scores = np.zeros(max(len(pos1), len(pos2)))
    for i, (lb, ub) in enumerate(lbub):
       side1 = np.mean(ressc1[lbub1[i, 0]:lbub1[i, 1]])
@@ -117,7 +118,7 @@ def mean(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
    return scores
 
 def median(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    scores = np.zeros(max(len(pos1), len(pos2)))
    for i, (lb, ub) in enumerate(lbub):
       side1 = np.median(ressc1[lbub1[i, 0]:lbub1[i, 1]])
@@ -127,7 +128,7 @@ def median(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
    return scores
 
 def exp(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    scores = np.zeros(max(len(pos1), len(pos2)))
    for i, (lb, ub) in enumerate(lbub):
       side1 = np.sum(ressc1[lbub1[i, 0]:lbub1[i, 1]])
@@ -137,7 +138,7 @@ def exp(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
    return scores
 
 def lin(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    scores = np.zeros(max(len(pos1), len(pos2)))
    for i, (lb, ub) in enumerate(lbub):
       side1 = np.sum(ressc1[lbub1[i, 0]:lbub1[i, 1]])

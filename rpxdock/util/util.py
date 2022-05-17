@@ -1,13 +1,32 @@
-import _pickle, os, multiprocessing, threading, copy, hashlib, logging, concurrent, time
+import _pickle, os, multiprocessing, threading, copy, hashlib, logging, concurrent, time, gzip, bz2, lzma, zipfile, json
 from collections import abc
-import numpy as np, xarray as xr
+import numpy as np
 
 log = logging.getLogger(__name__)
 
 def load(f, verbose=True):
+   from rpxdock.motif import respairscore_from_tarball, xmap_from_tarball
    if isinstance(f, str):
       if verbose: log.debug(f'loading{f}')
-      with open(f, "rb") as inp:
+
+      if f.endswith('.gz'):
+         readfun = gzip.open
+      elif f.endswith('.bz') or f.endswith('.bz2'):
+         readfun = bz2.open
+      elif f.endswith('.xz') or f.endswith('.lzma'):
+         readfun = lzma.open
+      elif f.endswith('.zip'):
+         readfun = zipfile.Zipfile
+      elif f.endswith('.xmap.txz'):
+         return xmap_from_tarball(f)
+      elif f.endswith('.rpx.txz'):
+         return respairscore_from_tarball(f)
+      elif f.endswith('.nc'):
+         import xarray as xr
+         return xr.load_dataset(f)
+      else:
+         readfun = open
+      with readfun(f, "rb") as inp:
          return _pickle.load(inp)
    return [load(x) for x in f]
 
@@ -74,6 +93,7 @@ def hash_str_to_int(s):
    return int(abs(np.frombuffer(buf, dtype="i8")[0]))
 
 def sanitize_for_pickle(data):
+   import xarray as xr
    data = copy.copy(data)
    if isinstance(data, (np.ndarray, xr.Dataset, xr.DataArray, int, float, str)):
       pass
@@ -138,3 +158,6 @@ class NonFuture:
       if self.dummy:
          return self.fn
       return self.fn(*self.args, **self.kw)
+
+def check_eq_json(a, b):
+   return json.loads(json.dumps(a)) == json.loads(json.dumps(b))

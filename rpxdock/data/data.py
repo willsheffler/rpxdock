@@ -6,11 +6,22 @@ pdbdir = os.path.join(os.path.dirname(__file__), "pdb")
 bodydir = os.path.join(os.path.dirname(__file__), "body")
 hscoredir = os.path.join(os.path.dirname(__file__), "hscore")
 testdatadir = os.path.join(os.path.dirname(__file__), "testdata")
+paramsdir = os.path.join(os.path.dirname(__file__), "rosetta_params")
+
+def rosetta_params_files():
+   return [paramsdir + '/' + f for f in os.listdir(paramsdir) if f.endswith('.params')]
+
+def rosetta_patch_files():
+   return [paramsdir + '/' + f for f in os.listdir(paramsdir) if f.endswith('.txt')]
 
 @lru_cache()
 def get_test_data(name):
-   with open(os.path.join(testdatadir, f'{name}.pickle'), 'rb') as inp:
-      return _pickle.load(inp)
+   from rpxdock.search import result_from_tarball
+   try:
+      return result_from_tarball(os.path.join(testdatadir, f'{name}.result.txz'))
+   except FileNotFoundError:
+      with open(os.path.join(testdatadir, f'{name}.pickle'), 'rb') as inp:
+         return _pickle.load(inp)
 
 @lru_cache()
 def get_body_cached(name):
@@ -26,14 +37,20 @@ def get_body_copy(name):
 
 @lru_cache()
 def small_respairdat():
-   from rpxdock import ResPairData
-   with open(os.path.join(datadir, "respairdat10_plus_xmap_rots.pickle"), "rb") as inp:
-      return ResPairData(_pickle.load(inp))
+   import xarray as xr, rpxdock as rp
+   fn = os.path.join(datadir, "respairdat10_plus_xmap_rots.nc")
+   # with open(fn, "rb") as inp:
+   #   return ResPairData(_pickle.load(inp))
+   with xr.open_dataset(fn, decode_cf=True) as rpd:
+      rpd.load()
+      return rp.motif.pairdat.ResPairData(rpd)
 
 @lru_cache()
 def small_respairscore():
-   with open(os.path.join(datadir, "pairscore10.pickle"), "rb") as inp:
-      return _pickle.load(inp)
+   # with open(os.path.join(datadir, "pairscore10.pickle"), "rb") as inp:
+   # return _pickle.load(inp)
+   from rpxdock.util import load
+   return load(os.path.join(datadir, "pairscore10.rpx.txz"))
 
 @lru_cache()
 def small_hscore():

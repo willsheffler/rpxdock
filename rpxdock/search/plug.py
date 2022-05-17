@@ -1,16 +1,17 @@
 import logging
-import itertools, functools, numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
+import itertools, functools, numpy as np, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
 from rpxdock.filter import filters
+from willutil import Timer, Bunch
 
 log = logging.getLogger(__name__)
 
 def make_plugs(plug, hole, hscore, search=hier_search, sampler=None, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = "plug" if kw.output_prefix is None else kw.output_prefix
 
-   t = rp.Timer().start()
+   t = Timer().start()
    evaluator = PlugEvaluator(plug, hole, hscore, **kw)
    if sampler is None: sampler = _default_samplers[search](plug, hole, hscore)
 
@@ -60,7 +61,7 @@ def make_plugs(plug, hole, hscore, search=hier_search, sampler=None, **kw):
 
 class PlugEvaluator:
    def __init__(self, plug, hole, hscore, **kw):
-      self.kw = rp.Bunch(kw)
+      self.kw = Bunch(kw, _strict=False)
       self.plug = plug
       self.hole = hole
       self.hscore = hscore
@@ -84,7 +85,7 @@ class PlugEvaluator:
       # check for "flatness"
       ok = np.abs((xforms @ plug.pcavecs[0])[:, 2]) <= self.kw.max_longaxis_dot_z
 
-      if not self.kw.plug_fixed_olig:  # check chash in formed oligomer
+      if not self.kw.get('plug_fixed_olig'):  # check chash in formed oligomer
          ok[ok] &= plug.clash_ok(plug, xforms[ok], xsym[ok], mindis=dclsh)
 
       if max_trim > 0:  # get non-clash range
@@ -99,7 +100,7 @@ class PlugEvaluator:
       xok = xforms[ok]
       scores = np.zeros((len(xforms), 2))
       scores[ok, 0] = 9999
-      if not self.kw.plug_fixed_olig:
+      if not self.kw.get('plug_fixed_olig'):
          bounds = (*trim, -1, *trim, -1)
          scores[ok, 0] = sfxn(plug, plug, xok, xsym[ok], iresl, bounds=bounds, wts=wts)
       scores[ok, 1] = sfxn(plug, hole, xok, xeye[:, ], iresl, bounds=trim, wts=wts)
@@ -110,11 +111,11 @@ class PlugEvaluator:
       if trim:
          plb[ok], pub[ok] = trim[0], trim[1]
 
-      return scores, rp.Bunch(reslb=plb, resub=pub)
+      return scores, Bunch(reslb=plb, resub=pub)
 
 def _debug_dump_plugs(xforms, plug, hole, scores, ibest, evaluator, **kw):
-   kw = rp.Bunch(kw)
-   t = rp.Timer().start()
+   kw = Bunch(kw, _strict=False)
+   t = Timer().start()
    fname_prefix = "plug" if kw.output_prefix is None else kw.output_prefix
    nout_debug = min(10 if kw.nout_debug is None else kw.nout_debug, len(ibest))
    for i in range(nout_debug):
@@ -163,14 +164,14 @@ def plug_test_hier_sampler(plug, hole, hscore, n=6):
 ### below is junk?
 
 def __make_plugs_hier_sample_test__(plug, hole, hscore, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    sampler = plug_get_sample_hierarchy(plug, hole, hscore)
    sampler = plug_test_hier_sampler(plug, hole, hscore)
 
    nresl = kw["nresl"]
 
    for rpx in [0, 1]:
-      kw.wts = rp.Bunch(plug=1.0, hole=1.0, ncontact=1.0, rpx=rpx)
+      kw.wts = Bunch(plug=1.0, hole=1.0, ncontact=1.0, rpx=rpx)
       evaluator = PlugEvaluator(plug, hole, hscore, **kw)
       iresl = 0
       indices, xforms = expand_samples(**kw.sub(vars()))
