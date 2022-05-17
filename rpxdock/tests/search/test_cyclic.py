@@ -32,12 +32,26 @@ def test_make_cyclic_grid(hscore, body):
    kw.cart_resl = 3
    kw.ori_resl = 20
    result = rp.search.make_cyclic(body, "C3", hscore, grid_search, **kw)
-   # print(result)
+
    # result.dump_pdbs_top_score(3)
-   # assert 0
+
    # rp.dump(result, 'rpxdock/data/testdata/test_make_cyclic_grid.pickle')
    ref = rp.data.get_test_data('test_make_cyclic_grid')
-   print(result, ref)
+
+   # print(result.scores[:10])
+   # print(ref.scores[:10])
+   # assert np.allclose(result.scores, ref.scores)
+   # for i in range(len(result.xforms)):
+   # print(i)
+   # print(result.xforms[i])
+   # print(ref.xforms[i])
+   # assert np.allclose(result.xforms, ref.xforms, atol=1e-3)
+   # print(len(result.xforms))
+   # print(len(ref.xforms))
+   # for k in result.data:
+   # print(k)
+   # assert np.allclose(result[k], ref[k], atol=1e-3)
+   # print('OK?')
    rp.search.assert_results_close(result, ref)
 
 def test_make_cyclic_hier_trim(hscore, body):
@@ -117,9 +131,9 @@ if __name__ == "__main__":
    #   print('5', rp.homog.axis_angle_of(np.linalg.inv(a) @ b))
    #   print('why not rotated around x like in')
    #   assert 0
-   # hscore = rp.data.small_hscore()
-   # body = rp.data.get_body('DHR14')
+   hscore = rp.data.small_hscore()
+   body = rp.data.get_body('DHR14')
    # test_make_dimer_hier(hscore, body)
    # test_make_cyclic_hier_trim(hscore, body)
-   # test_make_cyclic_grid(hscore, body)
-   debug_marisa_dhr01()
+   test_make_cyclic_grid(hscore, body)
+   # debug_marisa_dhr01()

@@ -330,14 +330,15 @@ def dummy_result(size=1000):
       resub=(["model"], np.random.randint(100, 200, size)),
    )
 
-def assert_results_close(r, s, n=-1):
+def assert_results_close(r, s, n=-1, tol=1e-6, xtol=1e-3):
    if set(r.keys()) != set(s.keys()):
       print(list(r.keys()))
       print(list(s.keys()))
    print(list(r.keys()))
    print(list(s.keys()))
    assert set(r.keys()) == set(s.keys()), 'results must have same fields'
-   assert np.allclose(r.scores[:n], s.scores[:n])
-   assert np.allclose(r.xforms[:n], s.xforms[:n], atol=1e-3)
+   assert np.allclose(r.scores[:n], s.scores[:n], atol=tol)
+   assert np.allclose(r.xforms[:n], s.xforms[:n], atol=xtol)
    for k in r.data:
-      assert np.allclose(r[k][:n], s[k][:n])
+      if k in ('scores', 'xforms'): continue
+      assert np.allclose(r[k][:n], s[k][:n], atol=tol)

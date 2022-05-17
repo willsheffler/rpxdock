@@ -390,6 +390,7 @@ def main():
       result.dump_pdbs_top_score(hscore=hscore, **kw)
       result.dump_pdbs_top_score_each(hscore=hscore, **kw)
    if not kw.suppress_dump_results:
+      # rp.util.dump(result, kw.output_prefix + '_Result.pickle')
       rp.util.dump(result, kw.output_prefix + '_Result.pickle')
 
 if __name__ == '__main__':
