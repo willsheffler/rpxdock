@@ -1,4 +1,4 @@
-import os, copy, numpy as np, rpxdock, logging, rpxdock as rp
+import os, copy, numpy as np, rpxdock, logging, rpxdock as rp, io, tempfile
 # from pandas.core.internals.concat import trim_join_unit
 from rpxdock.filter.sscount import secondary_structure_map
 from pyrosetta import rosetta as ros
@@ -19,6 +19,7 @@ class Body:
       allowed_res=None,
       trim_direction='NC',
       is_subbody=False,
+      source_filename=None,
       **kw,
    ):
       kw = wu.Bunch(kw)
@@ -31,6 +32,14 @@ class Body:
             pose = ros.get_pose_cached(source)
          else:
             pose = ros.pose_from_file(source)
+            ros.assign_secstruct(pose)
+      elif isinstance(source, io.BytesIO):
+         import rpxdock.rosetta.triggers_init as ros
+         self.pdbfile = source_filename
+         with tempfile.TemporaryDirectory() as td:
+            with open(td + '/tmp.pdb', 'w') as out:
+               out.write(source.read().decode())
+            pose = ros.pose_from_file(td + '/tmp.pdb')
             ros.assign_secstruct(pose)
       self.pdbfile = pose.pdb_info().name() if pose.pdb_info() else None
       self.orig_anames, self.orig_coords = rp.rosetta.get_sc_coords(pose, **kw)
@@ -387,9 +396,11 @@ class Body:
       else:
          return pairs[ok]
 
+   def source(self):
+      return self.pdbfile if self.pdbfile else '<rosetta Pose of unknown origin>'
+
    def __repr__(self):
-      source = self.pdbfile if self.pdbfile else '<rosetta Pose of unknown origin>'
-      return f'Body(source="{source}")'
+      return f'Body(source="{self.source()}")'
 
 def get_trimming_subbodies(body, pose, debug=False, **kw):
    kw = Bunch(kw, _strict=False)

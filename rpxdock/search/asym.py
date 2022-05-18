@@ -81,18 +81,19 @@ class AsymEvaluator:
          ok = trimok
       else:
          ok = body1.clash_ok(body2, xforms, xeye, **kw)
-         trim = [0], [body2.nres - 1]
+         trim1 = [0], [body1.nres - 1]
+         trim2 = [0], [body2.nres - 1]
 
       # score everything that didn't clash
       scores = np.zeros(len(xforms))
-      bounds = (*trim, -1, *trim, -1)
+      bounds = (*trim1, -1, *trim2, -1)
       scores[ok] = self.hscore.scorepos(body1, body2, xforms[ok], xeye, iresl, bounds, **kw)
-      # scores[ok] = self.hscore.scorepos(body1, body2, xeye, xforms[ok], iresl, bounds, **kw)
 
       # record ranges used
       lb = np.zeros(len(scores), dtype="i4")
       # ub = np.ones(len(scores), dtype="i4") * (body1.nres - 1)
-      ub = np.ones(len(scores), dtype="i4") * (body2.nres - 1)
-      if trim: lb[ok], ub[ok] = trim[0], trim[1]
+      ub = np.ones(len(scores), dtype="i4") * (body1.nres - 1)
+      if kw.max_trim > 0:
+         lb[ok], ub[ok] = trim2[0], trim2[1]
 
       return scores, Bunch(reslb=lb, resub=ub)

@@ -20,6 +20,7 @@ def get_test_data(name):
    try:
       return result_from_tarball(os.path.join(testdatadir, f'{name}.result.txz'))
    except FileNotFoundError:
+      print('warning: using old pickle format for test result')
       with open(os.path.join(testdatadir, f'{name}.pickle'), 'rb') as inp:
          return _pickle.load(inp)
 

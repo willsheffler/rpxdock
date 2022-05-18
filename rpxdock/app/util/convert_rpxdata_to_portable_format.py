@@ -56,6 +56,7 @@ def convert_rpx_data(datafiles, **opts):
 
 def convert_rpxdata_datafile(fname, **opts):
    dat = rp.load(fname)
+
    if isinstance(dat, xr.Dataset) and 'r_pdbid' in dat:
       # new file name
       newfname = fname + '.nc'
@@ -64,18 +65,21 @@ def convert_rpxdata_datafile(fname, **opts):
       # convert
       print(f'converting ResPairData {fname} to {newfname}')
       rp.motif.convert_respairdat_to_netcdf(dat, newfname, **opts)
+
    elif isinstance(dat, rp.motif.ResPairScore):
       newfname = fname + '.rpx.txz'
       if fname.endswith('.pickle'):
          newfname = fname[:-7] + '.rpx.txz'
       print(f'converting ResPairScore {fname} to {newfname}')
       rp.motif.respairscore_to_tarball(dat, newfname, **opts)
+
    elif isinstance(dat, rp.motif.Xmap):
       newfname = fname + '.xmap.txz'
       if fname.endswith('.pickle'):
          newfname = fname[:-7] + '.xmap.txz'
       print(f'converting Xmap {fname} to {newfname}')
       rp.motif.xmap_to_tarball(dat, newfname, **opts)
+
    elif isinstance(dat, rp.search.Result):
       newfname = fname + '.result.txz'
       if fname.endswith('.pickle'):

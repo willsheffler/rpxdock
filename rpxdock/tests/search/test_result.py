@@ -59,11 +59,11 @@ def test_result_no_body_label(result):
    foo = Result(result.data, body_=['a', 'b', 'c'])
    assert foo.body_label_ == 'body0 body1 body2'.split()
 
-@pytest.mark.skip('no test criterion')
-def test_result_dump_asym():
-   # assert 0, 'fix dump_pdb output_asym_only'
-   result = rp.data.get_test_data('result_test_asym_out')
-   print(result.dump_pdbs(output_asym_only=True))
+# @pytest.mark.skip('no test criterion')
+# def test_result_dump_asym():
+#    # assert 0, 'fix dump_pdb output_asym_only'
+#    result = rp.data.get_test_data('result_test_asym_out')
+#    print(result.dump_pdbs(output_asym_only=True))
 
 if __name__ == '__main__':
    # import tempfile

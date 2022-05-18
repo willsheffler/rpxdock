@@ -16,7 +16,7 @@ def _test_args():
    kw.debug = True
    return kw
 
-def _test_asym(hscore, body, body2):
+def test_asym(hscore, body, body2):
    kw = _test_args()
    kw.max_trim = 0
    kw.output_prefix = 'test_asym'
@@ -45,13 +45,17 @@ def _test_asym(hscore, body, body2):
 
    # sampler = rp.search.asym_get_sample_hierarchy(body2, hscore, 18)
    # print(f'toplevel samples {sampler.size(0):,}')
-   result = rp.search.make_asym([body2, body], hscore, sampler, **kw)
+   result = rp.search.make_asym([body, body2], hscore, sampler, **kw)
 
    # result.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts, output_prefix='old')
 
    # rp.dump(result, 'rpxdock/data/testdata/test_asym.pickle')
+   rp.search.result_to_tarball(result, 'rpxdock/data/testdata/test_asym.result', overwrite=True)
+
    ref = rp.data.get_test_data('test_asym')
-   print(result, ref)
+
+   result.dump_pdbs_top_score(1, hscore=hscore, wts=kw.wts)
+
    rp.search.assert_results_close(result, ref)
 
 @pytest.mark.skip
@@ -72,8 +76,6 @@ def _test_asym_trim(hscore, body, body2):
    # print(f'toplevel samples {sampler.size(0):,}')
    result = rp.search.make_asym([body2, body], hscore, sampler, **kw)
 
-   # result.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts)
-
    rp.dump(result, 'rpxdock/data/testdata/test_asym_trim.pickle')
    ref = rp.data.get_test_data('test_asym_trim')
    rp.search.assert_results_close(result, ref)
@@ -93,7 +95,7 @@ def main():
 
    # body1 = rp.data.get_body('top7b')
 
-   _test_asym(hscore, body1, body2)
+   test_asym(hscore, body1, body2)
    # test_asym_trim(hscore, body1, body2)
 
 if __name__ == '__main__':

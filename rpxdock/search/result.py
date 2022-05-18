@@ -2,11 +2,15 @@ import copy, logging, os, tempfile, tarfile, io
 from collections import OrderedDict, abc, defaultdict
 import numpy as np, rpxdock as rp
 from rpxdock.util import sanitize_for_pickle, num_digits
+from willutil import unbunchify
 
 log = logging.getLogger(__name__)
 
 def result_from_tarball(fname):
    import xarray as xr
+   sources = 'no sources'
+   bodies = list()
+   data = None
    with tarfile.open(fname) as tar:
 
       for m in tar.getmembers():
@@ -15,10 +19,36 @@ def result_from_tarball(fname):
          inp.write(raw.read())
          inp.seek(0)
 
-         assert m.name == 'dataset.nc'
-         data = xr.open_dataset(inp)
+         if m.name == 'dataset.nc':
+            data = xr.open_dataset(inp)
 
-   return rp.search.Result(data)
+         elif m.name == 'original_sources.txt':
+            # print('sources')
+            sources = inp.read().decode()
+            # print(sources)
+
+         elif m.name.endswith('.pdb'):
+            assert m.name.startswith('body_')
+            i = int(m.name[5])
+            j = int(m.name[7])
+            # print('pdb', i, j, m.name)
+            body = rp.Body(inp, source_filename=m.name)
+            if len(bodies) <= i:
+               bodies.append(list())
+            bodies[i].append(body)
+         else:
+            assert 0, 'unknown result.txz member: ' + m.name
+
+   if sources == 'no sources':
+      print('warning: result.txz file has no original_sources.txt')
+   if len(bodies) == 0:
+      print('warning: result.txz file has no body pdb files')
+   if data is None:
+      print('warning: result.txz file has no dataset.nc')
+
+   result = rp.search.Result(data, body_=bodies)
+   result.original_sources = sources
+   return result
 
 def result_to_tarball(result, fname, overwrite=False):
 
@@ -32,7 +62,7 @@ def result_to_tarball(result, fname, overwrite=False):
       raise TypeError()
 
    attrs = sanitize_for_pickle(result.data.attrs)
-   attrs = rp.util.unbunchify(attrs)
+   attrs = unbunchify(attrs)
    if 'arg' in result.data.attrs:
       if 'executor' in attrs['arg']: del attrs['arg']['executor']
       if 'iface_summary' in attrs['arg']: del attrs['arg']['iface_summary']
@@ -51,8 +81,23 @@ def result_to_tarball(result, fname, overwrite=False):
       with open(td + '/dataset.nc', 'wb') as out:
          result.data.to_netcdf(out)
 
+      sources = list()
+      for i, bods in enumerate(result.bodies):
+         for j, bod in enumerate(bods):
+            sources.append(f'ijob {i} icomponent {j} source {bod.source()}')
+            fn = f'body_{i}_{j}_{bod.source()}'.replace("/", "^")
+            print('fname for tarball', fn)
+            with open(td + '/' + fn, 'w') as out:
+               pdbstr, _ = bod.str_pdb()
+               out.write(pdbstr)
+
+      with open(td + '/original_sources.txt', 'w') as out:
+         out.write(os.linesep.join(sources))
+      print(os.listdir(td))
+
       cmd = f'cd {td} && tar cjf {os.path.abspath(fname)} *'
       assert not os.system(cmd)
+
    return fname
 
 class Result:
