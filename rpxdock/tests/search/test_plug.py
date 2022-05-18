@@ -17,7 +17,7 @@ def _test_args():
    kw.debug = True
    return kw
 
-@pytest.mark.xfail
+# @pytest.mark.xfail
 def test_plug_hier(hscore, plug, hole):
    kw = _test_args()
    kw.max_trim = 0
@@ -34,9 +34,11 @@ def test_plug_hier(hscore, plug, hole):
    # print(result.reslb)
    # print(result.resub)
 
-   #rp.dump(result, 'rpxdock/data/testdata/test_plug_hier.pickle')
+   # rp.dump(result, 'rpxdock/data/testdata/test_plug_hier.pickle')
+   # rp.search.result_to_tarball(result, 'rpxdock/data/testdata/test_plug_hier.result',
+   # overwrite=True)
    ref = rp.data.get_test_data('test_plug_hier')
-   print(result, ref)
+   # print(result, ref)
    rp.search.assert_results_close(result, ref)
 
 def test_plug_hier_trim(hscore, plug, hole):
@@ -56,6 +58,9 @@ def test_plug_hier_trim(hscore, plug, hole):
    # print(result.reslb)
    # print(result.resub)
    #result.dump_pdbs_top_score(10)
+
+   # rp.search.result_to_tarball(result, 'rpxdock/data/testdata/test_plug_hier_trim.result',
+   # overwrite=True)
 
    #rp.dump(result, 'rpxdock/data/testdata/test_plug_hier_trim.pickle')
    ref = rp.data.get_test_data('test_plug_hier_trim')
@@ -94,6 +99,8 @@ def test_plug_olig_grid(hscore, body_c3_mono, hole):
 
    #result.dump_pdbs_top_score(10)
 
+   # rp.search.result_to_tarball(result, 'rpxdock/data/testdata/test_plug_olig_grid.result',
+   # overwrite=True)
    #rp.dump(result, 'rpxdock/data/testdata/test_plug_olig_grid.pickle')
    ref = rp.data.get_test_data('test_plug_olig_grid')
    rp.search.assert_results_close(result, ref)
@@ -105,6 +112,7 @@ if __name__ == "__main__":
    # rp.dump(c3m, rp.data.datadir + '/body/test_c3_mono.pickle')
    # hole = rp.Body(rp.data.datadir + '/pdb/small_c3_hole.pdb', sym=3)
    # rp.dump(hole, rp.data.datadir + '/body/small_c3_hole.pickle')
+   hscore = rp.data.small_hscore()
    hole = rp.data.get_body('small_c3_hole_sym3')
    plug = rp.data.get_body('dhr64')
    body_c3_mono = rp.data.get_body('test_c3_mono')
@@ -129,15 +137,14 @@ if __name__ == "__main__":
    #    '/home/erinyang/projects/ph_plugs/20200427_rpxdock/input/scaffolds/plug/C3_HFuse-pH192-3_0046_chA'   )
    #body_c3_mono = rp.data.get_body('test_c3_mono')
 
-   hscore = rp.data.small_hscore()
    # hscore = rp.RpxHier('ailv_h', hscore_data_dir='/home/erinyang/hscore')
    # hscore = rp.RpxHier('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
 
-   hole = rp.data.get_body('small_c3_hole_sym3')
-   plug = rp.data.get_body('test_c3_mono')
+   # hole = rp.data.get_body('small_c3_hole_sym3')
+   # plug = rp.data.get_body('test_c3_mono')
 
    # hole.dump_pdb('ref.pdb', use_body_sym=True)
    test_plug_hier(hscore, plug, hole)
    test_plug_hier_trim(hscore, plug, hole)
    test_plug_olig_hier(hscore, body_c3_mono, hole)
-   test_plug_olig_grid(hscore, plug, hole)
+   test_plug_olig_grid(hscore, body_c3_mono, hole)
