@@ -17,7 +17,7 @@ def _test_args():
    kw.debug = True
    return kw
 
-# @pytest.mark.xfail
+@pytest.mark.xfail
 def test_plug_hier(hscore, plug, hole):
    kw = _test_args()
    kw.max_trim = 0
