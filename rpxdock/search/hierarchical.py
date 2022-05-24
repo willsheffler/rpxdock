@@ -25,7 +25,7 @@ def hier_search(sampler, evaluator, **kw):
       neval.append((t, len(scores)))
       log.info(f"{kw.output_prefix} iresl {iresl} ntot {len(scores):11,} " +
                f"nonzero {np.sum(scores > 0):5,}")
-   #Uncomment to dump docking metrics at each resolution level of the search. 
+   #Uncomment to dump docking metrics at each resolution level of the search.
    """
       iresl_list.append(iresl)
       wrpx = kw.wts.sub(rpx=1, ncontact=0)

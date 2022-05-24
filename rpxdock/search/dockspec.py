@@ -283,14 +283,20 @@ class DockSpecMonomerToCyclic(DockSpec):
       return newpos.reshape(origshape)
 
 _layer_comp_center_directions = dict(
-   P6_632=(np.array([0.86602540378, 0.5, 0, 0]), np.array([0.86602540378, 0.0, 0, 0])),
-   P4M_4=(np.array([1, 0, 0]), ),
-)
+   P6_632=(np.array([[0.86602540378, 0.5, 0, 0]]), np.array([[0.86602540378, 0.0, 0, 0]])),
 
-class DockSpec1CompMirrorLayer(DockSpec):
+   P6_6=(),
+   P4M_4=(np.array([1, 0, 0]), ),
+
+   P6_32=(np.array([[1, -1.73205081, 0, 0]]),),
+   P4_42=(np.array([[1, 0, 0, 0]]),)
+
+)    #double brackets are needed for indexing in lattice sampler
+
+class DockSpec1CompLayer(DockSpec):
    @property
    def type(self):
-      return '1comp_mirror_layer'
+      return 'layer'
 
    def __init__(self, arch):
       arch = arch.upper()
@@ -300,7 +306,7 @@ class DockSpec1CompMirrorLayer(DockSpec):
       self.nfold = np.array(list(arch.split('_')[1]), dtype='i')
       self.directions = _layer_comp_center_directions[arch]
       self.axis = np.array([np.array([0, 0, 1])] * 1)
-      self.xflip = [hm.hrot([1, 0, 0], 180)] * 1
+      self.xflip = [hm.hrot([0, 0, 1], 180)] * 1
       self.comp_is_dihedral = [False]
       self.num_components = 1
       ang = 360 / self.nfold[0]
@@ -309,7 +315,7 @@ class DockSpec1CompMirrorLayer(DockSpec):
 class DockSpec3CompLayer(DockSpec):
    @property
    def type(self):
-      return '3comp_layer'
+      return 'layer'
 
    def __init__(self, arch):
       arch = arch.upper()
@@ -320,11 +326,41 @@ class DockSpec3CompLayer(DockSpec):
       self.nfold = np.array(list(arch.split('_')[1]), dtype='i')
       self.directions = _layer_comp_center_directions[arch]
       self.axis = np.array([np.array([0, 0, 1])] * 3)
-      self.xflip = [hm.hrot([1, 0, 0], 180)] * 3
+      self.xflip = [hm.hrot([0, 0, 1], 180)] * 3
       self.comp_is_dihedral = [False, False, False]
       self.num_components = 3
       ang = 360 / self.nfold[0]
       self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], ang), hm.hrot([0, 0, 1], ang)]
+
+class DockSpec2CompLayer(DockSpec):
+   @property
+   def type(self):
+      return 'layer'
+
+   def __init__(self, arch):
+      arch = arch.upper()
+      assert arch.startswith('P')
+      assert 2 == len(arch.split('_')[1])
+      self.arch = arch
+      self.sym = arch
+      self.nfold = np.array(list(arch.split('_')[1]), dtype='i')
+      self.directions = _layer_comp_center_directions[arch]
+      self.axis = np.array([np.array([0, 0, 1])] * 2)
+      #axis dictates the angle between docked components, cannot enter 2 separate arrays or [0,0,0]
+      #I think it makes sense for the self axes to be the same because the dimer should be parallel to 1 arm of trimer
+
+
+      self.xflip = [hm.hrot([0, 0, 1], 180)] * 2
+         #confident in x flip
+      self.comp_is_dihedral = [False, False]
+      self.num_components = 2
+      ang = 360 / self.nfold[0]
+      #ang is only accessing the first element of the oligomer list, does it need to know the angles of the other comps?
+      self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], ang), None]
+      #hrot(axis: object, angle: object, center: object = None, dtype: object = 'f8', **kws: object), fxn in homog.py
+      #to_neigh_olig references sym def files for all cages, used w rot
+      #second term is a 4x4 array, rotating around z makes sense to me
+
 
 class DockSpecAxel:
    @property

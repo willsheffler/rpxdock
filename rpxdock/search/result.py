@@ -208,6 +208,7 @@ class Result:
          bfactor=bfactor,
          **kw,
       )
+
       if self.pdb_extra is not None:
          with open(fname, 'a') as out:
             out.write(self.pdb_extra[int(imodel)])

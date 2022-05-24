@@ -5,7 +5,7 @@ tetrahedral_frames = np.load(rp.data.datadir + "/tetrahedral_frames.pickle", all
 octahedral_frames = np.load(rp.data.datadir + "/octahedral_frames.pickle", allow_pickle=True)
 icosahedral_frames = np.load(rp.data.datadir + "/icosahedral_frames.pickle", allow_pickle=True)
 
-def symframes(sym, pos=None, axis=[0, 0, 1], **kw):
+def symframes(sym, pos=None, axis=[0,0,1], **kw):
    kw = rp.Bunch(kw)
    if isinstance(sym, np.ndarray):
       assert len(sym) == 1
@@ -49,7 +49,29 @@ def symframes(sym, pos=None, axis=[0, 0, 1], **kw):
       # frames = np.concatenate([c6, c3, c2])
       # frames = c6
       # frames = np.eye(4)
+      print('workingonsym')
       return frames.reshape(-1, 4, 4)
+   elif sym == 'P6_32':
+      c3 = hm.hrot(axis, np.arange(3) / 3 * 360)
+      c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
+      #center inputs are 3 x,y,z, each list should be something like position, spin, offset (idk for sure)
+      #if you change the center of c2, c3 spins to compensate for change
+
+      #line from cyclic oligomers:
+      #np.array(list(hm.hrot(axis, np.arange(sym) / sym * 360)))^matches above except changed to 720??
+
+      #c3 = hm.hrot(axis, np.arange(3) / 3 * 360)
+      #c2 = hm.hrot(axis, np.arange(2) / 2 * 360) <-- these were wrong! needs to be * 720
+      frames = c3[:, None] @ c2[None, :]
+      #doesnt know what nfold is yet
+      return frames.reshape(-1, 4, 4)
+
+   elif sym == 'P4_42':
+      c4 = hm.hrot(axis, np.arange(4) / 4 * 360)
+      c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
+      frames = c4[:, None] @ c2[None, :]
+      return frames.reshape(-1, 4, 4)
+
    elif sym == 'P4M_4':
       c4a = hm.hrot(axis, np.arange(4) / 4 * 360)
       c4b = hm.hrot(axis, np.arange(4) / 4 * 360, center=[pos[0, 3], pos[1, 3], 0])

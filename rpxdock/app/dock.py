@@ -23,7 +23,7 @@ def get_spec(arch):
       elif len(component_nfold) == 3:
          spec = rp.search.DockSpec3CompLayer(arch)
       else:
-         raise ValueError('number of conponents must be 1, 2 or 3')
+         raise ValueError('number of components must be 1, 2 or 3')
    elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
       spec = rp.search.DockSpec1CompCage(arch)
    else:

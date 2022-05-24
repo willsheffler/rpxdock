@@ -29,8 +29,8 @@ def test_cage_hier_no_trim(hscore, body_cageA, body_cageB):
    result = rp.search.make_multicomp([body_cageA, body_cageB], spec, hscore, rp.hier_search,
                                      sampler, **kw)
    # print(result)
-   # result.dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
+   result.dump_pdbs_top_score(hscore=hscore,
+   **kw.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_hier_no_trim.pickle')
    ref = rp.data.get_test_data('test_cage_hier_no_trim')
@@ -63,8 +63,8 @@ def test_cage_hier_trim(hscore, body_cageA_extended, body_cageB_extended):
    # result.dump_pdbs_top_score(hscore=hscore,
    # **kw.sub(nout_top=10, output_prefix="test_cage_hier_trim"))
    # result.resub[:] = np.max(result.resub, axis=0)
-   # result.dump_pdbs_top_score(hscore=hscore,
-   # **kw.sub(nout_top=10, output_prefix="whole_test_cage_hier_trim"))
+   result.dump_pdbs_top_score(hscore=hscore,
+   **kw.sub(nout_top=10, output_prefix="whole_test_cage_hier_trim"))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_hier_trim.pickle')
    ref = rp.data.get_test_data('test_cage_hier_trim')
@@ -96,21 +96,45 @@ def test_layer_hier_3comp(hscore, bodyC6, bodyC3, bodyC2):
    kw.iface_summary = np.median
    kw.max_delta_h = 9e9
    # kw.executor = None
-   # kw.nout_debug = 3
+   kw.nout_debug = 3
 
    bodies = [bodyC6, bodyC3, bodyC2]
    spec = rp.search.DockSpec3CompLayer('P6_632')
-   sampler = rp.sampling.hier_multi_axis_sampler(spec, [[50, 100], [-10, 20], [-10, 20]],
-                                                 flip_components=False)
-   # sampler = rp.sampling.hier_multi_axis_sampler(spec, [[0, 300], [-10, 10], [-10, 10]],
-   # flip_components=False)
+   sampler = rp.sampling.hier_multi_axis_sampler(spec, [[0, 100], [0, 40], [0, 40]],
+                                                 flip_components=True)
    result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **kw)
 
-   # result.dump_pdbs_top_score(hscore=hscore,
-   # **kw.sub(nout_top=10, output_prefix='test_layer_hier_3comp'))
+   result.dump_pdbs_top_score(hscore=hscore,
+   **kw.sub(nout_top=5, output_prefix='test_layer_hier_3comp'))
 
-   # rp.dump(result, 'rpxdock/data/testdata/test_layer_hier_3comp.pickle')
+   rp.dump(result, '/home/cnfries/PycharmProjects/rpxdock-cnfries/rpxdock/data/testdata/test_layer_hier_3comp.pickle')
    ref = rp.data.get_test_data('test_layer_hier_3comp')
+   rp.search.assert_results_close(result, ref)
+
+def test_layer_hier_2comp(hscore, bodyC3, bodyC2):
+   #these dont actually need to be C3 and C2, just adjust docksepc for other oligomers
+   kw = get_arg()
+   kw.wts.ncontact = 0.01
+   kw.beam_size = 10000
+   kw.iface_summary = np.median
+   kw.max_delta_h = 9e9
+   #kw.executor = None
+   kw.nout_debug = 2
+
+   bodies = [bodyC3, bodyC2]
+   spec = rp.search.DockSpec2CompLayer('P6_32')
+   sampler = rp.sampling.hier_multi_axis_sampler(spec, [[-100, 100], [-100, 100]],
+                                                 flip_components=True)
+   #bounds for the hier_multi_axis_sampler are critical for getting dock solutions - need big search space?
+   #bounds set limits in x,y,z cartesian space. limits are same in each direction, and each term refers to bounds for each component
+
+   result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **kw)
+
+   result.dump_pdbs_top_score(hscore=hscore,
+    **kw.sub(nout_top=5, output_prefix='test_layer_hier_2comp_test', output_asym_only=False))
+
+   rp.dump(result, '/home/cnfries/PycharmProjects/rpxdock-cnfries/rpxdock/data/testdata/test_layer_hier_2comp.pickle')
+   ref = rp.data.get_test_data('test_layer_hier_2comp')
    rp.search.assert_results_close(result, ref)
 
 if __name__ == '__main__':
@@ -132,15 +156,15 @@ if __name__ == '__main__':
 
    # body1 = rp.data.get_body('T33_dn2_asymA_extended')
    # body2 = rp.data.get_body('T33_dn2_asymB_extended')
-   # test_cage_hier_trim(hscore, body1, body2)
+   #test_cage_hier_trim(hscore, C3, C2)
 
    C2 = rp.data.get_body('C2_REFS10_1')
    C3 = rp.data.get_body('C3_1na0-1_1')
-   C4 = rp.data.get_body('C4_1na0-G1_1')
-   test_cage_hier_3comp(hscore, C4, C3, C2)
+   #C4 = rp.data.get_body('C4_1na0-G1_1')
+   #test_layer_hier_2comp(hscore, C3, C2)
 
-   # C2 = rp.data.get_body('C2_REFS10_1')
-   # C3 = rp.data.get_body('C3_1na0-1_1')
-   # C4 = rp.data.get_body('C4_1na0-G1_1')
-   # C6 = rp.data.get_body('C6_3H22')
-   # test_layer_hier_3comp(hscore, C6, C3, C2)
+   #C2 = rp.data.get_body('C2_REFS10_1')
+   #C3 = rp.data.get_body('C3_1na0-1_1')
+   #C4 = rp.data.get_body('C4_1na0-G1_1')
+   C6 = rp.data.get_body('C6_3H22')
+   test_layer_hier_3comp(hscore, C6, C3, C2)

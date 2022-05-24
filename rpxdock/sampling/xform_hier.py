@@ -64,7 +64,7 @@ def hier_axis_sampler(
    else:
       samp = rp.sampling.RotCart1Hier_f4(lb, ub, cart_nstep, 0,
                                       ang, ang_nstep, axis[:3])
-   if kw.flip_components[0]:
+   if kw.flip_components is not None:
       flip = rp.ZeroDHier([np.eye(4), rp.homog.hrot(flipax, 180)])
       samp = rp.ProductHier(samp, flip)
    return samp
@@ -156,13 +156,15 @@ def hier_mirror_lattice_sampler(
    :param kw:
    :return:
    '''
+   print(spec)
    cart_bounds = np.array(cart_bounds)
-   cart_nstep = np.ceil((cart_bounds[:, 1] - cart_bounds[:, 0]) / resl).astype('i')
+   print(cart_bounds)
+   cart_nstep = np.ceil((cart_bounds[:,1] - cart_bounds[:,0]) / resl).astype('i')
    ang = 360 / spec.nfold
    ang_nstep = np.ceil(ang / angresl).astype('i')
    # sampling cell type of xtal
    sampcell = LineHier(cart_bounds[0, 0], cart_bounds[0, 1], cart_nstep[0], [1, 0, 0])
    # sampling axis of cage within "context of xtal"
-   sampaxis = rp.sampling.RotCart1Hier_f4(cart_bounds[1, 0], cart_bounds[1, 1], cart_nstep[1], 0,
+   sampaxis = rp.sampling.RotCart1Hier_f4(cart_bounds[0, 0], cart_bounds[0, 1], cart_nstep[0], 0,
                                           ang[0], ang_nstep[0], [0, 0, 1])
    return rp.sampling.ProductHier(sampcell, sampaxis)

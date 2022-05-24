@@ -111,10 +111,9 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       kw = self.kw.sub(wts=wts)
       xeye = np.eye(4, dtype="f4")
       B = self.bodies
-      # print(f"docking {len(B)} bodies")
+      print(f"docking {len(B)} bodies")
       X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
       xnbr = self.spec.to_neighbor_olig
-
       # check for "flatness" (ok = an array of "the good stuff that passes these checks")
       delta_h = np.array(
          [hm.hdot(X[:, i] @ B[i].com(), self.spec.axis[i]) for i in range(len(B))])
@@ -128,20 +127,22 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          for j in range(i):
             ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
 
-      if xnbr[0] is None and xnbr[1] is not None and xnbr[2] is not None:  # layer hack
+      if xnbr[0] is None and xnbr[1] is not None:  # layer hack
          logging.debug("touch")
          inv = np.linalg.inv
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[1] @ X[ok, 1], **kw)
-         ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], xnbr[2] @ X[ok, 2], **kw)
-         ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[2] @ X[ok, 1], **kw)
-         ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], xnbr[1] @ X[ok, 2], **kw)
-         ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], xnbr[2] @ X[ok, 2], **kw)
-         ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], xnbr[1] @ X[ok, 2], **kw)
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], inv(xnbr[1]) @ X[ok, 1], **kw)
-         # ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], inv(xnbr[2]) @ X[ok, 2], **kw)
-         # ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[2]) @ X[ok, 2], **kw)
-         ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], inv(xnbr[1]) @ X[ok, 2], **kw)
-         ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[1]) @ X[ok, 2], **kw)
+
+         if xnbr[2] is not None:
+            ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[2] @ X[ok, 1], **kw)
+            ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], xnbr[2] @ X[ok, 2], **kw)
+            ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], xnbr[1] @ X[ok, 2], **kw)
+            ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], xnbr[2] @ X[ok, 2], **kw)
+            ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], xnbr[1] @ X[ok, 2], **kw)
+            # ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], inv(xnbr[2]) @ X[ok, 2], **kw)
+            # ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[2]) @ X[ok, 2], **kw)
+            ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], inv(xnbr[1]) @ X[ok, 2], **kw)
+            ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[1]) @ X[ok, 2], **kw)
 
       # score everything that didn't clash
       # Behaves normally if arg.score_self is not set
