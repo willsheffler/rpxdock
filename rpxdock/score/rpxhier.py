@@ -254,6 +254,8 @@ def _check_hscore_files_aliases(alias, hscore_data_dir):
    txzfiles = sorted(glob.glob(xmappattern))
    fnames = picklefiles
    if len(txzfiles):
+      print(txzfiles)
+      print(picklefiles)
       assert len(picklefiles) in (0, len(txzfiles))
       fnames = txzfiles
       assert sum([s.count('base') for s in txzfiles]) == 1

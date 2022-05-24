@@ -120,20 +120,30 @@ def dock_onecomp(hscore, **kw):
    # double normal resolution, cuz why not?
    if kw.docking_method == 'grid':
       flip = list(spec.flip_axis[:3])
-      if not kw.flip_components[0]:
-         flip = None
+      # if not kw.flip_components[0]:
+      # flip = None
       sampler = rp.sampling.grid_sym_axis(
-         cart=np.arange(crtbnd[0], crtbnd[1], kw.grid_resolution_cart_angstroms), ang=np.arange(
-            0, 360 / spec.nfold, kw.grid_resolution_ori_degrees), axis=spec.axis, flip=flip)
+         cart=np.arange(crtbnd[0], crtbnd[1], kw.grid_resolution_cart_angstroms),
+         ang=np.arange(0, 360 / spec.nfold, kw.grid_resolution_ori_degrees),
+         axis=spec.axis,
+         flip=kw.flip_components,
+      )
       search = rp.grid_search
    else:
       if spec.type == 'mirrorlayer':
          sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **kw)
       else:
          print('!!!!!!!!!! dock.py:79 !!!!!!!!!!!!!!', crtbnd)
-         sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=crtbnd[0], ub=crtbnd[1], resl=5,
-                                                 angresl=5, axis=spec.axis, flipax=spec.flip_axis,
-                                                 **kw)
+         sampler = rp.sampling.hier_axis_sampler(
+            spec.nfold,
+            lb=crtbnd[0],
+            ub=crtbnd[1],
+            resl=5,
+            angresl=5,
+            axis=spec.axis,
+            flipax=spec.flip_axis,
+            **kw,
+         )
       search = rp.hier_search
 
    # pose info and axes that intersect
@@ -277,15 +287,26 @@ def dock_axel(hscore, **kw):
    flip = list(spec.flip_axis)
 
    if kw.docking_method.lower() == 'hier':
-      if not kw.flip_components[0]:
-         flip[0] = None
       if spec.nfold[0] == spec.nfold[1]:
-         sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0], lb=0, ub=100, resl=5, angresl=5,
-                                                  axis=[0, 0, 1], flipax=flip[0])
+         sampler1 = rp.sampling.hier_axis_sampler(
+            spec.nfold[0],
+            lb=0,
+            ub=100,
+            resl=5,
+            angresl=5,
+            axis=[0, 0, 1],
+            flipax=flip[0],
+         )
       else:
          sampler1 = rp.sampling.hier_axis_sampler(
-            spec.nfold[0] * spec.nfold[1] / gcd(spec.nfold[0], spec.nfold[1]), lb=0, ub=100,
-            resl=5, angresl=5, axis=[0, 0, 1], flipax=flip[0])
+            spec.nfold[0] * spec.nfold[1] / gcd(spec.nfold[0], spec.nfold[1]),
+            lb=0,
+            ub=100,
+            resl=5,
+            angresl=5,
+            axis=[0, 0, 1],
+            flipax=flip[0],
+         )
       sampler2 = rp.sampling.ZeroDHier([np.eye(4), rp.homog.hrot([1, 0, 0], 180)])
       if len(kw.flip_components) == 1 and not kw.flip_components[0]:
          sampler2 = rp.sampling.ZeroDHier(np.eye(4))
@@ -301,14 +322,20 @@ def dock_axel(hscore, **kw):
          flip[0] = None
       if spec.nfold[0] == spec.nfold[1]:
          sampler1 = rp.sampling.grid_sym_axis(
-            cart=np.arange(0, 100, kw.grid_resolution_cart_angstroms), ang=np.arange(
-               0, 360 / spec.nfold[0], kw.grid_resolution_ori_degrees), axis=spec.axis[0],
-            flip=flip[0])
+            cart=np.arange(0, 100, kw.grid_resolution_cart_angstroms),
+            ang=np.arange(0, 360 / spec.nfold[0], kw.grid_resolution_ori_degrees),
+            axis=spec.axis[0],
+            flip=flip[0],
+         )
       else:
          sampler1 = rp.sampling.grid_sym_axis(
-            cart=np.arange(0, 100, kw.grid_resolution_cart_angstroms), ang=np.arange(
+            cart=np.arange(0, 100, kw.grid_resolution_cart_angstroms),
+            ang=np.arange(
                0, 360 / (spec.nfold[0] * spec.nfold[1] / gcd(spec.nfold[0], spec.nfold[1])),
-               kw.grid_resolution_ori_degrees), axis=spec.axis[0], flip=flip[0])
+               kw.grid_resolution_ori_degrees),
+            axis=spec.axis[0],
+            flip=flip[0],
+         )
       assert sampler1.ndim == 3
       if (len(kw.flip_components) == 1
           and not kw.flip_components[0]) or (len(kw.flip_components) == 2
