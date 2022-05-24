@@ -37,7 +37,7 @@ def hier_axis_sampler(
    fw_cartub=5,
    fw_rotlb=-5,
    fw_rotub=5,
-   flip_components=True,
+   flip_components=[True],
    **kw,
 ):
    '''
@@ -68,9 +68,11 @@ def hier_axis_sampler(
    else:
       samp = rp.sampling.RotCart1Hier_f4(lb, ub, cart_nstep, 0, ang, ang_nstep, axis[:3])
 
-   if flip_components:
+   if flip_components[0]:
       flip = rp.ZeroDHier([np.eye(4), rp.homog.hrot(flipax, 180)])
-      samp = rp.ProductHier(samp, flip)
+   else:
+      flip = rp.ZeroDHier([np.eye(4)])
+   samp = rp.ProductHier(samp, flip)
 
    return samp
 

@@ -264,6 +264,7 @@ def _check_hscore_files_aliases(alias, hscore_data_dir):
       print('WARNING: using legacy .pickle format, convert to tarball format!')
 
    # check for consistency
+   print(os.linesep.join(fnames))
    for filetype in '.txz .pickle .pickle.gz .pickle.bz2 .pickle.zip'.split():
       if fnames[0].endswith(filetype):
          log.info(f'Detected hscore files filetype: "{filetype}"')

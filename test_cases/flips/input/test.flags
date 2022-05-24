@@ -1,0 +1,29 @@
+    --architecture I3
+    --inputs1 
+     /home/yhsia/cage_design_2/2022-04-20_twistless_lock_v4/1comp/dock/input/scaffolds/twstlssbb-026_3_asu_alignZX_-0/twstlssbb-026_3_asu_alignZX_-0_+0_F.pdb
+#     /home/yhsia/cage_design_2/2022-04-20_twistless_lock_v4/1comp/dock/input/scaffolds/twstlssbb-026_3_asu_alignZX_-0/twstlssbb-026_3_asu_alignZX_-0_+0_R.pdb 
+    --allowed_residues1
+    --cart_bounds 0 300
+    --beam_size 50000
+    --hscore_files 
+
+/home/sheffler/data/rpx/hscore/willsheffler/ilv_h/10/pdb_res_pair_data_si30_10_rots_H_ILV_SSindep_p0.5_b1_base.pickle.bz2.rpx.txz
+/home/sheffler/data/rpx/hscore/willsheffler/ilv_h/10/pdb_res_pair_data_si30_10_rots_H_ILV_SSindep_p0.5_b1_hier0_Kflat_2_1.pickle.bz2.xmap.txz
+/home/sheffler/data/rpx/hscore/willsheffler/ilv_h/10/pdb_res_pair_data_si30_10_rots_H_ILV_SSindep_p0.5_b1_hier1_Kflat_1_1.pickle.bz2.xmap.txz
+/home/sheffler/data/rpx/hscore/willsheffler/ilv_h/10/pdb_res_pair_data_si30_10_rots_H_ILV_SSindep_p0.5_b1_hier2_Kflat_1_1.pickle.bz2.xmap.txz
+/home/sheffler/data/rpx/hscore/willsheffler/ilv_h/10/pdb_res_pair_data_si30_10_rots_H_ILV_SSindep_p0.5_b1_hier3_Kflat_1_0.pickle.bz2.xmap.txz
+/home/sheffler/data/rpx/hscore/willsheffler/ilv_h/10/pdb_res_pair_data_si30_10_rots_H_ILV_SSindep_p0.5_b1_hier4_Kflat_1_0.pickle.bz2.xmap.txz
+
+#    --hscore_data_dir /home/sheffler/data/rpx/hscore/willsheffler/ilv_h/10
+    --loglevel warning
+    --max_delta_h 99999
+    --use_orig_coords
+    --score_only_ss H
+    --output_prefix ./
+    --function sasa_priority
+    --weight_sasa 1125
+    --weight_ncontact 5
+    --weight_error 2
+    --flip_components false
+    --fixed_rot 0 
+    --dump_pdbs

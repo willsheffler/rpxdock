@@ -61,6 +61,7 @@ def result_to_tarball(result, fname, overwrite=False):
    if type(result) is not rp.search.Result:
       raise TypeError()
 
+      # dictionaries / json no good for netcdf
    attrs = sanitize_for_pickle(result.data.attrs)
    attrs = unbunchify(attrs)
    if 'arg' in result.data.attrs:
@@ -75,6 +76,8 @@ def result_to_tarball(result, fname, overwrite=False):
          attrs2[k + '_vals'] = '|'.join(repr(_) for _ in v.values())
          del attrs2[k]
    result.data.attrs = attrs2
+
+   result.data.attrs['dockinfo'] = repr(result.data.attrs['dockinfo'])
 
    with tempfile.TemporaryDirectory() as td:
 
@@ -93,7 +96,7 @@ def result_to_tarball(result, fname, overwrite=False):
 
       with open(td + '/original_sources.txt', 'w') as out:
          out.write(os.linesep.join(sources))
-      print(os.listdir(td))
+      # print(os.listdir(td))
 
       cmd = f'cd {td} && tar cjf {os.path.abspath(fname)} *'
       assert not os.system(cmd)

@@ -122,6 +122,7 @@ def dock_onecomp(hscore, **kw):
       flip = list(spec.flip_axis[:3])
       # if not kw.flip_components[0]:
       # flip = None
+
       sampler = rp.sampling.grid_sym_axis(
          cart=np.arange(crtbnd[0], crtbnd[1], kw.grid_resolution_cart_angstroms),
          ang=np.arange(0, 360 / spec.nfold, kw.grid_resolution_ori_degrees),
@@ -133,7 +134,6 @@ def dock_onecomp(hscore, **kw):
       if spec.type == 'mirrorlayer':
          sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **kw)
       else:
-         print('!!!!!!!!!! dock.py:79 !!!!!!!!!!!!!!', crtbnd)
          sampler = rp.sampling.hier_axis_sampler(
             spec.nfold,
             lb=crtbnd[0],
