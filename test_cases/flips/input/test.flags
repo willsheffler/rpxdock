@@ -5,16 +5,8 @@
     --allowed_residues1
     --cart_bounds 0 300
     --beam_size 50000
-    --hscore_files 
-
-/home/sheffler/data/rpx/hscore/willsheffler/ilv_h/10/pdb_res_pair_data_si30_10_rots_H_ILV_SSindep_p0.5_b1_base.pickle.bz2.rpx.txz
-/home/sheffler/data/rpx/hscore/willsheffler/ilv_h/10/pdb_res_pair_data_si30_10_rots_H_ILV_SSindep_p0.5_b1_hier0_Kflat_2_1.pickle.bz2.xmap.txz
-/home/sheffler/data/rpx/hscore/willsheffler/ilv_h/10/pdb_res_pair_data_si30_10_rots_H_ILV_SSindep_p0.5_b1_hier1_Kflat_1_1.pickle.bz2.xmap.txz
-/home/sheffler/data/rpx/hscore/willsheffler/ilv_h/10/pdb_res_pair_data_si30_10_rots_H_ILV_SSindep_p0.5_b1_hier2_Kflat_1_1.pickle.bz2.xmap.txz
-/home/sheffler/data/rpx/hscore/willsheffler/ilv_h/10/pdb_res_pair_data_si30_10_rots_H_ILV_SSindep_p0.5_b1_hier3_Kflat_1_0.pickle.bz2.xmap.txz
-/home/sheffler/data/rpx/hscore/willsheffler/ilv_h/10/pdb_res_pair_data_si30_10_rots_H_ILV_SSindep_p0.5_b1_hier4_Kflat_1_0.pickle.bz2.xmap.txz
-
-#    --hscore_data_dir /home/sheffler/data/rpx/hscore/willsheffler/ilv_h/10
+    --hscore_files ailv_h
+    --hscore_data_dir /home/sheffler/data/rpx/hscore/erinyang
     --loglevel warning
     --max_delta_h 99999
     --use_orig_coords

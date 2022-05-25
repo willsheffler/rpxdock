@@ -254,8 +254,6 @@ def _check_hscore_files_aliases(alias, hscore_data_dir):
    txzfiles = sorted(glob.glob(xmappattern))
    fnames = picklefiles
    if len(txzfiles):
-      print(txzfiles)
-      print(picklefiles)
       assert len(picklefiles) in (0, len(txzfiles))
       fnames = txzfiles
       assert sum([s.count('base') for s in txzfiles]) == 1
@@ -263,8 +261,11 @@ def _check_hscore_files_aliases(alias, hscore_data_dir):
    else:
       print('WARNING: using legacy .pickle format, convert to tarball format!')
 
+   # print(txzfiles)
+   # print(picklefiles)
    # check for consistency
-   print(os.linesep.join(fnames))
+   # print('fnames')
+   # print(os.linesep.join(fnames))
    for filetype in '.txz .pickle .pickle.gz .pickle.bz2 .pickle.zip'.split():
       if fnames[0].endswith(filetype):
          log.info(f'Detected hscore files filetype: "{filetype}"')

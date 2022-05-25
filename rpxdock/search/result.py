@@ -256,7 +256,10 @@ class Result:
          for x, b in zip(self.xforms[imodel], bod):
             b.move_to(x.data)
       else:
-         bod[0].move_to(self.xforms[imodel].data)
+         if isinstance(bod[0], list):
+            bod[0][0].move_to(self.xforms[imodel].data)
+         else:
+            bod[0].move_to(self.xforms[imodel].data)
       if not fname:
          output_prefix = output_prefix + sep if output_prefix else ''
          body_names = [b.label for b in bod]
