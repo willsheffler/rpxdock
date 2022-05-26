@@ -4,7 +4,7 @@ from cppimport import import_hook
 # from cppimport.config import turn_off_strict_prototypes
 # turn_off_strict_prototypes()
 from rpxdock.util.dilated_int_test import *
-from rpxdock.util import sanitize_for_pickle, load_threads, dump, can_pickle, num_digits
+from rpxdock.util import sanitize_for_storage, load_threads, dump, can_pickle, num_digits
 from willutil import Bunch
 
 class dummyclass:
@@ -25,18 +25,20 @@ def test_load_threads(tmpdir):
    x = load_threads(fnames, nthread=4)
    assert x == list('abcd')
 
-def test_sanitize_for_pickle():
+def test_sanitize_for_storage():
    raw = test_dilated_int
-   san = sanitize_for_pickle(raw)
+   san = sanitize_for_storage(raw)
+   assert san.count('.test_dilated_int')
+   san = sanitize_for_storage(raw, netcdf=True)
    assert san.count('.test_dilated_int')
 
    raw = dict(good=1, bad=test_dilated_int)
-   san = sanitize_for_pickle(raw)
+   san = sanitize_for_storage(raw)
    assert san['good'] == 1
    assert san['bad'].count('.test_dilated_int')
 
    raw = dict(good=1, l=[0, [10, 11, dict(bar=dummyfunc)]], foo=dummyclass, b=Bunch(a=1, b=2))
-   san = sanitize_for_pickle(raw)
+   san = sanitize_for_storage(raw)
    # print(san)
    assert san['good'] == 1
    assert san['l'][1][1] == 11
@@ -64,6 +66,6 @@ def test_num_digits():
 if __name__ == '__main__':
    import tempfile
    # test_load_threads(tempfile.mkdtemp())
-   # test_sanitize_for_pickle()
+   test_sanitize_for_storage()
    # test_can_pickle()
    test_num_digits()

@@ -1,6 +1,8 @@
-import _pickle, os, multiprocessing, threading, copy, hashlib, logging, concurrent, time, gzip, bz2, lzma, zipfile, json
+import _pickle, os, multiprocessing, threading, copy
+import hashlib, logging, concurrent, time, gzip, bz2, lzma, zipfile, json
 from collections import abc
 import numpy as np
+from willutil import Bunch
 
 log = logging.getLogger(__name__)
 
@@ -92,21 +94,25 @@ def hash_str_to_int(s):
    buf = hashlib.sha1(s).digest()[:8]
    return int(abs(np.frombuffer(buf, dtype="i8")[0]))
 
-def sanitize_for_pickle(data):
+def sanitize_for_storage(data, netcdf=False):
    import xarray as xr
-   data = copy.copy(data)
+   newdata = copy.copy(data)
    if isinstance(data, (np.ndarray, xr.Dataset, xr.DataArray, int, float, str)):
       pass
    elif isinstance(data, abc.MutableMapping):
       for k, v in data.items():
-         data[k] = sanitize_for_pickle(v)
+         newdata[k] = sanitize_for_storage(v)
+      if netcdf:
+         newdata = list(data.items())
    elif isinstance(data, abc.MutableSequence):
       for i, v in enumerate(data):
-         data[i] = sanitize_for_pickle(v)
+         newdata[i] = sanitize_for_storage(v)
    elif isinstance(data, tuple):
-      data = tuple(sanitize_for_pickle(list(data)))
+      newdata = tuple(sanitize_for_storage(list(data)))
    elif isinstance(data, abc.Set):
-      data = data.__class__(sanitize_for_pickle(list(data)))
+      newdata = data.__class__(sanitize_for_storage(list(data)))
+      if netcdf:
+         newdata = list(data)
    elif data is None:
       pass
    else:
@@ -119,8 +125,8 @@ def sanitize_for_pickle(data):
          n = 'unknown_name'
       if hasattr(n, '__str__'):
          n += '::' + str(data)
-      data = m + '.' + n
-   return data
+      newdata = m + '.' + n
+   return newdata
 
 def load_threads(fnames, nthread=0):
    if nthread <= 0: nthread = cpu_count()

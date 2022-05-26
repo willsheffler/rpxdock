@@ -17,12 +17,16 @@ def rosetta_patch_files():
 @lru_cache()
 def get_test_data(name):
    from rpxdock.search import result_from_tarball
-   try:
-      return result_from_tarball(os.path.join(testdatadir, f'{name}.result.txz'))
-   except FileNotFoundError:
-      print('warning: using old pickle format for test result')
-      with open(os.path.join(testdatadir, f'{name}.pickle'), 'rb') as inp:
+   if name.endswith('.pickle'):
+      with open(os.path.join(testdatadir, name), 'rb') as inp:
          return _pickle.load(inp)
+   else:
+      try:
+         return result_from_tarball(os.path.join(testdatadir, f'{name}.result.txz'))
+      except FileNotFoundError:
+         print('warning: using old pickle format for test result')
+         with open(os.path.join(testdatadir, f'{name}.pickle'), 'rb') as inp:
+            return _pickle.load(inp)
 
 @lru_cache()
 def get_body_cached(name):

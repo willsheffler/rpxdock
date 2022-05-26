@@ -49,12 +49,12 @@ def test_asym(hscore, body, body2):
 
    # result.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts, output_prefix='old')
 
-   # rp.dump(result, 'rpxdock/data/testdata/test_asym.pickle')
+   # rp.dump(result, 'rpxdock/data/testdata/test_result.pickle')
    # rp.search.result_to_tarball(result, 'rpxdock/data/testdata/test_asym.result', overwrite=True)
 
    ref = rp.data.get_test_data('test_asym')
 
-   result.dump_pdbs_top_score(1, hscore=hscore, wts=kw.wts)
+   # result.dump_pdbs_top_score(1, hscore=hscore, wts=kw.wts)
 
    rp.search.assert_results_close(result, ref)
 

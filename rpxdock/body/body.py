@@ -24,6 +24,7 @@ class Body:
    ):
       kw = wu.Bunch(kw)
       # pose stuff
+      # timer = wu.Timer()
       pose = source
       if isinstance(source, str):
          import rpxdock.rosetta.triggers_init as ros
@@ -34,13 +35,20 @@ class Body:
             pose = ros.pose_from_file(source)
             ros.assign_secstruct(pose)
       elif isinstance(source, io.BytesIO):
+         # timer.checkpoint('body load start')
          import rpxdock.rosetta.triggers_init as ros
          self.pdbfile = source_filename
+         # timer.checkpoint('body load pyrosetta')
          with tempfile.TemporaryDirectory() as td:
+            # timer.checkpoint('body open TemporaryDirectory')
             with open(td + '/tmp.pdb', 'w') as out:
                out.write(source.read().decode())
+            # timer.checkpoint('body wrote file')
+
             pose = ros.pose_from_file(td + '/tmp.pdb')
+            # timer.checkpoint('pose_from_file')
             ros.assign_secstruct(pose)
+      # timer.checkpoint('body load file')
       self.pdbfile = pose.pdb_info().name() if pose.pdb_info() else None
       self.orig_anames, self.orig_coords = rp.rosetta.get_sc_coords(pose, **kw)
       self.seq = np.array(list(pose.sequence()))
@@ -69,9 +77,11 @@ class Body:
       self.is_subbody = is_subbody
       if not is_subbody:
          self.trimN_subbodies, self.trimC_subbodies = get_trimming_subbodies(self, pose, **kw)
-         print('trimN_subbodies', len(self.trimN_subbodies))
-         print('trimC_subbodies', len(self.trimC_subbodies))
+         # print('trimN_subbodies', len(self.trimN_subbodies))
+         # print('trimC_subbodies', len(self.trimC_subbodies))
          # assert 0
+      # timer.checkpoint('body init file')
+      # print(timer)
 
    def init_coords(
          self,
@@ -363,6 +373,7 @@ class Body:
    def str_pdb(self, **kw):
       # import needs to be here to avoid cyclic import
       from rpxdock.io.io_body import dump_pdb_from_bodies
+      self.pos = np.eye(4)
       return rp.io.make_pdb_from_bodies([self], **kw)
 
    def copy(self):

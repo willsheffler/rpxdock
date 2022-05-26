@@ -417,8 +417,7 @@ def main():
       result.dump_pdbs_top_score(hscore=hscore, **kw)
       result.dump_pdbs_top_score_each(hscore=hscore, **kw)
    if not kw.suppress_dump_results:
-      rp.search.result.result_to_tarball(result, kw.output_prefix + '.result.txz',
-                                         overwrite=True)  #
+      rp.search.result_to_tarball(result, kw.output_prefix + '.result.txz', overwrite=True)  #
       # rp.util.dump(result, kw.output_prefix + '_Result.pickle')
 
 if __name__ == '__main__':

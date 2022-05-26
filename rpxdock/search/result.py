@@ -1,116 +1,41 @@
-import copy, logging, os, tempfile, tarfile, io
+import copy, logging, os, tempfile, tarfile, io, json
 from collections import OrderedDict, abc, defaultdict
 import numpy as np, rpxdock as rp
-from rpxdock.util import sanitize_for_pickle, num_digits
-from willutil import unbunchify
+from rpxdock.util import sanitize_for_storage, num_digits
+from willutil import unbunchify, Timer
 
 log = logging.getLogger(__name__)
 
-def result_from_tarball(fname):
-   import xarray as xr
-   sources = 'no sources'
-   bodies = list()
-   data = None
-   with tarfile.open(fname) as tar:
-
-      for m in tar.getmembers():
-         raw = tar.extractfile(m)
-         inp = io.BytesIO()
-         inp.write(raw.read())
-         inp.seek(0)
-
-         if m.name == 'dataset.nc':
-            data = xr.open_dataset(inp)
-
-         elif m.name == 'original_sources.txt':
-            # print('sources')
-            sources = inp.read().decode()
-            # print(sources)
-
-         elif m.name.endswith('.pdb'):
-            assert m.name.startswith('body_')
-            i = int(m.name[5])
-            j = int(m.name[7])
-            # print('pdb', i, j, m.name)
-            body = rp.Body(inp, source_filename=m.name)
-            if len(bodies) <= i:
-               bodies.append(list())
-            bodies[i].append(body)
-         else:
-            assert 0, 'unknown result.txz member: ' + m.name
-
-   if sources == 'no sources':
-      print('warning: result.txz file has no original_sources.txt')
-   if len(bodies) == 0:
-      print('warning: result.txz file has no body pdb files')
-   if data is None:
-      print('warning: result.txz file has no dataset.nc')
-
-   result = rp.search.Result(data, body_=bodies)
-   result.original_sources = sources
-   return result
-
-def result_to_tarball(result, fname, overwrite=False):
-
-   if not fname.endswith(('.txz', '.tar.xz')):
-      fname += '.txz'
-
-   if os.path.exists(fname) and not overwrite:
-      raise FileExistsError(f'file exists {fname}')
-
-   if type(result) is not rp.search.Result:
-      raise TypeError()
-
-      # dictionaries / json no good for netcdf
-   attrs = sanitize_for_pickle(result.data.attrs)
-   attrs = unbunchify(attrs)
-   if 'arg' in result.data.attrs:
-      if 'executor' in attrs['arg']: del attrs['arg']['executor']
-      if 'iface_summary' in attrs['arg']: del attrs['arg']['iface_summary']
-
-   todel = list()
-   attrs2 = attrs.copy()
-   for k, v in attrs.items():
-      if isinstance(v, dict):
-         attrs2[k + '_keys'] = '|'.join(v.keys())
-         attrs2[k + '_vals'] = '|'.join(repr(_) for _ in v.values())
-         del attrs2[k]
-   result.data.attrs = attrs2
-
-   result.data.attrs['dockinfo'] = repr(result.data.attrs['dockinfo'])
-
-   with tempfile.TemporaryDirectory() as td:
-
-      with open(td + '/dataset.nc', 'wb') as out:
-         result.data.to_netcdf(out)
-
-      sources = list()
-      for i, bods in enumerate(result.bodies):
-         for j, bod in enumerate(bods):
-            sources.append(f'ijob {i} icomponent {j} source {bod.source()}')
-            fn = f'body_{i}_{j}_{bod.source()}'.replace("/", "^")
-            print('fname for tarball', fn)
-            with open(td + '/' + fn, 'w') as out:
-               pdbstr, _ = bod.str_pdb()
-               out.write(pdbstr)
-
-      with open(td + '/original_sources.txt', 'w') as out:
-         out.write(os.linesep.join(sources))
-      # print(os.listdir(td))
-
-      cmd = f'cd {td} && tar cjf {os.path.abspath(fname)} *'
-      assert not os.system(cmd)
-
-   return fname
-
 class Result:
-   def __init__(self, data_or_file=None, body_=[], body_label_=None, **kw):
+   def __init__(self, data_or_file=None, body_=[], body_label_=None, pdb_extra_=None, **kw):
       import xarray as xr
-      if isinstance(body_, rp.Body): body_ = [body_]
-      self.bodies = [body_]
-      self.body_label_ = body_label_ if body_label_ else ['body%i' % i for i in range(len(body_))]
-      self.pdb_extra = None
-      if len(self.body_label_) != len(body_):
+
+      self.bodies = body_
+      if not isinstance(self.bodies, list): self.bodies = [self.bodies]
+      if self.bodies == []: self.bodies = [[]]
+      if not isinstance(self.bodies[0], list): self.bodies = [self.bodies]
+
+      self.body_label_ = body_label_
+      if self.body_label_ in (None, []):
+         self.body_label_ = [
+            ['body_%i_%i' % (i, j) for j, _ in enumerate(b)] for i, b in enumerate(self.bodies)
+         ]
+
+      if not isinstance(self.body_label_[0], list):
+         # body label is list of lists, iresult x ncomponents
+         self.body_label_ = [self.body_label_]
+
+      assert isinstance(self.bodies, list)
+      if len(self.bodies): assert isinstance(self.bodies[0], list)
+      assert isinstance(self.body_label_, list)
+      if len(self.body_label_):
+         assert isinstance(self.body_label_[0], list)
+         assert len(self.body_label_[0]) == len(self.bodies[0])
+      assert len(self.body_label_) == len(self.bodies)
+
+      self.pdb_extra_ = pdb_extra_
+
+      if len(self.body_label_) != len(self.bodies):
          raise ValueError('body_label_ must match number of bodies')
       if data_or_file:
          assert len(kw) == 0
@@ -121,7 +46,7 @@ class Result:
       else:
          attrs = OrderedDict(kw['attrs']) if 'attrs' in kw else None
          if attrs: del kw['attrs']
-         attrs = sanitize_for_pickle(attrs)
+         attrs = sanitize_for_storage(attrs)
          self.data = xr.Dataset(dict(**kw), attrs=attrs)
       # b/c I always mistype these
       self.dump_pdb_top_score = self.dump_pdbs_top_score
@@ -264,7 +189,15 @@ class Result:
          output_prefix = output_prefix + sep if output_prefix else ''
          body_names = [b.label for b in bod]
          if len(output_body) > 1 and self.body_label_:
-            bodlab = [self.body_label_[i] for i in output_body]
+
+            # print(output_body)
+            # print(imodel.data)
+            # print(len(self.body_label_))
+            # print(self.body_label_)
+            ijob = 0
+            if 'ijob' in self.data:
+               ijob = self.ijob[imodel].values
+            bodlab = [self.body_label_[ijob][i] for i in output_body]
             body_names = [bl + '_' + lbl for bl, lbl in zip(bodlab, body_names)]
          middle = '__'.join(body_names)
          output_suffix = sep + output_suffix if output_suffix else ''
@@ -306,6 +239,7 @@ class Result:
          symframes = [np.eye(4)]
 
       outfnames.append(fname)
+      print('dumping', fname)
       rp.io.dump_pdb_from_bodies(
          fname,
          bod,
@@ -314,9 +248,9 @@ class Result:
          bfactor=bfactor,
          **kw,
       )
-      if self.pdb_extra is not None:
+      if self.pdb_extra_ is not None:
          with open(fname, 'a') as out:
-            out.write(self.pdb_extra[int(imodel)])
+            out.write(self.pdb_extra_[int(imodel)])
       if hasattr(self.data, 'helix_n_to_primary'):
          symframes = symframes[np.array(
             [0, self.data.helix_n_to_primary[imodel], self.data.helix_n_to_secondry[imodel]])]
@@ -360,11 +294,11 @@ def concat_results(results, **kw):
    r.data['ijob'] = (['model'], ijob)
    r.data.attrs = OrderedDict(dockinfo=allattrs, **common)
    r.body_label_ = results[0].body_label_
-   if results[0].pdb_extra is not None:
-      r.pdb_extra = list()
+   if results[0].pdb_extra_ is not None:
+      r.pdb_extra_ = list()
       for x in results:
-         assert len(x.pdb_extra) == len(x.data.scores)
-         r.pdb_extra.extend(x.pdb_extra)
+         assert len(x.pdb_extra_) == len(x.data.scores)
+         r.pdb_extra_.extend(x.pdb_extra_)
    return r
 
 def dummy_result(size=1000):
@@ -385,11 +319,133 @@ def assert_results_close(r, s, n=-1, tol=1e-6, xtol=1e-3):
    if set(r.keys()) != set(s.keys()):
       print(list(r.keys()))
       print(list(s.keys()))
-   print(list(r.keys()))
-   print(list(s.keys()))
+   # print(list(r.keys()))
+   # print(list(s.keys()))
    assert set(r.keys()) == set(s.keys()), 'results must have same fields'
    assert np.allclose(r.scores[:n], s.scores[:n], atol=tol)
    assert np.allclose(r.xforms[:n], s.xforms[:n], atol=xtol)
    for k in r.data:
       if k in ('scores', 'xforms'): continue
       assert np.allclose(r[k][:n], s[k][:n], atol=tol)
+
+def result_from_tarball(fname):
+   import xarray as xr
+   sources = 'no sources'
+   bodies = list()
+   body_labels = list()
+   pdb_extra_ = None
+   data = None
+   timer = Timer()
+   with tarfile.open(fname) as tar:
+
+      timer.checkpoint('into tarball')
+
+      for m in tar.getmembers():
+         raw = tar.extractfile(m)
+         inp = io.BytesIO()
+         inp.write(raw.read())
+         inp.seek(0)
+
+         if m.name == 'dataset.nc':
+            data = xr.open_dataset(inp)
+
+         elif m.name == 'original_sources.txt':
+            sources = inp.read().decode()
+
+         elif m.name == 'body_labels.json':
+            body_labels = json.loads(inp.read().decode())
+
+         elif m.name == 'pdb_extra_.json':
+            pdb_extra_ = json.loads(inp.read().decode())
+
+         elif m.name.endswith('.pdb'):
+            assert m.name.startswith('body_')
+            i = int(m.name[5])
+            j = int(m.name[7])
+            # print('pdb', i, j, m.name)
+            body = rp.Body(inp, source_filename=m.name)
+            if len(bodies) <= i:
+               bodies.append(list())
+            bodies[i].append(body)
+         else:
+            assert 0, 'unknown result.txz member: ' + m.name
+         timer.checkpoint(m.name)
+
+   if sources == 'no sources':
+      print('warning: result.txz file has no original_sources.txt')
+   if len(bodies) == 0:
+      print('warning: result.txz file has no body pdb files')
+   if data is None:
+      print('warning: result.txz file has no dataset.nc')
+
+   result = rp.search.Result(
+      data,
+      body_=bodies,
+      body_label_=body_labels,
+      pdb_extra_=pdb_extra_,
+   )
+   result.original_sources = sources
+   timer.checkpoint('finish')
+   print(timer)
+   return result
+
+def result_to_tarball(result, fname, overwrite=False):
+
+   if not fname.endswith(('.txz', '.tar.xz')):
+      fname += '.txz'
+
+   if os.path.exists(fname) and not overwrite:
+      raise FileExistsError(f'file exists {fname}')
+
+   if type(result) is not rp.search.Result:
+      raise TypeError()
+
+      # dictionaries / json no good for netcdf
+   attrs = result.data.attrs
+   if 'arg' in attrs:
+      if 'executor' in attrs['arg']: del attrs['arg']['executor']
+      if 'iface_summary' in attrs['arg']: del attrs['arg']['iface_summary']
+
+   todel = list()
+   attrs2 = attrs.copy()
+   for k, v in attrs.items():
+      if isinstance(v, dict):
+         attrs2[k + '_keys'] = '|'.join(v.keys())
+         attrs2[k + '_vals'] = '|'.join(repr(_) for _ in v.values())
+         del attrs2[k]
+
+   # result.data.attrs['dockinfo'] = repr(result.data.attrs['dockinfo'])
+   attrs = sanitize_for_storage(attrs, netcdf=True)
+   attrs = unbunchify(attrs)
+
+   result.data.attrs = attrs2
+
+   with tempfile.TemporaryDirectory() as td:
+
+      with open(td + '/dataset.nc', 'wb') as out:
+         result.data.to_netcdf(out)
+
+      sources = list()
+      for i, bods in enumerate(result.bodies):
+         for j, bod in enumerate(bods):
+            sources.append(f'ijob {i} icomponent {j} source {bod.source()}')
+            fn = f'body_{i}_{j}_{bod.source()}'.replace("/", "^")
+            print('fname for tarball', fn)
+            with open(td + '/' + fn, 'w') as out:
+               pdbstr, _ = bod.str_pdb()
+               out.write(pdbstr)
+
+      with open(td + '/original_sources.txt', 'w') as out:
+         out.write(os.linesep.join(sources))
+      # print(os.listdir(td))
+
+      with open(td + '/pdb_extra_.json', 'w') as out:
+         out.write(json.dumps(result.pdb_extra_))
+
+      with open(td + '/body_labels.json', 'w') as out:
+         out.write(json.dumps(result.body_label_))
+
+      cmd = f'cd {td} && tar cjf {os.path.abspath(fname)} *'
+      assert not os.system(cmd)
+
+   return fname

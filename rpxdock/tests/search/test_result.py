@@ -1,5 +1,6 @@
-import _pickle, collections, pytest, rpxdock as rp
+import _pickle, collections, pytest, rpxdock as rp, tempfile
 from rpxdock.search.result import *
+import willutil as wu
 
 def main():
    import tempfile
@@ -10,11 +11,47 @@ def main():
    # test_top_each(dummy_result(1000))
    # test_result_no_body_label(dummy_result(1000))
    # test_result_coords()
-   test_result_tarball(dummy_result(100))
+   test_result_tarball()
 
-# def test_result_tarball(result):
-# testresult = rp.data.get_test_data('test_cage_hier_onecomp_notrim')
-# result_to_tarball(testresult, 'test.result.txz', overwrite=True)
+   # import tempfile
+   # # test_result(dummy_result(1000))
+   # test_result_pickle(dummy_result(1000), tempfile.mkdtemp())
+   # # test_result_attrs()
+   # # test_mismatch_len(dummy_result(1000))
+   # test_top_each(dummy_ressult(1000))
+   # test_result_no_body_label(dummy_result(1000))
+   # test_result_dump_asym()
+
+def test_result_tarball():
+   # timer = wu.Timer()
+   with tempfile.TemporaryDirectory() as tmpdir:
+
+      r = rp.data.get_test_data('test_result.pickle')
+
+      outfiles = r.dump_pdbs_top_score(1, output_prefix=f'{tmpdir}/')
+
+      f = os.listdir(tmpdir)
+      assert len(f) == 1
+      with open(f'{tmpdir}/{f[0]}') as inp:
+         pdb1 = inp.read()
+
+      result_to_tarball(r, f'{tmpdir}/test.result.txz', overwrite=True)
+
+      r2 = result_from_tarball(f'{tmpdir}/test.result.txz')
+      # rp.dump(r2, 'fubar.pickle')
+      # r2 = rp.load('fubar.pickle')
+
+      rp.search.result.assert_results_close(r, r2)
+      # assert r.body_label_ == r2.body_label_
+      assert r.pdb_extra_ == r2.pdb_extra_
+
+      len(r.bodies) == len(r2.bodies)
+      for i, (l1, l2) in enumerate(zip(r.bodies, r2.bodies)):
+         for j, (b1, b2) in enumerate(zip(l1, l2)):
+            assert np.allclose(b1.coord, b2.coord, atol=1e-1)
+            assert np.allclose(b1.stub, b2.stub, atol=1e-3)
+            assert str(b1.ss) == str(b2.ss)
+            assert str(b1.seq) == str(b2.seq)
 
 def test_result(result):
    a = result.copy()
@@ -57,23 +94,13 @@ def test_top_each(result):
 
 def test_result_no_body_label(result):
    foo = Result(result.data, body_=['a', 'b', 'c'])
-   assert foo.body_label_ == 'body0 body1 body2'.split()
+   assert foo.body_label_ == ['body_0_0 body_0_1 body_0_2'.split()]
 
 # @pytest.mark.skip('no test criterion')
 # def test_result_dump_asym():
 #    # assert 0, 'fix dump_pdb output_asym_only'
 #    result = rp.data.get_test_data('result_test_asym_out')
 #    print(result.dump_pdbs(output_asym_only=True))
-
-if __name__ == '__main__':
-   # import tempfile
-   # # test_result(dummy_result(1000))
-   # test_result_pickle(dummy_result(1000), tempfile.mkdtemp())
-   # # test_result_attrs()
-   # # test_mismatch_len(dummy_result(1000))
-   # test_top_each(dummy_result(1000))
-   # test_result_no_body_label(dummy_result(1000))
-   test_result_dump_asym()
 
 @pytest.mark.skip
 def test_result_coords():
