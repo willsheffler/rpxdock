@@ -125,13 +125,13 @@ if __name__ == "__main__":
    from rpxdock.rosetta.triggers_init import get_pose_cached
    from tempfile import mkdtemp
 
-   f1 = "/home/cnfries/PycharmProjects/rpxdock-cnfries/rpxdock/data/pdb/C2_3hm4_1.pdb.gz"
-   f2 = "/home/cnfries/PycharmProjects/rpxdock-cnfries/rpxdock/data/pdb/1wa3_renum.pdb"
+   #f1 = "/home/cnfries/PycharmProjects/rpxdock-cnfries/rpxdock/data/pdb/C2_3hm4_1.pdb.gz"
+   f2 = "/home/cnfries/PycharmProjects/rpxdock-cnfries/rpxdock/data/pdb/C2_292_m.pdb"
    # f1 = "/home/sheffler/scaffolds/big/C2_3jpz_1.pdb"
    # f2 = "/home/sheffler/scaffolds/big/C3_3ziy_1.pdb"
    # f1 = "/home/sheffler/scaffolds/wheel/C3.pdb"
    # f2 = "/home/sheffler/scaffolds/wheel/C5.pdb"
-   pose1 = get_pose_cached(f1)
+   #pose1 = get_pose_cached(f1)
    pose2 = get_pose_cached(f2)
    #test_body(pose1, pose2)
 

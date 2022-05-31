@@ -208,6 +208,44 @@ def dock_plug(hscore, **kw):
    result = rp.concat_results(result)
    return result
 
+def dock_layer(hscore, **kw):
+   kw = rp.Bunch(kw)
+   spec = get_spec(kw.architecture)
+   bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
+              for fn, ar2 in zip(inp, ar)]
+             for inp, ar in zip(kw.inputs, kw.allowed_residues)]
+   assert len(bodies) == spec.num_components
+
+   if spec.num_components == 2:
+      sampler = rp.sampling.hier_multi_axis_sampler(spec, [kw.cart_bounds[0], kw.cart_bounds[1]],
+                                                    flip_components=True)
+   if spec.num_components == 3:
+      sampler = rp.sampling.hier_multi_axis_sampler(spec, [kw.cart_bounds[0], kw.cart_bounds[1], kw.cart_bounds[2]],
+                                                    flip_components=True)
+
+   exe = concurrent.futures.ProcessPoolExecutor
+   # exe = rp.util.InProcessExecutor
+   with exe(kw.ncpu) as pool:
+      futures = list()
+      for ijob, bod in enumerate(itertools.product(*bodies)):
+         futures.append(
+            pool.submit(
+               rp.search.make_multicomp,
+               bod,
+               spec,
+               hscore,
+               rp.hier_search,
+               sampler,
+               **kw,
+            ))
+         futures[-1].ijob = ijob
+      result = [None] * len(futures)
+      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+         result[f.ijob] = f.result()
+   result = rp.concat_results(result)
+   return result
+
+
 def main():
    kw = get_rpxdock_args()
    rp.options.print_options(kw)
@@ -228,9 +266,10 @@ def main():
       result = dock_onecomp(hscore, **kw)
    elif arch.startswith('PLUG'):
       result = dock_plug(hscore, **kw)
+   elif arch.startswith('P') and not arch.startswith('PLUG'):
+      result = dock_layer(hscore, **kw)
    else:
       result = dock_multicomp(hscore, **kw)
-
    print(result)
    if kw.dump_pdbs:
       result.dump_pdbs_top_score(hscore=hscore, **kw)
