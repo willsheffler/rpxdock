@@ -261,7 +261,7 @@ def default_cli_parser(parent=None, **kw):
    # tcdock
    addarg(
       "--architecture", type=str, default=None,
-      help='architecture to be produced by docking. Can be cage I32, O43, T32 where larger axis of symmetry is listed first, Cx for cyclic, Dx_y for dihedral, where x is the dihedral symmetry and y is the symmetry of the scaffold, y=2 or y=x. For plug protocol, can be PLUG_Cx. No default value'
+      help='architecture to be produced by docking. Can be cage I32, O43, T32 where larger axis of symmetry is listed first, Cx for cyclic, Dx_y for dihedral, where x is the dihedral symmetry and y is the symmetry of the scaffold, y=2 or y=x. For sliding two scaffolds into contact use AXEL_x, where x is the symmetry of the scaffold. If wanting to dock assymetrically (two scaffolds of different symmetr) use x=1. For plug protocol, can be PLUG_Cx. No default value'
    )
    addarg("--trimmable_components", default="ABCDEFGHIJKLMNOPQRSTUVWXYZ",
           help='specify which components "ABC" etc are trimmable. defaults to all components')
