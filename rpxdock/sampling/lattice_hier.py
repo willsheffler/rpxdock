@@ -18,7 +18,6 @@ class LatticeHier(CompoundHier):
       offset = xparts[:, 0, 2, 3]
       for i, d in enumerate(self.directions):
          xparts[:, i + 1, 0, 3] = offset * d[0,0]
-         print(d)
          #last term needs to be a scalar
          #since d is a 2D array, give 2 indices
          xparts[:, i + 1, 1, 3] = offset * d[0,1]

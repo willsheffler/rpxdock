@@ -122,7 +122,7 @@ def test_layer_hier_2comp(hscore, bodyC3, bodyC2):
    kw.nout_debug = 2
 
    bodies = [bodyC3, bodyC2]
-   spec = rp.search.DockSpec2CompLayer('P6_32')
+   spec = rp.search.DockSpec2CompLayer('P6_63')
    sampler = rp.sampling.hier_multi_axis_sampler(spec, [[-100, 100], [-100, 100]],
                                                  flip_components=True)
    #bounds for the hier_multi_axis_sampler are critical for getting dock solutions - need big search space?
@@ -158,13 +158,15 @@ if __name__ == '__main__':
    # body2 = rp.data.get_body('T33_dn2_asymB_extended')
    #test_cage_hier_trim(hscore, C3, C2)
 
-   C2 = rp.data.get_body('C2_292_m')
-   C3 = rp.data.get_body('C3_1na0-1_1')
-   #C4 = rp.data.get_body('C4_1na0-G1_1')
-   #test_layer_hier_2comp(hscore, C3, C2)
+   C2 = rp.data.get_body('C2_3hm4_1')
+   C3 = rp.data.get_body('C3_1nza_1')
+   C6 = rp.data.get_body('C6_3H22')
+   C4 = rp.data.get_body('C4_1na0-G1_1')
+   C4b = rp.data.get_body('C4_1na0-G1_1')
+   test_layer_hier_2comp(hscore, C6, C3)
 
    #C2 = rp.data.get_body('C2_REFS10_1')
    #C3 = rp.data.get_body('C3_1na0-1_1')
    #C4 = rp.data.get_body('C4_1na0-G1_1')
-   C6 = rp.data.get_body('C6_3H22')
-   test_layer_hier_3comp(hscore, C6, C3, C2)
+   #C6 = rp.data.get_body('C6_3H22')
+   #test_layer_hier_3comp(hscore, C6, C3, C2)

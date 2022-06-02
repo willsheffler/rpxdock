@@ -12,7 +12,7 @@ import rpxdock.rosetta.triggers_init
 def test_body_ss_info():
    kw = rp.app.defaults()
    kw.helix_trim_max = 6
-   pdb = rp.data.datadir + '/pdb/1wa3_renum.pdb'
+   pdb = rp.data.datadir + '/pdb/C3_1na0-1_1.pdb.gz'
    pose = pose_from_file(pdb)
    rp.rosetta.triggers_init.assign_secstruct(pose)
    body = Body(pose, **kw)
@@ -20,7 +20,7 @@ def test_body_ss_info():
 
 def test_body_create():
 
-   pdb = rp.data.datadir + '/pdb/1wa3_renum.pdb'
+   pdb = rp.data.datadir + '/pdb/C3_1na0-1_1.pdb.gz'
    b0 = Body(pdb)
    b1 = Body(pdb, allowed_res=None)
    b2 = Body(pdb, allowed_res=lambda x: {1, 2, 3})
@@ -109,7 +109,7 @@ def test_body_pickle(C3, tmpdir):
    assert np.allclose(b.bvh_cen.centers(), b2.bvh_cen.centers())
 
 def test_body_copy_sym(body_tiny):
-   c2 = body_tiny.copy_with_sym('1wa3_renum')
+   c2 = body_tiny.copy_with_sym('C2_3hm4_1')
    rot = hm.hrot([0, 0, 1], np.pi)
    rotated = rot @ body_tiny.coord[:, :, :, None]
    # assert np.allclose(rotated.squeeze(), c2.coord[14:28])
@@ -126,7 +126,7 @@ if __name__ == "__main__":
    from tempfile import mkdtemp
 
    #f1 = "/home/cnfries/PycharmProjects/rpxdock-cnfries/rpxdock/data/pdb/C2_3hm4_1.pdb.gz"
-   f2 = "/home/cnfries/PycharmProjects/rpxdock-cnfries/rpxdock/data/pdb/C2_292_m.pdb"
+   f2 = "/home/cnfries/PycharmProjects/rpxdock-cnfries/rpxdock/data/pdb/C2_3hm4_1.pdb"
    # f1 = "/home/sheffler/scaffolds/big/C2_3jpz_1.pdb"
    # f2 = "/home/sheffler/scaffolds/big/C3_3ziy_1.pdb"
    # f1 = "/home/sheffler/scaffolds/wheel/C3.pdb"
