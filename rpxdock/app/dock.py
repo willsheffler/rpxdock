@@ -208,7 +208,6 @@ def dock_plug(hscore, **kw):
    result = rp.concat_results(result)
    return result
 
-
 def dock_layer(hscore, **kw):
    kw = rp.Bunch(kw)
    spec = get_spec(kw.architecture)
