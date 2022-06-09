@@ -287,19 +287,7 @@ class DockSpecMonomerToCyclic(DockSpec):
       return newpos.reshape(origshape)
 
 _layer_comp_center_directions = dict(
-   P6_632=(np.array([[0.86602540378, 0.5, 0, 0]]), np.array([[0.86602540378, 0.0, 0, 0]])),
-
-   P6_6=(),
-   P4M_4=(np.array([1, 0, 0]), ),
-
-   P6_63=(np.array([[0.86602540378, 0.5, 0, 0]]),),
-   P6_62=(np.array([[0.86602540378, 0.5, 0, 0]]),),
-   P6_32=(np.array([[1, -1.73205081, 0, 0]]),),
-   P6_33=(np.array([[1, -1.73205081, 0, 0]]),),
-
-   P4_42=(np.array([[1, 0, 0, 0]]),),
-   P4_44=(np.array([[1, 0, 0, 0]]),)
-
+ +
 
 )    #double brackets are needed for indexing in lattice sampler
 

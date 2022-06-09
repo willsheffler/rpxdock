@@ -43,13 +43,15 @@ def symframes(sym, pos=None, axis=[0,0,1], **kw):
       c3 = hm.hrot(axis, np.arange(3) / 3 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
       c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[pos[2, 0, 3], pos[2, 1, 3], 0])
       frames = c6[None, None, :] @ c3[None, :, None] @ c2[:, None, None]
+      return frames.reshape(-1, 4, 4)
+
       # frames = (c6[:, None, None, None] @ c2[None, :, None, None] @ c3[None, None, :, None]
       # @ c6[None, None, None, :])
       # frames = c3[None, :, None] @ c2[:, None, None]
       # frames = np.concatenate([c6, c3, c2])
       # frames = c6
       # frames = np.eye(4)
-      return frames.reshape(-1, 4, 4)
+
 
    elif sym == 'P6_32':
       c3 = hm.hrot(axis, np.arange(3) / 3 * 360)
