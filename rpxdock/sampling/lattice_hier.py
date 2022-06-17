@@ -10,10 +10,7 @@ class LatticeHier(CompoundHier):
       #for d in directions:
          #assert d[2] == 0
        #commented out this assertion because for 2 comp layers len(directions) = 1
-       #questionable if parts and directions need to fit the length asserion above?
-       #it seems like this only allows 1 input for a 2 comp layer
 
-#TO DO: generalize combine_xfroms for all layer compositions
    def combine_xforms(self, xparts):
       offset = xparts[:, 0, 2, 3]
       for i, d in enumerate(self.directions):

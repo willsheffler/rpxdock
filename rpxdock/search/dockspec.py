@@ -287,8 +287,18 @@ class DockSpecMonomerToCyclic(DockSpec):
       return newpos.reshape(origshape)
 
 _layer_comp_center_directions = dict(
- +
+   P6_632=(np.array([[0.86602540378, 0.5, 0, 0]]), np.array([[0.86602540378, 0.0, 0, 0]])),
 
+   P6_6=(),
+   P4M_4=(np.array([1, 0, 0]), ),
+
+   P6_63=(np.array([[0.86602540378, 0.5, 0, 0]]),),
+   P6_62=(np.array([[0.86602540378, 0.5, 0, 0]]),),
+   P6_32=(np.array([[1, -1.73205081, 0, 0]]),),
+   P6_33=(np.array([[1, -1.73205081, 0, 0]]),),
+
+   P4_42=(np.array([[1, 0, 0, 0]]),),
+   P4_44=(np.array([[1, 0, 0, 0]]),)
 )    #double brackets are needed for indexing in lattice sampler
 
 class DockSpec1CompLayer(DockSpec):
@@ -359,6 +369,55 @@ class DockSpec2CompLayer(DockSpec):
       #to_neigh_olig references sym def files for all cages, used w rot
       #second term is a 4x4 array, rotating around z makes sense to me
 
+_discrete_angle_planes = dict(
+   all=np.array([1, 0, 1, 0]))
+
+_nside_axes = dict(
+   n4=[1, 0, 0],
+   n6=[1.7320508075688767, 0, 1],
+   n8=[1, 0, 1],
+   n10=[0.7265425280053609, 0, 1],
+   n12=[0.5773502691896257, 0, 1],
+   n14=[0.48157461880752883, 0, 1],
+   n16=[0.41421356237309503, 0, 1],
+   n18=[0.36397023426620234, 0, 1],
+   n20=[0.3249196962329063, 0, 1],
+   n22=[0.2936264929383669, 0, 1],
+   n24=[0.2679491924311227, 0, 1],
+   n26=[0.24647786303197738, 0, 1],
+   n28=[0.22824347439015003, 0, 1],
+   n30=[0.21255656167002213, 0, 1],
+   n32=[0.198912367379658, 0, 1],
+   n34=[0.18693239710797724, 0, 1],
+   n36=[0.17632698070846498, 0, 1])
+
+class DockSpecDiscrete(DockSpec):
+   @property
+   def type(self):
+      return 'discrete'
+
+   def __init__(self, arch):
+      arch = arch.upper()
+      assert arch.startswith('F')
+      assert 2 == len(arch.split('_')[1])
+      self.arch = arch
+      self.sym = arch
+      self.nfold = np.array(list(arch.split('_')[1]), dtype='i')
+      self.directions = _discrete_angle_planes['all']
+      num = arch.split('_')[2]
+      nside = f"n{num}"
+      self.axis = np.array([np.array([0, 0, 1]), np.array(_nside_axes[nside])])
+      #above line is test case for comp 2 having its self axis along x
+      #need to generalize from a dictionary later
+      print(self.axis)
+      self.xflip = [hm.hrot([0, 0, 1], 180), hm.hrot(_nside_axes[nside], 180)]
+
+      self.comp_is_dihedral = [False, False]
+      self.num_components = 2
+      ang = 360 / self.nfold[0]
+      self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], ang), None]
+       #this might actually be within the oligomer
+       #has to do with first component, so I dont think I need to change axes here
 
 class DockSpecAxel:
    '''Specs for sliding two components into contact along the zz axis. Can use same symmetry blocks (asu subunits) or different symmetry (full holigomers)'''   
