@@ -370,7 +370,8 @@ class DockSpec2CompLayer(DockSpec):
       #second term is a 4x4 array, rotating around z makes sense to me
 
 _discrete_angle_planes = dict(
-   all=np.array([1, 0, 1, 0]))
+   all=np.array([1, 0, 0, 0]))
+   #don't think this actually gets used
 
 _nside_axes = dict(
    n4=[1, 0, 0],
@@ -407,11 +408,7 @@ class DockSpecDiscrete(DockSpec):
       num = arch.split('_')[2]
       nside = f"n{num}"
       self.axis = np.array([np.array([0, 0, 1]), np.array(_nside_axes[nside])])
-      #above line is test case for comp 2 having its self axis along x
-      #need to generalize from a dictionary later
-      print(self.axis)
       self.xflip = [hm.hrot([0, 0, 1], 180), hm.hrot(_nside_axes[nside], 180)]
-
       self.comp_is_dihedral = [False, False]
       self.num_components = 2
       ang = 360 / self.nfold[0]

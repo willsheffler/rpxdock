@@ -125,6 +125,46 @@ def symframes(sym, pos=None, axis=[0,0,1], **kw):
       frames = c3[:, None] @ c2[None, :]
       return frames.reshape(-1, 4, 4)
 
+   elif sym.startswith('F_42'):
+      c4 = hm.hrot(axis, np.arange(4) / 4 * 360)
+      if sym.endswith('4'):
+         axis2 = [1, 0, 0]
+      if sym.endswith('6'):
+         axis2 = [1.7320508075688767, 0, 1]
+      if sym.endswith('8'):
+         axis2 = [1, 0, 1]
+      if sym.endswith('10'):
+         axis2 = [0.7265425280053609, 0, 1]
+      if sym.endswith('12'):
+         axis2 = [0.5773502691896257, 0, 1]
+      if sym.endswith('14'):
+         axis2 = [0.48157461880752883, 0, 1]
+      if sym.endswith('16'):
+         axis2 = [0.41421356237309503, 0, 1]
+      if sym.endswith('18'):
+         axis2 = [0.36397023426620234, 0, 1]
+      if sym.endswith('20'):
+         axis2 = [0.3249196962329063, 0, 1]
+      if sym.endswith('22'):
+         axis2 = [0.2936264929383669, 0, 1],
+      if sym.endswith('24'):
+         axis2 = [0.2679491924311227, 0, 1]
+      if sym.endswith('26'):
+         axis2 = [0.24647786303197738, 0, 1]
+      if sym.endswith('28'):
+         axis2 = [0.22824347439015003, 0, 1]
+      if sym.endswith('30'):
+         axis2 = [0.21255656167002213, 0, 1]
+      if sym.endswith('32'):
+         axis2 = [0.198912367379658, 0, 1]
+      if sym.endswith('34'):
+         axis2 = [0.18693239710797724, 0, 1]
+      if sym.endswith('36'):
+         axis2 = [0.17632698070846498, 0, 1]
+      c2 = hm.hrot(axis2, np.arange(2) / 2 * 360,  center=[pos[1, 0, 3], pos[1, 1, 3], pos[1, 2, 3]])
+      frames = c4[:, None] @ c2[None, :]
+      return frames.reshape(-1, 4, 4)
+
    elif sym == 'P4M_4':
       c4a = hm.hrot(axis, np.arange(4) / 4 * 360)
       c4b = hm.hrot(axis, np.arange(4) / 4 * 360, center=[pos[0, 3], pos[1, 3], 0])
