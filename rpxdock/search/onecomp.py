@@ -3,6 +3,8 @@ from rpxdock.search import hier_search, trim_ok
 import logging
 from rpxdock.filter import filters
 
+import pprint #for modifying body again
+
 def make_onecomp(
    body,
    spec,
@@ -83,6 +85,13 @@ def make_onecomp(
    data['disp'] = (['model'], np.sum(xforms[:, :3, 3] * spec.axis[None, :3], axis=-1).squeeze())
    data['angle'] = (['model'], rp.homog.angle_of(xforms[:]) * 180 / np.pi)
    default_label = ['compA']
+
+   # print(dir(body)) #for modifying body again
+   # with open("./body_all_vars.txt", "a") as f:
+   #    pprint.pprint(vars(body), f)
+   # assert False
+   # body_pose = body.pose
+   # new_body = rp.Body(body.source, **kw)
 
    return rp.Result(
       body_=None if kw.dont_store_body_in_results else [body],

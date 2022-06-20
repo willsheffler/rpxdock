@@ -1,6 +1,8 @@
 import rpxdock as rp, concurrent, pytest, numpy as np
 
-def test_cage_hier_onecomp_notrim(hscore, bodyC3):
+#needed: one comp hier, one comp grid with orient, with protect 
+
+def test_termini_dir_hier_onecomp(hscore, bodyC3):
    kw = rp.app.defaults()
    kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
    kw.beam_size = 2e4
@@ -12,11 +14,12 @@ def test_cage_hier_onecomp_notrim(hscore, bodyC3):
    kw.score_only_ss = 'H'
    kw.max_trim = 0
    kw.flip_components = [True]
+   kw.term_access = [True]
 
    # kw.debug = True
    kw.executor = concurrent.futures.ThreadPoolExecutor(min(4, kw.ncpu / 2))
 
-   spec = rp.search.DockSpec1CompCage('T3')
+   spec = rp.search.DockSpec1CompCage('I3') #Changed from T3
    sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=10, angresl=10,
                                            axis=spec.axis, flipax=spec.flip_axis, **kw)
    result = rp.search.make_onecomp(bodyC3, spec, hscore, rp.hier_search, sampler, **kw)

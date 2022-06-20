@@ -18,8 +18,7 @@ class Body:
       trim_direction='NC',
       is_subbody=False,
       modified_term=[False,False],
-      original=True,
-      og_source=None,
+      og_seqlen=0,
       **kw,
    ):
       kw = rpxdock.Bunch(kw)
@@ -42,17 +41,23 @@ class Body:
       self.coord = rp.rosetta.get_bb_coords(pose)
       self.set_asym_body(pose, sym, **kw)
       self.modified_term = modified_term
-      self.original = original
-      self.og_source = og_source
-      if not self.original:
-         tmp = og_source
+      # self.original = original
+      # self.og_source = og_source
+      # if not self.original:
+      #    self.og_seqlen = og_source
+         # tmp = og_source
          # tmp=ros.core.pose.Pose()
          # tmp.detached_copy(pose)
          # for ch in range(sum(self.modified_term)):rp.rosetta.helix_trix.remove_helix_chain(tmp)
-         self.og_body = rp.Body(source=tmp, sym=sym,symaxis=symaxis,allowed_res=allowed_res,
-                        trim_direction=trim_direction,is_subbody=is_subbody,modified_term=[False,False],
-                        original=True, **kw)
-      else: self.og_body = None
+         # self.og_body = rp.Body(source=tmp, sym=sym,symaxis=symaxis,allowed_res=allowed_res,
+         #                trim_direction=trim_direction,is_subbody=is_subbody,modified_term=[False,False],
+         #                original=True, **kw)
+      if og_seqlen == 0: self.og_seqlen = pose.size()
+      else:
+         self.og_seqlen = og_seqlen
+         # self.original=rp.Body(source=tmp, sym=sym,symaxis=symaxis,allowed_res=allowed_res,
+         #                trim_direction=trim_direction,is_subbody=is_subbody,modified_term=[False,False],
+         #                original=True, og_seqlen=0, **kw)
 
       self.label = kw.label
       if self.label is None and self.pdbfile:
