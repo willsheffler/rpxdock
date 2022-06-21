@@ -366,6 +366,32 @@ class Body:
    def __repr__(self):
       source = self.pdbfile if self.pdbfile else '<rosetta Pose of unknown origin>'
       return f'Body(source="{source}")'
+   
+   def newbody_exclude_term_res(self):
+      newbody = self.copy()
+      # print("nres ", self.nres)
+      # # extra_res = self.nres - self.og_seqlen
+      # print("oglen ", self.og_seqlen)
+      for attribute in dir(self):
+         val = getattr(self, attribute)
+         if type(val) == list:
+            # print("list ", str(attribute))
+            if len(val) != self.og_seqlen and len(val) == self.nres:
+               setattr(newbody, attribute, copy.deepcopy(val)[:(self.og_seqlen)])
+               # print(attribute, len(getattr(newbody, attribute)))
+            # else: print(attribute, len(val), " list no changes")
+         elif isinstance(val, np.ndarray):
+            # print("ndarray ", str(attribute))
+            if len(val) != self.og_seqlen and len(val) == self.nres:
+               # print("enter array if")
+               setattr(newbody, attribute, val.copy()[:(self.og_seqlen)])
+            #    print(attribute,len(getattr(newbody, attribute)))
+            # else: print(attribute, len(val), val.size, " array no changes")
+         # # print(type(val)) 
+         else: print("other ", str(type(val)), " ", str(attribute))
+      newbody.nres = self.og_seqlen
+      return newbody
+
 
 def get_trimming_subbodies(body, pose, debug=False, **kw):
    kw = rp.Bunch(kw)

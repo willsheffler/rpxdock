@@ -133,8 +133,10 @@ def dock_onecomp(hscore, **kw):
       if sum(kw.term_access1) > 0: kw.poses.append(pose) #Only update pose if adding on helices to termini
       dir_possible, error_msg = rp.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, 1, **kw)
       if not dir_possible: raise ValueError(error_msg)
+      # for p in kw.poses:
+      #    pose.dump_pdb(f"s./temp_dump/sample.pdb")
       #assert dir_possible, error_msg
-
+   assert False
    # double normal resolution, cuz why not?
    if kw.docking_method == 'grid':
       flip=list(spec.flip_axis[:3])
