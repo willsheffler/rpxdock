@@ -117,26 +117,28 @@ def dock_onecomp(hscore, **kw):
    spec = get_spec(kw.architecture)
    crtbnd = kw.cart_bounds[0]
 
+   kw.poses = []
+   kw.og = [] #please rename this
+   rp.rosetta.helix_trix.init_termini(**kw)
+   print(kw.poses)
+   print(kw.og)
    # If term_access or directions for termini given
-   if (True in kw.term_access1) or (True in kw.termini_dir1) or (False in kw.termini_dir1):
-      kw.poses = []
-      kw.force_flip = [False] * len(kw.inputs)
-      N_in = None
-      C_in = None
-      pose = rp.rosetta.get_pose(kw.inputs1[0], kw.posecache)
-      og_seqlen = pose.size() #length or original pose before we modify it 
-      if kw.termini_dir1[0] is not None: N_in = rp.rosetta.helix_trix.N_term_in(pose, kw.term_access1[0])
-      elif kw.term_access1[0]: rp.rosetta.helix_trix.append_Nhelix(pose)
-      if kw.termini_dir1[1] is not None: C_in = rp.rosetta.helix_trix.C_term_in(pose, kw.term_access1[1])
-      elif kw.term_access1[1]: rp.rosetta.helix_trix.append_Chelix(pose)
+   # if (True in kw.term_access1) or (True in kw.termini_dir1) or (False in kw.termini_dir1):
+   #    kw.poses = []
+   #    kw.force_flip = [False] * len(kw.inputs)
+   #    N_in = None
+   #    C_in = None
+   #    pose = rp.rosetta.get_pose(kw.inputs1[0], kw.posecache)
+   #    og_seqlen = pose.size() #length or original pose before we modify it 
+   #    if kw.termini_dir1[0] is not None: N_in = rp.rosetta.helix_trix.N_term_in(pose, kw.term_access1[0])
+   #    elif kw.term_access1[0]: rp.rosetta.helix_trix.append_Nhelix(pose)
+   #    if kw.termini_dir1[1] is not None: C_in = rp.rosetta.helix_trix.C_term_in(pose, kw.term_access1[1])
+   #    elif kw.term_access1[1]: rp.rosetta.helix_trix.append_Chelix(pose)
       
-      if sum(kw.term_access1) > 0: kw.poses.append(pose) #Only update pose if adding on helices to termini
-      dir_possible, error_msg = rp.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, 1, **kw)
-      if not dir_possible: raise ValueError(error_msg)
-      # for p in kw.poses:
-      #    pose.dump_pdb(f"s./temp_dump/sample.pdb")
-      #assert dir_possible, error_msg
-   assert False
+   #    if sum(kw.term_access1) > 0: kw.poses.append(pose) #Only update pose if adding on helices to termini
+   #    dir_possible, error_msg = rp.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, 1, **kw)
+   #    if not dir_possible: raise ValueError(error_msg)
+
    # double normal resolution, cuz why not?
    if kw.docking_method == 'grid':
       flip=list(spec.flip_axis[:3])
@@ -162,17 +164,19 @@ def dock_onecomp(hscore, **kw):
       search = rp.hier_search
 
    # pose info and axes that intersect. Use list of modified poses to make bodies if such list exists
-   if kw.poses and len(kw.poses) > 0:
-      # og_seqlen = 0 if sum(kw.term_access1) is 0 else False #default set to 0, will get updated in body
+   # if kw.poses and len(kw.poses) > 0:
+   if len(kw.poses) > 0:
+      if len(kw.og) == 0: kw.og.append([]) 
       bodies = [
-         rp.Body(pose1, allowed_res=allowedres, modified_term=modterm, og_seqlen=og_seqlen, og_source=inp, **kw)
-         for pose1, allowedres, modterm, inp in zip(kw.poses, kw.allowed_residues1, kw.term_access, kw.inputs1)
+         rp.Body(pose1, allowed_res=allowedres, modified_term=modterm, og_seqlen=og_seqlen, **kw)
+         for pose1, allowedres, modterm, og_seqlen in zip(kw.poses[0], kw.allowed_residues1, kw.term_access, kw.og[0])
       ]
    else:
       bodies = [
          rp.Body(inp, allowed_res=allowedres, **kw)
          for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)
       ]
+   assert False
 
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
@@ -222,9 +226,9 @@ def dock_multicomp(hscore, **kw):
       #    else:
       #       pose = rp.rosetta.get_pose(kw.inputs[i][0], kw.posecache)
       #       og.append([pose.size()]) #length or original pose before we modify it 
-      bodies = [[rp.Body(pose2, allowed_res=ar2,og_seqlen=og2, **kw)
-               for pose2, ar2, og2, in zip(pose1, ar, og1)]
-               for pose1, ar, og1, in zip(kw.poses, kw.allowed_residues, kw.og)]
+      bodies = [[rp.Body(pose2, allowed_res=ar2,og_seqlen=og2, modified_term=modterm, **kw)
+               for pose2, ar2, og2, modterm in zip(pose1, ar, og1, kw.term_access)]
+               for pose1, ar, og1 in zip(kw.poses, kw.allowed_residues, kw.og)]
    else:
       bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
                for fn, ar2 in zip(inp, ar)]

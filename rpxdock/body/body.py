@@ -41,23 +41,8 @@ class Body:
       self.coord = rp.rosetta.get_bb_coords(pose)
       self.set_asym_body(pose, sym, **kw)
       self.modified_term = modified_term
-      # self.original = original
-      # self.og_source = og_source
-      # if not self.original:
-      #    self.og_seqlen = og_source
-         # tmp = og_source
-         # tmp=ros.core.pose.Pose()
-         # tmp.detached_copy(pose)
-         # for ch in range(sum(self.modified_term)):rp.rosetta.helix_trix.remove_helix_chain(tmp)
-         # self.og_body = rp.Body(source=tmp, sym=sym,symaxis=symaxis,allowed_res=allowed_res,
-         #                trim_direction=trim_direction,is_subbody=is_subbody,modified_term=[False,False],
-         #                original=True, **kw)
       if og_seqlen == 0: self.og_seqlen = pose.size()
-      else:
-         self.og_seqlen = og_seqlen
-         # self.original=rp.Body(source=tmp, sym=sym,symaxis=symaxis,allowed_res=allowed_res,
-         #                trim_direction=trim_direction,is_subbody=is_subbody,modified_term=[False,False],
-         #                original=True, og_seqlen=0, **kw)
+      else: self.og_seqlen = og_seqlen
 
       self.label = kw.label
       if self.label is None and self.pdbfile:
@@ -72,19 +57,22 @@ class Body:
       self.trim_direction = kw.trim_direction if kw.trim_direction else 'NC'
       if allowed_res is None:
          # print(True in modified_term)
-         if True in modified_term:
+         if True in self.modified_term:
             self.allowed_residues = np.zeros(len(self.seq), dtype='?')
             # print(self.seq)
-            for j in range(0, len(pose.chain_sequence(1))):
+            # for j in range(0, len(pose.chain_sequence(1))):
+            for j in range(0, self.og_seqlen):
                self.allowed_residues[j] = True
             # for val in range(len(self.seq)):
             #    print(str(self.seq[val]), str(self.allowed_residues[val]))
          else: self.allowed_residues = np.ones(len(self.seq), dtype='?')
+         print(self.allowed_residues)
       else:
          self.allowed_residues = np.zeros(len(self.seq), dtype='?')
          for i in allowed_res(self, **kw):
             self.allowed_residues[i - 1] = True
       self.init_coords(sym, symaxis, **kw)
+      print(self.modified_term)
 
       self.is_subbody = is_subbody
       if not is_subbody:

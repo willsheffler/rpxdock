@@ -86,16 +86,9 @@ def make_onecomp(
    data['angle'] = (['model'], rp.homog.angle_of(xforms[:]) * 180 / np.pi)
    default_label = ['compA']
 
-   # print(dir(body)) #for modifying body again
-   # with open("./body_all_vars.txt", "a") as f:
-   #    pprint.pprint(vars(body), f)
-   # assert False
    if body.nres != body.og_seqlen:
       newbody = body.newbody_exclude_term_res()
    else: newbody = body
-   # body_pose = body.pose
-   # new_body = rp.Body(body.source, **kw)
-   print("with newbody to result...")
 
    return rp.Result(
       body_=None if kw.dont_store_body_in_results else [newbody],

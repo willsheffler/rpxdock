@@ -26,10 +26,6 @@ def append_Chelix(userpose, alignto=7):
    core.pose.renumber_pdbinfo_based_on_conf_chains(Cterm_subpose, fix_chains = True, start_from_existing_numbering = False)
    protocols.toolbox.pose_manipulation.superimpose_pose_on_subset_CA(helix, Cterm_subpose, first_res)
    core.pose.append_pose_to_pose(userpose, helix)
-    
-   #test statements  print statement
-   #print("dump Capp helix: ", userpose.dump_pdb('/home/jenstanisl/my_rpxdock_code/rpxdock/tests/app/ouput/Cappend_test.pdb'))
-   #print("done appending", userpose)
    return True
 
 def point_in(pose, term, helixch=False):
@@ -47,20 +43,6 @@ def point_in(pose, term, helixch=False):
       return False
    elif vterm.z - comv.z < 0: #Points in
       return True
-
-# # Numhelix is currently how many helices there are...
-# # TO DO: Probably should modify this function to get rid of specific helix?
-# # This function might not be directly modifying the pose that gets passed in
-# def old_remove_helix(pose, numhelix=2):
-#    # For now, assume that the appended helices are going to be the last chain(s) of pose/pdb
-#    temp = core.pose.Pose()
-#    # Number of chains we are keeping 
-#    keepch = pose.num_chains() - numhelix
-#    # Store all of the residues we are keeping, make new pose from them
-#    keepres = rosetta.utility.vector1_unsigned_long()
-#    keepres.extend(range(1, pose.chain_end(keepch)+1))
-#    core.pose.pdbslice(temp, pose, keepres)
-#    return temp
 
 # Removes one chain from the pose. If not specified, this is the last
 # chain of the pose. Otherwise, can specify which chain number to remove
@@ -103,16 +85,9 @@ def limit_flip_update_pose(pose, N_actual,  C_actual, input_num = 1, **kw):
       if not kw.flip_components[input_num -1]: #need to change index for greater than 1comp
          error_msg = (f"Desired termini orientation is not possible because flipping is not allowed for input {input_num}")
          return False, error_msg
-      else: # do flip
-         # print("entering force flip")
-         # rot_matrix = rosetta.numeric.xyzMatrix_double_t().cols(-1,0,0,0,1,0,0,0,-1)
-         # v = rosetta.numeric.xyzVector_double_t(0,0,0)
-         # pose.apply_transform_Rx_plus_v(rot_matrix, v)
+      else: # force flip
          assert kw.flip_components[input_num -1] #if use force flip, must be allowed to flip
          kw.force_flip[input_num - 1] = True
-         # print("force flip: ", kw.force_flip)
-         # kw.flip_components[input_num - 1] = False
-         # kw.poses.append(pose) #Only need to add pose if helix
          return True, None
 
 # Wrapper-ish function to get z-direction of C terminus of pose relative to origin
@@ -129,7 +104,7 @@ def N_term_in(pose, keep_helix=False):
    if not keep_helix: remove_helix_chain(pose)
    return N_point_in
 
-# Wrapper. Maybe rewrite 1 comp to work with this as well
+# Wrapper for helices + termini stuff. Maybe rewrite 1 comp to work with this as well
 def init_termini(**kw):
    kw = rpxdock.Bunch(kw)
    for i in range(len(kw.inputs)):
