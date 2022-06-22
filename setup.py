@@ -22,7 +22,7 @@ VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-   'numpy==1.21.0',
+   'numpy==1.22.0',
    'xarray==0.11.3',
    'pandas==0.24.2',
    'pytest',
