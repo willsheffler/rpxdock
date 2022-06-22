@@ -90,6 +90,11 @@ def make_multicomp(
          data[f'angle{i}'] = (['model'], rp.homog.angle_of(xforms[:, i]) * 180 / np.pi)
    default_label = [f'comp{c}' for c in 'ABCDEFD'[:len(bodies)]]
 
+   for i, body in enumerate(bodies):
+      if True in body.modified_term:
+         bodies.pop(i)
+         bodies.insert(i, body.copy_exclude_term_res())
+
    return rp.Result(
       body_=None if kw.dont_store_body_in_results else bodies,
       body_label_=[] if kw.dont_store_body_in_results else default_label,

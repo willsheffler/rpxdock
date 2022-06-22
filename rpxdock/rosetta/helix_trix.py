@@ -114,7 +114,7 @@ def init_termini(**kw):
       C_in = None
       if (True in access) or (True in direction) or (False in direction):
          pose = rpxdock.rosetta.rosetta_util.get_pose(kw.inputs[i][0], kw.posecache)
-         kw.og.append([pose.size()])
+         kw.og_lens.append([pose.size()])
          if direction[0] is not None: N_in = rpxdock.rosetta.helix_trix.N_term_in(pose, access[0]) #N term first
          elif access[0]: rpxdock.rosetta.helix_trix.append_Nhelix(pose)
          if direction[1] is not None: C_in = rpxdock.rosetta.helix_trix.C_term_in(pose, access[1]) #C term
@@ -126,4 +126,4 @@ def init_termini(**kw):
          if not dir_possible: raise ValueError(error_msg)
       elif len(kw.poses) > 0:
          kw.poses.append([kw.inputs[i][0]])
-         kw.og.append([0])
+         kw.og_lens.append([0])

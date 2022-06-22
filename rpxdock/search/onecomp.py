@@ -3,7 +3,6 @@ from rpxdock.search import hier_search, trim_ok
 import logging
 from rpxdock.filter import filters
 
-import pprint #for modifying body again
 
 def make_onecomp(
    body,
@@ -86,12 +85,10 @@ def make_onecomp(
    data['angle'] = (['model'], rp.homog.angle_of(xforms[:]) * 180 / np.pi)
    default_label = ['compA']
 
-   if body.nres != body.og_seqlen:
-      newbody = body.newbody_exclude_term_res()
-   else: newbody = body
+   if True in body.modified_term: body = body.copy_exclude_term_res()
 
    return rp.Result(
-      body_=None if kw.dont_store_body_in_results else [newbody],
+      body_=None if kw.dont_store_body_in_results else [body],
       body_label_=[] if kw.dont_store_body_in_results else default_label,
       **data,
    )

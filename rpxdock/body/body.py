@@ -56,23 +56,16 @@ class Body:
       # self.trim_direction = trim_direction
       self.trim_direction = kw.trim_direction if kw.trim_direction else 'NC'
       if allowed_res is None:
-         # print(True in modified_term)
          if True in self.modified_term:
             self.allowed_residues = np.zeros(len(self.seq), dtype='?')
-            # print(self.seq)
-            # for j in range(0, len(pose.chain_sequence(1))):
             for j in range(0, self.og_seqlen):
                self.allowed_residues[j] = True
-            # for val in range(len(self.seq)):
-            #    print(str(self.seq[val]), str(self.allowed_residues[val]))
          else: self.allowed_residues = np.ones(len(self.seq), dtype='?')
-         print(self.allowed_residues)
       else:
          self.allowed_residues = np.zeros(len(self.seq), dtype='?')
          for i in allowed_res(self, **kw):
             self.allowed_residues[i - 1] = True
       self.init_coords(sym, symaxis, **kw)
-      print(self.modified_term)
 
       self.is_subbody = is_subbody
       if not is_subbody:
@@ -355,11 +348,8 @@ class Body:
       source = self.pdbfile if self.pdbfile else '<rosetta Pose of unknown origin>'
       return f'Body(source="{source}")'
    
-   def newbody_exclude_term_res(self):
+   def copy_exclude_term_res(self):
       newbody = self.copy()
-      # print("nres ", self.nres)
-      # # extra_res = self.nres - self.og_seqlen
-      # print("oglen ", self.og_seqlen)
       for attribute in dir(self):
          val = getattr(self, attribute)
          if type(val) == list:
@@ -371,13 +361,12 @@ class Body:
          elif isinstance(val, np.ndarray):
             # print("ndarray ", str(attribute))
             if len(val) != self.og_seqlen and len(val) == self.nres:
-               # print("enter array if")
                setattr(newbody, attribute, val.copy()[:(self.og_seqlen)])
             #    print(attribute,len(getattr(newbody, attribute)))
             # else: print(attribute, len(val), val.size, " array no changes")
-         # # print(type(val)) 
-         else: print("other ", str(type(val)), " ", str(attribute))
+         # else: print("other ", str(type(val)), " ", str(attribute))
       newbody.nres = self.og_seqlen
+      newbody.modified_term = [False, False] #no longer includes modified termini
       return newbody
 
 

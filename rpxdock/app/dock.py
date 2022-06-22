@@ -117,34 +117,15 @@ def dock_onecomp(hscore, **kw):
    spec = get_spec(kw.architecture)
    crtbnd = kw.cart_bounds[0]
 
+    # Determine accessibility and flip restriction before we make sampler
    kw.poses = []
-   kw.og = [] #please rename this
+   kw.og_lens = [] 
    rp.rosetta.helix_trix.init_termini(**kw)
-   print(kw.poses)
-   print(kw.og)
-   # If term_access or directions for termini given
-   # if (True in kw.term_access1) or (True in kw.termini_dir1) or (False in kw.termini_dir1):
-   #    kw.poses = []
-   #    kw.force_flip = [False] * len(kw.inputs)
-   #    N_in = None
-   #    C_in = None
-   #    pose = rp.rosetta.get_pose(kw.inputs1[0], kw.posecache)
-   #    og_seqlen = pose.size() #length or original pose before we modify it 
-   #    if kw.termini_dir1[0] is not None: N_in = rp.rosetta.helix_trix.N_term_in(pose, kw.term_access1[0])
-   #    elif kw.term_access1[0]: rp.rosetta.helix_trix.append_Nhelix(pose)
-   #    if kw.termini_dir1[1] is not None: C_in = rp.rosetta.helix_trix.C_term_in(pose, kw.term_access1[1])
-   #    elif kw.term_access1[1]: rp.rosetta.helix_trix.append_Chelix(pose)
-      
-   #    if sum(kw.term_access1) > 0: kw.poses.append(pose) #Only update pose if adding on helices to termini
-   #    dir_possible, error_msg = rp.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, 1, **kw)
-   #    if not dir_possible: raise ValueError(error_msg)
 
    # double normal resolution, cuz why not?
    if kw.docking_method == 'grid':
       flip=list(spec.flip_axis[:3])
       force_flip=False if kw.force_flip is None else kw.force_flip[0]
-      # print("force flip: ", force_flip)
-      # print("flip componenets: ", kw.flip_components)
       if not kw.flip_components[0]:
          flip = None
       sampler = rp.sampling.grid_sym_axis(
@@ -164,19 +145,17 @@ def dock_onecomp(hscore, **kw):
       search = rp.hier_search
 
    # pose info and axes that intersect. Use list of modified poses to make bodies if such list exists
-   # if kw.poses and len(kw.poses) > 0:
    if len(kw.poses) > 0:
-      if len(kw.og) == 0: kw.og.append([]) 
+      assert len(kw.poses) == len(kw.og_seqlen)
       bodies = [
          rp.Body(pose1, allowed_res=allowedres, modified_term=modterm, og_seqlen=og_seqlen, **kw)
-         for pose1, allowedres, modterm, og_seqlen in zip(kw.poses[0], kw.allowed_residues1, kw.term_access, kw.og[0])
+         for pose1, allowedres, modterm, og_seqlen in zip(kw.poses[0], kw.allowed_residues1, kw.term_access, kw.og_lens[0])
       ]
    else:
       bodies = [
          rp.Body(inp, allowed_res=allowedres, **kw)
          for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)
       ]
-   assert False
 
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
@@ -197,7 +176,7 @@ def dock_onecomp(hscore, **kw):
       result = [None] * len(futures)
       for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
-   
+
    result = rp.concat_results(result)
    return result
    # result = rp.search.make_onecomp(bodyC3, spec, hscore, rp.hier_search, sampler, **kw)
@@ -205,30 +184,20 @@ def dock_onecomp(hscore, **kw):
 def dock_multicomp(hscore, **kw):
    kw = rp.Bunch(kw)
    spec = get_spec(kw.architecture)
+
    # Determine accessibility and flip restriction before we make sampler
    kw.poses = []
-   kw.og = []
-   rp.rosetta.helix_trix.init_termini(**kw)
+   kw.og_lens = []
+   rp.rosetta.helix_trix.init_termini(**kw) 
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
    logging.info(f'num base samples {sampler.size(0):,}')
 
-   # Then use poses if needed 
+   # Use list of modified poses to make bodies if such list exists
    if len(kw.poses) > 0:
-      # og = []
-      # for i in range(len(kw.inputs)):
-      #    og.append([False]) if sum(kw.term_access[i]) > 0 else og.append([True])
-      # bodies = [[rp.Body(pose2, allowed_res=ar2,original=og2, og_source=inp2, **kw)
-      #          for pose2, ar2, og2, inp2 in zip(pose1, ar, og1, inp)]
-      #          for pose1, ar, og1, inp in zip(kw.poses, kw.allowed_residues, og, kw.inputs)]
-      # og = [] #store original lengths if the pose was modified by appending something
-      # for i in range(len(kw.inputs)):
-      #    if sum(kw.term_access[i]) > 0: og.append([0])
-      #    else:
-      #       pose = rp.rosetta.get_pose(kw.inputs[i][0], kw.posecache)
-      #       og.append([pose.size()]) #length or original pose before we modify it 
+      assert len(kw.poses) == len(kw.og_seqlen)
       bodies = [[rp.Body(pose2, allowed_res=ar2,og_seqlen=og2, modified_term=modterm, **kw)
                for pose2, ar2, og2, modterm in zip(pose1, ar, og1, kw.term_access)]
-               for pose1, ar, og1 in zip(kw.poses, kw.allowed_residues, kw.og)]
+               for pose1, ar, og1 in zip(kw.poses, kw.allowed_residues, kw.og_lens)]
    else:
       bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
                for fn, ar2 in zip(inp, ar)]
