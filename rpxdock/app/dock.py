@@ -146,7 +146,7 @@ def dock_onecomp(hscore, **kw):
 
    # pose info and axes that intersect. Use list of modified poses to make bodies if such list exists
    if len(kw.poses) > 0:
-      assert len(kw.poses) == len(kw.og_seqlen)
+      assert len(kw.poses) == len(kw.og_lens)
       bodies = [
          rp.Body(pose1, allowed_res=allowedres, modified_term=modterm, og_seqlen=og_seqlen, **kw)
          for pose1, allowedres, modterm, og_seqlen in zip(kw.poses[0], kw.allowed_residues1, kw.term_access, kw.og_lens[0])
@@ -194,7 +194,7 @@ def dock_multicomp(hscore, **kw):
 
    # Use list of modified poses to make bodies if such list exists
    if len(kw.poses) > 0:
-      assert len(kw.poses) == len(kw.og_seqlen)
+      assert len(kw.poses) == len(kw.og_lens)
       bodies = [[rp.Body(pose2, allowed_res=ar2,og_seqlen=og2, modified_term=modterm, **kw)
                for pose2, ar2, og2, modterm in zip(pose1, ar, og1, kw.term_access)]
                for pose1, ar, og1 in zip(kw.poses, kw.allowed_residues, kw.og_lens)]
