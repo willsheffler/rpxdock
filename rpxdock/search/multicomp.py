@@ -91,7 +91,7 @@ def make_multicomp(
    default_label = [f'comp{c}' for c in 'ABCDEFD'[:len(bodies)]]
 
    for i, body in enumerate(bodies):
-      if True in body.modified_term:
+      if hasattr(body, 'modified_term') and True in body.modified_term:
          bodies.pop(i)
          bodies.insert(i, body.copy_exclude_term_res())
 

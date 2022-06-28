@@ -113,6 +113,45 @@ def test_layer_hier_3comp(hscore, bodyC6, bodyC3, bodyC2):
    ref = rp.data.get_test_data('test_layer_hier_3comp')
    rp.search.assert_results_close(result, ref)
 
+# jenstanisl : testing restricting search space based on desired termini
+# direction/orientation
+def test_cage_termini_dirs(hscore, bodyC3, bodyC2):
+   C3_Ndir, C3_Cdir= True, False # init relative dirs of N and C terms
+   C2_Ndir, C2_Cdir = True, False 
+   dirs = [[[C3_Ndir, C3_Cdir],[C2_Ndir, C2_Cdir]],
+            [[not(C3_Ndir), not(C3_Cdir)],[not(C2_Ndir), not(C2_Cdir)]],
+            [[not(C3_Ndir), not(C3_Cdir)],[C2_Ndir, C2_Cdir]],
+            [[C3_Ndir, C3_Cdir],[not(C2_Ndir), not(C2_Cdir)]]] 
+   result = [None] * len(dirs)
+   for i, dir_pair in enumerate(dirs):
+      kw = get_arg()
+      kw.beam_size = 5000
+      kw.flip_components = True
+      kw.force_flip = [[False],[False]]
+      kw.termini_dir1,kw.temrini_dir2 = dir_pair[0], dir_pair[1]
+      # Add stuff for restricting flipping
+      kw.poses, kw.og_lens = [], []
+      rp.rosetta.helix_trix.init_termini(**kw) 
+      
+      spec = rp.search.DockSpec2CompCage('I32')
+      sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw) # change these values?
+
+      # sampler = rp.sampling.hier_multi_axis_sampler(spec, [50, 60]) # change these values?
+      result[i] = rp.search.make_multicomp([bodyC3, bodyC2], spec, hscore, rp.hier_search,
+                                       sampler, **kw)
+
+   result = rp.concat_results(result)
+   # print(result)
+   # result.dump_pdbs_top_score(hscore=hscore,
+   #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
+
+   # rp.dump(result, 'rpxdock/data/testdata/test_cage_termini_dirs.pickle')
+   ref = rp.data.get_test_data('test_cage_termini_dirs') 
+
+   # Change ref based on the pair
+   rp.search.assert_results_close(result, ref)
+
+
 if __name__ == '__main__':
    import logging
    logging.getLogger().setLevel(level='INFO')
@@ -134,13 +173,17 @@ if __name__ == '__main__':
    # body2 = rp.data.get_body('T33_dn2_asymB_extended')
    # test_cage_hier_trim(hscore, body1, body2)
 
-   C2 = rp.data.get_body('C2_REFS10_1')
-   C3 = rp.data.get_body('C3_1na0-1_1')
-   C4 = rp.data.get_body('C4_1na0-G1_1')
-   test_cage_hier_3comp(hscore, C4, C3, C2)
+   # C2 = rp.data.get_body('C2_REFS10_1')
+   # C3 = rp.data.get_body('C3_1na0-1_1')
+   # C4 = rp.data.get_body('C4_1na0-G1_1')
+   # test_cage_hier_3comp(hscore, C4, C3, C2)
 
    # C2 = rp.data.get_body('C2_REFS10_1')
    # C3 = rp.data.get_body('C3_1na0-1_1')
    # C4 = rp.data.get_body('C4_1na0-G1_1')
    # C6 = rp.data.get_body('C6_3H22')
    # test_layer_hier_3comp(hscore, C6, C3, C2)
+
+   C2 = rp.data.get_body('C2_REFS10_1')
+   C3 = rp.data.get_body('C3_1na0-1_1') 
+   test_cage_termini_dirs(hscore, C3, C2)

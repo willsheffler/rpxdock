@@ -63,10 +63,12 @@ def remove_helix_chain(pose, chain=None):
 # Checks actual (N and C actual) and desired (N and C spec) direction of termini
 # relative to the origin to determine if desired orientation is possible. Will also
 # add a modified pose to a list of poses to make bodies used for docking
-def limit_flip_update_pose(pose, N_actual,  C_actual, input_num = 1, **kw):
+def limit_flip_update_pose(pose, N_actual,  C_actual, input_num = 1, j=0, **kw):
    kw = rpxdock.Bunch(kw)
-   N_spec = kw.termini_dir[input_num -1][0]
-   C_spec = kw.termini_dir[input_num -1][1]
+   # N_spec = kw.termini_dir[input_num -1][0]
+   # C_spec = kw.termini_dir[input_num -1][1]
+   N_spec = kw.termini_dir[input_num -1][j][0]
+   C_spec = kw.termini_dir[input_num -1][j][1]
    if (C_spec == N_spec == None) or (N_spec == N_actual and C_spec == C_actual):
       # in correct orientation already
       # if True in kw.term_access[input_num - 1]: kw.poses.append(pose) #If terminal helices added, use pose to make body
@@ -105,25 +107,55 @@ def N_term_in(pose, keep_helix=False):
    return N_point_in
 
 # Wrapper for helices + termini stuff. Maybe rewrite 1 comp to work with this as well
+# def init_termini(**kw):
+#    kw = rpxdock.Bunch(kw)
+#    for i in range(len(kw.inputs)):
+#       access = kw.term_access[i] 
+#       direction = kw.termini_dir[i]
+#       N_in = None
+#       C_in = None
+#       if (True in access) or (True in direction) or (False in direction):
+#          pose = rpxdock.rosetta.rosetta_util.get_pose(kw.inputs[i][0], kw.posecache)
+#          kw.og_lens.append([pose.size()])
+#          if direction[0] is not None: N_in = rpxdock.rosetta.helix_trix.N_term_in(pose, access[0]) #N term first
+#          elif access[0]: rpxdock.rosetta.helix_trix.append_Nhelix(pose)
+#          if direction[1] is not None: C_in = rpxdock.rosetta.helix_trix.C_term_in(pose, access[1]) #C term
+#          elif access[1]: rpxdock.rosetta.helix_trix.append_Chelix(pose)
+         
+#          if sum(access) > 0: kw.poses.append([pose]) #Only update pose if adding on helices to termini
+#          elif len(kw.poses) > 0: kw.poses.append([kw.inputs[i][0]])
+#          dir_possible, error_msg = rpxdock.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, i+1, **kw)
+#          if not dir_possible: raise ValueError(error_msg)
+#       elif any(True in pair for pair in kw.term_access):
+#          # Add path to pdb to pose list, if there will be any modified poses
+#          # that will be used to make the body
+#          kw.poses.append([kw.inputs[i][0]])
+#          kw.og_lens.append([0])
+   
+# Corrections with newly organized kw.term_access and kw.termini_direction
 def init_termini(**kw):
    kw = rpxdock.Bunch(kw)
    for i in range(len(kw.inputs)):
-      access = kw.term_access[i] 
-      direction = kw.termini_dir[i]
-      N_in = None
-      C_in = None
-      if (True in access) or (True in direction) or (False in direction):
-         pose = rpxdock.rosetta.rosetta_util.get_pose(kw.inputs[i][0], kw.posecache)
-         kw.og_lens.append([pose.size()])
-         if direction[0] is not None: N_in = rpxdock.rosetta.helix_trix.N_term_in(pose, access[0]) #N term first
-         elif access[0]: rpxdock.rosetta.helix_trix.append_Nhelix(pose)
-         if direction[1] is not None: C_in = rpxdock.rosetta.helix_trix.C_term_in(pose, access[1]) #C term
-         elif access[1]: rpxdock.rosetta.helix_trix.append_Chelix(pose)
-         
-         if sum(access) > 0: kw.poses.append([pose]) #Only update pose if adding on helices to termini
-         elif len(kw.poses) > 0: kw.poses.append([kw.inputs[i][0]])
-         dir_possible, error_msg = rpxdock.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, i+1, **kw)
-         if not dir_possible: raise ValueError(error_msg)
-      elif len(kw.poses) > 0:
-         kw.poses.append([kw.inputs[i][0]])
-         kw.og_lens.append([0])
+      for j in range(len(kw.inputs[i])):
+         access = kw.term_access[i][j] 
+         direction = kw.termini_dir[i][j]
+         N_in = None
+         C_in = None
+         if (True in access) or (True in direction) or (False in direction):
+            pose = rpxdock.rosetta.rosetta_util.get_pose(kw.inputs[i][j], kw.posecache)
+            kw.og_lens.append([pose.size()])
+            if direction[0] is not None: N_in = rpxdock.rosetta.helix_trix.N_term_in(pose, access[0]) #N term first
+            elif access[0]: rpxdock.rosetta.helix_trix.append_Nhelix(pose)
+            if direction[1] is not None: C_in = rpxdock.rosetta.helix_trix.C_term_in(pose, access[1]) #C term
+            elif access[1]: rpxdock.rosetta.helix_trix.append_Chelix(pose)
+            
+            if sum(access) > 0: kw.poses.append([pose]) #Only update pose if adding on helices to termini
+            elif len(kw.poses) > 0: kw.poses.append([kw.inputs[i][j]])
+            # dir_possible, error_msg = rpxdock.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, i+1, **kw)
+            dir_possible, error_msg = rpxdock.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, i+1, j, **kw)
+            if not dir_possible: raise ValueError(error_msg)
+         elif any(True in pair for pair in kw.term_access):
+            # Add path to pdb to pose list, if there will be any modified poses
+            # that will be used to make the body
+            kw.poses.append([kw.inputs[i][j]])
+            kw.og_lens.append([0])

@@ -118,8 +118,7 @@ def dock_onecomp(hscore, **kw):
    crtbnd = kw.cart_bounds[0]
 
     # Determine accessibility and flip restriction before we make sampler
-   kw.poses = []
-   kw.og_lens = [] 
+   kw.poses, kw.og_lens = [], [] 
    rp.rosetta.helix_trix.init_termini(**kw)
 
    # double normal resolution, cuz why not?
@@ -149,7 +148,7 @@ def dock_onecomp(hscore, **kw):
       assert len(kw.poses) == len(kw.og_lens)
       bodies = [
          rp.Body(pose1, allowed_res=allowedres, modified_term=modterm, og_seqlen=og_seqlen, **kw)
-         for pose1, allowedres, modterm, og_seqlen in zip(kw.poses[0], kw.allowed_residues1, kw.term_access, kw.og_lens[0])
+         for pose1, allowedres, modterm, og_seqlen in zip(kw.poses[0], kw.allowed_residues1, kw.term_access[0], kw.og_lens[0])
       ]
    else:
       bodies = [
@@ -186,8 +185,7 @@ def dock_multicomp(hscore, **kw):
    spec = get_spec(kw.architecture)
 
    # Determine accessibility and flip restriction before we make sampler
-   kw.poses = []
-   kw.og_lens = []
+   kw.poses, kw.og_lens = [], []
    rp.rosetta.helix_trix.init_termini(**kw) 
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
    logging.info(f'num base samples {sampler.size(0):,}')
@@ -195,9 +193,10 @@ def dock_multicomp(hscore, **kw):
    # Use list of modified poses to make bodies if such list exists
    if len(kw.poses) > 0:
       assert len(kw.poses) == len(kw.og_lens)
-      bodies = [[rp.Body(pose2, allowed_res=ar2,og_seqlen=og2, modified_term=modterm, **kw)
-               for pose2, ar2, og2, modterm in zip(pose1, ar, og1, kw.term_access)]
-               for pose1, ar, og1 in zip(kw.poses, kw.allowed_residues, kw.og_lens)]
+      bodies = [[rp.Body(pose2, og_seqlen=og2, modified_term=modterm2, **kw)
+               for pose2, og2, modterm2 in zip(pose1, og1, modterm1)]
+               for pose1, og1, modterm1 in zip(kw.poses, kw.og_lens, kw.term_access)]
+
    else:
       bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
                for fn, ar2 in zip(inp, ar)]

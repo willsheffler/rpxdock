@@ -22,6 +22,7 @@ class Body:
       **kw,
    ):
       kw = rpxdock.Bunch(kw)
+      print(modified_term)
 
       import rpxdock.rosetta.triggers_init as ros
       # pose stuff

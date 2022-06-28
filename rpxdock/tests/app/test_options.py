@@ -102,6 +102,40 @@ def test_inputs():
    for i, a in zip(kw.inputs, kw.allowed_residues):
       assert len(i) == len(a)
 
+   # kw = defaults(process_args=False).sub(
+   #    inputs1=['foo', 'bar'],
+   #    allowed_residues1=['xfoo', 'xbar'],
+   #    inputs2=['foo', 'bar'],
+   #    allowed_residues2=['xfoo2'],
+   #    inputs3=['foo', 'bar'],
+   #    allowed_residues3=['xfoo', 'xbar'],
+   #    term_access1=[True, True]
+   # )
+   # kw = process_cli_args(kw, read_allowed_res_files=False)
+   # assert len(kw.inputs) == 3
+   # assert len(kw.inputs) == len(kw.termini_dir)
+   # assert len(kw.inputs) == len(kw.term_access)
+
+def test_parse_termini():
+   kw = defaults(process_args=False).sub(
+      inputs1=['foo', 'bar'],
+      # allowed_residues1=['xfoo', 'xbar'],
+      inputs2=['foo'],
+      # allowed_residues2=['xfoo2'],
+      inputs3=['foo', 'bar'],
+      allowed_residues3=['xfoo', 'xbar'],
+      term_access1= [True, False, False, True],
+      term_access2 = [True, False],
+      termini_dir1 = [True],
+      termini_dir3 = [False, True]
+   )
+   kw = process_cli_args(kw, read_allowed_res_files=False)
+   assert len(kw.inputs) == 3
+   assert len(kw.inputs) == len(kw.termini_dir)
+   assert len(kw.inputs) == len(kw.term_access)
+   assert kw.term_access[0] == kw.term_access1 == [[True, False], [False, True]]
+   assert kw.termini_dir[2] == kw.termini_dir3 == [[False, False], [True, True]]
+
 def test_str2bool():
    assert str2bool('True')
    with pytest.raises(argparse.ArgumentTypeError):
@@ -113,6 +147,23 @@ def test_str2bool():
    assert not str2bool('0')
 
    assert str2bool(['t', 'f', 'no', 'yes']) == [True, False, False, True]
+
+def test_dir_plus_bool():
+   with pytest.raises(argparse.ArgumentTypeError):
+      assert dir_plus_bool('inside')
+      assert dir_plus_bool('-1')
+   assert dir_plus_bool("In")   
+   assert dir_plus_bool("DOWN")
+   assert not dir_plus_bool("Out")
+   assert not dir_plus_bool("NO") 
+
+   assert None == dir_plus_bool("NA")
+   assert None == dir_plus_bool("NoNe")
+   with pytest.raises(argparse.ArgumentTypeError):
+      assert dir_plus_bool("n/a")
+
+   assert (dir_plus_bool(['t', 'f', 'no', 'yes', '1', '0']) == 
+                  [True, False, False, True, True, False])
 
 def test_inputs_read_allowed_res():
    kw = defaults(process_args=False).sub(
@@ -131,4 +182,7 @@ if __name__ == '__main__':
    # test_defaults()
    # test_get_cli_args()
    # test_inputs_read_allowed_res()
-   test_str2bool()
+   # test_str2bool()
+   # test_dir_plus_bool()
+   # test_parse_termini()
+   test_inputs()

@@ -475,23 +475,23 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
       msg = '--termini_dir3 cant be used if --inputs2 not used'
       assert opt.termini_dir3 == [None], msg
 
-   msg = 'number of inputs for term_access must be zero, one, or twice the number of inputs'
+   msg = 'number of inputs for term_access must be zero, one, or equal to or twice the number of inputs'
    assert len(opt.term_access) in (0, 1, len(opt.inputs), len(opt.inputs)*2), msg
-   msg = 'number of inputs for term_access1 must be less than or equal twice the number of inputs1'
-   assert len(opt.term_access1) in (0, 1, len(opt.inputs1)*2), msg
-   msg = 'number of inputs for term_access2 must be less than or equal twice the number of inputs2'
-   assert len(opt.term_access2) in (0, 1, len(opt.inputs2)*2), msg
-   msg = 'number of inputs for term_access3 must be less than or equal twice the number of inputs3'
-   assert len(opt.term_access3) in (0, 1, len(opt.inputs3)*2), msg
+   msg = 'number of inputs for term_access1 must be 1, equal to number of inputs1, or twice the number of inputs1'
+   assert len(opt.term_access1) in (0, 1, len(opt.inputs1), len(opt.inputs1)*2), msg
+   msg = 'number of inputs for term_access2 must be 1, equal to number of inputs1, or twice the number of inputs2'
+   assert len(opt.term_access2) in (0, 1, len(opt.inputs2), len(opt.inputs2)*2), msg
+   msg = 'number of inputs for term_access3 must be 1, equal to number of inputs1, or twice the number of inputs3'
+   assert len(opt.term_access3) in (0, 1, len(opt.inputs3), len(opt.inputs3)*2), msg
 
-   msg = 'number of inputs for termini_dir must be zero, one, or twice the number of inputs'
+   msg = 'number of inputs for termini_dir must be zero, one, or equal to or twice the number of inputs'
    assert len(opt.termini_dir) in (0, 1, len(opt.inputs), len(opt.inputs)*2), msg
-   msg = 'number of inputs for termini_dir1 must be less than or equal twice the number of inputs1'
-   assert len(opt.termini_dir1) in (0, 1, len(opt.inputs1)*2), msg
-   msg = 'number of inputs for termini_dir2 must be less than or equal twice the number of inputs2'
-   assert len(opt.termini_dir2) in (0, 1, len(opt.inputs2)*2), msg
-   msg = 'number of inputs for termini_dir3 must be less than or equal twice the number of inputs3'
-   assert len(opt.termini_dir3) in (0, 1, len(opt.inputs3)*2), msg
+   msg = 'number of inputs for termini_dir1 must be 1, equal to number of inputs1, or twice the number of inputs1'
+   assert len(opt.termini_dir1) in (0, 1, len(opt.inputs1), len(opt.inputs1)*2), msg
+   msg = 'number of inputs for termini_dir2 must be 1, equal to number of inputs1, or twice the number of inputs2'
+   assert len(opt.termini_dir2) in (0, 1, len(opt.inputs2), len(opt.inputs2)*2), msg
+   msg = 'number of inputs for termini_dir3 must be 1, equal to number of inputs1, or twice the number of inputs3'
+   assert len(opt.termini_dir3) in (0, 1, len(opt.inputs3), len(opt.inputs3)*2), msg
 
    if len(opt.allowed_residues) is 1: opt.allowed_residues *= len(opt.inputs)
    if len(opt.allowed_residues1) is 1: opt.allowed_residues1 *= len(opt.inputs1)
@@ -531,17 +531,17 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
          if len(opt.inputs) > 1: opt.termini_dir2 = opt.termini_dir[2:4]
          if len(opt.inputs) > 2: opt.termini_dir3 = opt.termini_dir[4:6]
 
-   if len(opt.term_access1) is 1: opt.term_access1 *= 2
-   if len(opt.term_access2) is 1: opt.term_access2 *= 2
-   if len(opt.term_access3) is 1: opt.term_access3 *= 2
+   opt.term_access1 = [item for item in process_term_options(opt.term_access1, opt.inputs1)]
+   opt.term_access2 = [item for item in process_term_options(opt.term_access2, opt.inputs2)]
+   opt.term_access3 = [item for item in process_term_options(opt.term_access3, opt.inputs3)]
    opt.term_access = []
    if len(opt.inputs) > 0: opt.term_access.append(opt.term_access1)
    if len(opt.inputs) > 1: opt.term_access.append(opt.term_access2)
    if len(opt.inputs) > 2: opt.term_access.append(opt.term_access3)
 
-   if len(opt.termini_dir1) is 1: opt.termini_dir1 *= 2
-   if len(opt.termini_dir2) is 1: opt.termini_dir2 *= 2
-   if len(opt.termini_dir3) is 1: opt.termini_dir3 *= 2
+   opt.termini_dir1 = [item for item in process_term_options(opt.termini_dir1, opt.inputs1)]
+   opt.termini_dir2 = [item for item in process_term_options(opt.termini_dir2, opt.inputs2)]
+   opt.termini_dir3 = [item for item in process_term_options(opt.termini_dir3, opt.inputs3)]
    opt.termini_dir = []
    if len(opt.inputs) > 0: opt.termini_dir.append(opt.termini_dir1)
    if len(opt.inputs) > 1: opt.termini_dir.append(opt.termini_dir2)
@@ -702,17 +702,24 @@ def _process_arg_sspair(kw):
        or any(p[1] not in "EHL" for p in kw.score_only_sspair)):
       raise argparse.ArgumentError(None, '--score_only_sspair accepts only EHL')
 
-def process_term_direction(v):
-   if isinstance(v, (list, tuple)):
-      return [process_term_direction(_) for _ in v]
-   if type(v) is bool:
-      return str2bool(v)
-   elif type(v) is str and v.lower() in ('in', 'down'):
-      return True
-   elif type(v) is str and v.lower() in ('out', 'up'):
-      return False
-   else:
-      raise argparse.ArgumentTypeError(
-         ('Boolean value expected, not "%s" of type %s\n' % (v, type(v)) +
-          'Allowed True Vals  (case independant): in down\n' +
-          'Allowed False Vals (case independant): out up')) 
+# def process_term_direction(v):
+#    if isinstance(v, (list, tuple)):
+#       return [process_term_direction(_) for _ in v]
+#    if type(v) is bool:
+#       return str2bool(v)
+#    elif type(v) is str and v.lower() in ('in', 'down'):
+#       return True
+#    elif type(v) is str and v.lower() in ('out', 'up'):
+#       return False
+#    else:
+#       raise argparse.ArgumentTypeError(
+#          ('Boolean value expected, not "%s" of type %s\n' % (v, type(v)) +
+#           'Allowed True Vals  (case independant): in down\n' +
+#           'Allowed False Vals (case independant): out up')) 
+
+def process_term_options(option, inputs):
+   tmp = []
+   if len(option) is 1: tmp = [[elem, elem] for elem in option for inp in range(len(inputs))]
+   elif len(option) is len(inputs): tmp = [[option[j],option[j]] for j in range(0, len(inputs))]
+   elif len(option) is len(inputs)*2: tmp = [[option[j],option[j+1]] for j in range(0, len(inputs)*2,2)]
+   return tmp
