@@ -164,7 +164,6 @@ def symframes(sym, pos=None, axis=[0,0,1], **kw):
       c2 = hm.hrot(axis2, np.arange(2) / 2 * 360,  center=[pos[1, 0, 3], pos[1, 1, 3], pos[1, 2, 3]])
       frames = c4[:, None] @ c2[None, :]
       return frames.reshape(-1, 4, 4)
-
    elif sym == 'P4M_4':
       c4a = hm.hrot(axis, np.arange(4) / 4 * 360)
       c4b = hm.hrot(axis, np.arange(4) / 4 * 360, center=[pos[0, 3], pos[1, 3], 0])

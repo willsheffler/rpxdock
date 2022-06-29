@@ -71,7 +71,7 @@ def hier_axis_sampler(
 
 def hier_multi_axis_sampler(
    spec,
-   cart_bounds=[25, 200],
+   cart_bounds=[0, 200],
    resl=10,
    angresl=10,
    flip_components=True,

@@ -122,7 +122,7 @@ def test_layer_hier_2comp(hscore, bodyC3, bodyC2):
    kw.nout_debug = 2
 
    bodies = [bodyC3, bodyC2]
-   spec = rp.search.DockSpec2CompLayer('P6_63')
+   spec = rp.search.DockSpec2CompLayer('P6_32')
    sampler = rp.sampling.hier_multi_axis_sampler(spec, [[-100, 100], [-100, 100]],
                                                  flip_components=True)
    #bounds for the hier_multi_axis_sampler are critical for getting dock solutions - need big search space?
@@ -148,14 +148,14 @@ def test_discrete_2comp(hscore, body1, body2):
    kw.nout_debug = 2
 
    bodies = [body1, body2]
-   spec = rp.search.DockSpecDiscrete('F_42_6')
+   spec = rp.search.DockSpecDiscrete('F_32_12')
    sampler = rp.sampling.hier_multi_axis_sampler(spec, [[-300, 300], [-300, 300]],
                                                  flip_components=False)
 
    result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **kw)
 
    result.dump_pdbs_top_score(hscore=hscore,
-    **kw.sub(nout_top=5, output_prefix='test_discrete_2comp', output_asym_only=False))
+    **kw.sub(nout_top=5, output_prefix='test_discrete_2comp_n12', output_asym_only=False))
 
    rp.dump(result, '/home/cnfries/PycharmProjects/rpxdock-cnfries/rpxdock/data/testdata/test_discrete_2comp.pickle')
    ref = rp.data.get_test_data('test_discrete_2comp')
@@ -183,9 +183,9 @@ if __name__ == '__main__':
    #test_cage_hier_trim(hscore, C3, C2)
 
    C4 = rp.data.get_body('C4_1na0-G1_1')
-   C2 = rp.data.get_body('C2_REFS10_1')
+   C2 = rp.data.get_body('C2_3hm4_1')
    C3 = rp.data.get_body('C3_1nza_1')
-   test_discrete_2comp(hscore, C4, C2)
+   test_layer_hier_2comp(hscore, C3, C2)
 
 
    #C6 = rp.data.get_body('C6_3H22')
