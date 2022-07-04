@@ -115,31 +115,45 @@ def test_layer_hier_3comp(hscore, bodyC6, bodyC3, bodyC2):
 
 # jenstanisl : testing restricting search space based on desired termini
 # direction/orientation
-def test_cage_termini_dirs(hscore, bodyC3, bodyC2):
+def test_cage_termini_dirs(hscore, bodyC3, bodyC2, poseC3, poseC2):
+   # import time
+   # start = time.time()
+
    C3_Ndir, C3_Cdir= True, False # init relative dirs of N and C terms
    C2_Ndir, C2_Cdir = True, False 
    dirs = [[[C3_Ndir, C3_Cdir],[C2_Ndir, C2_Cdir]],
             [[not(C3_Ndir), not(C3_Cdir)],[not(C2_Ndir), not(C2_Cdir)]],
             [[not(C3_Ndir), not(C3_Cdir)],[C2_Ndir, C2_Cdir]],
-            [[C3_Ndir, C3_Cdir],[not(C2_Ndir), not(C2_Cdir)]]] 
+            [[C3_Ndir, C3_Cdir],[not(C2_Ndir), not(C2_Cdir)]],
+            [[None,None], [None, None]]] 
+   expected_flips = [[[False,False],[False,False]],
+                     [[True,True],[True,True]],
+                     [[True,True],[False,False]],
+                     [[False,False],[True,True]],
+                     [[True,False],[True,False]]]
+
    result = [None] * len(dirs)
    for i, dir_pair in enumerate(dirs):
       kw = get_arg()
       kw.beam_size = 5000
-      kw.flip_components = True
-      kw.force_flip = [[False],[False]]
-      kw.termini_dir1,kw.temrini_dir2 = dir_pair[0], dir_pair[1]
+      kw.inputs = [[poseC3], [poseC2]]
+      kw.flip_components = [True, True]
+      kw.force_flip = [False,False]
+      kw.term_access=[[[False, False]],[[False, False]]]
+      kw.termini_dir = [[dir_pair[0]], [dir_pair[1]]]
       # Add stuff for restricting flipping
-      kw.poses, kw.og_lens = [], []
-      rp.rosetta.helix_trix.init_termini(**kw) 
+      poses, og_lens = rp.rosetta.helix_trix.init_termini(**kw) 
+      assert [kw.flip_components[0], kw.force_flip[0]] == expected_flips[i][0]
+      assert [kw.flip_components[1], kw.force_flip[1]] == expected_flips[i][1]
+
       
       spec = rp.search.DockSpec2CompCage('I32')
-      sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw) # change these values?
+      sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw) 
 
-      # sampler = rp.sampling.hier_multi_axis_sampler(spec, [50, 60]) # change these values?
       result[i] = rp.search.make_multicomp([bodyC3, bodyC2], spec, hscore, rp.hier_search,
                                        sampler, **kw)
-
+   for j in range(len(result)):
+      for k in range(j+1, len(result)):assert not(result[j].__eq__(result[k]))
    result = rp.concat_results(result)
    # print(result)
    # result.dump_pdbs_top_score(hscore=hscore,
@@ -147,9 +161,9 @@ def test_cage_termini_dirs(hscore, bodyC3, bodyC2):
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_termini_dirs.pickle')
    ref = rp.data.get_test_data('test_cage_termini_dirs') 
-
-   # Change ref based on the pair
    rp.search.assert_results_close(result, ref)
+   # end = time.time()
+   # print("time to run ", end - start, " s")
 
 
 if __name__ == '__main__':
@@ -185,5 +199,8 @@ if __name__ == '__main__':
    # test_layer_hier_3comp(hscore, C6, C3, C2)
 
    C2 = rp.data.get_body('C2_REFS10_1')
-   C3 = rp.data.get_body('C3_1na0-1_1') 
-   test_cage_termini_dirs(hscore, C3, C2)
+   C3 = rp.data.get_body('C3_1na0-1_1')
+   from rpxdock.rosetta.triggers_init import get_pose_cached
+   poseC2 = get_pose_cached('C2_REFS10_1.pdb.gz', rp.data.pdbdir)
+   poseC3 = get_pose_cached('C3_1na0-1_1.pdb.gz', rp.data.pdbdir)
+   test_cage_termini_dirs(hscore, C3, C2, poseC3, poseC2)

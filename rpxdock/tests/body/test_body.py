@@ -130,29 +130,30 @@ def test_body_with_terminal_helices(inp1, inp2, helix):
    kw.termini_dir = [[[None,None]], [[True, None]], [[False, None], [None, True]]]
    kw.flip_components = [True] * len(kw.inputs)
    kw.force_flip = [False] * len(kw.inputs)
-   kw.poses, kw.og_lens = [], []
-   rp.rosetta.helix_trix.init_termini(**kw)
+   poses, og_lens = rp.rosetta.helix_trix.init_termini(**kw)
 
-   if len(kw.poses) > 0:
-      assert len(kw.poses) == len(kw.og_lens) == len(kw.inputs)
+   if len(poses) > 0:
+      assert len(poses) == len(og_lens) == len(kw.inputs)
       bodies = [[rp.Body(pose2, og_seqlen=og2, modified_term=modterm2, **kw)
             for pose2, og2, modterm2 in zip(pose1, og1, modterm)]
-            for pose1, og1, modterm in zip(kw.poses, kw.og_lens, kw.term_access)]
-   
+            for pose1, og1, modterm in zip(poses, og_lens, kw.term_access)]
+
    # Make bodies from original inputs - no terminal modifications
    og_bodies=[[rp.Body(inp2, **kw) for inp2 in inp1] for inp1 in kw.inputs]
 
    # Compare 3 bodies: with appended helices (body), with no modifications (og),
    # and after helix removal (new)
    for i, b in enumerate(bodies):
-      body, og, new = b[0], og_bodies[i][0], b[0].copy_exclude_term_res()
-      assert sum(body.allowed_residues) == body.og_seqlen 
-      assert int(body.nres) == body.og_seqlen + (helix.size()*sum(body.modified_term))
-      assert kw.term_access[i] == body.modified_term
-      assert len(new.seq) == body.og_seqlen == og.nres
-      assert np.array_equal(new.seq, og.seq)
-      for j in range(0,len(og.orig_coords)):
-         assert np.array_equal(new.orig_coords[j], og.orig_coords[j])
+      for j in range(len(b)):
+         # body, og, new = b[0], og_bodies[i][0], b[0].copy_exclude_term_res()
+         body, og, new = b[j], og_bodies[i][j], b[j].copy_exclude_term_res()
+         assert sum(body.allowed_residues) == body.og_seqlen 
+         assert int(body.nres) == body.og_seqlen + (helix.size()*sum(body.modified_term))
+         assert kw.term_access[i][j] == body.modified_term
+         assert len(new.seq) == body.og_seqlen == og.nres
+         assert np.array_equal(new.seq, og.seq)
+         for k in range(0,len(og.orig_coords)):
+            assert np.array_equal(new.orig_coords[k], og.orig_coords[k])
 
 if __name__ == "__main__":
    from rpxdock.rosetta.triggers_init import get_pose_cached

@@ -1,7 +1,7 @@
-import rpxdock
 from rpxdock.rosetta.triggers_init import *
 from rpxdock.rosetta.triggers_init import get_pose_cached
 from rpxdock.data import pdbdir
+import rpxdock as rp
 
 def append_Nhelix(userpose, alignto=7):
    helix = get_pose_cached('tiny.pdb.gz', pdbdir)
@@ -29,7 +29,7 @@ def append_Chelix(userpose, alignto=7):
    return True
 
 def point_in(pose, term, helixch=False):
-   # Can pass in which chain is attached to the relevant term
+   # Can pass in which chain is attached to the relevant term (integer)
    # If no helix chain given, assumes last chain in pose is helix chain
    if not helixch: helixch = pose.chain(pose.size())
    helixbeg = rosetta.protocols.geometry.center_of_mass(pose, pose.chain_begin(helixch), pose.chain_begin(helixch)+2)
@@ -61,31 +61,55 @@ def remove_helix_chain(pose, chain=None):
    return True
 
 # Checks actual (N and C actual) and desired (N and C spec) direction of termini
-# relative to the origin to determine if desired orientation is possible. Will also
-# add a modified pose to a list of poses to make bodies used for docking
-def limit_flip_update_pose(pose, N_actual,  C_actual, input_num = 1, j=0, **kw):
-   kw = rpxdock.Bunch(kw)
-   # N_spec = kw.termini_dir[input_num -1][0]
-   # C_spec = kw.termini_dir[input_num -1][1]
+# relative to the origin to determine if desired orientation is possible. 
+def limit_flip_update_pose(N_actual,  C_actual, input_num = 1, j=0, **kw):
+   kw = rp.Bunch(kw)
    N_spec = kw.termini_dir[input_num -1][j][0]
    C_spec = kw.termini_dir[input_num -1][j][1]
+   # N_spec = kw.termini_dir[input_num -1][0]
+   # C_spec = kw.termini_dir[input_num -1][1]
    if (C_spec == N_spec == None) or (N_spec == N_actual and C_spec == C_actual):
       # in correct orientation already
-      # if True in kw.term_access[input_num - 1]: kw.poses.append(pose) #If terminal helices added, use pose to make body
       if N_spec is not None or C_spec is not None:
+         if kw.force_flip[input_num - 1] == True:
+            error_msg=("Desired termini orientation is not possible for input "\
+                        f"#{(j+1)} in list of --inputs{input_num} because the "\
+                        "restrictions necessary to ensure desired orientation "\
+                        "for this input are incompatible with restrictions "\
+                        f"required for other input(s) in --inputs{input_num} "\
+                        "to have their termini in their desired orientation. "\
+                        "NOTE: Since the same sampler is used for all inputs "\
+                        f"in --inputs{input_num}, it is not possible to prevent "\
+                        "flipping of one input in list while forcing another "\
+                        "input to flip. To work around this, submit these "\
+                        "inputs to rpxdock individually, with one input for "\
+                        "--inputs1, rather than submitting --inputs1 as a list.")
+            return False, error_msg
          kw.flip_components[input_num - 1] = False #Otherwise use original input to make body, but limit flip if not done already
       return True, None
    elif ((N_actual != None and C_actual != None) and 
       ((N_actual != C_actual and N_spec == C_spec) or
       (N_actual == C_actual and N_spec != C_spec))):
+      if len(kw.inputs[input_num -1]) > 1:
+         input_num = str(f"{(j+1)} in list of --inputs{input_num}")    
       error_msg = (f"Input {input_num} cannot have its termini in the desired orientation")
       return False, error_msg
    elif ((N_spec != None and N_spec != N_actual) or 
       (C_spec != None and C_spec != C_actual) or
       (N_spec == (not N_actual) and C_spec == (not C_actual) )): 
       #need to flip once, force flip
-      if not kw.flip_components[input_num -1]: #need to change index for greater than 1comp
-         error_msg = (f"Desired termini orientation is not possible because flipping is not allowed for input {input_num}")
+      if not kw.flip_components[input_num -1]:
+         if len(kw.inputs[input_num -1]) > 1:
+            input_num = str(f"{(j+1)} in list of --inputs{input_num}")
+         # error_msg = (f"Desired termini orientation is not possible because flipping is not allowed for input {input_num}")
+         error_msg = ("Desired termini orientation is not possible because "\
+                     f"flipping is not allowed for input {input_num}. "\
+                     "NOTE: If submitting a list of inputs, the same sampler "\
+                     "is used for all inputs in that list. It is not possible "\
+                     "to prevent flipping of one input in list while forcing "\
+                     "another input in the list to flip. To work around this, "\
+                     "submit inputs to rpxdock individually, with one input for "\
+                     "--inputs1, rather than submitting --inputs1 as a list.")
          return False, error_msg
       else: # force flip
          assert kw.flip_components[input_num -1] #if use force flip, must be allowed to flip
@@ -108,54 +132,69 @@ def N_term_in(pose, keep_helix=False):
 
 # Wrapper for helices + termini stuff. Maybe rewrite 1 comp to work with this as well
 # def init_termini(**kw):
-#    kw = rpxdock.Bunch(kw)
+#    kw = rp.Bunch(kw)
 #    for i in range(len(kw.inputs)):
 #       access = kw.term_access[i] 
 #       direction = kw.termini_dir[i]
 #       N_in = None
 #       C_in = None
 #       if (True in access) or (True in direction) or (False in direction):
-#          pose = rpxdock.rosetta.rosetta_util.get_pose(kw.inputs[i][0], kw.posecache)
-#          kw.og_lens.append([pose.size()])
-#          if direction[0] is not None: N_in = rpxdock.rosetta.helix_trix.N_term_in(pose, access[0]) #N term first
-#          elif access[0]: rpxdock.rosetta.helix_trix.append_Nhelix(pose)
-#          if direction[1] is not None: C_in = rpxdock.rosetta.helix_trix.C_term_in(pose, access[1]) #C term
-#          elif access[1]: rpxdock.rosetta.helix_trix.append_Chelix(pose)
+#          pose = rp.rosetta.rosetta_util.get_pose(kw.inputs[i][0], kw.posecache)
+#          og_lens.append([pose.size()])
+#          if direction[0] is not None: N_in = rp.rosetta.helix_trix.N_term_in(pose, access[0]) #N term first
+#          elif access[0]: rp.rosetta.helix_trix.append_Nhelix(pose)
+#          if direction[1] is not None: C_in = rp.rosetta.helix_trix.C_term_in(pose, access[1]) #C term
+#          elif access[1]: rp.rosetta.helix_trix.append_Chelix(pose)
          
-#          if sum(access) > 0: kw.poses.append([pose]) #Only update pose if adding on helices to termini
-#          elif len(kw.poses) > 0: kw.poses.append([kw.inputs[i][0]])
-#          dir_possible, error_msg = rpxdock.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, i+1, **kw)
+#          if sum(access) > 0: poses.append([pose]) #Only update pose if adding on helices to termini
+#          elif len(poses) > 0: poses.append([kw.inputs[i][0]])
+#          dir_possible, error_msg = rp.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, i+1, **kw)
 #          if not dir_possible: raise ValueError(error_msg)
 #       elif any(True in pair for pair in kw.term_access):
 #          # Add path to pdb to pose list, if there will be any modified poses
 #          # that will be used to make the body
-#          kw.poses.append([kw.inputs[i][0]])
-#          kw.og_lens.append([0])
+#          poses.append([kw.inputs[i][0]])
+#          og_lens.append([0])
    
 # Corrections with newly organized kw.term_access and kw.termini_direction
-def init_termini(**kw):
-   kw = rpxdock.Bunch(kw)
+def init_termini(make_poselist=True, **kw):
+   kw = rp.Bunch(kw)
+   poses, og_lens = [[]], [[]] 
    for i in range(len(kw.inputs)):
       for j in range(len(kw.inputs[i])):
-         access = kw.term_access[i][j] 
+         access = kw.term_access[i][j]
          direction = kw.termini_dir[i][j]
+         # direction = kw.termini_dir[i]
+         # print(access)
+         # print(direction)
          N_in = None
          C_in = None
          if (True in access) or (True in direction) or (False in direction):
-            pose = rpxdock.rosetta.rosetta_util.get_pose(kw.inputs[i][j], kw.posecache)
-            kw.og_lens.append([pose.size()])
-            if direction[0] is not None: N_in = rpxdock.rosetta.helix_trix.N_term_in(pose, access[0]) #N term first
-            elif access[0]: rpxdock.rosetta.helix_trix.append_Nhelix(pose)
-            if direction[1] is not None: C_in = rpxdock.rosetta.helix_trix.C_term_in(pose, access[1]) #C term
-            elif access[1]: rpxdock.rosetta.helix_trix.append_Chelix(pose)
-            
-            if sum(access) > 0: kw.poses.append([pose]) #Only update pose if adding on helices to termini
-            elif len(kw.poses) > 0: kw.poses.append([kw.inputs[i][j]])
-            # dir_possible, error_msg = rpxdock.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, i+1, **kw)
-            dir_possible, error_msg = rpxdock.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, i+1, j, **kw)
+            if len(poses) < i+1: poses.append([])
+            if len(og_lens) < i+1: og_lens.append([])
+            if type(kw.inputs[i][j]) == rosetta.core.pose.Pose:pose=kw.inputs[i][j]
+            else: pose = rp.rosetta.rosetta_util.get_pose(kw.inputs[i][j], kw.posecache)
+            # og_lens.append([pose.size()])
+            og_lens[i].append(pose.size())
+            if direction[0] is not None: N_in = rp.rosetta.helix_trix.N_term_in(pose, access[0]) #N term first
+            elif access[0]: rp.rosetta.helix_trix.append_Nhelix(pose)
+            if direction[1] is not None: C_in = rp.rosetta.helix_trix.C_term_in(pose, access[1]) #C term
+            elif access[1]: rp.rosetta.helix_trix.append_Chelix(pose)
+            # if sum(access) > 0: poses.append([pose]) #Only update pose if adding on helices to termini
+            # elif len(poses) > 0: poses.append([kw.inputs[i][j]])
+            if sum(access) > 0: poses[i].append(pose) #Only update pose if adding on helices to termini
+            elif make_poselist: poses[i].append(kw.inputs[i][j])
+            # elif len(poses[i]) > 0: poses[i].append(kw.inputs[i][j])
+            dir_possible, error_msg = rp.rosetta.helix_trix.limit_flip_update_pose(N_in, C_in, i+1, j, **kw)
+            # dir_possible, error_msg = rp.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, i+1, **kw)
             if not dir_possible: raise ValueError(error_msg)
-         elif any(True in pair for pair in kw.term_access):
+         elif make_poselist:
             # Add path to pdb to pose list, if there will be any modified poses
             # that will be used to make the body
-            kw.poses.append([kw.inputs[i][j]])
-            kw.og_lens.append([0])
+            # poses.append([kw.inputs[i]])
+            if len(poses) < i+1: poses.append([])
+            poses[i].append(kw.inputs[i][j])
+            if len(og_lens) < i+1: og_lens.append([])
+            og_lens[i].append(None)
+            # og_lens.append([0])
+   return poses, og_lens

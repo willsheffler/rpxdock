@@ -353,15 +353,15 @@ def default_cli_parser(parent=None, **kw):
       "--termini_dir", nargs='+', default=[None], type=dir_plus_bool, help=argparse.SUPPRESS)
    addarg(
       "--termini_dir1", nargs="+", default=[None], type=dir_plus_bool,
-      help='Specify direction that termini of single component or first component will point relative to the origin in final docks. List of strings or booleans in order of [N term, C term]. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction not specified). If one value is given, it will apply to BOTH termini. Defaults to [None None]'
+      help='Specify direction that termini of single component or first component will point relative to the origin in final docks. List of strings or booleans in order of [N term, C term]. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction unspecified). If one value is given, it will apply to ALL termini. Defaults to [None]'
    )
    addarg(
       "--termini_dir2", nargs="+", default=[None], type=dir_plus_bool,
-      help='Specify direction that termini of second component will point relative to the origin in final docks. List of strings or booleans in order of [N term, C term]. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction not specified). If one value is given, it will apply to BOTH termini. Defaults to [None None]'
+      help='Specify direction that termini of second component will point relative to the origin in final docks. List of strings or booleans in order of [N term, C term]. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction unspecified). If one value is given, it will apply to ALL termini. Defaults to [None]'
    )
    addarg(
       "--termini_dir3", nargs="+", default=[None], type=dir_plus_bool,
-      help='Specify direction that termini of third component will point relative to the origin in final docks. List of strings or booleans in order of [N term, C term]. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction not specified). If one value is given, it will apply to BOTH termini. Defaults to [None None]'
+      help='Specify direction that termini of third component will point relative to the origin in final docks. List of strings or booleans in order of [N term, C term]. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction unspecified). If one value is given, it will apply to ALL termini. Defaults to [None]'
    )
 
    parser.has_rpxdock_args = True
@@ -475,23 +475,23 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
       msg = '--termini_dir3 cant be used if --inputs2 not used'
       assert opt.termini_dir3 == [None], msg
 
-   msg = 'number of inputs for term_access must be zero, one, or equal to or twice the number of inputs'
-   assert len(opt.term_access) in (0, 1, len(opt.inputs), len(opt.inputs)*2), msg
-   msg = 'number of inputs for term_access1 must be 1, equal to number of inputs1, or twice the number of inputs1'
-   assert len(opt.term_access1) in (0, 1, len(opt.inputs1), len(opt.inputs1)*2), msg
-   msg = 'number of inputs for term_access2 must be 1, equal to number of inputs1, or twice the number of inputs2'
-   assert len(opt.term_access2) in (0, 1, len(opt.inputs2), len(opt.inputs2)*2), msg
-   msg = 'number of inputs for term_access3 must be 1, equal to number of inputs1, or twice the number of inputs3'
-   assert len(opt.term_access3) in (0, 1, len(opt.inputs3), len(opt.inputs3)*2), msg
+   msg = 'number of inputs for term_access must be zero, one, or twice the number of inputs'
+   assert len(opt.term_access) in (0, 1, len(opt.inputs)*2), msg
+   msg = 'number of inputs for term_access1 must be zero, one, or twice the number of inputs1'
+   assert len(opt.term_access1) in (0, 1, len(opt.inputs1)*2), msg
+   msg = 'number of inputs for term_access2 must be zero, one, or twice the number of inputs2'
+   assert len(opt.term_access2) in (0, 1, len(opt.inputs2)*2), msg
+   msg = 'number of inputs for term_access3 must be zero, one, or twice the number of inputs3'
+   assert len(opt.term_access3) in (0, 1, len(opt.inputs3)*2), msg
 
-   msg = 'number of inputs for termini_dir must be zero, one, or equal to or twice the number of inputs'
-   assert len(opt.termini_dir) in (0, 1, len(opt.inputs), len(opt.inputs)*2), msg
-   msg = 'number of inputs for termini_dir1 must be 1, equal to number of inputs1, or twice the number of inputs1'
-   assert len(opt.termini_dir1) in (0, 1, len(opt.inputs1), len(opt.inputs1)*2), msg
-   msg = 'number of inputs for termini_dir2 must be 1, equal to number of inputs1, or twice the number of inputs2'
-   assert len(opt.termini_dir2) in (0, 1, len(opt.inputs2), len(opt.inputs2)*2), msg
-   msg = 'number of inputs for termini_dir3 must be 1, equal to number of inputs1, or twice the number of inputs3'
-   assert len(opt.termini_dir3) in (0, 1, len(opt.inputs3), len(opt.inputs3)*2), msg
+   msg = 'number of inputs for termini_dir must be zero, one, or twice the number of inputs'
+   assert len(opt.termini_dir) in (0, 1, len(opt.inputs)*2), msg
+   msg = 'number of inputs for termini_dir1 must be zero, one, or twice the number of inputs1'
+   assert len(opt.termini_dir1) in (0, 1, len(opt.inputs1)*2), msg
+   msg = 'number of inputs for termini_dir2 must be zero, one, or twice the number of inputs2'
+   assert len(opt.termini_dir2) in (0, 1, len(opt.inputs2)*2), msg
+   msg = 'number of inputs for termini_dir3 must be zero, one, or twice the number of inputs3'
+   assert len(opt.termini_dir3) in (0, 1, len(opt.inputs3)*2), msg
 
    if len(opt.allowed_residues) is 1: opt.allowed_residues *= len(opt.inputs)
    if len(opt.allowed_residues1) is 1: opt.allowed_residues1 *= len(opt.inputs1)
@@ -509,10 +509,10 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
          if len(opt.inputs) > 0: opt.term_access1 = [opt.term_access[0]]
          if len(opt.inputs) > 1: opt.term_access2 = [opt.term_access[0]]
          if len(opt.inputs) > 2: opt.term_access3 = [opt.term_access[0]]
-      elif len(opt.term_access) is len(opt.inputs):
-         if len(opt.inputs) > 0: opt.term_access1 = [opt.term_access[0]]
-         if len(opt.inputs) > 1: opt.term_access2 = [opt.term_access[1]]
-         if len(opt.inputs) > 2: opt.term_access3 = [opt.term_access[2]]
+         # elif len(opt.term_access) is len(opt.inputs):
+         #    if len(opt.inputs) > 0: opt.term_access1 = [opt.term_access[0]]
+         #    if len(opt.inputs) > 1: opt.term_access2 = [opt.term_access[1]]
+         #    if len(opt.inputs) > 2: opt.term_access3 = [opt.term_access[2]]
       elif len(opt.term_access) is len(opt.inputs)*2:
          if len(opt.inputs) > 0: opt.term_access1 = opt.term_access[0:2]
          if len(opt.inputs) > 1: opt.term_access2 = opt.term_access[2:4]
@@ -522,10 +522,10 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
          if len(opt.inputs) > 0: opt.termini_dir1 = [opt.termini_dir[0]]
          if len(opt.inputs) > 1: opt.termini_dir2 = [opt.termini_dir[0]]
          if len(opt.inputs) > 2: opt.termini_dir3 = [opt.termini_dir[0]]
-      elif len(opt.termini_dir) is len(opt.inputs):
-         if len(opt.inputs) > 0: opt.termini_dir1 = [opt.termini_dir[0]]
-         if len(opt.inputs) > 1: opt.termini_dir2 = [opt.termini_dir[1]]
-         if len(opt.inputs) > 2: opt.termini_dir3 = [opt.termini_dir[2]]
+         # elif len(opt.termini_dir) is len(opt.inputs):
+         #    if len(opt.inputs) > 0: opt.termini_dir1 = [opt.termini_dir[0]]
+         #    if len(opt.inputs) > 1: opt.termini_dir2 = [opt.termini_dir[1]]
+         #    if len(opt.inputs) > 2: opt.termini_dir3 = [opt.termini_dir[2]]
       elif len(opt.termini_dir) is len(opt.inputs)*2:
          if len(opt.inputs) > 0: opt.termini_dir1 = opt.termini_dir[0:2]
          if len(opt.inputs) > 1: opt.termini_dir2 = opt.termini_dir[2:4]
@@ -701,21 +701,6 @@ def _process_arg_sspair(kw):
    if (any(p[0] not in "EHL" for p in kw.score_only_sspair)
        or any(p[1] not in "EHL" for p in kw.score_only_sspair)):
       raise argparse.ArgumentError(None, '--score_only_sspair accepts only EHL')
-
-# def process_term_direction(v):
-#    if isinstance(v, (list, tuple)):
-#       return [process_term_direction(_) for _ in v]
-#    if type(v) is bool:
-#       return str2bool(v)
-#    elif type(v) is str and v.lower() in ('in', 'down'):
-#       return True
-#    elif type(v) is str and v.lower() in ('out', 'up'):
-#       return False
-#    else:
-#       raise argparse.ArgumentTypeError(
-#          ('Boolean value expected, not "%s" of type %s\n' % (v, type(v)) +
-#           'Allowed True Vals  (case independant): in down\n' +
-#           'Allowed False Vals (case independant): out up')) 
 
 def process_term_options(option, inputs):
    tmp = []

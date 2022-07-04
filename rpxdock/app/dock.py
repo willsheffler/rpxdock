@@ -117,9 +117,13 @@ def dock_onecomp(hscore, **kw):
    spec = get_spec(kw.architecture)
    crtbnd = kw.cart_bounds[0]
 
-    # Determine accessibility and flip restriction before we make sampler
-   kw.poses, kw.og_lens = [], [] 
-   rp.rosetta.helix_trix.init_termini(**kw)
+   # If necessary determine accessibility and flip restriction first
+   make_poselist = False
+   for inp_pair in kw.term_access:
+      if not make_poselist: make_poselist=any(True in pair for pair in inp_pair)
+   if make_poselist or not all(None in pair for pair in kw.termini_dir):
+      # poses, og_lens = [[]], [[]] 
+      poses, og_lens = rp.rosetta.helix_trix.init_termini(make_poselist, **kw)
 
    # double normal resolution, cuz why not?
    if kw.docking_method == 'grid':
@@ -144,11 +148,11 @@ def dock_onecomp(hscore, **kw):
       search = rp.hier_search
 
    # pose info and axes that intersect. Use list of modified poses to make bodies if such list exists
-   if len(kw.poses) > 0:
-      assert len(kw.poses) == len(kw.og_lens)
+   if make_poselist:
+      assert len(poses) == len(og_lens)
       bodies = [
          rp.Body(pose1, allowed_res=allowedres, modified_term=modterm, og_seqlen=og_seqlen, **kw)
-         for pose1, allowedres, modterm, og_seqlen in zip(kw.poses[0], kw.allowed_residues1, kw.term_access[0], kw.og_lens[0])
+         for pose1, allowedres, modterm, og_seqlen in zip(poses[0], kw.allowed_residues1, kw.term_access1, og_lens[0])
       ]
    else:
       bodies = [
@@ -185,17 +189,22 @@ def dock_multicomp(hscore, **kw):
    spec = get_spec(kw.architecture)
 
    # Determine accessibility and flip restriction before we make sampler
-   kw.poses, kw.og_lens = [], []
-   rp.rosetta.helix_trix.init_termini(**kw) 
+   make_poselist = False
+   for inp_pair in kw.term_access:
+      if not make_poselist: make_poselist=any(True in pair for pair in inp_pair)
+   if make_poselist or not all(None in pair for pair in kw.termini_dir):
+      # poses, og_lens = [[]], [[]]
+      poses, og_lens = rp.rosetta.helix_trix.init_termini(make_poselist, **kw)
+   
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
    logging.info(f'num base samples {sampler.size(0):,}')
 
    # Use list of modified poses to make bodies if such list exists
-   if len(kw.poses) > 0:
-      assert len(kw.poses) == len(kw.og_lens)
+   if make_poselist:
+      assert len(poses) == len(og_lens)
       bodies = [[rp.Body(pose2, og_seqlen=og2, modified_term=modterm2, **kw)
                for pose2, og2, modterm2 in zip(pose1, og1, modterm1)]
-               for pose1, og1, modterm1 in zip(kw.poses, kw.og_lens, kw.term_access)]
+               for pose1, og1, modterm1 in zip(poses, og_lens, kw.term_access)]
 
    else:
       bodies = [[rp.Body(fn, allowed_res=ar2, **kw)

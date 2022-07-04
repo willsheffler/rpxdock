@@ -18,11 +18,10 @@ class Body:
       trim_direction='NC',
       is_subbody=False,
       modified_term=[False,False],
-      og_seqlen=0,
+      og_seqlen=None,
       **kw,
    ):
       kw = rpxdock.Bunch(kw)
-      print(modified_term)
 
       import rpxdock.rosetta.triggers_init as ros
       # pose stuff
@@ -42,7 +41,7 @@ class Body:
       self.coord = rp.rosetta.get_bb_coords(pose)
       self.set_asym_body(pose, sym, **kw)
       self.modified_term = modified_term
-      if og_seqlen == 0: self.og_seqlen = pose.size()
+      if og_seqlen == None: self.og_seqlen = pose.size()
       else: self.og_seqlen = og_seqlen
 
       self.label = kw.label
@@ -74,6 +73,14 @@ class Body:
          print('trimN_subbodies', len(self.trimN_subbodies))
          print('trimC_subbodies', len(self.trimC_subbodies))
          # assert 0
+      
+      #Remove this later
+      # dump_name = self.pdbfile.split("/")[-1].split(".")[0]
+      # pose.dump_pdb("/home/jenstanisl/test_rpx/test_dockpy_edits/1comp/temp_dump/newaccess_"+dump_name+".pdb")
+      # newbody = self.copy_exclude_term_res()
+      # newbody.dump_pdb("/home/jenstanisl/test_rpx/test_dockpy_edits/1comp/temp_dump/newbody_"+dump_name+".pdb")
+      # copy = self.copy()
+      # copy.dump_pdb("/home/jenstanisl/test_rpx/test_dockpy_edits/1comp/temp_dump/copy_"+dump_name+".pdb")
 
    def init_coords(self, sym, symaxis, xform=np.eye(4), ignored_aas='CGP', **kw):
       kw = rp.Bunch(kw)

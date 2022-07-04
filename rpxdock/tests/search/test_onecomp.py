@@ -188,9 +188,12 @@ def test_deepesh_1comp_bug(hscore):
    rp.search.assert_results_close(result, ref)
 
 
-def test_cage_onecomp_hier_termini_dirs(hscore, bodyC3):
+def test_cage_onecomp_hier_termini_dirs(hscore, poseC3, bodyC3):
    C3_Ndir, C3_Cdir= True, False # init relative dirs of N and C terms
-   dirs = [[C3_Ndir, C3_Cdir], [not(C3_Ndir), not(C3_Cdir)]]
+   dirs = [[[C3_Ndir, C3_Cdir]], [[not(C3_Ndir), not(C3_Cdir)]], [[None, None]]]
+   expected_flips = [[False, False],[True, True], [True, False]]
+   # expected vals of flip_components and force_flip after each trial
+
    result = [None] * len(dirs)
    for i, dir_pair in enumerate(dirs):
       kw = rp.app.defaults()
@@ -206,31 +209,38 @@ def test_cage_onecomp_hier_termini_dirs(hscore, bodyC3):
       kw.executor = concurrent.futures.ThreadPoolExecutor(min(4, kw.ncpu / 2))
 
       # Additions for termini direction control
+      kw.inputs=[[poseC3]]
       kw.flip_components = [True]
-      kw.force_flip = [[False]]
-      kw.termini_dir1 = dir_pair
-      kw.poses, kw.og_lens = [], []
-      rp.rosetta.helix_trix.init_termini(**kw) 
+      kw.force_flip = [False]
+      kw.termini_dir = [dir_pair]
+      kw.term_access=[[[False, False]]]
+      poses, og_lens = rp.rosetta.helix_trix.init_termini(**kw) 
 
+      assert [kw.flip_components[0], kw.force_flip[0]] == expected_flips[i]
       spec = rp.search.DockSpec1CompCage('T3')
       sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=10, angresl=10,
                                            axis=spec.axis, flipax=spec.flip_axis, **kw)
       result[i] = rp.search.make_onecomp(bodyC3, spec, hscore, rp.hier_search, sampler, **kw)
-     
+   
+   assert not(result[0].__eq__(result[1]))
+   assert not(result[1].__eq__(result[2]))
+   assert not(result[0].__eq__(result[2]))
+ 
    result = rp.concat_results(result)
    # print(result)
    # result.dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
+   #    **kw.sub(nout_top=10, use_body_sym=True, 
+   # output_prefix='/home/jenstanisl/test_rpx/test_dockpy_edits/test_output/test_cage_term_hier'))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_onecomp_hier_termini_dirs.pickle')
    ref = rp.data.get_test_data('test_cage_onecomp_hier_termini_dirs') 
-
-   # Change ref based on the pair
    rp.search.assert_results_close(result, ref)
 
-def test_cage_onecomp_grid_termini_dirs(hscore, bodyC3):
+def test_cage_onecomp_grid_termini_dirs(hscore, poseC3, bodyC3):
    C3_Ndir, C3_Cdir= True, False # init relative dirs of N and C terms
-   dirs = [[C3_Ndir, C3_Cdir], [not(C3_Ndir), not(C3_Cdir)]]
+   dirs = [[[C3_Ndir, C3_Cdir]], [[not(C3_Ndir), not(C3_Cdir)]], [[None, None]]]
+   expected_flips = [[False, False],[True, True], [True, False]]
+
    result = [None] * len(dirs)
    for i, dir_pair in enumerate(dirs):
       kw = rp.app.defaults()
@@ -246,19 +256,25 @@ def test_cage_onecomp_grid_termini_dirs(hscore, bodyC3):
       kw.executor = concurrent.futures.ThreadPoolExecutor(min(4, kw.ncpu / 2))
 
       # Additions for termini direction control
+      kw.inputs=[[poseC3]]
       kw.flip_components = [True]
-      kw.force_flip = [[False]]
-      kw.termini_dir1 = dir_pair
-      kw.poses, kw.og_lens = [], []
-      rp.rosetta.helix_trix.init_termini(**kw)
+      kw.force_flip = [False]
+      kw.termini_dir = [dir_pair]
+      kw.term_access=[[[False, False]]]
+      poses, og_lens = rp.rosetta.helix_trix.init_termini(**kw)
       force_flip=False if kw.force_flip is None else kw.force_flip[0]
- 
+
+      assert [kw.flip_components[0], kw.force_flip[0]] == expected_flips[i]
       spec = rp.search.DockSpec1CompCage('T3')
       sampler = rp.sampling.grid_sym_axis(np.arange(0, 100, 2), np.arange(0, 360 / spec.nfold, 2),
                                        axis=spec.axis, flip=list(spec.flip_axis[:3]), 
                                        force_flip=force_flip)
       result[i] = rp.search.make_onecomp(bodyC3, spec, hscore, rp.grid_search, sampler, **kw)
-     
+
+   assert not(result[0].__eq__(result[1]))
+   assert not(result[1].__eq__(result[2]))
+   assert not(result[1].__eq__(result[2]))
+
    result = rp.concat_results(result)
    # print(result)
    # result.dump_pdbs_top_score(hscore=hscore,
@@ -266,9 +282,48 @@ def test_cage_onecomp_grid_termini_dirs(hscore, bodyC3):
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_onecomp_grid_termini_dirs.pickle')
    ref = rp.data.get_test_data('test_cage_onecomp_grid_termini_dirs') 
-
-   # Change ref based on the pair
    rp.search.assert_results_close(result, ref)
+
+def test_cage_onecomp_grid_term_access(hscore, term_bodyC3):
+   C3_Ndir, C3_Cdir= True, False # init relative dirs of N and C terms
+   dirs = [[[C3_Ndir, C3_Cdir]], [[not(C3_Ndir), not(C3_Cdir)]], [[None, None]]]
+
+   result = [None] * len(dirs)
+   for i, dir_pair in enumerate(dirs):
+      kw = rp.app.defaults()
+      kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
+      kw.beam_size = 2e4
+      kw.max_bb_redundancy = 2.0
+      kw.max_delta_h = 9999
+      kw.nout_debug = 0
+      kw.nout_top = 0
+      kw.nout_each = 0
+      kw.score_only_ss = 'H'
+      kw.max_trim = 0
+      kw.executor = concurrent.futures.ThreadPoolExecutor(min(4, kw.ncpu / 2))
+
+      # Additions for termini direction control
+
+      assert [kw.flip_components[0], kw.force_flip[0]] == expected_flips[i]
+      spec = rp.search.DockSpec1CompCage('T3')
+      sampler = rp.sampling.grid_sym_axis(np.arange(0, 100, 2), np.arange(0, 360 / spec.nfold, 2),
+                                       axis=spec.axis, flip=list(spec.flip_axis[:3]), 
+                                       force_flip=force_flip)
+      result[i] = rp.search.make_onecomp(bodyC3, spec, hscore, rp.grid_search, sampler, **kw)
+
+   assert not(result[0].__eq__(result[1]))
+   assert not(result[1].__eq__(result[2]))
+   assert not(result[1].__eq__(result[2]))
+
+   result = rp.concat_results(result)
+   # print(result)
+   # result.dump_pdbs_top_score(hscore=hscore,
+   #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
+
+   # rp.dump(result, 'rpxdock/data/testdata/test_cage_onecomp_grid_termini_dirs.pickle')
+   ref = rp.data.get_test_data('test_cage_onecomp_grid_termini_dirs') 
+   rp.search.assert_results_close(result, ref)
+
 
 def main():
    hscore = rp.data.small_hscore()
@@ -286,8 +341,11 @@ def main():
    # test_cage_hier_D3_2_onecomp_notrim(hscore, C2)
    # _test_cage_hier_onecomp_trim(hscore, C3)
    # test_cage_grid_onecomp_notrim(hscore, C3)
-   # test_cage_onecomp_hier_termini_dirs(hscore, C3)
-   test_cage_onecomp_grid_termini_dirs(hscore, C3)
+
+   from rpxdock.rosetta.triggers_init import get_pose_cached
+   poseC3 = get_pose_cached('C3_1na0-1_1.pdb.gz', rp.data.pdbdir)
+   # test_cage_onecomp_hier_termini_dirs(hscore, poseC3, C3)
+   test_cage_onecomp_grid_termini_dirs(hscore, poseC3, C3)
 
    # test_deepesh_1comp_bug(hscore)
 

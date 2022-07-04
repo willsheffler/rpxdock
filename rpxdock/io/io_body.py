@@ -70,9 +70,6 @@ def make_pdb_from_bodies(
          reslb, resub = -9e9, 9e9
          if len(resbounds) > ibody:
             reslb, resub = resbounds[ibody][0], resbounds[ibody][1]
-         # ignore_res = len(crd) - body.og_seqlen
-         # ignore_res = 0
-         # for i in range(len(crd)-ignore_res):
          for i in range(len(crd)):
             iasym = i % body.asym_body.nres if use_body_sym else i
             if not reslb <= i <= resub:

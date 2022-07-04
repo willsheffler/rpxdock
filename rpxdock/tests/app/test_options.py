@@ -102,39 +102,47 @@ def test_inputs():
    for i, a in zip(kw.inputs, kw.allowed_residues):
       assert len(i) == len(a)
 
-   # kw = defaults(process_args=False).sub(
-   #    inputs1=['foo', 'bar'],
-   #    allowed_residues1=['xfoo', 'xbar'],
-   #    inputs2=['foo', 'bar'],
-   #    allowed_residues2=['xfoo2'],
-   #    inputs3=['foo', 'bar'],
-   #    allowed_residues3=['xfoo', 'xbar'],
-   #    term_access1=[True, True]
-   # )
-   # kw = process_cli_args(kw, read_allowed_res_files=False)
-   # assert len(kw.inputs) == 3
-   # assert len(kw.inputs) == len(kw.termini_dir)
-   # assert len(kw.inputs) == len(kw.term_access)
-
 def test_parse_termini():
    kw = defaults(process_args=False).sub(
       inputs1=['foo', 'bar'],
-      # allowed_residues1=['xfoo', 'xbar'],
       inputs2=['foo'],
-      # allowed_residues2=['xfoo2'],
       inputs3=['foo', 'bar'],
-      allowed_residues3=['xfoo', 'xbar'],
       term_access1= [True, False, False, True],
       term_access2 = [True, False],
       termini_dir1 = [True],
-      termini_dir3 = [False, True]
+      termini_dir3 = [False, False, True, True]
    )
-   kw = process_cli_args(kw, read_allowed_res_files=False)
+   kw = process_cli_args(kw)
    assert len(kw.inputs) == 3
    assert len(kw.inputs) == len(kw.termini_dir)
    assert len(kw.inputs) == len(kw.term_access)
    assert kw.term_access[0] == kw.term_access1 == [[True, False], [False, True]]
+   assert kw.term_access[1] == kw.term_access2 == [[True, False]]   
+   assert kw.term_access[2] == kw.term_access3 == [[False, False], [False, False]]   
+
+   assert kw.termini_dir[0] == kw.termini_dir1 == [[True, True], [True, True]]
+   assert kw.termini_dir[1] == kw.termini_dir2 == [[None, None]]
    assert kw.termini_dir[2] == kw.termini_dir3 == [[False, False], [True, True]]
+
+   kw = defaults(process_args=False).sub(
+      inputs1=['foo', 'bar'],
+      inputs2=['foo'],
+      term_access1= [True, False],
+      term_access2 = [True]
+   )
+   # Should have issue with term_access1
+   with pytest.raises(AssertionError):
+      kw = process_cli_args(kw)
+
+   kw = defaults(process_args=False).sub(
+      inputs1=['foo'],
+      inputs2=['foo', 'bar'],
+      termini_dir1 = [False, True],
+      termini_dir2 = [False, True]
+   )
+   # Should have issue with termini_dir2
+   with pytest.raises(AssertionError):
+      kw = process_cli_args(kw)
 
 def test_str2bool():
    assert str2bool('True')
@@ -184,5 +192,5 @@ if __name__ == '__main__':
    # test_inputs_read_allowed_res()
    # test_str2bool()
    # test_dir_plus_bool()
-   # test_parse_termini()
-   test_inputs()
+   test_parse_termini()
+   # test_inputs()
