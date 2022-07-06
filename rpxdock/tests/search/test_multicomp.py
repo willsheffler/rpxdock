@@ -113,11 +113,11 @@ def test_layer_hier_3comp(hscore, bodyC6, bodyC3, bodyC2):
    ref = rp.data.get_test_data('test_layer_hier_3comp')
    rp.search.assert_results_close(result, ref)
 
-# jenstanisl : testing restricting search space based on desired termini
-# direction/orientation
+# Check that specifying termini direction is restricting search properly
+# Takes about 130 seconds
 def test_cage_termini_dirs(hscore, bodyC3, bodyC2, poseC3, poseC2):
-   # import time
-   # start = time.time()
+   import time
+   start = time.time()
 
    C3_Ndir, C3_Cdir= True, False # init relative dirs of N and C terms
    C2_Ndir, C2_Cdir = True, False 
@@ -141,7 +141,6 @@ def test_cage_termini_dirs(hscore, bodyC3, bodyC2, poseC3, poseC2):
       kw.force_flip = [False,False]
       kw.term_access=[[[False, False]],[[False, False]]]
       kw.termini_dir = [[dir_pair[0]], [dir_pair[1]]]
-      # Add stuff for restricting flipping
       poses, og_lens = rp.rosetta.helix_trix.init_termini(**kw) 
       assert [kw.flip_components[0], kw.force_flip[0]] == expected_flips[i][0]
       assert [kw.flip_components[1], kw.force_flip[1]] == expected_flips[i][1]
@@ -162,9 +161,55 @@ def test_cage_termini_dirs(hscore, bodyC3, bodyC2, poseC3, poseC2):
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_termini_dirs.pickle')
    ref = rp.data.get_test_data('test_cage_termini_dirs') 
    rp.search.assert_results_close(result, ref)
-   # end = time.time()
-   # print("time to run ", end - start, " s")
+   end = time.time()
+   print("time to run ", end - start, "s")
 
+# Check that various term_access parameters create different results
+# Takes about 190 seconds
+def test_cage_term_access(hscore, bodyC3, bodyC2):
+   # import time
+   # start = time.time()
+   both_bodyC2 = rp.data.get_body('C2_REFS10_1_NChelix')
+   N_bodyC2 = rp.data.get_body('C2_REFS10_1_Nhelix')
+   both_bodyC3 = rp.data.get_body('C3_1na0-1_1_NChelix')
+   C_bodyC3 = rp.data.get_body('C3_1na0-1_1_Chelix')
+   # body_list = [[bodyC3, bodyC2], [both_bodyC3, bodyC2],
+   #             [bodyC3, both_bodyC2], [both_bodyC3, both_bodyC2],
+   #             [C_bodyC3, N_bodyC2]]
+   body_list = [[bodyC3, bodyC2], [both_bodyC3, both_bodyC2],
+               [C_bodyC3, N_bodyC2]]
+
+   result = [None] * len(body_list)
+   for i, bodies in enumerate(body_list):
+      kw = get_arg()
+      kw.beam_size = 5000
+      kw.inputs = [[poseC3], [poseC2]]
+      kw.flip_components = [True, True]
+      kw.force_flip = [False,False]
+      for comp in bodies:
+         if not hasattr(comp, 'modified_term'):comp.modified_term=[False, False]
+         kw.term_access.append([comp.modified_term])
+      kw.termini_dir = [[[None]], [None]]
+      assert len(kw.term_access) == len(kw.termini_dir)
+
+      
+      spec = rp.search.DockSpec2CompCage('I32')
+      sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw) 
+
+      result[i] = rp.search.make_multicomp([bodies[0], bodies[1]], spec, hscore, rp.hier_search,
+                                       sampler, **kw)
+   for j in range(len(result)):
+      for k in range(j+1, len(result)):assert not(result[j].__eq__(result[k]))
+   result = rp.concat_results(result)
+   # print(result)
+   # result.dump_pdbs_top_score(hscore=hscore,
+   #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
+
+   # rp.dump(result, 'rpxdock/data/testdata/test_cage_term_access.pickle')
+   ref = rp.data.get_test_data('test_cage_term_access') 
+   rp.search.assert_results_close(result, ref)
+   # end = time.time()
+   # print("time to run ", end - start, "s")
 
 if __name__ == '__main__':
    import logging
@@ -203,4 +248,6 @@ if __name__ == '__main__':
    from rpxdock.rosetta.triggers_init import get_pose_cached
    poseC2 = get_pose_cached('C2_REFS10_1.pdb.gz', rp.data.pdbdir)
    poseC3 = get_pose_cached('C3_1na0-1_1.pdb.gz', rp.data.pdbdir)
-   test_cage_termini_dirs(hscore, C3, C2, poseC3, poseC2)
+
+   # test_cage_termini_dirs(hscore, C3, C2, poseC3, poseC2)
+   test_cage_term_access(hscore, C2, C3)

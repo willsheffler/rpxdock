@@ -73,14 +73,6 @@ class Body:
          print('trimN_subbodies', len(self.trimN_subbodies))
          print('trimC_subbodies', len(self.trimC_subbodies))
          # assert 0
-      
-      #Remove this later
-      # dump_name = self.pdbfile.split("/")[-1].split(".")[0]
-      # pose.dump_pdb("/home/jenstanisl/test_rpx/test_dockpy_edits/1comp/temp_dump/newaccess_"+dump_name+".pdb")
-      # newbody = self.copy_exclude_term_res()
-      # newbody.dump_pdb("/home/jenstanisl/test_rpx/test_dockpy_edits/1comp/temp_dump/newbody_"+dump_name+".pdb")
-      # copy = self.copy()
-      # copy.dump_pdb("/home/jenstanisl/test_rpx/test_dockpy_edits/1comp/temp_dump/copy_"+dump_name+".pdb")
 
    def init_coords(self, sym, symaxis, xform=np.eye(4), ignored_aas='CGP', **kw):
       kw = rp.Bunch(kw)
@@ -356,23 +348,18 @@ class Body:
       source = self.pdbfile if self.pdbfile else '<rosetta Pose of unknown origin>'
       return f'Body(source="{source}")'
    
+   # Make copy of body that had helix appended at termini, such that new body
+   # is a copy of original but does not include info about the helical residues
    def copy_exclude_term_res(self):
       newbody = self.copy()
       for attribute in dir(self):
          val = getattr(self, attribute)
          if type(val) == list:
-            # print("list ", str(attribute))
             if len(val) != self.og_seqlen and len(val) == self.nres:
                setattr(newbody, attribute, copy.deepcopy(val)[:(self.og_seqlen)])
-               # print(attribute, len(getattr(newbody, attribute)))
-            # else: print(attribute, len(val), " list no changes")
          elif isinstance(val, np.ndarray):
-            # print("ndarray ", str(attribute))
             if len(val) != self.og_seqlen and len(val) == self.nres:
                setattr(newbody, attribute, val.copy()[:(self.og_seqlen)])
-            #    print(attribute,len(getattr(newbody, attribute)))
-            # else: print(attribute, len(val), val.size, " array no changes")
-         # else: print("other ", str(type(val)), " ", str(attribute))
       newbody.nres = self.og_seqlen
       newbody.modified_term = [False, False] #no longer includes modified termini
       return newbody

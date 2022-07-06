@@ -122,7 +122,6 @@ def dock_onecomp(hscore, **kw):
    for inp_pair in kw.term_access:
       if not make_poselist: make_poselist=any(True in pair for pair in inp_pair)
    if make_poselist or not all(None in pair for pair in kw.termini_dir):
-      # poses, og_lens = [[]], [[]] 
       poses, og_lens = rp.rosetta.helix_trix.init_termini(make_poselist, **kw)
 
    # double normal resolution, cuz why not?
@@ -147,7 +146,8 @@ def dock_onecomp(hscore, **kw):
                                                  angresl=5, axis=spec.axis, flipax=spec.flip_axis, **kw)
       search = rp.hier_search
 
-   # pose info and axes that intersect. Use list of modified poses to make bodies if such list exists
+   # pose info and axes that intersect.
+   # Use list of modified poses to make bodies if such list exists
    if make_poselist:
       assert len(poses) == len(og_lens)
       bodies = [
@@ -193,7 +193,6 @@ def dock_multicomp(hscore, **kw):
    for inp_pair in kw.term_access:
       if not make_poselist: make_poselist=any(True in pair for pair in inp_pair)
    if make_poselist or not all(None in pair for pair in kw.termini_dir):
-      # poses, og_lens = [[]], [[]]
       poses, og_lens = rp.rosetta.helix_trix.init_termini(make_poselist, **kw)
    
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)

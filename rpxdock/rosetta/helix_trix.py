@@ -130,33 +130,7 @@ def N_term_in(pose, keep_helix=False):
    if not keep_helix: remove_helix_chain(pose)
    return N_point_in
 
-# Wrapper for helices + termini stuff. Maybe rewrite 1 comp to work with this as well
-# def init_termini(**kw):
-#    kw = rp.Bunch(kw)
-#    for i in range(len(kw.inputs)):
-#       access = kw.term_access[i] 
-#       direction = kw.termini_dir[i]
-#       N_in = None
-#       C_in = None
-#       if (True in access) or (True in direction) or (False in direction):
-#          pose = rp.rosetta.rosetta_util.get_pose(kw.inputs[i][0], kw.posecache)
-#          og_lens.append([pose.size()])
-#          if direction[0] is not None: N_in = rp.rosetta.helix_trix.N_term_in(pose, access[0]) #N term first
-#          elif access[0]: rp.rosetta.helix_trix.append_Nhelix(pose)
-#          if direction[1] is not None: C_in = rp.rosetta.helix_trix.C_term_in(pose, access[1]) #C term
-#          elif access[1]: rp.rosetta.helix_trix.append_Chelix(pose)
-         
-#          if sum(access) > 0: poses.append([pose]) #Only update pose if adding on helices to termini
-#          elif len(poses) > 0: poses.append([kw.inputs[i][0]])
-#          dir_possible, error_msg = rp.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, i+1, **kw)
-#          if not dir_possible: raise ValueError(error_msg)
-#       elif any(True in pair for pair in kw.term_access):
-#          # Add path to pdb to pose list, if there will be any modified poses
-#          # that will be used to make the body
-#          poses.append([kw.inputs[i][0]])
-#          og_lens.append([0])
-   
-# Corrections with newly organized kw.term_access and kw.termini_direction
+# Wrapper for helices + termini stuff
 def init_termini(make_poselist=True, **kw):
    kw = rp.Bunch(kw)
    poses, og_lens = [[]], [[]] 
@@ -164,9 +138,6 @@ def init_termini(make_poselist=True, **kw):
       for j in range(len(kw.inputs[i])):
          access = kw.term_access[i][j]
          direction = kw.termini_dir[i][j]
-         # direction = kw.termini_dir[i]
-         # print(access)
-         # print(direction)
          N_in = None
          C_in = None
          if (True in access) or (True in direction) or (False in direction):
@@ -174,27 +145,20 @@ def init_termini(make_poselist=True, **kw):
             if len(og_lens) < i+1: og_lens.append([])
             if type(kw.inputs[i][j]) == rosetta.core.pose.Pose:pose=kw.inputs[i][j]
             else: pose = rp.rosetta.rosetta_util.get_pose(kw.inputs[i][j], kw.posecache)
-            # og_lens.append([pose.size()])
             og_lens[i].append(pose.size())
             if direction[0] is not None: N_in = rp.rosetta.helix_trix.N_term_in(pose, access[0]) #N term first
             elif access[0]: rp.rosetta.helix_trix.append_Nhelix(pose)
             if direction[1] is not None: C_in = rp.rosetta.helix_trix.C_term_in(pose, access[1]) #C term
             elif access[1]: rp.rosetta.helix_trix.append_Chelix(pose)
-            # if sum(access) > 0: poses.append([pose]) #Only update pose if adding on helices to termini
-            # elif len(poses) > 0: poses.append([kw.inputs[i][j]])
             if sum(access) > 0: poses[i].append(pose) #Only update pose if adding on helices to termini
             elif make_poselist: poses[i].append(kw.inputs[i][j])
-            # elif len(poses[i]) > 0: poses[i].append(kw.inputs[i][j])
             dir_possible, error_msg = rp.rosetta.helix_trix.limit_flip_update_pose(N_in, C_in, i+1, j, **kw)
-            # dir_possible, error_msg = rp.rosetta.helix_trix.limit_flip_update_pose(pose, N_in, C_in, i+1, **kw)
             if not dir_possible: raise ValueError(error_msg)
          elif make_poselist:
             # Add path to pdb to pose list, if there will be any modified poses
             # that will be used to make the body
-            # poses.append([kw.inputs[i]])
             if len(poses) < i+1: poses.append([])
             poses[i].append(kw.inputs[i][j])
             if len(og_lens) < i+1: og_lens.append([])
             og_lens[i].append(None)
-            # og_lens.append([0])
    return poses, og_lens

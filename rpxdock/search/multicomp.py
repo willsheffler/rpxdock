@@ -90,6 +90,7 @@ def make_multicomp(
          data[f'angle{i}'] = (['model'], rp.homog.angle_of(xforms[:, i]) * 180 / np.pi)
    default_label = [f'comp{c}' for c in 'ABCDEFD'[:len(bodies)]]
 
+   # Remake bodies in list if pose used to make bodies had termini modified
    for i, body in enumerate(bodies):
       if hasattr(body, 'modified_term') and True in body.modified_term:
          bodies.pop(i)

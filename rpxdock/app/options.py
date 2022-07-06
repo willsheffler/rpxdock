@@ -338,30 +338,30 @@ def default_cli_parser(parent=None, **kw):
    addarg("--term_access", nargs="+", type=str2bool, default=[False], help=argparse.SUPPRESS)
    addarg(
       "--term_access1", nargs="+", default=[False], type=str2bool,
-      help='Specify if termini of single component or first component of 2+ component protocols should be sterically protected during docking, ensuring accessbility. List of boolean value or values in order of N term, C term. If one value is given, same value will apply to BOTH termini. Default False.'
+      help='Specify if termini of single component or first component of 2+ component protocols should be sterically protected during docking, ensuring accessbility. List of bools in order of N term, C term. If one value is given, same value will apply to BOTH termini. Default False.'
    )
    addarg(
       "--term_access2", nargs="+", default=[False], type=str2bool,
-      help='Specify if termini of second component for 2+ component protocols should be sterically protected during docking, ensuring accessbility. List of boolean value or values in order of N term, C term. If one value is given, same value will apply to BOTH termini. Default False.'
+      help='Specify if termini of second component for 2+ component protocols should be sterically protected during docking, ensuring accessbility. List of bools in order of N term, C term. If one value is given, same value will apply to BOTH termini. Default False.'
    )
    addarg(
       "--term_access3", nargs="+", default=[False], type=str2bool,
-      help='Specify if termini of third component for 3+ component protocols should be sterically protected during docking, ensuring accessbility. List of boolean value or values in order of N term, C term. If one value is given, same value will apply to BOTH termini. Default False.'
+      help='Specify if termini of third component for 3+ component protocols should be sterically protected during docking, ensuring accessbility. List of bools in order of N term, C term. If one value is given, same value will apply to BOTH termini. Default False.'
    )
 
    addarg(
       "--termini_dir", nargs='+', default=[None], type=dir_plus_bool, help=argparse.SUPPRESS)
    addarg(
       "--termini_dir1", nargs="+", default=[None], type=dir_plus_bool,
-      help='Specify direction that termini of single component or first component will point relative to the origin in final docks. List of strings or booleans in order of [N term, C term]. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction unspecified). If one value is given, it will apply to ALL termini. Defaults to [None]'
+      help='Specify direction that termini of single component or first component will point relative to the origin in final docks. List of strings or bools in order of N term, C term. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction unspecified). If one value is given, it will apply to BOTH termini. Defaults to [None]'
    )
    addarg(
       "--termini_dir2", nargs="+", default=[None], type=dir_plus_bool,
-      help='Specify direction that termini of second component will point relative to the origin in final docks. List of strings or booleans in order of [N term, C term]. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction unspecified). If one value is given, it will apply to ALL termini. Defaults to [None]'
+      help='Specify direction that termini of second component will point relative to the origin in final docks. List of strings or bools in order of N term, C term. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction unspecified). If one value is given, it will apply to BOTH termini. Defaults to [None]'
    )
    addarg(
       "--termini_dir3", nargs="+", default=[None], type=dir_plus_bool,
-      help='Specify direction that termini of third component will point relative to the origin in final docks. List of strings or booleans in order of [N term, C term]. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction unspecified). If one value is given, it will apply to ALL termini. Defaults to [None]'
+      help='Specify direction that termini of third component will point relative to the origin in final docks. List of strings or bools in order of N term, C term. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction unspecified). If one value is given, it will apply to BOTH termini. Defaults to [None]'
    )
 
    parser.has_rpxdock_args = True
@@ -509,10 +509,6 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
          if len(opt.inputs) > 0: opt.term_access1 = [opt.term_access[0]]
          if len(opt.inputs) > 1: opt.term_access2 = [opt.term_access[0]]
          if len(opt.inputs) > 2: opt.term_access3 = [opt.term_access[0]]
-         # elif len(opt.term_access) is len(opt.inputs):
-         #    if len(opt.inputs) > 0: opt.term_access1 = [opt.term_access[0]]
-         #    if len(opt.inputs) > 1: opt.term_access2 = [opt.term_access[1]]
-         #    if len(opt.inputs) > 2: opt.term_access3 = [opt.term_access[2]]
       elif len(opt.term_access) is len(opt.inputs)*2:
          if len(opt.inputs) > 0: opt.term_access1 = opt.term_access[0:2]
          if len(opt.inputs) > 1: opt.term_access2 = opt.term_access[2:4]
@@ -522,10 +518,6 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
          if len(opt.inputs) > 0: opt.termini_dir1 = [opt.termini_dir[0]]
          if len(opt.inputs) > 1: opt.termini_dir2 = [opt.termini_dir[0]]
          if len(opt.inputs) > 2: opt.termini_dir3 = [opt.termini_dir[0]]
-         # elif len(opt.termini_dir) is len(opt.inputs):
-         #    if len(opt.inputs) > 0: opt.termini_dir1 = [opt.termini_dir[0]]
-         #    if len(opt.inputs) > 1: opt.termini_dir2 = [opt.termini_dir[1]]
-         #    if len(opt.inputs) > 2: opt.termini_dir3 = [opt.termini_dir[2]]
       elif len(opt.termini_dir) is len(opt.inputs)*2:
          if len(opt.inputs) > 0: opt.termini_dir1 = opt.termini_dir[0:2]
          if len(opt.inputs) > 1: opt.termini_dir2 = opt.termini_dir[2:4]

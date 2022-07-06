@@ -84,6 +84,40 @@ def test_init_termini(pose_list, helix):
             == type(poses[4][0]) == rosetta.core.pose.Pose)
    assert type(poses[0][0]) == type(poses[5][0]) == str
 
+# def temp_make_bodies(c3, c2):
+#    import _pickle
+#    from rpxdock.body import Body
+#    both_c3 = rosetta.core.pose.Pose().assign(c3)
+#    both_c2 = rosetta.core.pose.Pose().assign(c2)
+
+#    kw = rp.app.defaults()
+#    kw.inputs= [[c2], [both_c2], [c3], [both_c3]]
+#    kw.term_access=[[[True, False]],[[True, True]], 
+#                   [[False, True]],[[True, True]]]
+#    kw.termini_dir = [[[None,None]], [[None, None]], 
+#                   [[None, None]], [[None, None]]]
+#    kw.flip_components = [True] * len(kw.inputs)
+#    kw.force_flip = [False] * len(kw.inputs)
+#    tmp_poses, og_lens = rp.rosetta.helix_trix.init_termini(**kw)
+
+#    poses = {"C2_REFS10_1_Nhelix": c2, "C2_REFS10_1_NChelix": both_c2, 
+#             "C3_1na0-1_1_Chelix": c3, "C3_1na0-1_1_NChelix": both_c3}
+
+#    bodydir = "rpxdock/data/body/"
+#    i= 0
+#    for key, pose in poses.items():
+#       b = Body(pose, og_seqlen=og_lens[i], modified_term=kw.term_access[i])
+#       print(dir(b))
+#       # with open(bodydir+key+".pickle", "wb") as out:
+#       #    _pickle.dump(b, out)
+#       i += 1
+   
+#    # from rpxdock.data.data import *
+#    # poses = ["C2_REFS10_1_Chelix", "C2_REFS10_1_NChelix", 
+#    #          "C3_1na0-1_1_Nhelix", "C3_1na0-1_1_NChelix"]
+#    # for p in poses:
+#    #    get_body(p).dump_pdb(f"./rpxdock/tests/rosetta/output/{p}.pdb")
+      
 if __name__ == '__main__':
    from rpxdock.rosetta.triggers_init import get_pose_cached
 
@@ -98,9 +132,10 @@ if __name__ == '__main__':
    # test_append_helix(poseC2, helix)
    # test_termini_direction([dhr64, dhr14, poseC3])
 
-   # poseC2 = get_pose_cached('C2_3hm4_1.pdb.gz', rp.data.pdbdir)
-   # test_remove_helix(poseC2, helix)
-   # test_limit_flip_update()
+   # Reset this pose if it was modified in the previous functions
+   poseC2 = get_pose_cached('C2_3hm4_1.pdb.gz', rp.data.pdbdir)
+   test_remove_helix(poseC2, helix)
+   test_limit_flip_update()
 
-   # print(type(poseC2) == rosetta.core.pose.Pose)
-   test_init_termini([pdbtop7,dhr64, dhr14, poseC3, pdbC2, pdbC2], helix)
+   # test_init_termini([pdbtop7,dhr64, dhr14, poseC3, pdbC2, pdbC2], helix)
+   # temp_make_bodies(poseC3, get_pose_cached("C2_REFS10_1.pdb.gz", rp.data.pdbdir))
