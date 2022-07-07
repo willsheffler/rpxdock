@@ -153,10 +153,11 @@ def test_cage_termini_dirs(hscore, bodyC3, bodyC2, poseC3, poseC2):
                                        sampler, **kw)
    for j in range(len(result)):
       for k in range(j+1, len(result)):assert not(result[j].__eq__(result[k]))
+      result[j].dump_pdbs_top_score(hscore=hscore,
+                              **kw.sub(nout_top=10, output_prefix='test_cage_termini_dirs'))
+   
    result = rp.concat_results(result)
    # print(result)
-   # result.dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_termini_dirs.pickle')
    ref = rp.data.get_test_data('test_cage_termini_dirs') 
@@ -165,7 +166,7 @@ def test_cage_termini_dirs(hscore, bodyC3, bodyC2, poseC3, poseC2):
    print("time to run ", end - start, "s")
 
 # Check that various term_access parameters create different results
-# Takes about 190 seconds
+# Takes about 160 seconds
 def test_cage_term_access(hscore, bodyC3, bodyC2):
    # import time
    # start = time.time()
@@ -198,12 +199,12 @@ def test_cage_term_access(hscore, bodyC3, bodyC2):
 
       result[i] = rp.search.make_multicomp([bodies[0], bodies[1]], spec, hscore, rp.hier_search,
                                        sampler, **kw)
-   for j in range(len(result)):
-      for k in range(j+1, len(result)):assert not(result[j].__eq__(result[k]))
+   # for j in range(len(result)):
+   #    for k in range(j+1, len(result)):assert not(result[j].__eq__(result[k]))
+   #    result[j].dump_pdbs_top_score(hscore=hscore,
+   #                            **kw.sub(nout_top=10, output_prefix=f'test_cage_term_access{j}'))
    result = rp.concat_results(result)
    # print(result)
-   # result.dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_term_access.pickle')
    ref = rp.data.get_test_data('test_cage_term_access') 
@@ -248,6 +249,5 @@ if __name__ == '__main__':
    from rpxdock.rosetta.triggers_init import get_pose_cached
    poseC2 = get_pose_cached('C2_REFS10_1.pdb.gz', rp.data.pdbdir)
    poseC3 = get_pose_cached('C3_1na0-1_1.pdb.gz', rp.data.pdbdir)
-
    # test_cage_termini_dirs(hscore, C3, C2, poseC3, poseC2)
    test_cage_term_access(hscore, C2, C3)

@@ -230,7 +230,7 @@ def test_cage_onecomp_hier_termini_dirs(hscore, poseC3, bodyC3):
    # print(result)
    # result.dump_pdbs_top_score(hscore=hscore,
    #    **kw.sub(nout_top=10, use_body_sym=True, 
-   # output_prefix='/home/jenstanisl/test_rpx/test_dockpy_edits/test_output/test_cage_term_hier'))
+   #    output_prefix='/home/jenstanisl/test_rpx/unit_test_input/unit_test_temp_output/test_cage_onecomp_hier_termini_dirs'))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_onecomp_hier_termini_dirs.pickle')
    ref = rp.data.get_test_data('test_cage_onecomp_hier_termini_dirs') 
@@ -278,18 +278,13 @@ def test_cage_onecomp_grid_termini_dirs(hscore, poseC3, bodyC3):
    result = rp.concat_results(result)
    # print(result)
    # result.dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
+   #                            **kw.sub(nout_top=10, output_prefix='test_cage_onecomp_grid_termini_dirs'))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_onecomp_grid_termini_dirs.pickle')
    ref = rp.data.get_test_data('test_cage_onecomp_grid_termini_dirs') 
    rp.search.assert_results_close(result, ref)
 
-def test_cage_onecomp_grid_term_access(hscore):
-   bodies = [rp.data.get_body('C3_1na0-1_1'),
-            rp.data.get_body('C3_1na0-1_1_Nhelix'),
-            rp.data.get_body('C3_1na0-1_1_NChelix')]
-   term_access = [[[False, False]], [[True, False]], [[True, True]]]
-
+def test_cage_onecomp_grid_term_access(hscore, bodies):
    result = [None] * len(bodies)
    for i, body in enumerate(bodies):
       kw = rp.app.defaults()
@@ -304,7 +299,9 @@ def test_cage_onecomp_grid_term_access(hscore):
       kw.max_trim = 0
       kw.executor = concurrent.futures.ThreadPoolExecutor(min(4, kw.ncpu / 2))
 
-      kw.term_access= [term_access[i]]
+      if not hasattr(body, 'modified_term'): body.modified_term=[False, False]
+      kw.term_access = [body.modified_term]
+      # kw.term_access= [term_access[i]]
       kw.termini_dir=[[None, None]]
       force_flip = False
 
@@ -316,23 +313,19 @@ def test_cage_onecomp_grid_term_access(hscore):
 
    assert not(result[0].__eq__(result[1]))
    assert not(result[1].__eq__(result[2]))
-   assert not(result[1].__eq__(result[2]))
+   assert not(result[0].__eq__(result[2]))
 
+   # for j in range(len(result)):
+   #    result[j].dump_pdbs_top_score(hscore=hscore,
+   #       **kw.sub(nout_top=10, output_prefix=f'test_cage_onecomp_grid_term_access{j}'))
    result = rp.concat_results(result)
    # print(result)
-   # result.dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_onecomp_grid_term_access.pickle')
    ref = rp.data.get_test_data('test_cage_onecomp_grid_term_access') 
    rp.search.assert_results_close(result, ref)
 
-def test_cage_onecomp_hier_term_access(hscore):
-   bodies = [rp.data.get_body('C3_1na0-1_1'),
-            rp.data.get_body('C3_1na0-1_1_Nhelix'),
-            rp.data.get_body('C3_1na0-1_1_NChelix')]
-   # term_access = [[[False, False]], [[True, False]], [[True, True]]]
-
+def test_cage_onecomp_hier_term_access(hscore, bodies):
    result = [None] * len(bodies)
    for i, body in enumerate(bodies):
       kw = rp.app.defaults()
@@ -361,12 +354,14 @@ def test_cage_onecomp_hier_term_access(hscore):
 
    assert not(result[0].__eq__(result[1]))
    assert not(result[1].__eq__(result[2]))
-   assert not(result[1].__eq__(result[2]))
+   assert not(result[0].__eq__(result[2]))
 
+   # for j in range(len(result)):
+   #    print(len(result[j]))
+   #    result[j].dump_pdbs_top_score(hscore=hscore, 
+   #       **kw.sub(nout_top=10, output_prefix=f'test_cage_onecomp_hier_term_access{j}'))
    result = rp.concat_results(result)
    # print(result)
-   # result.dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=10, output_prefix='test_cage_hier_no_trim'))
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_onecomp_hier_term_access.pickle')
    ref = rp.data.get_test_data('test_cage_onecomp_hier_term_access') 
@@ -393,8 +388,12 @@ def main():
    poseC3 = get_pose_cached('C3_1na0-1_1.pdb.gz', rp.data.pdbdir)
    # test_cage_onecomp_hier_termini_dirs(hscore, poseC3, C3)
    # test_cage_onecomp_grid_termini_dirs(hscore, poseC3, C3)
-   # test_cage_onecomp_grid_term_access(hscore)
-   test_cage_onecomp_hier_term_access(hscore)
+
+   bodies = [rp.data.get_body('C3_3e6q_asu'),
+            rp.data.get_body('C3_3e6q_asu_Chelix'),
+            rp.data.get_body('C3_3e6q_asu_NChelix')]
+   test_cage_onecomp_grid_term_access(hscore, bodies)
+   test_cage_onecomp_hier_term_access(hscore, bodies)
 
    # test_deepesh_1comp_bug(hscore)
    
