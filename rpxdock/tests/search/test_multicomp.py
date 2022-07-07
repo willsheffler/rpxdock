@@ -249,5 +249,8 @@ if __name__ == '__main__':
    from rpxdock.rosetta.triggers_init import get_pose_cached
    poseC2 = get_pose_cached('C2_REFS10_1.pdb.gz', rp.data.pdbdir)
    poseC3 = get_pose_cached('C3_1na0-1_1.pdb.gz', rp.data.pdbdir)
-   # test_cage_termini_dirs(hscore, C3, C2, poseC3, poseC2)
+   test_cage_termini_dirs(hscore, C3, C2, poseC3, poseC2)
+
+   C2 = rp.data.get_body('C2_REFS10_1')
+   C3 = rp.data.get_body('C3_1na0-1_1')
    test_cage_term_access(hscore, C2, C3)

@@ -386,8 +386,8 @@ def main():
 
    from rpxdock.rosetta.triggers_init import get_pose_cached
    poseC3 = get_pose_cached('C3_1na0-1_1.pdb.gz', rp.data.pdbdir)
-   # test_cage_onecomp_hier_termini_dirs(hscore, poseC3, C3)
-   # test_cage_onecomp_grid_termini_dirs(hscore, poseC3, C3)
+   test_cage_onecomp_hier_termini_dirs(hscore, poseC3, C3)
+   test_cage_onecomp_grid_termini_dirs(hscore, poseC3, C3)
 
    bodies = [rp.data.get_body('C3_3e6q_asu'),
             rp.data.get_body('C3_3e6q_asu_Chelix'),

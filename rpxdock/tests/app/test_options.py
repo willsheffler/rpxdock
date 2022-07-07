@@ -191,6 +191,6 @@ if __name__ == '__main__':
    # test_get_cli_args()
    # test_inputs_read_allowed_res()
    # test_str2bool()
-   # test_dir_plus_bool()
+   test_dir_plus_bool()
    test_parse_termini()
    # test_inputs()

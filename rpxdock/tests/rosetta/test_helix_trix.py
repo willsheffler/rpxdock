@@ -139,8 +139,10 @@ if __name__ == '__main__':
    # Reset this pose if it was modified in the previous functions
    # poseC2 = get_pose_cached('C2_3hm4_1.pdb.gz', rp.data.pdbdir)
 
-   # test_remove_helix(poseC2, helix)
-   # test_limit_flip_update()
+   test_remove_helix(poseC2, helix)
+   test_limit_flip_update()
+
+   poseC2 = get_pose_cached('C2_3hm4_1.pdb.gz', rp.data.pdbdir)
    test_init_termini([pdbtop7,dhr64, dhr14, poseC3, pdbC2, pdbC2], helix)
 
 
