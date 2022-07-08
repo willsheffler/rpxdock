@@ -188,7 +188,8 @@ def test_deepesh_1comp_bug(hscore):
    rp.search.assert_results_close(result, ref)
 
 
-def test_cage_onecomp_hier_termini_dirs(hscore, poseC3, bodyC3):
+def test_cage_onecomp_hier_termini_dirs(hscore, C3_1nza, bodyC3):
+   poseC3 = C3_1nza
    C3_Ndir, C3_Cdir= True, False # init relative dirs of N and C terms
    dirs = [[[C3_Ndir, C3_Cdir]], [[not(C3_Ndir), not(C3_Cdir)]], [[None, None]]]
    expected_flips = [[False, False],[True, True], [True, False]]
@@ -236,7 +237,8 @@ def test_cage_onecomp_hier_termini_dirs(hscore, poseC3, bodyC3):
    ref = rp.data.get_test_data('test_cage_onecomp_hier_termini_dirs') 
    rp.search.assert_results_close(result, ref)
 
-def test_cage_onecomp_grid_termini_dirs(hscore, poseC3, bodyC3):
+def test_cage_onecomp_grid_termini_dirs(hscore, C3_1nza, bodyC3):
+   poseC3 = C3_1nza
    C3_Ndir, C3_Cdir= True, False # init relative dirs of N and C terms
    dirs = [[[C3_Ndir, C3_Cdir]], [[not(C3_Ndir), not(C3_Cdir)]], [[None, None]]]
    expected_flips = [[False, False],[True, True], [True, False]]
@@ -284,9 +286,9 @@ def test_cage_onecomp_grid_termini_dirs(hscore, poseC3, bodyC3):
    ref = rp.data.get_test_data('test_cage_onecomp_grid_termini_dirs') 
    rp.search.assert_results_close(result, ref)
 
-def test_cage_onecomp_grid_term_access(hscore, bodies):
-   result = [None] * len(bodies)
-   for i, body in enumerate(bodies):
+def test_cage_onecomp_grid_term_access(hscore, term_mod_C3s):
+   result = [None] * len(term_mod_C3s)
+   for i, body in enumerate(term_mod_C3s):
       kw = rp.app.defaults()
       kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
       kw.beam_size = 2e4
@@ -325,9 +327,9 @@ def test_cage_onecomp_grid_term_access(hscore, bodies):
    ref = rp.data.get_test_data('test_cage_onecomp_grid_term_access') 
    rp.search.assert_results_close(result, ref)
 
-def test_cage_onecomp_hier_term_access(hscore, bodies):
-   result = [None] * len(bodies)
-   for i, body in enumerate(bodies):
+def test_cage_onecomp_hier_term_access(hscore, term_mod_C3s):
+   result = [None] * len(term_mod_C3s)
+   for i, body in enumerate(term_mod_C3s):
       kw = rp.app.defaults()
       kw.wts = rp.Bunch(ncontact=0.01, rpx=1.0)
       kw.beam_size = 2e4

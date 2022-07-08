@@ -121,10 +121,17 @@ def test_body_copy_xform(body_tiny):
    assert np.allclose(rotated.squeeze(), b2.coord)
 
 #function to test modifications to body by adding helices aligned with termini
-def test_body_with_terminal_helices(inp1, inp2, helix):
+def test_body_with_terminal_helices(C2_3hm4, C3_1nza, helix):
+   from pyrosetta.rosetta.core import pose
+   inp1 = pose.Pose().assign(C2_3hm4)
+   inp2 = pose.Pose().assign(C2_3hm4)
+   inp3 = pose.Pose().assign(C3_1nza)
+   inp4 = pose.Pose().assign(C3_1nza)
+   
    kw = rp.app.defaults()
-   # kw.inputs=[[inp1],[inp1], [inp2], [inp2]] 
-   kw.inputs=[[inp1],[inp1], [inp2, inp2]] 
+   # Clean inputs list with poses that will not be modified
+   clean_inputs = [[C2_3hm4],[C2_3hm4],[C3_1nza,C3_1nza]]
+   kw.inputs=[[inp1],[inp2], [inp3, inp4]] 
    # Test variety of conditions for access
    kw.term_access=[[[False, False]],[[False, True]], [[True, False], [True, True]]]
    kw.termini_dir = [[[None,None]], [[True, None]], [[False, None], [None, True]]]
@@ -139,7 +146,7 @@ def test_body_with_terminal_helices(inp1, inp2, helix):
             for pose1, og1, modterm in zip(poses, og_lens, kw.term_access)]
 
    # Make bodies from original inputs - no terminal modifications
-   og_bodies=[[rp.Body(inp2, **kw) for inp2 in inp1] for inp1 in kw.inputs]
+   og_bodies=[[rp.Body(i2, **kw) for i2 in i1] for i1 in clean_inputs]
 
    # Compare 3 bodies: with appended helices (body), with no modifications (og),
    # and after helix removal (new)
