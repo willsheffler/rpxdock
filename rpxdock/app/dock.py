@@ -143,7 +143,7 @@ def dock_onecomp(hscore, **kw):
          sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **kw)
       else:
          sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=crtbnd[0], ub=crtbnd[1], resl=5,
-                                                 angresl=5, axis=spec.axis, flipax=spec.flip_axis, **kw)
+                  angresl=5, axis=spec.axis, flipax=spec.flip_axis, **kw)
       search = rp.hier_search
 
    # pose info and axes that intersect.
@@ -298,13 +298,14 @@ def dock_axel(hscore, **kw):
    flip = list(spec.flip_axis)
 
    if kw.docking_method.lower() == 'hier':
-       if not kw.flip_components[0]:
-          flip[0] = None
+      #  if not kw.flip_components[0]:
+      #     flip[0] = None
        if spec.nfold[0] == spec.nfold[1]:
-          sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0],  lb=0, ub=100, resl=5, angresl=5, axis=[0,0,1], flipax=flip[0])
+          sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0],  lb=0, ub=100, 
+                  resl=5, angresl=5, axis=[0,0,1], flipax=flip[0], flip_components=kw.flip_components[0])
        else:
           sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0]*spec.nfold[1]/gcd(spec.nfold[0],spec.nfold[1]),
-                  lb=0, ub=100, resl=5, angresl=5, axis=[0,0,1], flipax=flip[0])
+                  lb=0, ub=100, resl=5, angresl=5, axis=[0,0,1], flipax=flip[0], flip_components=kw.flip_components[0])
        sampler2 = rp.sampling.ZeroDHier([np.eye(4),rp.homog.hrot([1,0,0],180)])
        if len(kw.flip_components) is 1 and not kw.flip_components[0]:
           sampler2 = rp.sampling.ZeroDHier(np.eye(4))

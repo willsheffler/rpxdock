@@ -1,7 +1,7 @@
 name: rpxdock
 channels:
  - conda-forge
- - https://username:password@conda.graylab.jhu.edu
+ - https://pose:foldtree@conda.graylab.jhu.edu
 dependencies:
  - python>=3.7
  - pyrosetta
@@ -13,12 +13,12 @@ dependencies:
  - cffi
  - tqdm
  - yapf
- - pyyaml
  - tabulate
  - pytest
  - pytest-repeat
  - pytest-sugar
  - pytest-xdist
+ - pyyaml
  - tabulate
  - sphinx>=2.0
  - doxygen

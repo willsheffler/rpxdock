@@ -133,11 +133,11 @@ def term_mod_C3s():
             data.get_body('C3_3e6q_asu_NChelix')]
 
 @pytest.fixture(scope="session")
-def term_mod_C2s():
-   return [data.get_body('C3_3e6q_asu'),
-            data.get_body('C3_3e6q_asu_Chelix'),
-            data.get_body('C3_3e6q_asu_NChelix')]
-
+def term_mod_C3_and_C2():
+   return [[data.get_body('C3_1na0-1_1'),data.get_body('C2_REFS10_1')],
+      [data.get_body('C3_1na0-1_1_NChelix'), data.get_body('C2_REFS10_1_NChelix')],
+      [data.get_body('C3_1na0-1_1_Chelix'), data.get_body('C2_REFS10_1_Nhelix')]]
+      
 @pytest.fixture(scope="session")
 def poses_list_helices(pdbdir):
    return [get_pose_cached('dhr64.pdb.gz', pdbdir),
@@ -152,3 +152,11 @@ def mixed_inputs(pdbdir):
          get_pose_cached("C3_1nza_1.pdb.gz", pdbdir),
          pdbdir + "/C2_3hm4_1.pdb.gz",
          pdbdir + "/C2_3hm4_1.pdb.gz"]
+
+@pytest.fixture(scope="session")
+def pose_C2_REFS10(pdbdir):
+   return get_pose_cached('C2_REFS10_1.pdb.gz', pdbdir)
+
+@pytest.fixture(scope="session")
+def pose_C3_1na0(pdbdir):
+   return get_pose_cached('C3_1na0-1_1.pdb.gz', pdbdir)

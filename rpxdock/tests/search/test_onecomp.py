@@ -217,6 +217,7 @@ def test_cage_onecomp_hier_termini_dirs(hscore, C3_1nza, bodyC3):
       kw.term_access=[[[False, False]]]
       poses, og_lens = rp.rosetta.helix_trix.init_termini(**kw) 
 
+      print(kw.flip_components)
       assert [kw.flip_components[0], kw.force_flip[0]] == expected_flips[i]
       spec = rp.search.DockSpec1CompCage('T3')
       sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=0, ub=100, resl=10, angresl=10,
@@ -227,12 +228,11 @@ def test_cage_onecomp_hier_termini_dirs(hscore, C3_1nza, bodyC3):
    assert not(result[1].__eq__(result[2]))
    assert not(result[0].__eq__(result[2]))
  
-   result = rp.concat_results(result)
-   # print(result)
-   # result.dump_pdbs_top_score(hscore=hscore,
-   #    **kw.sub(nout_top=10, use_body_sym=True, 
-   #    output_prefix='/home/jenstanisl/test_rpx/unit_test_input/unit_test_temp_output/test_cage_onecomp_hier_termini_dirs'))
+   # for j in range(len(result)):
+   #    result[j].dump_pdbs(hscore=hscore, **kw.sub(use_body_sym=True,
+   #    output_prefix=f'/home/jenstanisl/test_rpx/unit_test_input/dump_pickles/test_cage_onecomp_hier_termini_dirs{j}'))
 
+   result = rp.concat_results(result)   
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_onecomp_hier_termini_dirs.pickle')
    ref = rp.data.get_test_data('test_cage_onecomp_hier_termini_dirs') 
    rp.search.assert_results_close(result, ref)
@@ -264,26 +264,28 @@ def test_cage_onecomp_grid_termini_dirs(hscore, C3_1nza, bodyC3):
       kw.termini_dir = [dir_pair]
       kw.term_access=[[[False, False]]]
       poses, og_lens = rp.rosetta.helix_trix.init_termini(**kw)
+      if not kw.flip_components[0]: flip = None
+      else: flip=list(spec.flip_axis[:3])
       force_flip=False if kw.force_flip is None else kw.force_flip[0]
 
       assert [kw.flip_components[0], kw.force_flip[0]] == expected_flips[i]
       spec = rp.search.DockSpec1CompCage('T3')
       sampler = rp.sampling.grid_sym_axis(np.arange(0, 100, 2), np.arange(0, 360 / spec.nfold, 2),
-                                       axis=spec.axis, flip=list(spec.flip_axis[:3]), 
+                                       axis=spec.axis, flip=flip, 
                                        force_flip=force_flip)
       result[i] = rp.search.make_onecomp(bodyC3, spec, hscore, rp.grid_search, sampler, **kw)
 
    assert not(result[0].__eq__(result[1]))
    assert not(result[1].__eq__(result[2]))
-   assert not(result[1].__eq__(result[2]))
+   assert not(result[0].__eq__(result[2]))
+
+   # for j in range(len(result)):
+   #    result[j].dump_pdbs(hscore=hscore, **kw.sub(use_body_sym=True, 
+   #       output_prefix=f'/home/jenstanisl/test_rpx/unit_test_input/dump_pickles/test_cage_onecomp_grid_termini_dirs{j}'))
 
    result = rp.concat_results(result)
-   # print(result)
-   # result.dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=10, output_prefix='test_cage_onecomp_grid_termini_dirs'))
-
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_onecomp_grid_termini_dirs.pickle')
-   ref = rp.data.get_test_data('test_cage_onecomp_grid_termini_dirs') 
+   ref = rp.data.get_test_data('test_cage_onecomp_grid_termini_dirs')
    rp.search.assert_results_close(result, ref)
 
 def test_cage_onecomp_grid_term_access(hscore, term_mod_C3s):
@@ -375,11 +377,11 @@ def main():
    C2 = rp.data.get_body('C2_REFS10_1')
    C3 = rp.data.get_body('C3_1na0-1_1')
 
-   test_cage_hier_onecomp_notrim(hscore, C3)
-   test_cage_hier_D3_onecomp_notrim(hscore, C3)
-   test_cage_hier_D3_2_onecomp_notrim(hscore, C2)
+   # test_cage_hier_onecomp_notrim(hscore, C3)
+   # test_cage_hier_D3_onecomp_notrim(hscore, C3)
+   # test_cage_hier_D3_2_onecomp_notrim(hscore, C2)
    # _test_cage_hier_onecomp_trim(hscore  , C3)
-   test_cage_grid_onecomp_notrim(hscore, C3)
+   # test_cage_grid_onecomp_notrim(hscore, C3)
    # test_cage_hier_onecomp_notrim(hscore, C3)
    # test_cage_hier_D3_onecomp_notrim(hscore, C3)
    # test_cage_hier_D3_2_onecomp_notrim(hscore, C2)
@@ -391,11 +393,11 @@ def main():
    test_cage_onecomp_hier_termini_dirs(hscore, poseC3, C3)
    test_cage_onecomp_grid_termini_dirs(hscore, poseC3, C3)
 
-   bodies = [rp.data.get_body('C3_3e6q_asu'),
-            rp.data.get_body('C3_3e6q_asu_Chelix'),
-            rp.data.get_body('C3_3e6q_asu_NChelix')]
-   test_cage_onecomp_grid_term_access(hscore, bodies)
-   test_cage_onecomp_hier_term_access(hscore, bodies)
+   # bodies = [rp.data.get_body('C3_3e6q_asu'),
+   #          rp.data.get_body('C3_3e6q_asu_Chelix'),
+   #          rp.data.get_body('C3_3e6q_asu_NChelix')]
+   # test_cage_onecomp_grid_term_access(hscore, bodies)
+   # test_cage_onecomp_hier_term_access(hscore, bodies)
 
    # test_deepesh_1comp_bug(hscore)
    

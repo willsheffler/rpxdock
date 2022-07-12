@@ -90,6 +90,7 @@ def test_init_termini(mixed_inputs, helix):
             == type(poses[4][0]) == rosetta.core.pose.Pose)
    assert type(poses[0][0]) == type(poses[5][0]) == str
 
+# @pytest.mark.skip(reason="makes body pickle for tests in test_body; not necessary to test")
 # def temp_make_bodies(c3, c2):
 #    import _pickle
 #    from rpxdock.body import Body
@@ -145,7 +146,7 @@ if __name__ == '__main__':
    # Reset this pose if it was modified in the previous functions
    # poseC2 = get_pose_cached('C2_3hm4_1.pdb.gz', rp.data.pdbdir)
 
-   test_remove_helix(poseC2, helix)
+   # test_remove_helix(poseC2, helix)
    # test_limit_flip_update()
 
    # poseC2 = get_pose_cached('C2_3hm4_1.pdb.gz', rp.data.pdbdir)
@@ -159,7 +160,7 @@ if __name__ == '__main__':
    # from pyrosetta import *
    # c3_forbody=pose_from_pdb("/home/jenstanisl/test_rpx/test_appendhelix/ver_scaffolds/C3_3e6q_asu.pdb")
    # temp_make_bodies(c3_forbody, get_pose_cached("C2_REFS10_1.pdb.gz", rp.data.pdbdir))
-   # temp_make_bodies(poseC3, get_pose_cached("C2_REFS10_1.pdb.gz", rp.data.pdbdir))
+   temp_make_bodies(poseC3, get_pose_cached("C2_REFS10_1.pdb.gz", rp.data.pdbdir))
 
    # import _pickle
    # from rpxdock.body import Body

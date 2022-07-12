@@ -114,11 +114,7 @@ def test_layer_hier_3comp(hscore, bodyC6, bodyC3, bodyC2):
    rp.search.assert_results_close(result, ref)
 
 # Check that specifying termini direction is restricting search properly
-# Takes about 130 seconds
-def test_cage_termini_dirs(hscore, bodyC3, bodyC2, poseC3, poseC2):
-   import time
-   start = time.time()
-
+def test_cage_termini_dirs(hscore, bodyC3, bodyC2, pose_C3_1na0, pose_C2_REFS10):
    C3_Ndir, C3_Cdir= True, False # init relative dirs of N and C terms
    C2_Ndir, C2_Cdir = True, False 
    dirs = [[[C3_Ndir, C3_Cdir],[C2_Ndir, C2_Cdir]],
@@ -136,7 +132,7 @@ def test_cage_termini_dirs(hscore, bodyC3, bodyC2, poseC3, poseC2):
    for i, dir_pair in enumerate(dirs):
       kw = get_arg()
       kw.beam_size = 5000
-      kw.inputs = [[poseC3], [poseC2]]
+      kw.inputs = [[pose_C3_1na0], [pose_C2_REFS10]]
       kw.flip_components = [True, True]
       kw.force_flip = [False,False]
       kw.term_access=[[[False, False]],[[False, False]]]
@@ -147,14 +143,17 @@ def test_cage_termini_dirs(hscore, bodyC3, bodyC2, poseC3, poseC2):
 
       
       spec = rp.search.DockSpec2CompCage('I32')
-      sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw) 
+      sampler = rp.sampling.hier_multi_axis_sampler(spec, [100,130],
+               flip_components = kw.flip_components, force_flip=kw.force_flip) 
 
       result[i] = rp.search.make_multicomp([bodyC3, bodyC2], spec, hscore, rp.hier_search,
                                        sampler, **kw)
+
    for j in range(len(result)):
-      for k in range(j+1, len(result)):assert not(result[j].__eq__(result[k]))
-      result[j].dump_pdbs_top_score(hscore=hscore,
-                              **kw.sub(nout_top=10, output_prefix='test_cage_termini_dirs'))
+      # print(len(result[j]))
+      for k in range(j+1, len(result)): assert not(result[j].__eq__(result[k]))
+      # result[j].dump_pdbs_top_score(hscore=hscore,
+      #                         **kw.sub(nout_top=10, output_prefix=f'/home/jenstanisl/test_rpx/unit_test_input/output_new/test_cage_termini_dirs{j}'))
    
    result = rp.concat_results(result)
    # print(result)
@@ -162,29 +161,17 @@ def test_cage_termini_dirs(hscore, bodyC3, bodyC2, poseC3, poseC2):
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_termini_dirs.pickle')
    ref = rp.data.get_test_data('test_cage_termini_dirs') 
    rp.search.assert_results_close(result, ref)
-   end = time.time()
-   print("time to run ", end - start, "s")
 
 # Check that various term_access parameters create different results
-# Takes about 160 seconds
-def test_cage_term_access(hscore, bodyC3, bodyC2):
-   # import time
-   # start = time.time()
-   both_bodyC2 = rp.data.get_body('C2_REFS10_1_NChelix')
-   N_bodyC2 = rp.data.get_body('C2_REFS10_1_Nhelix')
-   both_bodyC3 = rp.data.get_body('C3_1na0-1_1_NChelix')
-   C_bodyC3 = rp.data.get_body('C3_1na0-1_1_Chelix')
-   # body_list = [[bodyC3, bodyC2], [both_bodyC3, bodyC2],
-   #             [bodyC3, both_bodyC2], [both_bodyC3, both_bodyC2],
-   #             [C_bodyC3, N_bodyC2]]
-   body_list = [[bodyC3, bodyC2], [both_bodyC3, both_bodyC2],
-               [C_bodyC3, N_bodyC2]]
+def test_cage_term_access(hscore, term_mod_C3_and_C2):
+   body_list = term_mod_C3_and_C2
 
    result = [None] * len(body_list)
    for i, bodies in enumerate(body_list):
       kw = get_arg()
       kw.beam_size = 5000
-      kw.inputs = [[poseC3], [poseC2]]
+      # kw.inputs = [[poseC3], [poseC2]]
+      kw.inputs = [[body_list[0][0]], [body_list[0][1]]]
       kw.flip_components = [True, True]
       kw.force_flip = [False,False]
       for comp in bodies:
@@ -192,25 +179,23 @@ def test_cage_term_access(hscore, bodyC3, bodyC2):
          kw.term_access.append([comp.modified_term])
       kw.termini_dir = [[[None]], [None]]
       assert len(kw.term_access) == len(kw.termini_dir)
-
       
       spec = rp.search.DockSpec2CompCage('I32')
-      sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw) 
+      sampler = rp.sampling.hier_multi_axis_sampler(spec, [100,130],
+               flip_components = kw.flip_components, force_flip=kw.force_flip)  
 
       result[i] = rp.search.make_multicomp([bodies[0], bodies[1]], spec, hscore, rp.hier_search,
                                        sampler, **kw)
-   # for j in range(len(result)):
-   #    for k in range(j+1, len(result)):assert not(result[j].__eq__(result[k]))
-   #    result[j].dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=10, output_prefix=f'test_cage_term_access{j}'))
+   for j in range(len(result)):
+      for k in range(j+1, len(result)):assert not(result[j].__eq__(result[k]))
+      # result[j].dump_pdbs_top_score(hscore=hscore,
+      #                         **kw.sub(nout_top=10, output_prefix=f'/home/jenstanisl/test_rpx/unit_test_input/output_new/test_cage_term_access{j}'))
    result = rp.concat_results(result)
    # print(result)
 
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_term_access.pickle')
    ref = rp.data.get_test_data('test_cage_term_access') 
    rp.search.assert_results_close(result, ref)
-   # end = time.time()
-   # print("time to run ", end - start, "s")
 
 if __name__ == '__main__':
    import logging
@@ -253,4 +238,10 @@ if __name__ == '__main__':
 
    C2 = rp.data.get_body('C2_REFS10_1')
    C3 = rp.data.get_body('C3_1na0-1_1')
-   test_cage_term_access(hscore, C2, C3)
+   both_bodyC2 = rp.data.get_body('C2_REFS10_1_NChelix')
+   N_bodyC2 = rp.data.get_body('C2_REFS10_1_Nhelix')
+   both_bodyC3 = rp.data.get_body('C3_1na0-1_1_NChelix')
+   C_bodyC3 = rp.data.get_body('C3_1na0-1_1_Chelix')
+   body_list = [[C3, C2], [both_bodyC3, both_bodyC2],
+               [C_bodyC3, N_bodyC2]]
+   test_cage_term_access(hscore, body_list)
