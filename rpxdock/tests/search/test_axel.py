@@ -34,8 +34,11 @@ def test_axel(hscore):
    result = rp.search.make_multicomp([C3_A, C3_B], spec, hscore, rp.hier_search, sampler, **kw)
    print(result)
 
-#   result.dump_pdbs_top_score(hscore=hscore,
-#                               **kw.sub(nout_top=10, output_prefix='test_axel'))
+   # result.dump_pdbs_top_score(hscore=hscore,
+   #                            **kw.sub(nout_top=10, output_prefix='test_axel'))
+   # rp.dump(result, 'rpxdock/data/testdata/test_axel.pickle')
+   ref = rp.data.get_test_data('test_axel')
+   rp.search.assert_results_close(result, ref)
 
 def test_axel_asym(hscore):
    C2_A = rp.data.get_body_copy('C2_3hm4_1')
@@ -56,8 +59,11 @@ def test_axel_asym(hscore):
    result = rp.search.make_multicomp([C2_A, C3_B], spec, hscore, rp.hier_search, sampler, **kw)
    print(result)
 
-#   result.dump_pdbs_top_score(hscore=hscore,
-#                               **kw.sub(nout_top=50, output_prefix='test_axel_asym'))
+   # result.dump_pdbs_top_score(hscore=hscore,
+   #                            **kw.sub(nout_top=50, output_prefix='test_axel_asym'))
+   # rp.dump(result, 'rpxdock/data/testdata/test_axel_asym.pickle')
+   ref = rp.data.get_test_data('test_axel_asym')
+   rp.search.assert_results_close(result, ref)
 
 def test_axel_grid(hscore):
    C3_A = rp.data.get_body_copy('C3_1na0-1_1')
@@ -77,17 +83,20 @@ def test_axel_grid(hscore):
    )
    shape = (2, 2 * len(sampler1), 4, 4)
    sampler = np.zeros(shape=shape)
-   sampler[0, :len(sampler1)] = sampler1
-   sampler[0, len(sampler1):] = sampler1
-   sampler[1, :len(sampler1)] = np.eye(4)
-   sampler[1, len(sampler1):] = rp.homog.hrot([1, 0, 0], 180)
+   sampler[1, :len(sampler1)] = sampler1
+   sampler[1, len(sampler1):] = sampler1
+   sampler[0, :len(sampler1)] = np.eye(4)
+   sampler[0, len(sampler1):] = rp.homog.hrot([1, 0, 0], 180)
    sampler = np.swapaxes(sampler, 0, 1)
 
    result = rp.search.make_multicomp([C3_A, C3_B], spec, hscore, rp.grid_search, sampler, **kw)
    print(result)
 
-#   result.dump_pdbs_top_score(hscore=hscore,
-#                               **kw.sub(nout_top=10, output_prefix='test_axel_grid'))
+   # result.dump_pdbs_top_score(hscore=hscore,
+   #                            **kw.sub(nout_top=10, output_prefix='test_axel_grid'))
+   # rp.dump(result, 'rpxdock/data/testdata/test_axel_grid.pickle')
+   ref = rp.data.get_test_data('test_axel_grid')
+   rp.search.assert_results_close(result, ref)
 
 if __name__ == "__main__":
    #logging.getLogger().setLevel(level='INFO')

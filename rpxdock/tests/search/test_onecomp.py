@@ -230,7 +230,7 @@ def test_cage_onecomp_hier_termini_dirs(hscore, C3_1nza, bodyC3):
  
    # for j in range(len(result)):
    #    result[j].dump_pdbs(hscore=hscore, **kw.sub(use_body_sym=True,
-   #    output_prefix=f'/home/jenstanisl/test_rpx/unit_test_input/dump_pickles/test_cage_onecomp_hier_termini_dirs{j}'))
+   #    output_prefix=f'test_cage_onecomp_hier_termini_dirs{j}'))
 
    result = rp.concat_results(result)   
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_onecomp_hier_termini_dirs.pickle')
@@ -281,7 +281,7 @@ def test_cage_onecomp_grid_termini_dirs(hscore, C3_1nza, bodyC3):
 
    # for j in range(len(result)):
    #    result[j].dump_pdbs(hscore=hscore, **kw.sub(use_body_sym=True, 
-   #       output_prefix=f'/home/jenstanisl/test_rpx/unit_test_input/dump_pickles/test_cage_onecomp_grid_termini_dirs{j}'))
+   #       output_prefix=f'test_cage_onecomp_grid_termini_dirs{j}'))
 
    result = rp.concat_results(result)
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_onecomp_grid_termini_dirs.pickle')

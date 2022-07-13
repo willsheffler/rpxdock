@@ -153,7 +153,7 @@ def test_cage_termini_dirs(hscore, bodyC3, bodyC2, pose_C3_1na0, pose_C2_REFS10)
       # print(len(result[j]))
       for k in range(j+1, len(result)): assert not(result[j].__eq__(result[k]))
       # result[j].dump_pdbs_top_score(hscore=hscore,
-      #                         **kw.sub(nout_top=10, output_prefix=f'/home/jenstanisl/test_rpx/unit_test_input/output_new/test_cage_termini_dirs{j}'))
+      #                         **kw.sub(nout_top=10, output_prefix=f'test_cage_termini_dirs{j}'))
    
    result = rp.concat_results(result)
    # print(result)
@@ -189,7 +189,7 @@ def test_cage_term_access(hscore, term_mod_C3_and_C2):
    for j in range(len(result)):
       for k in range(j+1, len(result)):assert not(result[j].__eq__(result[k]))
       # result[j].dump_pdbs_top_score(hscore=hscore,
-      #                         **kw.sub(nout_top=10, output_prefix=f'/home/jenstanisl/test_rpx/unit_test_input/output_new/test_cage_term_access{j}'))
+      #                         **kw.sub(nout_top=10, output_prefix=f'test_cage_term_access{j}'))
    result = rp.concat_results(result)
    # print(result)
 
