@@ -38,10 +38,12 @@ def point_in(pose, term, helixch=False):
       vterm = helixbeg - helixend
    elif term == "C":
       vterm = helixend - helixbeg
-   comv = rosetta.protocols.geometry.center_of_mass(pose, 1, pose.chain_begin(helixch)-1)
-   if vterm.z - comv.z > 0: #Points out
+   #comv = rosetta.protocols.geometry.center_of_mass(pose, 1, pose.chain_begin(helixch)-1)
+   #if vterm.z - comv.z > 0: #Points out
+   if vterm.z > 0: #Points out
       return False
-   elif vterm.z - comv.z < 0: #Points in
+   #elif vterm.z - comv.z < 0: #Points in
+   elif vterm.z < 0: #Points in
       return True
 
 # Removes one chain from the pose. If not specified, this is the last
