@@ -27,6 +27,7 @@ def hier_axis_sampler(
    angresl,
    axis=[0, 0, 1],
    flipax=[0, 1, 0],
+   flip_components=True,
    fixed_rot=[],
    fixed_components=[],
    fixed_trans=[],
@@ -64,8 +65,10 @@ def hier_axis_sampler(
                                          ang_nstep, axis[:3])
    else:
       samp = rp.sampling.RotCart1Hier_f4(lb, ub, cart_nstep, 0, ang, ang_nstep, axis[:3])
-   if kw.flip_components is not None:
+   if type(flip_components) is list: flip_components = flip_components[0]
+   if flip_components:
       flip = rp.ZeroDHier([np.eye(4), rp.homog.hrot(flipax, 180)])
+      if kw.force_flip and kw.force_flip[0]: flip = rp.ZeroDHier([rp.homog.hrot(flipax, 180)])
       samp = rp.ProductHier(samp, flip)
    return samp
 
@@ -79,6 +82,7 @@ def hier_multi_axis_sampler(
    fixed_components=[],
    fixed_trans=[],
    fixed_wiggle=[],
+   force_flip=[],
    fw_cartlb=-5,
    fw_cartub=5,
    fw_rotlb=-5,
@@ -92,6 +96,7 @@ def hier_multi_axis_sampler(
       flip_components = [flip_components]
    if len(flip_components) is 1:
       flip_components = flip_components * len(spec.nfold)
+   assert len(flip_components) == len(spec.nfold)
    # for i, flip in enumerate(flip_components):
    # flip_components[i] = flip_components[i] and not spec.comp_is_dihedral[i]
    if len(cart_bounds) is 2 and isinstance(cart_bounds[0], int):
@@ -126,10 +131,11 @@ def hier_multi_axis_sampler(
          s = rp.sampling.RotCart1Hier_f4(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], 0,
                                          ang[i], ang_nstep[i], spec.axis[i][:3])
       samp.append(s)
-
    for i, s in enumerate(samp):
-      if flip_components[i]:
-         samp[i] = rp.sampling.ProductHier(s, rp.ZeroDHier([np.eye(4), spec.xflip[i]]))
+      if flip_components[i]: 
+         flip = rp.ZeroDHier([np.eye(4), spec.xflip[i]])
+         if len(force_flip) > i and force_flip[i]: flip = rp.ZeroDHier([spec.xflip[i]])
+         samp[i] = rp.sampling.ProductHier(s, flip)
 
    if spec.type == 'layer':
       sampler = rp.sampling.LatticeHier(samp, spec.directions)

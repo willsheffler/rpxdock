@@ -22,7 +22,7 @@ def test_asym(hscore, body, body2):
    cartbs = np.array([4, 1, 4], dtype="i")
    sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, 30)
 
-   rp.dump(sampler, 'test.pickle')
+   # rp.dump(sampler, 'test.pickle')
 
    # sampler = rp.search.asym_get_sample_hierarchy(body2, hscore, 18)
    # print(f'toplevel samples {sampler.size(0):,}')

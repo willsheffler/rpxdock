@@ -117,16 +117,25 @@ def dock_onecomp(hscore, **kw):
    spec = get_spec(kw.architecture)
    crtbnd = kw.cart_bounds[0]
 
+   # If necessary determine accessibility and flip restriction first
+   make_poselist = False
+   for inp_pair in kw.term_access:
+      if not make_poselist: make_poselist=any(True in pair for pair in inp_pair)
+   if make_poselist or not all(None in pair for pair in kw.termini_dir):
+      poses, og_lens = rp.rosetta.helix_trix.init_termini(make_poselist, **kw)
+
    # double normal resolution, cuz why not?
    if kw.docking_method == 'grid':
       flip=list(spec.flip_axis[:3])
+      force_flip=False if kw.force_flip is None else kw.force_flip[0]
       if not kw.flip_components[0]:
          flip = None
       sampler = rp.sampling.grid_sym_axis(
          cart=np.arange(crtbnd[0], crtbnd[1], kw.grid_resolution_cart_angstroms),
          ang=np.arange(0, 360 / spec.nfold, kw.grid_resolution_ori_degrees),
          axis=spec.axis,
-         flip=flip
+         flip=flip,
+         force_flip=force_flip
          )
       search = rp.grid_search
    else:
@@ -134,14 +143,22 @@ def dock_onecomp(hscore, **kw):
          sampler = rp.sampling.hier_mirror_lattice_sampler(spec, resl=10, angresl=10, **kw)
       else:
          sampler = rp.sampling.hier_axis_sampler(spec.nfold, lb=crtbnd[0], ub=crtbnd[1], resl=5,
-                                                 angresl=5, axis=spec.axis, flipax=spec.flip_axis, **kw)
+                  angresl=5, axis=spec.axis, flipax=spec.flip_axis, **kw)
       search = rp.hier_search
 
-   # pose info and axes that intersect
-   bodies = [
-      rp.Body(inp, allowed_res=allowedres, **kw)
-      for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)
-   ]
+   # pose info and axes that intersect.
+   # Use list of modified poses to make bodies if such list exists
+   if make_poselist:
+      assert len(poses) == len(og_lens)
+      bodies = [
+         rp.Body(pose1, allowed_res=allowedres, modified_term=modterm, og_seqlen=og_seqlen, **kw)
+         for pose1, allowedres, modterm, og_seqlen in zip(poses[0], kw.allowed_residues1, kw.term_access1, og_lens[0])
+      ]
+   else:
+      bodies = [
+         rp.Body(inp, allowed_res=allowedres, **kw)
+         for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)
+      ]
 
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
@@ -162,7 +179,7 @@ def dock_onecomp(hscore, **kw):
       result = [None] * len(futures)
       for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
-   
+
    result = rp.concat_results(result)
    return result
    # result = rp.search.make_onecomp(bodyC3, spec, hscore, rp.hier_search, sampler, **kw)
@@ -170,12 +187,28 @@ def dock_onecomp(hscore, **kw):
 def dock_multicomp(hscore, **kw):
    kw = rp.Bunch(kw)
    spec = get_spec(kw.architecture)
+
+   # Determine accessibility and flip restriction before we make sampler
+   make_poselist = False
+   for inp_pair in kw.term_access:
+      if not make_poselist: make_poselist=any(True in pair for pair in inp_pair)
+   if make_poselist or not all(None in pair for pair in kw.termini_dir):
+      poses, og_lens = rp.rosetta.helix_trix.init_termini(make_poselist, **kw)
+   
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
    logging.info(f'num base samples {sampler.size(0):,}')
 
-   bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
-              for fn, ar2 in zip(inp, ar)]
-             for inp, ar in zip(kw.inputs, kw.allowed_residues)]
+   # Use list of modified poses to make bodies if such list exists
+   if make_poselist:
+      assert len(poses) == len(og_lens)
+      bodies = [[rp.Body(pose2, og_seqlen=og2, modified_term=modterm2, **kw)
+               for pose2, og2, modterm2 in zip(pose1, og1, modterm1)]
+               for pose1, og1, modterm1 in zip(poses, og_lens, kw.term_access)]
+
+   else:
+      bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
+               for fn, ar2 in zip(inp, ar)]
+               for inp, ar in zip(kw.inputs, kw.allowed_residues)]
    assert len(bodies) == spec.num_components
 
    exe = concurrent.futures.ProcessPoolExecutor
@@ -259,6 +292,9 @@ def dock_plug(hscore, **kw):
    result = rp.concat_results(result)
    return result
 
+# Docks two comopnents against one another, algined along axis of sym
+# Component one (inputs1) remains stationary during docking, but can flip
+# Component 2 (inputs2) rotates about axis, and can also flip
 def dock_axel(hscore, **kw):
    kw = rp.Bunch(kw)
    spec = get_spec(kw.architecture)
@@ -268,14 +304,13 @@ def dock_axel(hscore, **kw):
        if not kw.flip_components[0]:
           flip[0] = None
        if spec.nfold[0] == spec.nfold[1]:
-          sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0],  lb=0, ub=100, resl=5, angresl=5, axis=[0,0,1], flipax=flip[0])
+          sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0],  lb=0, ub=100, 
+                  resl=5, angresl=5, axis=[0,0,1], flipax=flip[0], flip_components=kw.flip_components[0])
        else:
           sampler1 = rp.sampling.hier_axis_sampler(spec.nfold[0]*spec.nfold[1]/gcd(spec.nfold[0],spec.nfold[1]),
-                  lb=0, ub=100, resl=5, angresl=5, axis=[0,0,1], flipax=flip[0])
+                  lb=0, ub=100, resl=5, angresl=5, axis=[0,0,1], flipax=flip[0], flip_components=kw.flip_components[0])
        sampler2 = rp.sampling.ZeroDHier([np.eye(4),rp.homog.hrot([1,0,0],180)])
-       if len(kw.flip_components) is 1 and not kw.flip_components[0]:
-          sampler2 = rp.sampling.ZeroDHier(np.eye(4))
-       if len(kw.flip_components) is not 1 and not kw.flip_components[1]:
+       if not kw.flip_components[-1]: #Flipping for second input
           sampler2 = rp.sampling.ZeroDHier(np.eye(4))
        sampler = rp.sampling.CompoundHier(sampler2, sampler1)
        logging.info(f'num base samples {sampler.size(0):,}')
@@ -300,18 +335,18 @@ def dock_axel(hscore, **kw):
             flip=flip[0]
             )
        assert sampler1.ndim == 3
-       if (len(kw.flip_components)==1 and not kw.flip_components[0]) or (len(kw.flip_components)==2 and not kw.flip_components[1]):
-          shape = (2,)*sampler1.shape
+       if not kw.flip_components[-1]: # For second input
+          shape = (2, *sampler1.shape)
           sampler = np.zeros(shape=shape)
-          sampler[0,]=sampler1
-          sampler[1,]=np.eye(4)
+          sampler[0,]=np.eye(4)
+          sampler[1,]=sampler1
        else:
           shape = (2,2*len(sampler1),4,4)
           sampler = np.zeros(shape=shape)
-          sampler[0,:len(sampler1)] = sampler1
-          sampler[0,len(sampler1):] = sampler1
-          sampler[1,:len(sampler1)] = np.eye(4)
-          sampler[1,len(sampler1):] = rp.homog.hrot([1,0,0],180)
+          sampler[0,:len(sampler1)] = np.eye(4)
+          sampler[0,len(sampler1):] = rp.homog.hrot([1,0,0],180)
+          sampler[1,:len(sampler1)] = sampler1
+          sampler[1,len(sampler1):] = sampler1
        sampler = np.swapaxes(sampler,0,1)
        logging.info(f'num base samples {sampler.shape}')
        search = rp.grid_search

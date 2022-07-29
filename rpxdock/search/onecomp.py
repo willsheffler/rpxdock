@@ -3,6 +3,7 @@ from rpxdock.search import hier_search, trim_ok
 import logging
 from rpxdock.filter import filters
 
+
 def make_onecomp(
    body,
    spec,
@@ -83,6 +84,10 @@ def make_onecomp(
    data['disp'] = (['model'], np.sum(xforms[:, :3, 3] * spec.axis[None, :3], axis=-1).squeeze())
    data['angle'] = (['model'], rp.homog.angle_of(xforms[:]) * 180 / np.pi)
    default_label = ['compA']
+
+   # Remake bodies in list if pose used to make bodies had termini modified
+   if hasattr(body, 'modified_term') and True in body.modified_term:
+      body = body.copy_exclude_term_res()
 
    return rp.Result(
       body_=None if kw.dont_store_body_in_results else [body],

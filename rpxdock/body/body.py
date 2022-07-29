@@ -17,14 +17,17 @@ class Body:
       allowed_res=None,
       trim_direction='NC',
       is_subbody=False,
+      modified_term=[False,False],
+      og_seqlen=None,
       **kw,
    ):
       kw = rpxdock.Bunch(kw)
 
+      import rpxdock.rosetta.triggers_init as ros
       # pose stuff
       pose = source
       if isinstance(source, str):
-         import rpxdock.rosetta.triggers_init as ros
+         # import rpxdock.rosetta.triggers_init as ros
          self.pdbfile = source
          if kw.posecache:
             pose = ros.get_pose_cached(source)
@@ -37,6 +40,9 @@ class Body:
       self.ss = np.array(list(pose.secstruct()))
       self.coord = rp.rosetta.get_bb_coords(pose)
       self.set_asym_body(pose, sym, **kw)
+      self.modified_term = modified_term
+      if og_seqlen == None: self.og_seqlen = pose.size()
+      else: self.og_seqlen = og_seqlen
 
       self.label = kw.label
       if self.label is None and self.pdbfile:
@@ -50,7 +56,11 @@ class Body:
       # self.trim_direction = trim_direction
       self.trim_direction = kw.trim_direction if kw.trim_direction else 'NC'
       if allowed_res is None:
-         self.allowed_residues = np.ones(len(self.seq), dtype='?')
+         if True in self.modified_term:
+            self.allowed_residues = np.zeros(len(self.seq), dtype='?')
+            for j in range(0, self.og_seqlen):
+               self.allowed_residues[j] = True
+         else: self.allowed_residues = np.ones(len(self.seq), dtype='?')
       else:
          self.allowed_residues = np.zeros(len(self.seq), dtype='?')
          for i in allowed_res(self, **kw):
@@ -337,6 +347,23 @@ class Body:
    def __repr__(self):
       source = self.pdbfile if self.pdbfile else '<rosetta Pose of unknown origin>'
       return f'Body(source="{source}")'
+   
+   # Make copy of body that had helix appended at termini, such that new body
+   # is a copy of original but does not include info about the helical residues
+   def copy_exclude_term_res(self):
+      newbody = self.copy()
+      for attribute in dir(self):
+         val = getattr(self, attribute)
+         if type(val) == list:
+            if len(val) != self.og_seqlen and len(val) == self.nres:
+               setattr(newbody, attribute, copy.deepcopy(val)[:(self.og_seqlen)])
+         elif isinstance(val, np.ndarray):
+            if len(val) != self.og_seqlen and len(val) == self.nres:
+               setattr(newbody, attribute, val.copy()[:(self.og_seqlen)])
+      newbody.nres = self.og_seqlen
+      newbody.modified_term = [False, False] #no longer includes modified termini
+      return newbody
+
 
 def get_trimming_subbodies(body, pose, debug=False, **kw):
    kw = rp.Bunch(kw)

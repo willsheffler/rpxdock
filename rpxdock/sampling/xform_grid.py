@@ -1,7 +1,7 @@
 import numpy as np
 import rpxdock.homog as hm
 
-def grid_sym_axis(cart, ang, axis=[0, 0, 1], flip=None):
+def grid_sym_axis(cart, ang, axis=[0, 0, 1], flip=None, force_flip=False):
    if not isinstance(axis, (np.ndarray, list, tuple)):
       raise TypeError('axis must be ndarray, list tuple')
    if len(axis) not in (3, 4):
@@ -19,5 +19,5 @@ def grid_sym_axis(cart, ang, axis=[0, 0, 1], flip=None):
    if flip:
       cen = np.mean(cart)
       xflip = hm.hrot(flip, 180.0, axis * cen)
-      grid = np.concatenate([grid, xflip @ grid])
+      grid = (xflip @ grid) if force_flip else np.concatenate([grid, xflip @ grid])
    return grid
