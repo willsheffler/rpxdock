@@ -403,8 +403,9 @@ def result_to_tarball(result, fname, overwrite=False):
       # dictionaries / json no good for netcdf
    attrs = result.data.attrs
    if 'arg' in attrs:
-      if 'executor' in attrs['arg']: del attrs['arg']['executor']
-      if 'iface_summary' in attrs['arg']: del attrs['arg']['iface_summary']
+      del attrs['arg']
+      # if 'executor' in attrs['arg']: del attrs['arg']['executor']
+      # if 'iface_summary'  in attrs['arg']: del attrs['arg']['iface_summary']
 
    todel = list()
    attrs2 = attrs.copy()
@@ -415,15 +416,22 @@ def result_to_tarball(result, fname, overwrite=False):
          del attrs2[k]
 
    # result.data.attrs['dockinfo'] = repr(result.data.attrs['dockinfo'])
-   attrs = sanitize_for_storage(attrs, netcdf=True)
-   attrs = unbunchify(attrs)
+   attrs2 = sanitize_for_storage(attrs2, netcdf=True)
+   attrs2 = unbunchify(attrs2)
 
    result.data.attrs = attrs2
+
+   result.data.attrs = dict()
+   # print(result)
 
    with tempfile.TemporaryDirectory() as td:
 
       with open(td + '/dataset.nc', 'wb') as out:
          result.data.to_netcdf(out)
+
+      if isinstance(result.bodies[0][0], tuple):
+         assert len(result.bodies) == 1
+         result.bodies = result.bodies[0]
 
       sources = list()
       for i, bods in enumerate(result.bodies):

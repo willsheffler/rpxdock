@@ -30,6 +30,8 @@ class RpxHier:
          data = rp.util.load_threads(files, len(files))
          self.base = data[0]
          self.hier = data[1:]
+         for h in self.hier:
+            h.attr = Bunch(h.attr)
          self.resl = list(h.attr.cart_extent for h in self.hier)
       elif (isinstance(files[0], rp.ResPairScore)
             and all(isinstance(f, rp.Xmap) for f in files[1:])):
@@ -252,14 +254,18 @@ def _check_hscore_files_aliases(alias, hscore_data_dir):
    picklefiles = sorted(glob.glob(picklepattern))
    xmappattern = os.path.join(hscore_data_dir, alias, '*.txz')
    txzfiles = sorted(glob.glob(xmappattern))
-   fnames = picklefiles
-   if len(txzfiles):
-      assert len(picklefiles) in (0, len(txzfiles))
-      fnames = txzfiles
-      assert sum([s.count('base') for s in txzfiles]) == 1
-      assert sum([s.count('.rpx.txz') for s in txzfiles]) == 1
+   fnames = txzfiles
+   if len(picklefiles):
+      assert len(txzfiles) in (0, len(txzfiles))
+      fnames = picklefiles
+      print(fnames)
+      assert sum([s.count('base') for s in fnames]) == 1
+      # assert sum([s.count('.rpx.pickle') for s in fnames]) == 1
    else:
-      print('WARNING: using legacy .pickle format, convert to tarball format!')
+      print(
+         'WARNING: using slower, portable tarball format. generate pickle files for faster operation!'
+      )
+      # assert 0
 
    # print(txzfiles)
    # print(picklefiles)

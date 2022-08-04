@@ -1,6 +1,6 @@
 #! /home/sheffler/.conda/envs/rpxdock/bin/python
 
-import logging, itertools, concurrent, tqdm, os
+import logging, itertools, concurrent, tqdm, os, sys
 import rpxdock as rp
 import numpy as np
 from willutil import Bunch
@@ -413,8 +413,7 @@ def main():
    arch = kw.architecture
 
    # TODO commit to master AK
-   #sym, comp = arch.split('_')
-
+   # sym, comp = arch.split('_')
    # TODO: redefine archs WHS or others with a monster list of if statements
    if arch.startswith('C'):
       result = dock_cyclic(hscore, **kw)
@@ -429,18 +428,22 @@ def main():
    else:
       result = dock_multicomp(hscore, **kw)
 
+   print('-' * 80)
    print(result)
+   print('-' * 80)
 
    if kw.dump_pdbs:
       result.dump_pdbs_top_score(hscore=hscore, **kw)
       result.dump_pdbs_top_score_each(hscore=hscore, **kw)
    if not kw.suppress_dump_results:
-      tarfname = kw.output_prefix + '.result.txz'
-      picklefname = kw.output_prefix + '_Result.pickle'
-      if kw.save_results_as_tarball:
-         rp.search.result_to_tarball(result, tarfname, overwrite=True)
       if kw.save_results_as_pickle:
-         rp.util.dump(result, fname)
+         picklefname = kw.output_prefix + '_Result.pickle'
+         rp.util.dump(result, picklefname)
+         print('saved result to', picklefname)
+      if kw.save_results_as_tarball:
+         tarfname = kw.output_prefix + '.result.txz'
+         rp.search.result_to_tarball(result, tarfname, overwrite=True)
+         print('saved result to', tarfname)
 
 if __name__ == '__main__':
    main()

@@ -126,6 +126,7 @@ def sanitize_for_storage(data, netcdf=False):
       if hasattr(n, '__str__'):
          n += '::' + str(data)
       newdata = m + '.' + n
+
    return newdata
 
 def load_threads(fnames, nthread=0):

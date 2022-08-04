@@ -76,7 +76,7 @@ def _test_asym_trim(hscore, body, body2):
    # print(f'toplevel samples {sampler.size(0):,}')
    result = rp.search.make_asym([body2, body], hscore, sampler, **kw)
 
-   rp.dump(result, 'rpxdock/data/testdata/test_asym_trim.pickle')
+   # rp.dump(result, 'rpxdock/data/testdata/test_asym_trim.pickle')
    ref = rp.data.get_test_data('test_asym_trim')
    rp.search.assert_results_close(result, ref)
 
