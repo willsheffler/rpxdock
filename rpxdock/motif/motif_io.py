@@ -1,8 +1,8 @@
-import os, tempfile, json, tarfile, io, collections
+import os, tempfile, json, tarfile, io, collections, pickle
 import numpy as np
 
 import rpxdock as rp
-from willutil import Bunch, bunchify, unbunchify
+from willutil import Bunch, bunchify, unbunchify, Timer
 
 def save_bunch(bunch, path):
    nobunches = unbunchify(bunch)
@@ -13,12 +13,13 @@ def load_bunch(inp):
    return bunchify(json.load(inp))
 
 def save_phmap(phmap, path):
-   k, v = phmap.items_array()
-   vtype = 'u' if v.dtype == np.dtype('u8') else 'f'
-   with open(path + f'.PHMap_u8{vtype}8_keys.npy', 'wb') as out:
-      np.save(out, k)
-   with open(path + f'.PHMap_u8{vtype}8_vals.npy', 'wb') as out:
-      np.save(out, v)
+   # k, v = phmap.items_array()
+   # vtype = 'u' if v.dtype == np.dtype('u8') else 'f'
+   # with open(path + f'.PHMap_u8{vtype}8_keys.npy', 'wb') as out:
+   #    np.save(out, k)
+   # with open(path + f'.PHMap_u8{vtype}8_vals.npy', 'wb') as out:
+   #    np.save(out, v)
+   rp.dump(phmap, path + f'.phmap.pickle')
 
 def save_xbin(xbin, path, lbl='xbin'):
    state = {
@@ -84,8 +85,12 @@ def xmap_to_tarball(xmap, fname, overwrite=False):
       return fname
 
 def xmap_from_tarball(fname):
-   with tarfile.open(fname) as tar:
+   t = Timer()
 
+   phmap = None
+
+   with tarfile.open(fname) as tar:
+      t.checkpoint('open tarball')
       for m in tar.getmembers():
          raw = tar.extractfile(m)
          inp = io.BytesIO()
@@ -109,24 +114,35 @@ def xmap_from_tarball(fname):
             vals = np.load(inp)
          elif f == 'xbin':
             xbin = load_xbin(inp)
+         elif f == 'phmap' and ext == 'pickle':
+            phmap = pickle.load(inp)
          else:
             print(m.name)
-            print(mname, f, ext)
+            print(m.name, f, ext)
             assert 0, 'Xmap madness in pairscore tarball!'
 
-      assert phmaptype1 == phmaptype2
-      if phmaptype1 == 'PHMap_u8f8':
-         phm = rp.phmap.PHMap_u8f8()
-         assert vals.dtype == np.dtype('f8')
-      elif phmaptype1 == 'PHMap_u8u8':
-         phm = rp.phmap.PHMap_u8u8()
-         assert vals.dtype == np.dtype('u8')
-      else:
-         assert 0, 'madness in stored respairscore phmap info'
+         t.checkpoint(m.name)
 
-      phm[keys] = vals
+      if not phmap:
+         assert phmaptype1 == phmaptype2
+         if phmaptype1 == 'PHMap_u8f8':
+            phmap = rp.phmap.PHMap_u8f8()
+            assert vals.dtype == np.dtype('f8')
+         elif phmaptype1 == 'PHMap_u8u8':
+            phmap = rp.phmap.PHMap_u8u8()
+            assert vals.dtype == np.dtype('u8')
+         else:
+            assert 0, 'madness in stored respairscore phmap info'
 
-   return rp.motif.Xmap(xbin, phm, attr)
+         phmap[keys] = vals
+         t.checkpoint('assign keys/vals')
+
+   xmap = rp.motif.Xmap(xbin, phmap, attr)
+   t.checkpoint('xmap construct')
+
+   print(t)
+
+   return xmap
 
 def respairscore_to_tarball(rps, fname, overwrite=False):
 
@@ -181,6 +197,9 @@ def respairscore_to_tarball(rps, fname, overwrite=False):
          elif isinstance(member, rp.phmap.phmap.PHMap_u8u8):
             save_phmap(member, td + '/' + mname)
 
+         elif isinstance(member, rp.phmap.phmap.PHMap_u8f8):
+            save_phmap(member, td + '/' + mname)
+
          elif isinstance(member, rp.motif.pairscore.Xmap):
             save_xmap(member, td + '/' + mname + '.Xmap')
 
@@ -193,6 +212,7 @@ def respairscore_to_tarball(rps, fname, overwrite=False):
          else:
             print('EROOR on member', mname, type(member))
             print(member)
+            assert 0
 
       cmd = f'cd {td} && tar cjf {os.path.abspath(fname)} *'
       assert not os.system(cmd)
@@ -216,7 +236,6 @@ def respairscore_from_tarball(fname):
          inp.seek(0)
 
          if m.name.count('.Xmap.'):
-            # print(m.name)
             mname, xm, f, ext = m.name.split('.')
             # print(f)
             assert xm == 'Xmap'
@@ -228,6 +247,8 @@ def respairscore_from_tarball(fname):
                xmaps[mname][f] = np.load(inp)
             elif f == 'xbin':
                xmaps[mname][f] = load_xbin(inp)
+            elif f == 'phmap':
+               xmaps[mname][f] = pickle.load(inp)
             else:
                print(m.name)
                print(mname, f, ext)
@@ -258,17 +279,23 @@ def respairscore_from_tarball(fname):
             mname = m.name[:-3]
             setattr(rps, mname, xr.open_dataset(inp))
 
+         elif m.name == 'range_map.phmap.pickle':
+            rps.range_map = pickle.load(inp)
          else:
             print('unk', m.name)
             assert 0
 
    # collect stored Xmaps
    for mname, xmdat in xmaps.items():
-      assert len(xmdat) == 4
-      k = xmdat['PHMap_u8f8_keys']
-      v = xmdat['PHMap_u8f8_vals']
-      phmap = rp.phmap.PHMap_u8f8()
-      phmap[k] = v
+      if 'phmap' in xmdat:
+         assert len(xmdat) == 3
+         phmap = xmdat['phmap']
+      else:
+         assert len(xmdat) == 4
+         k = xmdat['PHMap_u8f8_keys']
+         v = xmdat['PHMap_u8f8_vals']
+         phmap = rp.phmap.PHMap_u8f8()
+         phmap[k] = v
       xmap = rp.motif.Xmap(xmdat['xbin'], phmap, xmdat['attr'])
       setattr(rps, mname, xmap)
 

@@ -332,6 +332,15 @@ def default_cli_parser(parent=None, **kw):
    addarg("--recenter_input", action='store_true', default=False,
           help='center coorinates from pdb input files')
 
+   addarg("--save_results_as_tarball", default=True, type=str2bool,
+          help='save results as portable xz compressed tarball')
+
+   addarg("--save_results_as_pickle", default=True, type=str2bool,
+          help='save results as fast loading python pickle')
+
+   addarg("--overwrite_existing_results", action='store_true', default=False,
+          help='overwrite existing results')
+
    parser.has_rpxdock_args = True
    return parser
 

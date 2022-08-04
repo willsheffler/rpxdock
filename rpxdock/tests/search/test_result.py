@@ -38,8 +38,6 @@ def test_result_tarball():
       result_to_tarball(r, f'{tmpdir}/test.result.txz', overwrite=True)
 
       r2 = result_from_tarball(f'{tmpdir}/test.result.txz')
-      # rp.dump(r2, 'fubar.pickle')
-      # r2 = rp.load('fubar.pickle')
 
       rp.search.result.assert_results_close(r, r2)
       # assert r.body_label_ == r2.body_label_

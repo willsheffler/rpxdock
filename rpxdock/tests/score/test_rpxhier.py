@@ -1,10 +1,26 @@
 import numpy as np
 import rpxdock.homog as hm
 import rpxdock
+import willutil as wu
 
 def main():
-   hscore = rpxdock.data.small_hscore()
-   test_rpxhier(hscore)
+   # hscore = rpxdock.data.small_hscore()
+   # test_rpxhier(hscore)
+   _bench_load_times()
+
+def _bench_load_times():
+   # fn = '/home/sheffler/data/rpx/hscore/erinyang/ailv_h/rpxdockpdb_res_pair_data_si30_H_AILV_SSindep_p0.5_b1_hier4_Kflat_1_0'
+   fn = '/home/sheffler/data/rpx/hscore/willsheffler/ilv_h/pdb_res_pair_data_si30_rots_H_ILV_SSindep_p0.5_b1_hier4_Kflat_1_0'
+
+   t = wu.Timer()
+
+   rpxdock.load(fn + '.pickle')
+   t.checkpoint('pickle')
+
+   rpxdock.motif.motif_io.xmap_from_tarball(fn + '.xmap.txz')
+   t.checkpoint('tarball')
+
+   print(t)
 
 def rand_xform_sphere(n, radius, maxang=0):
    t = radius * 2 * (np.random.rand(3 * n + 10, 3) - 0.5)

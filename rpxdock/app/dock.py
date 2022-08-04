@@ -385,11 +385,27 @@ def dock_axel(hscore, **kw):
    result = rp.concat_results(result)
    return result
 
+def check_result_files_exist(kw):
+   kw = Bunch(kw)
+   tarfname = kw.output_prefix + '.result.txz',
+   picklefname = kw.output_prefix + '_Result.pickle'
+   if not kw.suppress_dump_results:
+      if kw.save_results_as_tarball:
+         if os.path.exists(tarfname) and not kw.overwrite_existing_results:
+            print('Results File Exists:', tarfname)
+            print('Move files or use --overwrite_existing_results')
+            sys.exit()
+      if kw.save_results_as_pickle:
+         if os.path.exists(picklefname) and not kw.overwrite_existing_results:
+            print('Results File Exists:', picklefname)
+            print('Move files or use --overwrite_existing_results')
+            sys.exit()
+
 def main():
    kw = get_rpxdock_args()
+   check_result_files_exist(kw)
    rp.options.print_options(kw)
    print(f'{" RUNNING dock.py:main ":=^80}')
-
    logging.info(f'weights: {kw.wts}')
 
    hscore = rp.CachedProxy(rp.RpxHier(kw.hscore_files, **kw))
@@ -413,12 +429,15 @@ def main():
       result = dock_multicomp(hscore, **kw)
 
    print(result)
+
    if kw.dump_pdbs:
       result.dump_pdbs_top_score(hscore=hscore, **kw)
       result.dump_pdbs_top_score_each(hscore=hscore, **kw)
    if not kw.suppress_dump_results:
-      rp.search.result_to_tarball(result, kw.output_prefix + '.result.txz', overwrite=True)  #
-      # rp.util.dump(result, kw.output_prefix + '_Result.pickle')
+      if kw.save_results_as_tarball:
+         rp.search.result_to_tarball(result, tarfname, overwrite=True)
+      if kw.save_results_as_pickle:
+         rp.util.dump(result, fname)
 
 if __name__ == '__main__':
    main()
