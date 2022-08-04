@@ -1,6 +1,7 @@
 #! /home/sheffler/.conda/envs/rpxdock/bin/python
 
-import logging, itertools, concurrent, tqdm, rpxdock as rp
+import logging, itertools, concurrent, tqdm, os
+import rpxdock as rp
 import numpy as np
 from willutil import Bunch
 
