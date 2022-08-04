@@ -388,7 +388,7 @@ def dock_axel(hscore, **kw):
 
 def check_result_files_exist(kw):
    kw = Bunch(kw)
-   tarfname = kw.output_prefix + '.result.txz',
+   tarfname = kw.output_prefix + '.result.txz'
    picklefname = kw.output_prefix + '_Result.pickle'
    if not kw.suppress_dump_results:
       if kw.save_results_as_tarball:
@@ -435,6 +435,8 @@ def main():
       result.dump_pdbs_top_score(hscore=hscore, **kw)
       result.dump_pdbs_top_score_each(hscore=hscore, **kw)
    if not kw.suppress_dump_results:
+      tarfname = kw.output_prefix + '.result.txz'
+      picklefname = kw.output_prefix + '_Result.pickle'
       if kw.save_results_as_tarball:
          rp.search.result_to_tarball(result, tarfname, overwrite=True)
       if kw.save_results_as_pickle:
