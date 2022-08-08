@@ -4,7 +4,6 @@ import logging
 from rpxdock.filter import filters
 from willutil import Bunch, Timer
 
-
 def make_onecomp(
    body,
    spec,
@@ -25,7 +24,7 @@ def make_onecomp(
    :return:
    '''
    kw = Bunch(kw, _strict=False)
-   t = Timer().start()
+   t = Timer()
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else spec.arch
 
