@@ -99,3 +99,13 @@ def xform_pose(pose, xform, lb=1, ub=None):
          new = xform @ old
          pose.set_xyz(AtomID(ia, ir), rVec(new[0], new[1], new[2]))
          # print(ir, ia, new, old)
+
+def get_pose(pdbfile, posecache=None, **kw):
+   import rpxdock.rosetta.triggers_init as ros
+   if isinstance(pdbfile, str):
+      if posecache:
+         pose = ros.get_pose_cached(pdbfile)
+      else:
+         pose = ros.pose_from_file(pdbfile)
+         ros.assign_secstruct(pose)
+   return pose

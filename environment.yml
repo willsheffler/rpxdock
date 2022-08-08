@@ -20,7 +20,6 @@ dependencies:
  - cffi
  - tqdm
  - yapf
- - pyyaml
  - tabulate
  - pytest
  - pytest-repeat
@@ -30,6 +29,10 @@ dependencies:
  # - sphinx>=2.0
  # - doxygen
  - rmsd
+ - pyyaml
+ - tabulate
+ - sphinx>=2.0
+ - doxygen
  - pip
  - pip:
    - cppimport

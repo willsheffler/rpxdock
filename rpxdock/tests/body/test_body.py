@@ -120,6 +120,48 @@ def test_body_copy_xform(body_tiny):
    rotated = x @ body_tiny.coord[:, :, :, None]
    assert np.allclose(rotated.squeeze(), b2.coord)
 
+#function to test modifications to body by adding helices aligned with termini
+def test_body_with_terminal_helices(C2_3hm4, C3_1nza, helix):
+   from pyrosetta.rosetta.core import pose
+   inp1 = pose.Pose().assign(C2_3hm4)
+   inp2 = pose.Pose().assign(C2_3hm4)
+   inp3 = pose.Pose().assign(C3_1nza)
+   inp4 = pose.Pose().assign(C3_1nza)
+   
+   kw = rp.app.defaults()
+   # Clean inputs list with poses that will not be modified
+   clean_inputs = [[C2_3hm4],[C2_3hm4],[C3_1nza,C3_1nza]]
+   kw.inputs=[[inp1],[inp2], [inp3, inp4]] 
+   # Test variety of conditions for access
+   kw.term_access=[[[False, False]],[[False, True]], [[True, False], [True, True]]]
+   kw.termini_dir = [[[None,None]], [[True, None]], [[False, None], [None, True]]]
+   kw.flip_components = [True] * len(kw.inputs)
+   kw.force_flip = [False] * len(kw.inputs)
+   poses, og_lens = rp.rosetta.helix_trix.init_termini(**kw)
+
+   if len(poses) > 0:
+      assert len(poses) == len(og_lens) == len(kw.inputs)
+      bodies = [[rp.Body(pose2, og_seqlen=og2, modified_term=modterm2, **kw)
+            for pose2, og2, modterm2 in zip(pose1, og1, modterm)]
+            for pose1, og1, modterm in zip(poses, og_lens, kw.term_access)]
+
+   # Make bodies from original inputs - no terminal modifications
+   og_bodies=[[rp.Body(i2, **kw) for i2 in i1] for i1 in clean_inputs]
+
+   # Compare 3 bodies: with appended helices (body), with no modifications (og),
+   # and after helix removal (new)
+   for i, b in enumerate(bodies):
+      for j in range(len(b)):
+         # body, og, new = b[0], og_bodies[i][0], b[0].copy_exclude_term_res()
+         body, og, new = b[j], og_bodies[i][j], b[j].copy_exclude_term_res()
+         assert sum(body.allowed_residues) == body.og_seqlen 
+         assert int(body.nres) == body.og_seqlen + (helix.size()*sum(body.modified_term))
+         assert kw.term_access[i][j] == body.modified_term
+         assert len(new.seq) == body.og_seqlen == og.nres
+         assert np.array_equal(new.seq, og.seq)
+         for k in range(0,len(og.orig_coords)):
+            assert np.array_equal(new.orig_coords[k], og.orig_coords[k])
+
 if __name__ == "__main__":
    from rpxdock.rosetta.triggers_init import get_pose_cached
    from tempfile import mkdtemp
@@ -130,20 +172,24 @@ if __name__ == "__main__":
    # f2 = "/home/sheffler/scaffolds/big/C3_3ziy_1.pdb"
    # f1 = "/home/sheffler/scaffolds/wheel/C3.pdb"
    # f2 = "/home/sheffler/scaffolds/wheel/C5.pdb"
-   pose1 = get_pose_cached(f1)
-   pose2 = get_pose_cached(f2)
-   test_body(pose1, pose2)
 
-   test_body_pickle(f2, mkdtemp())
+   # pose1 = get_pose_cached(f1)
+   # pose2 = get_pose_cached(f2)
+   # test_body(pose1, pose2)
 
-   b = rp.data.get_body('tiny')
-   test_body_copy_sym(b)
-   test_body_copy_xform(b)
+   # test_body_pickle(f2, mkdtemp())
 
-   # nres  306  309 sqnpair  307 new 17743/s orig 13511/s
-   # nres  728 1371 sqnpair  999 new  8246/s orig  4287/s
-   # nres 6675 8380 sqnpair 7479 new  8629/s orig   627/s
+   # b = rp.data.get_body('tiny')
+   # test_body_copy_sym(b)
+   # test_body_copy_xform(b)
 
-   test_body_create()
+   # # nres  306  309 sqnpair  307 new 17743/s orig 13511/s
+   # # nres  728 1371 sqnpair  999 new  8246/s orig  4287/s
+   # # nres 6675 8380 sqnpair 7479 new  8629/s orig   627/s
 
-   test_body_ss_info()
+   # test_body_create()
+
+   # test_body_ss_info()
+
+   test_body_with_terminal_helices(f1, f2, 
+               helix=get_pose_cached('rpxdock/data/pdb/tiny.pdb.gz'))

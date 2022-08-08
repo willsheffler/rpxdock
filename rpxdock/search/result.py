@@ -31,12 +31,18 @@ class Result:
       if len(self.body_label_):
          assert isinstance(self.body_label_[0], list)
          assert len(self.body_label_[0]) == len(self.bodies[0])
-      assert len(self.body_label_) == len(self.bodies)
+
+      print(len(self.body_label_), len(self.bodies))
+      print(self.body_label_)
+      print(self.bodies)
+      # if len(self.body_label_) == 1 and len(self.body_label_[0]) == len(self.bodies):
+      # print('WARNING:          self.body_label_ = self.body_label_[0]')
+      # self.body_label_ = self.body_label_[0]
+      if len(self.body_label_) != len(self.bodies):
+         print('WARNING body_labels_ are weird')
 
       self.pdb_extra_ = pdb_extra_
 
-      if len(self.body_label_) != len(self.bodies):
-         raise ValueError('body_label_ must match number of bodies')
       if data_or_file:
          assert len(kw) == 0
          if isinstance(data_or_file, xr.Dataset):
@@ -248,7 +254,7 @@ class Result:
          bfactor=bfactor,
          **kw,
       )
-      if self.pdb_extra_ is not None:
+      if hasattr(self, 'pdb_extra_') and self.pdb_extra_ is not None:
          with open(fname, 'a') as out:
             out.write(self.pdb_extra_[int(imodel)])
       if hasattr(self.data, 'helix_n_to_primary'):
@@ -447,8 +453,9 @@ def result_to_tarball(result, fname, overwrite=False):
          out.write(os.linesep.join(sources))
       # print(os.listdir(td))
 
-      with open(td + '/pdb_extra_.json', 'w') as out:
-         out.write(json.dumps(result.pdb_extra_))
+      if hasattr(result, 'pdb_extra_'):
+         with open(td + '/pdb_extra_.json', 'w') as out:
+            out.write(json.dumps(result.pdb_extra_))
 
       with open(td + '/body_labels.json', 'w') as out:
          out.write(json.dumps(result.body_label_))
