@@ -121,21 +121,40 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          [hm.hdot(X[:, i] @ B[i].com(), self.spec.axis[i]) for i in range(len(B))])
       ok = np.max(np.abs(delta_h[None] - delta_h[:, None]), axis=(0, 1)) < kw.max_delta_h
       # ok = np.repeat(True, len(X))
-
-      # check clash, or get non-clash range
+      specky = str(self.spec)
+      #print(f"B is {B}")
+      #print(f"Neigh is {self.spec.to_neighbor_olig}")
+      #print(f"symrots are {self.symrots}")
+      # check clash, or get non-clash range  <-- think I need to change this to look in full symmetric object
       for i in range(len(B)):
          if xnbr[i] is not None:
             ok[ok] &= B[i].clash_ok(B[i], X[ok, i], xnbr[i] @ X[ok, i], **kw)
          for j in range(i):
             ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
+            if specky.startswith('<rpxdock.search.dockspec.DockSpecDiscrete'):
+               ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
+                #print(f"B is {B[i]}")
+                #print(self.symrots[i])
+                #print(f"X is {X}")
+                #print(f"xnbr is {xnbr}")
 
       if xnbr[0] is None and xnbr[1] is not None:  # layer hack
          logging.debug("touch")
          inv = np.linalg.inv
+         #print(f"check is {xnbr[1] @ X[ok, 1]}")
+         #print(f"inverse check is {inv(xnbr[1]) @ X[ok, 1]}")
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[1] @ X[ok, 1], **kw)
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], inv(xnbr[1]) @ X[ok, 1], **kw)
+         ok[ok] &= B[0].clash_ok(B[0], X[ok, 0], inv(xnbr[1]) @ X[ok, 1], **kw) ##
+         ok[ok] &= B[1].clash_ok(B[0], X[ok, 1], xnbr[1] @ X[ok, 0], **kw)
+         ok[ok] &= B[1].clash_ok(B[0], X[ok, 1], inv(xnbr[1]) @ X[ok, 0], **kw)
+         ok[ok] &= B[1].clash_ok(B[1], X[ok, 1], inv(xnbr[1]) @ X[ok, 0], **kw) ##
+         #print('layer clash check') #need to modify to make sense also for fixed angle issues
+         #fixed angle docks check this section
+         #need to look for self clash (lines marked with ##)
 
          if xnbr[2] is not None:
+            # only gets used for 3 comp layers
             ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[2] @ X[ok, 1], **kw)
             ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], xnbr[2] @ X[ok, 2], **kw)
             ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], xnbr[1] @ X[ok, 2], **kw)
