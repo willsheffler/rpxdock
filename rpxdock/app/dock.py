@@ -443,13 +443,14 @@ def check_result_files_exist(kw):
 
 def main():
    kw = get_rpxdock_args()
-   check_result_files_exist(kw)
-   rp.options.print_options(kw)
    print(f'{" RUNNING dock.py:main ":=^80}')
-   logging.info(f'weights: {kw.wts}')
+   # logging.info(f'weights: {kw.wts}')
+   # rp.options.print_options(kw)
 
    hscore = rp.CachedProxy(rp.RpxHier(kw.hscore_files, **kw))
    arch = kw.architecture
+
+   check_result_files_exist(kw)
 
    # TODO commit to master AK
    # sym, comp = arch.split('_')
@@ -467,22 +468,28 @@ def main():
    else:
       result = dock_multicomp(hscore, **kw)
 
-   print('-' * 80)
-   print(result)
-   print('-' * 80)
-
    if kw.dump_pdbs:
       result.dump_pdbs_top_score(hscore=hscore, **kw)
       result.dump_pdbs_top_score_each(hscore=hscore, **kw)
    if not kw.suppress_dump_results:
+
       if kw.save_results_as_pickle:
          picklefname = kw.output_prefix + '_Result.pickle'
          rp.util.dump(result, picklefname)
          print('saved result to', picklefname)
+
       if kw.save_results_as_tarball:
-         tarfname = kw.output_prefix + '.result.txz'
+         tarfname = kw.output_prefix + '_Result.txz'
          rp.search.result_to_tarball(result, tarfname, overwrite=True)
          print('saved result to', tarfname)
 
+         #print('try to read')
+         #result2 = rp.search.result_from_tarball(tarfname)
+         #assert result == result2
+         #assert result2.sym
+         ## print(result2)
+         #result2.dump_pdbs()
+
 if __name__ == '__main__':
    main()
+   print('DONE')

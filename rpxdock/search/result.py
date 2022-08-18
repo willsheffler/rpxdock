@@ -1,22 +1,41 @@
-import copy, logging, os, tempfile, tarfile, io, json
+import copy, logging, os, tempfile, tarfile, io, json, itertools
 from collections import OrderedDict, abc, defaultdict
 import numpy as np, rpxdock as rp
+from pandas.core.construction import sanitize_array
 from rpxdock.util import sanitize_for_storage, num_digits
 from willutil import unbunchify, Timer
 
 log = logging.getLogger(__name__)
 
 class Result:
-   def __init__(self, data_or_file=None, body_=[], body_label_=None, pdb_extra_=None, **kw):
+   def __init__(
+      self,
+      data_or_file=None,
+      body_=[],
+      body_label_=None,
+      pdb_extra_=None,
+      **kw,
+   ):
       import xarray as xr
 
       self.bodies = body_
-      if not isinstance(self.bodies, list): self.bodies = [self.bodies]
-      if self.bodies == []: self.bodies = [[]]
-      if not isinstance(self.bodies[0], list): self.bodies = [self.bodies]
+      if not isinstance(self.bodies, (list, tuple)):
+         self.bodies = [[self.bodies]]
+      if self.bodies == []:
+         self.bodies = [[]]
+      if not isinstance(self.bodies[0], list):
+         self.bodies = [self.bodies]
+
+      assert isinstance(self.bodies, list)
+      assert isinstance(self.bodies[0], list)
+      if self.bodies[0]:
+         print(self.bodies)
+         print(type(self.bodies[0]))
+         print(type(self.bodies[0][0]))
+         assert isinstance(self.bodies[0][0], (rp.Body, type(None)))
 
       self.body_label_ = body_label_
-      if self.body_label_ in (None, []):
+      if self.body_label_ in (None, [], [[]]):
          self.body_label_ = [
             ['body_%i_%i' % (i, j) for j, _ in enumerate(b)] for i, b in enumerate(self.bodies)
          ]
@@ -32,14 +51,21 @@ class Result:
          assert isinstance(self.body_label_[0], list)
          assert len(self.body_label_[0]) == len(self.bodies[0])
 
-      print(len(self.body_label_), len(self.bodies))
-      print(self.body_label_)
-      print(self.bodies)
+      # print(len(self.body_label_), len(self.bodies))
+      # print(self.body_label_)
+      # print(self.bodies)
       # if len(self.body_label_) == 1 and len(self.body_label_[0]) == len(self.bodies):
       # print('WARNING:          self.body_label_ = self.body_label_[0]')
       # self.body_label_ = self.body_label_[0]
       if len(self.body_label_) != len(self.bodies):
          print('WARNING body_labels_ are weird')
+
+      assert isinstance(self.body_label_, list)
+      assert isinstance(self.body_label_[0], list)
+
+      if self.body_label_[0]:
+         assert len(self.body_label_[0]) == len(self.bodies[0])
+         assert isinstance(self.body_label_[0][0], str)
 
       self.pdb_extra_ = pdb_extra_
 
@@ -172,8 +198,12 @@ class Result:
       sym = sym if sym else "C1"
       if not output_prefix and 'output_prefix' in self.attrs:
          output_prefix = self.output_prefix
-      bod = self.bodies[0]
-      if 'ijob' in self.data: bod = self.bodies[self.ijob[imodel].values]
+
+      ijob = 0
+      if 'ijob' in self.data:
+         ijob = self.ijob[imodel].values
+
+      bod = self.bodies[ijob]
       multipos = self.xforms.ndim == 4
       if multipos and self.xforms.shape[1] != len(bod):
          raise ValueError("number of positions doesn't match number of bodies")
@@ -182,7 +212,6 @@ class Result:
       if not all(w < len(bod) for w in output_body):
          raise ValueError(f'output_body ouf of bounds {output_body}')
       bod = [bod[i] for i in output_body]
-      bodlab = None
       if self.xforms.ndim == 4:
          for x, b in zip(self.xforms[imodel], bod):
             b.move_to(x.data)
@@ -200,10 +229,7 @@ class Result:
             # print(imodel.data)
             # print(len(self.body_label_))
             # print(self.body_label_)
-            ijob = 0
-            if 'ijob' in self.data:
-               ijob = self.ijob[imodel].values
-            bodlab = [self.body_label_[ijob][i] for i in output_body]
+            bodlab = [self.body_label_[ijob][z] for z in output_body]
             body_names = [bl + '_' + lbl for bl, lbl in zip(bodlab, body_names)]
          middle = '__'.join(body_names)
          output_suffix = sep + output_suffix if output_suffix else ''
@@ -296,7 +322,8 @@ def concat_results(results, **kw):
    allattrs = [r.attrs for r in results]
    common = dict_coherent_entries(allattrs)
    r = Result(xr.concat([r.data for r in results], dim='model', **kw))
-   r.bodies = [r.bodies[0] for r in results]
+   # r.bodies = [r.bodies[0] for r in results]
+   r.bodies = list(itertools.chain(r.bodies[0] for r in results))
    r.data['ijob'] = (['model'], ijob)
    r.data.attrs = OrderedDict(dockinfo=allattrs, **common)
    r.body_label_ = results[0].body_label_
@@ -364,7 +391,7 @@ def result_from_tarball(fname):
          elif m.name == 'pdb_extra_.json':
             pdb_extra_ = json.loads(inp.read().decode())
 
-         elif m.name.endswith('.pdb'):
+         elif m.name.endswith('.pdb') or m.name.endswith('.pdb.gz'):
             assert m.name.startswith('body_')
             i = int(m.name[5])
             j = int(m.name[7])
@@ -392,7 +419,7 @@ def result_from_tarball(fname):
    )
    result.original_sources = sources
    timer.checkpoint('finish')
-   print(timer)
+   # print(timer)
    return result
 
 def result_to_tarball(result, fname, overwrite=False):
@@ -408,28 +435,50 @@ def result_to_tarball(result, fname, overwrite=False):
 
       # dictionaries / json no good for netcdf
    attrs = result.data.attrs
-   if 'arg' in attrs:
-      del attrs['arg']
-      # if 'executor' in attrs['arg']: del attrs['arg']['executor']
-      # if 'iface_summary'  in attrs['arg']: del attrs['arg']['iface_summary']
+   attrs2 = dict()
+   # attrs2 = sanitize_for_storage(attrs)
+   # if 'arg' in attrs2:
+   # del attrs2['arg']
+   # if 'executor' in attrs2['arg']: del attrs2['arg']['executor']
+   # if 'iface_summary' in attrs2['arg']: del attrs2['arg']['iface_summary']
 
-   todel = list()
-   attrs2 = attrs.copy()
-   for k, v in attrs.items():
-      if isinstance(v, dict):
-         attrs2[k + '_keys'] = '|'.join(v.keys())
-         attrs2[k + '_vals'] = '|'.join(repr(_) for _ in v.values())
-         del attrs2[k]
+   # print('------------------- orig --------------')
+   # for k, v in attrs.items():
+   #    print(k)
+   #    print(str(v)[:100])
+   #    print()
 
+   # assert 0
    # result.data.attrs['dockinfo'] = repr(result.data.attrs['dockinfo'])
-   attrs2 = sanitize_for_storage(attrs2, netcdf=True)
-   attrs2 = unbunchify(attrs2)
+   # print(type(attrs2), type(attrs))
+   if 'dockinfo' in attrs and len(attrs['dockinfo']):
+      if 'arg' in attrs['dockinfo'][0]:
+         attrs2['arg'] = repr(dict(attrs['dockinfo'][0]['arg']))
+      for i, di in enumerate(attrs2['dockinfo']):
+         del di['arg']
+      attrs2['dockinfo'] = repr(attrs2['dockinfo'])
+
+   for k, v in attrs.items():
+      attrs2[k] = repr(v)
+
+   # attrs2 = sanitize_for_storage(attrs2, netcdf=True)
+
+   # print('---------------- new ----------------------')
+   # for k, v in attrs2:
+   #    print(k)
+   #    print(str(v)[:100])
+   #    print()
 
    result.data.attrs = attrs2
 
-   result.data.attrs = dict()
-   # print(result)
-
+   # del result.data.attrs['dockinfo']
+   # print(result.data.attrs['dockinfo'])
+   # for di in result.data.attrs['dockinfo']:
+   #    for k, v in di:
+   #       print('   ', k)
+   #       print('   ', v)
+   #       print()
+   #
    with tempfile.TemporaryDirectory() as td:
 
       with open(td + '/dataset.nc', 'wb') as out:

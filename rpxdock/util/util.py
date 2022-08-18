@@ -3,6 +3,7 @@ import hashlib, logging, concurrent, time, gzip, bz2, lzma, zipfile, json
 from collections import abc
 import numpy as np
 from willutil import Bunch
+from xarray.backends import netCDF4_
 
 log = logging.getLogger(__name__)
 
@@ -94,25 +95,26 @@ def hash_str_to_int(s):
    buf = hashlib.sha1(s).digest()[:8]
    return int(abs(np.frombuffer(buf, dtype="i8")[0]))
 
-def sanitize_for_storage(data, netcdf=False):
+def sanitize_for_storage(data, netcdf=False, _n=0):
    import xarray as xr
    newdata = copy.copy(data)
+
    if isinstance(data, (np.ndarray, xr.Dataset, xr.DataArray, int, float, str)):
       pass
    elif isinstance(data, abc.MutableMapping):
       for k, v in data.items():
-         newdata[k] = sanitize_for_storage(v)
+         newdata[k] = sanitize_for_storage(v, netcdf=netcdf, _n=_n + 1)
       if netcdf:
-         newdata = list(data.items())
+         newdata = list(newdata.items())
    elif isinstance(data, abc.MutableSequence):
       for i, v in enumerate(data):
-         newdata[i] = sanitize_for_storage(v)
+         newdata[i] = sanitize_for_storage(v, netcdf=netcdf, _n=_n + 1)
    elif isinstance(data, tuple):
-      newdata = tuple(sanitize_for_storage(list(data)))
+      newdata = tuple(sanitize_for_storage(list(data), netcdf=netcdf))
    elif isinstance(data, abc.Set):
-      newdata = data.__class__(sanitize_for_storage(list(data)))
+      newdata = data.__class__(sanitize_for_storage(list(data), netcdf=netcdf, _n=_n + 1))
       if netcdf:
-         newdata = list(data)
+         newdata = list(newdata)
    elif data is None:
       pass
    else:

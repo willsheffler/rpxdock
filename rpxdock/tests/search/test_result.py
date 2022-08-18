@@ -9,7 +9,7 @@ def main():
    # test_result_attrs()
    # test_mismatch_len(dummy_result(1000))
    # test_top_each(dummy_result(1000))
-   # test_result_no_body_label(dummy_result(1000))
+   test_result_no_body_label(dummy_result(1000))
    # test_result_coords()
    test_result_tarball()
 
@@ -91,7 +91,7 @@ def test_top_each(result):
       assert np.allclose(s[o], result.scores[v])
 
 def test_result_no_body_label(result):
-   foo = Result(result.data, body_=['a', 'b', 'c'])
+   foo = Result(result.data, body_=[None, None, None])
    assert foo.body_label_ == ['body_0_0 body_0_1 body_0_2'.split()]
 
 # @pytest.mark.skip('no test criterion')

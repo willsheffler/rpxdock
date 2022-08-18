@@ -85,12 +85,12 @@ def xmap_to_tarball(xmap, fname, overwrite=False):
       return fname
 
 def xmap_from_tarball(fname):
-   t = Timer()
+   timer = Timer()
 
    phmap = None
 
    with tarfile.open(fname) as tar:
-      t.checkpoint('open tarball')
+      timer.checkpoint('open tarball')
       for m in tar.getmembers():
          raw = tar.extractfile(m)
          inp = io.BytesIO()
@@ -121,7 +121,7 @@ def xmap_from_tarball(fname):
             print(m.name, f, ext)
             assert 0, 'Xmap madness in pairscore tarball!'
 
-         t.checkpoint(m.name)
+         timer.checkpoint(m.name)
 
       if not phmap:
          assert phmaptype1 == phmaptype2
@@ -135,12 +135,12 @@ def xmap_from_tarball(fname):
             assert 0, 'madness in stored respairscore phmap info'
 
          phmap[keys] = vals
-         t.checkpoint('assign keys/vals')
+         timer.checkpoint('assign keys/vals')
 
    xmap = rp.motif.Xmap(xbin, phmap, attr)
-   t.checkpoint('xmap construct')
+   timer.checkpoint('xmap construct')
 
-   print(t)
+   # print(timer)
 
    return xmap
 

@@ -250,15 +250,20 @@ class RpxHier:
 
 def _check_hscore_files_aliases(alias, hscore_data_dir):
    # try:
-   picklepattern = os.path.join(hscore_data_dir, alias, '*.pickle*')
+   picklepattern = os.path.join(hscore_data_dir, alias, '*.pickle')
    picklefiles = sorted(glob.glob(picklepattern))
+   picklepattern = os.path.join(hscore_data_dir, alias, '*.pickle.bz2')
+   picklefiles2 = sorted(glob.glob(picklepattern))
+   picklefiles = picklefiles or picklefiles2
    xmappattern = os.path.join(hscore_data_dir, alias, '*.txz')
    txzfiles = sorted(glob.glob(xmappattern))
    fnames = txzfiles
    if len(picklefiles):
       assert len(txzfiles) in (0, len(txzfiles))
       fnames = picklefiles
-      print(fnames)
+      for f in fnames:
+         print(' ', f)
+      print(sum([s.count('base') for s in fnames]))
       assert sum([s.count('base') for s in fnames]) == 1
       # assert sum([s.count('.rpx.pickle') for s in fnames]) == 1
    else:

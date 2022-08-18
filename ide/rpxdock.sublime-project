@@ -5,15 +5,15 @@
 				"name": "util_runtests.py",
 				"shell_cmd": "cd $folder; CC='ccache gcc' PYTHONPATH=. python ide/runtests.py $file &> sublime_build.log"
 			},
-				{
-				"name": "ping localhost:8080/8081",
-				"shell_cmd": "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080')\"; python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8081')\" "
-			},
+				// {
+				// "name": "ping localhost:8080/8081",
+				// "shell_cmd": "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080')\"; python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8081')\" "
+			// },
 			{
 				"name": "generate_motif_scores",
 				"shell_cmd" : "cd $folder; CC='ccache gcc' PYTHONPATH=. python rpxdock/app/genrate_motif_scores.py TEST &> sublime_build.log"
 			},
-	   	{
+	   	{ 
 				"name": "test_cage",
 				"shell_cmd" : "cd $folder; CC='ccache gcc' PYTHONPATH=. python rpxdock/tests/search/test_cage.py &> sublime_build.log"
 			},	   	{
@@ -42,11 +42,15 @@
 			},
 			{
 				"name": "test_body_viz",
-				"shell_cmd": "cd $folder; PYTHONPATH=/home/sheffler/src/rpxdock python rpxdock/tests/viz/test_body_viz.py  &> sublime_build.log"
+				"shell_cmd": "cd $folder; PYTHONPATH=. python rpxdock/tests/viz/test_body_viz.py  &> sublime_build.log"
 			},
 			{
 				"name": "test_deathstar",
-				"shell_cmd": "cd $folder; PYTHONPATH=/home/sheffler/src/rpxdock python rpxdock/tests/ds/test_deathstar.py &> sublime_build.log"
+				"shell_cmd": "cd $folder; PYTHONPATH=. rpxdock/tests/ds/test_deathstar.py &> sublime_build.log"
+			},
+			{
+				"name": "test_dock_py",
+				"shell_cmd": "cd $folder; PYTHONPATH=. python rpxdock/app/dock.py  --architecture T32 --inputs1 rpxdock/data/pdb/C3_1na0-1_1.pdb.gz  --inputs2 rpxdock/data/pdb/C2_REFS10_1.pdb.gz --hscore_files ilv_h/10 --dump_pdbs --overwrite_existing_results &> sublime_build.log"
 			}
 
 			
