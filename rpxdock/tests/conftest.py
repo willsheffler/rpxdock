@@ -35,6 +35,12 @@ def pdbdir(datadir):
    return d
 
 @pytest.fixture(scope="session")
+def hscoredir(datadir):
+   d = join(datadir, "hscore")
+   assert exists(d)
+   return d
+
+@pytest.fixture(scope="session")
 def C2_3hm4(pdbdir):
    return get_pose_cached("C2_3hm4_1.pdb.gz", pdbdir)
 

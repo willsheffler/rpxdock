@@ -1,7 +1,7 @@
 import os, logging, glob, numpy as np, rpxdock as rp
 from rpxdock.xbin import xbin_util as xu
 from rpxdock.score import score_functions as sfx
-from willutil import Bunch
+import willutil as wu
 
 log = logging.getLogger(__name__)
 """
@@ -10,38 +10,15 @@ Grid search just uses the last/finest scorefunction
 """
 
 class RpxHier:
-   def __init__(self, files, max_pair_dist=8.0, hscore_data_dir=None, **kw):
-      kw = Bunch(kw, _strict=False)
-      if isinstance(files, str): files = [files]
-      if len(files) == 0: raise ValueError('RpxHier given no datafiles')
-      if len(files) == 1: files = _check_hscore_files_aliases(files[0], hscore_data_dir)
-      if len(files) > 8:
-         for f in files:
-            log.error(f)
-         raise ValueError('too many hscore_files (?)')
-      if all(isinstance(f, str) for f in files):
-         if "_SSindep_" in files[0]:
-            assert all("_SSindep_" in f for f in files)
-            self.use_ss = False
-         else:
-            assert all("_SSdep_" in f for f in files)
-            self.use_ss = True
-         assert "base" in files[0]
-         data = rp.util.load_threads(files, len(files))
-         self.base = data[0]
-         self.hier = data[1:]
-         for h in self.hier:
-            h.attr = Bunch(h.attr)
-         self.resl = list(h.attr.cart_extent for h in self.hier)
-      elif (isinstance(files[0], rp.ResPairScore)
-            and all(isinstance(f, rp.Xmap) for f in files[1:])):
-         self.base = files[0]
-         self.hier = list(files[1:])
-         self.use_ss = self.base.attr.opts.use_ss_key
-         assert all(self.use_ss == h.attr.cli_args.use_ss_key for h in self.hier)
-      else:
-         raise ValueError('RpxHier expects filenames or ResPairScore+[Xmap*]')
-      # append extra copies of highest resl score to use for higher res search steps
+   def __init__(self, files, max_pair_dist=8.0, **kw):
+      kw = wu.Bunch(kw, _strict=False)
+
+      hscore_stuff = read_hscore_files(files, **kw)
+      self.use_ss = hscore_stuff.use_ss
+      self.base = hscore_stuff.base
+      self.hier = hscore_stuff.hier
+      self.resl = hscore_stuff.resl
+
       self.actual_nresl = len(self.hier)
       for i in range(10):
          self.hier.append(self.hier[-1])
@@ -138,7 +115,7 @@ class RpxHier:
       :return:
       '''
 
-      kw = Bunch(kw, _strict=False)
+      kw = wu.Bunch(kw, _strict=False)
       pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
       # if not bounds:
       # bounds = [-2e9], [2e9], nsym[0], [-2e9], [2e9], nsym[1]
@@ -248,7 +225,7 @@ class RpxHier:
    def score_base(self, x_or_k):
       return self.base[x_or_k]
 
-def _check_hscore_files_aliases(alias, hscore_data_dir):
+def get_hscore_file_names(alias, hscore_data_dir):
    # try:
    picklepattern = os.path.join(hscore_data_dir, alias, '*.pickle')
    picklefiles = sorted(glob.glob(picklepattern))
@@ -268,15 +245,11 @@ def _check_hscore_files_aliases(alias, hscore_data_dir):
       # assert sum([s.count('.rpx.pickle') for s in fnames]) == 1
    else:
       print(
-         'WARNING: using slower, portable tarball format. generate pickle files for faster operation!'
+         'WARNING: using slower, portable tarball format. generate pickle files with --generate_hscore_pickle_files and place with original .txz files for faster operation!'
       )
-      # assert 0
+   if not fnames:
+      raise ValueError(f'not hscore files found for "{alias}" in "{hscore_data_dir}"')
 
-   # print(txzfiles)
-   # print(picklefiles)
-   # check for consistency
-   # print('fnames')
-   # print(os.linesep.join(fnames))
    for filetype in '.txz .pickle .pickle.gz .pickle.bz2 .pickle.zip'.split():
       if fnames[0].endswith(filetype):
          log.info(f'Detected hscore files filetype: "{filetype}"')
@@ -284,8 +257,65 @@ def _check_hscore_files_aliases(alias, hscore_data_dir):
             assert f.endswith(
                filetype
             ), 'inconsistent hscore filetypes, all must be same (.gz, .bz2, .pickle, etc)'
-   if len(fnames) > 0: return fnames
+   return fnames
 
 # except:
 #    pass
 # raise ValueError(f'hscore datadir {hscore_data_dir} or alias {alias} invalid')
+def read_hscore_files(
+   files,
+   hscore_data_dir='',
+   generate_hscore_pickle_files=False,
+   **kw,
+):
+   toreturn = wu.Bunch()
+
+   if isinstance(files, str): files = [files]
+   if len(files) == 0: raise ValueError('RpxHier given no datafiles')
+   if len(files) == 1: files = get_hscore_file_names(files[0], hscore_data_dir)
+   if len(files) > 8:
+      for f in files:
+         log.error(f)
+      raise ValueError('too many hscore_files (?)')
+   assert files
+   if all(isinstance(f, str) for f in files):
+      if "_SSindep_" in files[0]:
+         assert all("_SSindep_" in f for f in files)
+         toreturn.use_ss = False
+      else:
+         assert all("_SSdep_" in f for f in files)
+         toreturn.use_ss = True
+      assert "base" in files[0]
+      data = rp.util.load_threads(files, len(files))
+      toreturn.base = data[0]
+      toreturn.hier = data[1:]
+      for h in toreturn.hier:
+         h.attr = wu.Bunch(h.attr)
+      toreturn.resl = list(h.attr.cart_extent for h in toreturn.hier)
+
+      if generate_hscore_pickle_files and 'pickle' not in files[0].split('.')[-2:]:
+         for d, f in zip(data, files):
+            print(f'converting {f} to pickle')
+            newf = os.path.basename(f) + '.pickle'
+            print('saving', newf)
+            rp.dump(d, newf)
+            print('gzip', newf)
+            os.system(f'gzip -f {newf}')
+            print()
+         print('Faster but non-portable .pickle cache files generated from .txz files')
+         print('move these into same directory as original .txz files and rpxdock will use them')
+         import sys
+         sys.exit()
+
+   elif (isinstance(files[0], rp.ResPairScore)
+         and all(isinstance(f, rp.Xmap) for f in files[1:])):
+      toreturn.base = files[0]
+      toreturn.hier = list(files[1:])
+      toreturn.use_ss = toreturn.base.attr.opts.use_ss_key
+      assert all(toreturn.use_ss == h.attr.cli_args.use_ss_key for h in toreturn.hier)
+
+   else:
+      raise ValueError('RpxHier expects filenames or ResPairScore+[Xmap*]')
+   # append extra copies of highest resl score to use for higher res search steps
+
+   return toreturn

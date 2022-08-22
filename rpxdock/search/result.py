@@ -454,9 +454,9 @@ def result_to_tarball(result, fname, overwrite=False):
    if 'dockinfo' in attrs and len(attrs['dockinfo']):
       if 'arg' in attrs['dockinfo'][0]:
          attrs2['arg'] = repr(dict(attrs['dockinfo'][0]['arg']))
-      for i, di in enumerate(attrs2['dockinfo']):
+      for i, di in enumerate(attrs['dockinfo']):
          del di['arg']
-      attrs2['dockinfo'] = repr(attrs2['dockinfo'])
+      attrs2['dockinfo'] = repr(attrs['dockinfo'])
 
    for k, v in attrs.items():
       attrs2[k] = repr(v)

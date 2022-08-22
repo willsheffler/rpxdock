@@ -150,6 +150,10 @@ def default_cli_parser(parent=None, **kw):
    addarg(
       "--hscore_data_dir", default='/home/sheffler/data/rpx/hscore/willsheffler',
       help='default path to search for hcores_files. defaults to /home/sheffler/data/rpx/hscore')
+
+   addarg("--generate_hscore_pickle_files", default=False, action='store_true',
+          help='use to generate faster but non-portable .pickle hscore files')
+
    addarg(
       "--max_trim", type=int, default=0,
       help='maximum allowed trimming of residues from docking components. specifying 0 will completely disable trimming, and may allow significantly shorter runtimes. defaults to 0.'

@@ -1,12 +1,19 @@
 import numpy as np
 import rpxdock.homog as hm
-import rpxdock
+import rpxdock as rp
 import willutil as wu
 
 def main():
    # hscore = rpxdock.data.small_hscore()
-   # test_rpxhier(hscore)
-   _bench_load_times()
+   # test_rpxhier_overlap(hscore)
+   test_read_rpxhier(rp.data.hscoretestdir)
+   # _bench_load_times()
+
+def test_read_rpxhier(hscoredir):
+   # rpxh = rp.score.RpxHier('small_ilv_h', hscore_data_dir=hscore_data_dir,
+   # generate_hscore_pickle_files=True)
+   rp.score.read_hscore_files('small_ilv_h', hscore_data_dir=hscoredir,
+                              generate_hscore_pickle_files=False)
 
 def _bench_load_times():
    # fn = '/home/sheffler/data/rpx/hscore/erinyang/ailv_h/rpxdockpdb_res_pair_data_si30_H_AILV_SSindep_p0.5_b1_hier4_Kflat_1_0'
@@ -14,10 +21,10 @@ def _bench_load_times():
 
    t = wu.Timer()
 
-   rpxdock.load(fn + '.pickle')
+   rp.load(fn + '.pickle')
    t.checkpoint('pickle')
 
-   rpxdock.motif.motif_io.xmap_from_tarball(fn + '.xmap.txz')
+   rp.motif.motif_io.xmap_from_tarball(fn + '.xmap.txz')
    t.checkpoint('tarball')
 
    print(t)
@@ -32,7 +39,7 @@ def rand_xform_sphere(n, radius, maxang=0):
    x[:, :3, 3] = t[:n]
    return x
 
-def test_rpxhier(hscore, N=1000):
+def test_rpxhier_overlap(hscore, N=1000):
    # mean error rates are lower than what you might infer from thresholds below
 
    print("size base", len(hscore.base.score_map))
