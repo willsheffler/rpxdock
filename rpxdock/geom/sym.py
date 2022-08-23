@@ -61,7 +61,7 @@ def symframes(sym, pos=None, axis=[0, 0, 1], **kw):
       nfold = int(sym.split("_")[1])
       return np.array(list(hm.hrot(axis, np.arange(nfold) / nfold * 360)))
    else:
-      raise NotImplementedError
+      return np.eye(4).reshape(1, 4, 4)
 
 frames = dict(T=tetrahedral_frames, O=octahedral_frames, I=icosahedral_frames)
 

@@ -1,7 +1,6 @@
 import copy, logging, os, tempfile, tarfile, io, json, itertools
 from collections import OrderedDict, abc, defaultdict
 import numpy as np, rpxdock as rp
-from pandas.core.construction import sanitize_array
 from rpxdock.util import sanitize_for_storage, num_digits
 from willutil import unbunchify, Timer
 
