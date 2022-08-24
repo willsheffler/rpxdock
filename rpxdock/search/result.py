@@ -1,8 +1,9 @@
 import copy, logging, os, tempfile, tarfile, io, json, itertools
-from collections import OrderedDict, abc, defaultdict
+from collections import OrderedDict, abc, defaultdict, Sequence
 import numpy as np, rpxdock as rp
 from rpxdock.util import sanitize_for_storage, num_digits
-from willutil import unbunchify, Timer
+import rpxdock as rp
+import willutil as wu
 
 log = logging.getLogger(__name__)
 
@@ -10,63 +11,12 @@ class Result:
    def __init__(
       self,
       data_or_file=None,
-      body_=[],
-      body_label_=None,
+      bodies=None,
+      labels=None,
       pdb_extra_=None,
       **kw,
    ):
       import xarray as xr
-
-      self.bodies = body_
-      if not isinstance(self.bodies, (list, tuple)):
-         self.bodies = [[self.bodies]]
-      if self.bodies == []:
-         self.bodies = [[]]
-      if not isinstance(self.bodies[0], list):
-         self.bodies = [self.bodies]
-
-      assert isinstance(self.bodies, list)
-      assert isinstance(self.bodies[0], list)
-      if self.bodies[0]:
-         print(self.bodies)
-         print(type(self.bodies[0]))
-         print(type(self.bodies[0][0]))
-         assert isinstance(self.bodies[0][0], (rp.Body, type(None)))
-
-      self.body_label_ = body_label_
-      if self.body_label_ in (None, [], [[]]):
-         self.body_label_ = [
-            ['body_%i_%i' % (i, j) for j, _ in enumerate(b)] for i, b in enumerate(self.bodies)
-         ]
-
-      if not isinstance(self.body_label_[0], list):
-         # body label is list of lists, iresult x ncomponents
-         self.body_label_ = [self.body_label_]
-
-      assert isinstance(self.bodies, list)
-      if len(self.bodies): assert isinstance(self.bodies[0], list)
-      assert isinstance(self.body_label_, list)
-      if len(self.body_label_):
-         assert isinstance(self.body_label_[0], list)
-         assert len(self.body_label_[0]) == len(self.bodies[0])
-
-      # print(len(self.body_label_), len(self.bodies))
-      # print(self.body_label_)
-      # print(self.bodies)
-      # if len(self.body_label_) == 1 and len(self.body_label_[0]) == len(self.bodies):
-      # print('WARNING:          self.body_label_ = self.body_label_[0]')
-      # self.body_label_ = self.body_label_[0]
-      if len(self.body_label_) != len(self.bodies):
-         print('WARNING body_labels_ are weird')
-
-      assert isinstance(self.body_label_, list)
-      assert isinstance(self.body_label_[0], list)
-
-      if self.body_label_[0]:
-         assert len(self.body_label_[0]) == len(self.bodies[0])
-         assert isinstance(self.body_label_[0][0], str)
-
-      self.pdb_extra_ = pdb_extra_
 
       if data_or_file:
          assert len(kw) == 0
@@ -79,9 +29,24 @@ class Result:
          if attrs: del kw['attrs']
          attrs = sanitize_for_storage(attrs)
          self.data = xr.Dataset(dict(**kw), attrs=attrs)
-      # b/c I always mistype these
+
+      self.bodies, self.labels = process_body_labels(bodies, labels, self.data)
+      self.pdb_extra_ = pdb_extra_
+
+      self.xforms.shape[-2:] == (4, 4)
+      assert len(self.data['scores']) == len(self.data['xforms'])
+
+      # UGH.... GROSS.... b/c I always mistype these
       self.dump_pdb_top_score = self.dump_pdbs_top_score
       self.dump_pdb_top_score_each = self.dump_pdbs_top_score_each
+
+   # @property
+   # def bodies(self):
+   #    return self._bodies
+
+   # @property
+   # def labels(self):
+   #    return self._labels
 
    def sortby(self, *args, **kw):
       r = copy.copy(self)
@@ -89,7 +54,7 @@ class Result:
       return r
 
    def __getattr__(self, name):
-      if name == "data":
+      if name in ('data'):
          raise AttributeError
       return getattr(self.data, name)
 
@@ -105,12 +70,29 @@ class Result:
    def copy(self):
       return Result(self.data.copy())
 
-   def getstate(self):
-      return self.data.to_dict()
+   def __setstate__(self, state):
+      # print(type(state))
+      # print(list(state.keys()))
+      self.data = state['data']
+      bodies = state['bodies']
+      try:
+         labels = state['labels']
+      except KeyError:
+         labels = state['body_label_']
+      self.pdb_extra_ = state['pdb_extra_']
 
-   def setstate(self, state):
-      import xarray as xr
-      self.data = xr.Dataset.from_dict(state)
+      self.dump_pdb_top_score = self.dump_pdbs_top_score
+      self.dump_pdb_top_score_each = self.dump_pdbs_top_score_each
+
+      # self.bodies, self.labels = bodies, labels
+      self.bodies, self.labels = process_body_labels(bodies, labels, self.data)
+
+   # def getstate(self):
+   #    return self.data.to_dict()
+
+   # def setstate(self, state):
+   #    import xarray as xr
+   #    self.data = xr.Dataset.from_dict(state)
 
    def sel(self, *args, **kw):
       r = copy.copy(self)
@@ -222,13 +204,13 @@ class Result:
       if not fname:
          output_prefix = output_prefix + sep if output_prefix else ''
          body_names = [b.label for b in bod]
-         if len(output_body) > 1 and self.body_label_:
+         if len(output_body) > 1 and self.labels:
 
             # print(output_body)
             # print(imodel.data)
-            # print(len(self.body_label_))
-            # print(self.body_label_)
-            bodlab = [self.body_label_[ijob][z] for z in output_body]
+            # print(len(self.labels))
+            # print(self.labels)
+            bodlab = [self.labels[ijob][z] for z in output_body]
             body_names = [bl + '_' + lbl for bl, lbl in zip(bodlab, body_names)]
          middle = '__'.join(body_names)
          output_suffix = sep + output_suffix if output_suffix else ''
@@ -316,26 +298,28 @@ def concat_results(results, **kw):
    if isinstance(results, Result): results = [results]
    assert len(results) > 0
    ijob = np.repeat(np.arange(len(results)), [len(r) for r in results])
-   assert max(len(r.bodies) for r in results) == 1
-   assert all(r.body_label_ == results[0].body_label_ for r in results)
+   # assert all(r.labels == results[0].labels for r in results)
    allattrs = [r.attrs for r in results]
    common = dict_coherent_entries(allattrs)
-   r = Result(xr.concat([r.data for r in results], dim='model', **kw))
+   ret = Result(xr.concat([r.data for r in results], dim='model', **kw))
    # r.bodies = [r.bodies[0] for r in results]
-   r.bodies = list(itertools.chain(r.bodies[0] for r in results))
-   r.data['ijob'] = (['model'], ijob)
-   r.data.attrs = OrderedDict(dockinfo=allattrs, **common)
-   r.body_label_ = results[0].body_label_
+   ret.bodies = list(itertools.chain(*(r.bodies for r in results)))
+   ret.data['ijob'] = (['model'], ijob)
+   ret.data.attrs = OrderedDict(dockinfo=allattrs, **common)
+   ret.labels = list(itertools.chain(*(r.labels for r in results)))
    if results[0].pdb_extra_ is not None:
-      r.pdb_extra_ = list()
+      ret.pdb_extra_ = list()
       for x in results:
          assert len(x.pdb_extra_) == len(x.data.scores)
-         r.pdb_extra_.extend(x.pdb_extra_)
-   return r
+         ret.pdb_extra_.extend(x.pdb_extra_)
+   assert not isinstance(ret.bodies[0][0], list)
+   assert not isinstance(ret.labels[0][0], list)
+   return ret
 
-def dummy_result(size=1000):
+def dummy_result_data(size=1000):
+   size = size // 5 * 5
    from rpxdock.homog import rand_xform
-   return Result(
+   return wu.Bunch(
       ijob=(['model'], np.repeat([3, 1, 2, 4, 0], size / 5).astype('i8')),
       scores=(["model"], np.random.rand(size).astype('f4')),
       xforms=(["model", "hrow", "hcol"], rand_xform(size).astype('f4')),
@@ -346,6 +330,9 @@ def dummy_result(size=1000):
       reslb=(["model"], np.random.randint(0, 100, size)),
       resub=(["model"], np.random.randint(100, 200, size)),
    )
+
+def dummy_result(size=1000):
+   return Result(**dummy_result_data(size))
 
 def assert_results_close(r, s, n=-1, tol=1e-6, xtol=1e-3):
    if set(r.keys()) != set(s.keys()):
@@ -364,10 +351,10 @@ def result_from_tarball(fname):
    import xarray as xr
    sources = 'no sources'
    bodies = list()
-   body_labels = list()
+   labels = list()
    pdb_extra_ = None
    data = None
-   timer = Timer()
+   timer = wu.Timer()
    with tarfile.open(fname) as tar:
 
       timer.checkpoint('into tarball')
@@ -385,7 +372,7 @@ def result_from_tarball(fname):
             sources = inp.read().decode()
 
          elif m.name == 'body_labels.json':
-            body_labels = json.loads(inp.read().decode())
+            labels = json.loads(inp.read().decode())
 
          elif m.name == 'pdb_extra_.json':
             pdb_extra_ = json.loads(inp.read().decode())
@@ -412,8 +399,8 @@ def result_from_tarball(fname):
 
    result = rp.search.Result(
       data,
-      body_=bodies,
-      body_label_=body_labels,
+      bodies=bodies,
+      labels=labels,
       pdb_extra_=pdb_extra_,
    )
    result.original_sources = sources
@@ -506,9 +493,53 @@ def result_to_tarball(result, fname, overwrite=False):
             out.write(json.dumps(result.pdb_extra_))
 
       with open(td + '/body_labels.json', 'w') as out:
-         out.write(json.dumps(result.body_label_))
+         out.write(json.dumps(result.labels))
 
       cmd = f'cd {td} && tar cjf {os.path.abspath(fname)} *'
       assert not os.system(cmd)
 
    return fname
+
+def process_body_labels(bodies, labels, data):
+   njob = len(set(data.ijob.data)) if 'ijob' in data else 1
+   ndim = data['xforms'].shape[1] if data['xforms'].ndim == 4 else 1
+   if bodies in ([], [[[]]]): bodies = None
+   if labels in ([], [[[]]]): labels = None
+
+   if not isinstance(bodies, (list, tuple)):
+      bodies = [[bodies for i in range(ndim)] for j in range(njob)]
+   elif not isinstance(bodies[0], (list, tuple)):
+      bodies = [bodies for i in range(njob)]
+   bodies = bodies.copy()
+
+   if not isinstance(labels, (list, tuple)):
+      labels = [[None for i in bodies[j]] for j in range(njob)]
+   elif not isinstance(labels[0], (list, tuple)):
+      labels = [labels for i in range(njob)]
+   # elif len(labels) == ndim:
+   # labels = [njob * labels]
+   labels = labels.copy()
+
+   for i, l in enumerate(labels):
+      for j, m in enumerate(l):
+         m = m or 'body_job%i_comp%i' % (i, j)
+         labels[i][j] = str(m)
+
+   assert isinstance(bodies, list)
+   assert isinstance(bodies[0], list)
+   assert np.array(bodies).ndim == 2
+   assert np.array(bodies).shape == np.array(labels).shape
+   assert len(bodies) == njob
+   assert len(bodies[0]) == ndim or (ndim == 1 and len(bodies[0]) == 2)
+
+   if bodies[0]:
+      # print(bodies)
+      # print(type(bodies[0]))
+      # print(type(bodies[0][0]))
+      if not isinstance(bodies[0][0], (rp.Body, type(None))):
+         raise TypeError(f'bodies must be type rp.Body or None, not {type(bodies[0][0])}')
+
+   return bodies, labels
+
+# github.com/minkbaek/BFF
+# https://github.com/minkbaek/BFF/blob/main/rf_diffusion/TEST_COMMANDS

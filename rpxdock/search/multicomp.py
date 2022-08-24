@@ -99,8 +99,8 @@ def make_multicomp(
          bodies.insert(i, body.copy_exclude_term_res())
 
    return rp.Result(
-      body_=None if kw.dont_store_body_in_results else bodies,
-      body_label_=[] if kw.dont_store_body_in_results else default_label,
+      bodies=None if kw.dont_store_body_in_results else bodies,
+      labels=[] if kw.dont_store_body_in_results else default_label,
       **data,
    )
 

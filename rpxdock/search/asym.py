@@ -52,7 +52,7 @@ def make_asym(bodies, hscore, sampler, search=hier_search, **kw):
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
    ncontact, _ = evaluator(xforms, kw.nresl - 1, wnct)
    return rp.Result(
-      body_=None if kw.dont_store_body_in_results else bodies,
+      bodies=None if kw.dont_store_body_in_results else bodies,
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, sym='c1'),
       scores=(["model"], scores[ibest].astype("f4")),
       xforms=(["model", "hrow", "hcol"], xforms),

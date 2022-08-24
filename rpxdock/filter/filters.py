@@ -64,8 +64,8 @@ def filter(xforms, body, **kw):
       default_label = [f'comp{c}' for c in 'ABCDEFD'[:len(body)]]
 
       result = rp.Result(
-         body_=None if kw.dont_store_body_in_results else body,
-         body_label_=[] if kw.dont_store_body_in_results else default_label,
+         bodies=None if kw.dont_store_body_in_results else body,
+         labels=None if kw.dont_store_body_in_results else default_label,
          **data,
       )
       rp.util.dump(result, kw.output_prefix + '_Filter_ERROR_Log.pickle')

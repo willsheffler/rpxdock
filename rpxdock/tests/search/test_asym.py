@@ -54,8 +54,8 @@ def test_asym(hscore, body, body2):
 
    ref = rp.data.get_test_data('test_asym')
 
-   result.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts)
-   ref.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts)
+   # result.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts)
+   # ref.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts)
 
    try:
       rp.search.assert_results_close(result, ref)

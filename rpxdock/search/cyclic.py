@@ -67,7 +67,7 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
    xforms = xforms[ibest]
    '''
    dump pickle: (multidimensional pandas df) 
-   body_: list of bodies/pos used in docking  
+   bodies: list of bodies/pos used in docking  
    attrs: xarray of all global config args, timing stats, total time, time to dump, and sym
    scores: weighted combined score by modelid
    xforms: xforms pos by modelid 
@@ -101,7 +101,7 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
          data[k] = v
 
    return rp.Result(
-      body_=None if kw.dont_store_body_in_results else [monomer],
+      bodies=None if kw.dont_store_body_in_results else [[monomer]],
       **data,
    )
 

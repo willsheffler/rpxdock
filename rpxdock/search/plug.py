@@ -54,8 +54,8 @@ def make_plugs(plug, hole, hscore, search=hier_search, sampler=None, **kw):
       if not isinstance(v, (list, tuple)) or len(v) > 3: v = ['model'], v
       data[k] = v
    return rp.Result(
-      body_=[] if kw.dont_store_body_in_results else [plug, hole],
-      body_label_=[] if kw.dont_store_body_in_results else ['plug', 'hole'],
+      bodies=None if kw.dont_store_body_in_results else [[plug, hole]],
+      labels=None if kw.dont_store_body_in_results else [['plug', 'hole']],
       **data,
    )
 
