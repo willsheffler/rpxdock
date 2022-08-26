@@ -299,8 +299,8 @@ def read_hscore_files(
             newf = os.path.basename(f) + '.pickle'
             print('saving', newf)
             rp.dump(d, newf)
-            print('gzip', newf)
-            os.system(f'gzip -f {newf}')
+            # print('gzip', newf)
+            # os.system(f'gzip -f {newf}')
             print()
          print('Faster but non-portable .pickle cache files generated from .txz files')
          print('move these into same directory as original .txz files and rpxdock will use them')

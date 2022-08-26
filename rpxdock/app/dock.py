@@ -55,6 +55,14 @@ def dock_asym(hscore, **kw):
 
    cartbs = np.array([kw.cart_resl] * 3, dtype="i")
 
+   print('dock_asym bounds')
+   cartub = [30, 30, 30]
+   kw.ori_resl = 60
+   print('  cartlb', cartlb)
+   print('  cartub', cartub)
+   print('  cartbs', cartbs)
+   print('  ori_resl', kw.ori_resl)
+
    sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, kw.ori_resl)
    logging.info(f'num base samples {sampler.size(0):,}')
 
@@ -65,7 +73,10 @@ def dock_asym(hscore, **kw):
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
    with exe(kw.ncpu) as pool:
+      # if 0:
       futures = list()
+      # TODO: why is this a product? not same behavior as other protocols
+      # should ask ppl if this is desired behavior
       for ijob, bod in enumerate(itertools.product(*bodies)):
          futures.append(
             pool.submit(
@@ -77,10 +88,24 @@ def dock_asym(hscore, **kw):
                **kw,
             ))
          futures[-1].ijob = ijob
-      result = [None] * len(futures)
+      results = [None] * len(futures)
       for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
-         result[f.ijob] = f.result()
-   result = rp.concat_results(result)
+         results[f.ijob] = f.result()
+
+      # rp.dump(results, 'tmp.pickle')
+      # results = rp.load('tmp.pickle')
+      result = rp.concat_results(results)
+
+   # print(bodies)
+   # result = rp.search.make_asym(
+   #    [bodies[0][0], bodies[1][0]],
+   #    hscore,
+   #    sampler,
+   #    rp.hier_search,
+   #    **kw,
+   # )
+   # result = rp.concat_results([result])
+
    return result
 
 def dock_cyclic(hscore, **kw):
@@ -427,7 +452,7 @@ def dock_axel(hscore, **kw):
 
 def check_result_files_exist(kw):
    kw = Bunch(kw)
-   tarfname = kw.output_prefix + '.result.txz'
+   tarfname = kw.output_prefix + '_Result.txz'
    picklefname = kw.output_prefix + '_Result.pickle'
    if not kw.suppress_dump_results:
       if kw.save_results_as_tarball:

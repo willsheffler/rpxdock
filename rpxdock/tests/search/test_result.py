@@ -4,13 +4,13 @@ import willutil as wu
 
 def main():
    import tempfile
-   test_result(dummy_result(1000))
-   test_result_pickle(dummy_result(1000), tempfile.mkdtemp())
-   test_mismatch_len(dummy_result(1000))
+   # test_result(dummy_result(1000))
+   # test_result_pickle(dummy_result(1000), tempfile.mkdtemp())
+   # test_mismatch_len(dummy_result(1000))
    # test_top_each(dummy_result(1000))
    # test_result_no_body_label(dummy_result(1000))
    # test_result_coords()
-   # test_result_tarball()
+   test_result_tarball()
    # test_labels()
 
    # import tempfile
@@ -72,8 +72,11 @@ def test_result_tarball():
 
       r2 = result_from_tarball(f'{tmpdir}/test.result.txz')
 
+      assert [b.label for b in r.bodies[0]] == [b.label for b in r2.bodies[0]]
+
       rp.search.result.assert_results_close(r, r2)
-      # assert r.labels == r2.labels
+      # assert r.bodies == r2.bodies
+      assert r.labels == r2.labels
       assert r.pdb_extra_ == r2.pdb_extra_
 
       len(r.bodies) == len(r2.bodies)

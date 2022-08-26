@@ -352,6 +352,7 @@ def result_from_tarball(fname):
    sources = 'no sources'
    bodies = list()
    labels = list()
+   bodylabels = None
    pdb_extra_ = None
    data = None
    timer = wu.Timer()
@@ -373,6 +374,9 @@ def result_from_tarball(fname):
 
          elif m.name == 'body_labels.json':
             labels = json.loads(inp.read().decode())
+            if isinstance(labels, dict):
+               bodylabels = labels['bodylabels']
+               labels = labels['resultlabels']
 
          elif m.name == 'pdb_extra_.json':
             pdb_extra_ = json.loads(inp.read().decode())
@@ -396,6 +400,11 @@ def result_from_tarball(fname):
       print('warning: result.txz file has no body pdb files')
    if data is None:
       print('warning: result.txz file has no dataset.nc')
+
+   if bodylabels:
+      for ls, bs in zip(bodylabels, bodies):
+         for l, b in zip(ls, bs):
+            b.label = l
 
    result = rp.search.Result(
       data,
@@ -493,7 +502,9 @@ def result_to_tarball(result, fname, overwrite=False):
             out.write(json.dumps(result.pdb_extra_))
 
       with open(td + '/body_labels.json', 'w') as out:
-         out.write(json.dumps(result.labels))
+         body_labels = dict(bodylabels=[[b.label for b in bod] for bod in result.bodies],
+                            resultlabels=result.labels)
+         out.write(json.dumps(body_labels))
 
       cmd = f'cd {td} && tar cjf {os.path.abspath(fname)} *'
       assert not os.system(cmd)
@@ -525,8 +536,8 @@ def process_body_labels(bodies, labels, data):
          m = m or 'body_job%i_comp%i' % (i, j)
          labels[i][j] = str(m)
 
-   assert isinstance(bodies, list)
-   assert isinstance(bodies[0], list)
+   assert isinstance(bodies, (list, tuple))
+   assert isinstance(bodies[0], (list, tuple))
    assert np.array(bodies).ndim == 2
    assert np.array(bodies).shape == np.array(labels).shape
    assert len(bodies) == njob
