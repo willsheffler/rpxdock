@@ -720,15 +720,8 @@ def _process_arg_sspair(kw):
 
 def process_term_options(option, inputs):
    tmp = []
-<<<<<<< HEAD
    if len(option) == 1: tmp = [[elem, elem] for elem in option for inp in range(len(inputs))]
    elif len(option) is len(inputs): tmp = [[option[j], option[j]] for j in range(0, len(inputs))]
    elif len(option) is len(inputs) * 2:
       tmp = [[option[j], option[j + 1]] for j in range(0, len(inputs) * 2, 2)]
    return tmp
-=======
-   if len(option) is 1: tmp = [[elem, elem] for elem in option for inp in range(len(inputs))]
-   elif len(option) is len(inputs): tmp = [[option[j],option[j]] for j in range(0, len(inputs))]
-   elif len(option) is len(inputs)*2: tmp = [[option[j],option[j+1]] for j in range(0, len(inputs)*2,2)]
-   return tmp
->>>>>>> master
