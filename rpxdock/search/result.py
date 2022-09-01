@@ -239,7 +239,7 @@ class Result:
             bod[0].pos = x[0]
             for i, f in enumerate(symframes):
                bod[1].pos = f @ x[1]
-               ctc = bod[0].contact_count(bod[1], 8)
+               ctc = bod[0].contact_count(bod[1], maxdis=8)
                # print(i, ctc)
                if ctc > best[0]:
                   best = ctc, i, f

@@ -368,9 +368,21 @@ class Body:
       assert not overflow
       return pairs
 
-   def contact_count(self, other, pos1=None, pos2=None, maxdis=10):
-      if pos1 is None: pos1 = self.pos
-      if pos2 is None: pos2 = other.pos
+   def contact_count(self, other, pos1=None, pos2=None, maxdis=10, debug=False):
+      if pos1 is None:
+            if debug: print("pos1 = self.pos")
+            pos1 = self.pos
+      if pos2 is None:
+            if debug: print("pos2 = other.pos")
+            pos2 = other.pos
+      
+      if debug:
+         print("self.bvh_cen"); print(self.bvh_cen)
+         print("other.bvh_cen"); print(other.bvh_cen)
+         print("pos1"); print(pos1)
+         print("pos2"); print(pos2)
+         print("maxdis"); print(maxdis)
+
       return rp.bvh.bvh_count_pairs_vec(self.bvh_cen, other.bvh_cen, pos1, pos2, maxdis)
 
    def contact_count_bb(self, other, pos1=None, pos2=None, maxdis=10):
