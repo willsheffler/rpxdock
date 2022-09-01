@@ -284,7 +284,7 @@ def default_cli_parser(parent=None, **kw):
    # tcdock
    addarg(
       "--architecture", type=str, default=None,
-      help='architecture to be produced by docking. Can be cage I32, O43, T32 where larger axis of symmetry is listed first, Cx for cyclic, Dx_y for dihedral, where x is the dihedral symmetry and y is the symmetry of the scaffold, y=2 or y=x. For sliding two scaffolds into contact use AXEL_x, where x is the symmetry of the scaffold. If wanting to dock assymetrically (two scaffolds of different symmetr) use x=1. For plug protocol, can be PLUG_Cx. No default value'
+      help='architecture to be produced by docking. Can be cage I32, O43, T32 where larger axis of symmetry is listed first, ASYM for docking two monomers, Cx for cyclic, Dx_y for dihedral, where x is the dihedral symmetry and y is the symmetry of the scaffold, y=2 or y=x. For sliding two scaffolds into contact use AXEL_x, where x is the symmetry of the scaffold. If wanting to dock two scaffolds of different symmetry use x=1, followed by the symmetries of each scaffold separated by _ (e.g. AXEL_1_2_3 to dock a dimer against a trimer). For plug protocol, can be PLUG_Cx. No default value'
    )
    addarg("--trimmable_components", default="ABCDEFGHIJKLMNOPQRSTUVWXYZ",
           help='specify which components "ABC" etc are trimmable. defaults to all components')
@@ -720,8 +720,15 @@ def _process_arg_sspair(kw):
 
 def process_term_options(option, inputs):
    tmp = []
+<<<<<<< HEAD
    if len(option) == 1: tmp = [[elem, elem] for elem in option for inp in range(len(inputs))]
    elif len(option) is len(inputs): tmp = [[option[j], option[j]] for j in range(0, len(inputs))]
    elif len(option) is len(inputs) * 2:
       tmp = [[option[j], option[j + 1]] for j in range(0, len(inputs) * 2, 2)]
    return tmp
+=======
+   if len(option) is 1: tmp = [[elem, elem] for elem in option for inp in range(len(inputs))]
+   elif len(option) is len(inputs): tmp = [[option[j],option[j]] for j in range(0, len(inputs))]
+   elif len(option) is len(inputs)*2: tmp = [[option[j],option[j+1]] for j in range(0, len(inputs)*2,2)]
+   return tmp
+>>>>>>> master
