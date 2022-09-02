@@ -10,6 +10,8 @@ def intersection(l1, l2):
    return l3
 
 def filter(xforms, body, **kw):
+   logging.debug("RUNNING: filter()")
+
    #if len(xforms == 0):
    #    logging.warning(f"No transforms provided for filtering")
    #    return None
@@ -45,11 +47,11 @@ def filter(xforms, body, **kw):
 
       logging.debug(f"Extra for {function}: {extra[filt]}")
       logging.debug(f"ibest length {len(ibest)}")
-      logging.debug(f"{ibest}")
+      logging.debug(f"ibest {ibest}")
 
    if len(ibest) == 0:  #handle the case where filtering removes all docks
       # TODO Generate a log file and abort docking
-      print("Filters removed all docks, dumping log file")
+      logging.info("Filters removed all docks, dumping log file")
       data = dict(
          attrs=dict(arg=kw, filters=all_filter_data, output_prefix=kw.output_prefix,
                     output_body='all'),

@@ -55,13 +55,13 @@ def dock_asym(hscore, **kw):
 
    cartbs = np.array([kw.cart_resl] * 3, dtype="i")
 
-   print('dock_asym bounds')
+   logging.debug('dock_asym bounds')
    cartub = [30, 30, 30]
    kw.ori_resl = 60
-   print('  cartlb', cartlb)
-   print('  cartub', cartub)
-   print('  cartbs', cartbs)
-   print('  ori_resl', kw.ori_resl)
+   logging.debug('  cartlb', cartlb)
+   logging.debug('  cartub', cartub)
+   logging.debug('  cartbs', cartbs)
+   logging.debug('  ori_resl', kw.ori_resl)
 
    sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, kw.ori_resl)
    logging.info(f'num base samples {sampler.size(0):,}')
@@ -457,18 +457,18 @@ def check_result_files_exist(kw):
    if not kw.suppress_dump_results:
       if kw.save_results_as_tarball:
          if os.path.exists(tarfname) and not kw.overwrite_existing_results:
-            print('Results File Exists:', tarfname)
-            print('Move files or use --overwrite_existing_results')
+            logging.info(f"Results File Exists: {str(tarfname)}")
+            logging.info('Move files or use --overwrite_existing_results')
             sys.exit()
       if kw.save_results_as_pickle:
          if os.path.exists(picklefname) and not kw.overwrite_existing_results:
-            print('Results File Exists:', picklefname)
-            print('Move files or use --overwrite_existing_results')
+            logging.info(f"Results File Exists: {str(picklefname)}")
+            logging.info('Move files or use --overwrite_existing_results')
             sys.exit()
 
 def main():
    kw = get_rpxdock_args()
-   print(f'{" RUNNING dock.py:main ":=^80}')
+   logging.info(f'{" RUNNING dock.py:main ":=^80}')
    #logging.info(f'weights: {kw.wts}')
    rp.options.print_options(kw)
 
@@ -501,12 +501,12 @@ def main():
       if kw.save_results_as_pickle:
          picklefname = kw.output_prefix + '_Result.pickle'
          rp.util.dump(result, picklefname)
-         print('saved result to', picklefname)
+         logging.info(f"saved result to {str(picklefname)}")
 
       if kw.save_results_as_tarball:
          tarfname = kw.output_prefix + '_Result.txz'
          rp.search.result_to_tarball(result, tarfname, overwrite=True)
-         print('saved result to', tarfname)
+         logging.info(f"saved result to {str(tarfname)}")
 
          #print('try to read')
          #result2 = rp.search.result_from_tarball(tarfname)
@@ -517,4 +517,4 @@ def main():
 
 if __name__ == '__main__':
    main()
-   print('DONE')
+   logging.info('DONE')

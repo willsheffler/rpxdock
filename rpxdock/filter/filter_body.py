@@ -3,7 +3,7 @@ import rpxdock.homog as hm
 import logging
 
 def filter_body(body, xforms, arch):
-   logging.debug(f"\nArchitecture for filtering {arch}\n")
+   logging.debug(f"Architecture for filtering {arch}")
    arch = arch.upper()
    if arch.startswith('C') and len(arch) == 2:
       #Do cx stuff

@@ -42,16 +42,16 @@ def make_multicomp(
       logging.debug("Applying filters to search results")
       sbest, filter_extra = filters.filter(xforms[ibest], bodies, **kw)
       # TODO: Add exception handling for empty array
-      print(sbest)
-      print(ibest)
+      logging.debug(f"sbest {sbest}")
+      logging.debug(f"ibest {ibest}")
       ibest = ibest[sbest]
 
    tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw)
 
    if kw.verbose:
-      print(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
-      print("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
-      print("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
+      logging.info(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
+      logging.info("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
+      logging.info("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
 
    xforms = xforms[ibest]
    wrpx = kw.wts.sub(rpx=1, ncontact=0)
@@ -328,9 +328,11 @@ class TwoCompEvaluatorWithTrim(MultiCompEvaluatorBase):
       return scores, np.stack([lbA, lbB], axis=1), np.stack([ubA, ubB], axis=1)
 
 def _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw):
+   logging.debug("RUNNING _debug_dump_cage()")
    kw = Bunch(kw, _strict=False)
    t = Timer().start()
    nout_debug = min(10 if kw.nout_debug is None else kw.nout_debug, len(ibest))
+   logging.debug(f"nout_debug {nout_debug}")
    for iout in range(nout_debug):
       i = ibest[iout]
       bodies[0].move_to(xforms[i, 0])
@@ -341,12 +343,14 @@ def _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw):
       fn = kw.output_prefix + "_%02i.pdb" % iout
       lbub = [extra.lbub] if extra.lbub else []
       if len(lbub) > 1:
-         print(
+         logging.info(
             f"{fn} score {scores[i]:7.3f} rpx {scr[0]:7.3f} cnt {cnt[0]:4}",
             f"resi {lbub[0][0]}-{lbub[1][0]}",
          )
       else:
-         print(f"{fn} score {scores[i]:7.3f} rpx {scr[0]:7.3f} cnt {cnt[0]:4}")
+         logging.info(
+            f"{fn} score {scores[i]:7.3f} rpx {scr[0]:7.3f} cnt {cnt[0]:4}"
+         )
       rp.dump_pdb_from_bodies(fn, bodies, rp.geom.symframes(spec.sym, xforms[iout]),
                               resbounds=lbub)
    return t.total
