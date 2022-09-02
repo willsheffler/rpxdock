@@ -58,10 +58,10 @@ def dock_asym(hscore, **kw):
    logging.debug('dock_asym bounds')
    cartub = [30, 30, 30]
    kw.ori_resl = 60
-   logging.debug('  cartlb', cartlb)
-   logging.debug('  cartub', cartub)
-   logging.debug('  cartbs', cartbs)
-   logging.debug('  ori_resl', kw.ori_resl)
+   logging.debug(f"  cartlb {cartlb}")
+   logging.debug(f"  cartub {cartub}")
+   logging.debug(f"  cartbs {cartbs}")
+   logging.debug(f"  ori_resl {kw.ori_resl}")
 
    sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, kw.ori_resl)
    logging.info(f'num base samples {sampler.size(0):,}')
