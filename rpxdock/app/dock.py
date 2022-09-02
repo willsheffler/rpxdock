@@ -469,8 +469,8 @@ def check_result_files_exist(kw):
 def main():
    kw = get_rpxdock_args()
    print(f'{" RUNNING dock.py:main ":=^80}')
-   # logging.info(f'weights: {kw.wts}')
-   # rp.options.print_options(kw)
+   #logging.info(f'weights: {kw.wts}')
+   rp.options.print_options(kw)
 
    hscore = rp.CachedProxy(rp.RpxHier(kw.hscore_files, **kw))
    arch = kw.architecture
