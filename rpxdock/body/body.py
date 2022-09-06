@@ -178,7 +178,7 @@ class Body:
       if isinstance(sym, str): sym = int(sym[1:])
       if isinstance(sym, np.ndarray): sym = int(sym[0])
       if isinstance(sym, (np.int32, np.int64)): sym = int(sym)
-      print(sym, type(sym))
+      #print(sym, type(sym))
       assert isinstance(sym, int)
       if sym == 1: return b
       b.pos = np.eye(4, dtype='f4')
