@@ -4,6 +4,7 @@ from rpxdock import filter as rpx_filter
 from willutil import Bunch
 import rpxdock as rp
 import logging
+import numpy as np
 
 def intersection(l1, l2):
    l3 = [v for v in l1 if v in l2]
@@ -55,12 +56,13 @@ def filter(xforms, body, **kw):
       data = dict(
          attrs=dict(arg=kw, filters=all_filter_data, output_prefix=kw.output_prefix,
                     output_body='all'),
-         xforms=(["model", "comp", "hrow", "hcol"], xforms),
+         xforms=(["model", "comp", "hrow", "hcol"], np.empty(dtype="f",shape=(0,2,4,4))),
+         scores=(["model"], np.empty(dtype="f",shape=(0,))),
       )
 
       for k, v in extra.items():
          if not isinstance(v, (list, tuple)) or len(v) > 3:
-            v = ['model'], v
+            v = ['model'], np.empty(shape=(0,))
          data[k] = v
 
       default_label = [f'comp{c}' for c in 'ABCDEFD'[:len(body)]]
