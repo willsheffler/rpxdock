@@ -512,7 +512,7 @@ def result_to_tarball(result, fname, overwrite=False):
    return fname
 
 def process_body_labels(bodies, labels, data):
-   njob = len(set(data.ijob.data)) if 'ijob' in data else 1
+   njob = max(data.ijob.data)+1 if 'ijob' in data else 1
    ndim = data['xforms'].shape[1] if data['xforms'].ndim == 4 else 1
    if bodies in ([], [[[]]]): bodies = None
    if labels in ([], [[[]]]): labels = None
@@ -540,15 +540,20 @@ def process_body_labels(bodies, labels, data):
    assert isinstance(bodies[0], (list, tuple))
    assert np.array(bodies).ndim == 2
    assert np.array(bodies).shape == np.array(labels).shape
-   assert len(bodies) == njob
-   assert len(bodies[0]) == ndim or (ndim == 1 and len(bodies[0]) == 2)
+   if bodies:
+      #print(bodies)
+      #print(len(bodies))
+      #print(set(data.ijob.data))
+      #print(njob)
+      assert len(bodies) == njob
+      assert len(bodies[0]) == ndim or (ndim == 1 and len(bodies[0]) == 2)
 
-   if bodies[0]:
-      # print(bodies)
-      # print(type(bodies[0]))
-      # print(type(bodies[0][0]))
-      if not isinstance(bodies[0][0], (rp.Body, type(None))):
-         raise TypeError(f'bodies must be type rp.Body or None, not {type(bodies[0][0])}')
+      if bodies[0]:
+         # print(bodies)
+         # print(type(bodies[0]))
+         # print(type(bodies[0][0]))
+         if not isinstance(bodies[0][0], (rp.Body, type(None))):
+            raise TypeError(f'bodies must be type rp.Body or None, not {type(bodies[0][0])}')
 
    return bodies, labels
 

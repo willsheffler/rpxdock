@@ -56,13 +56,13 @@ def filter(xforms, body, **kw):
       data = dict(
          attrs=dict(arg=kw, filters=all_filter_data, output_prefix=kw.output_prefix,
                     output_body='all'),
-         xforms=(["model", "comp", "hrow", "hcol"], np.empty(dtype="f",shape=(0,2,4,4))),
-         scores=(["model"], np.empty(dtype="f",shape=(0,))),
+         xforms=(["model", "comp", "hrow", "hcol"], np.zeros(dtype="f",shape=(1,2,4,4))),
+         scores=(["model"], np.array([0])),
       )
 
       for k, v in extra.items():
          if not isinstance(v, (list, tuple)) or len(v) > 3:
-            v = ['model'], np.empty(shape=(0,))
+            v = (["model"], np.array([0]))
          data[k] = v
 
       default_label = [f'comp{c}' for c in 'ABCDEFD'[:len(body)]]
