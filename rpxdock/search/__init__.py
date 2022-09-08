@@ -10,3 +10,4 @@ from rpxdock.search.plug import *
 from rpxdock.search.asym import *
 from rpxdock.search.helix import *
 from rpxdock.search import basic, result, hierarchical, gridslide, cyclic, plug, asym
+from rpxdock.search.result import result_from_tarball, result_to_tarball

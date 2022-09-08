@@ -1,6 +1,7 @@
 #! /home/sheffler/.conda/envs/rpxdock/bin/python
 
 import logging, os, rpxdock as rp, numpy as np
+from willutil import Bunch
 
 def get_opts():
    parser = rp.options.default_cli_parser()
@@ -12,7 +13,7 @@ def get_opts():
    return rp.options.process_cli_args(arg)
 
 def score_onebody(hscore, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    for fn in kw.bodies:
       body = rp.Body(fn)
       iscores = hscore.score_matrix_intra(body, kw.wts)
@@ -34,7 +35,7 @@ def score_onebody(hscore, **kw):
             f'sum(mean) {summean:7.3f} {bfac_file}')
 
 def score_twobody(hscore, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    for fn1 in kw.bodies:
       body1 = rp.Body(fn1)
       for fn2 in kw.other_bodies:

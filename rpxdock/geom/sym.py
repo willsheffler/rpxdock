@@ -1,12 +1,13 @@
 import numpy as np, rpxdock as rp
 from rpxdock import homog as hm
+from willutil import Bunch
 
 tetrahedral_frames = np.load(rp.data.datadir + "/tetrahedral_frames.pickle", allow_pickle=True)
 octahedral_frames = np.load(rp.data.datadir + "/octahedral_frames.pickle", allow_pickle=True)
 icosahedral_frames = np.load(rp.data.datadir + "/icosahedral_frames.pickle", allow_pickle=True)
 
 def symframes(sym, pos=None, axis=[0, 0, 1], **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    if isinstance(sym, np.ndarray):
       assert len(sym) == 1
       sym = sym[0]
@@ -60,7 +61,7 @@ def symframes(sym, pos=None, axis=[0, 0, 1], **kw):
       nfold = int(sym.split("_")[1])
       return np.array(list(hm.hrot(axis, np.arange(nfold) / nfold * 360)))
    else:
-      raise NotImplementedError
+      return np.eye(4).reshape(1, 4, 4)
 
 frames = dict(T=tetrahedral_frames, O=octahedral_frames, I=icosahedral_frames)
 

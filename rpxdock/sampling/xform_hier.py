@@ -1,4 +1,6 @@
-import rpxdock as rp, numpy as np
+import rpxdock as rp
+from willutil import Bunch
+import numpy as np
 
 class LineHier:
    def __init__(self, lb, ub, nstep, axis):
@@ -27,7 +29,6 @@ def hier_axis_sampler(
    angresl,
    axis=[0, 0, 1],
    flipax=[0, 1, 0],
-   flip_components=True,
    fixed_rot=[],
    fixed_components=[],
    fixed_trans=[],
@@ -36,6 +37,8 @@ def hier_axis_sampler(
    fw_cartub=5,
    fw_rotlb=-5,
    fw_rotub=5,
+   # flip_components=True, # which of these is right now?
+   flip_components=[True],
    **kw,
 ):
    '''
@@ -48,7 +51,7 @@ def hier_axis_sampler(
    :param flipax: flip subunits
    :return: "arrays of pos" to check for a given search resolution where pos are represented by matrices
    '''
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    cart_nstep = int(np.ceil((ub - lb) / resl))
    ang = 360 / nfold
    ang_nstep = int(np.ceil(ang / angresl))
@@ -65,11 +68,20 @@ def hier_axis_sampler(
                                          ang_nstep, axis[:3])
    else:
       samp = rp.sampling.RotCart1Hier_f4(lb, ub, cart_nstep, 0, ang, ang_nstep, axis[:3])
+   #<<<<<<< HEAD
+   #if flip_components[0]:
+   #   flip = rp.ZeroDHier([np.eye(4), rp.homog.hrot(flipax, 180)])
+   #else:
+   #   flip = rp.ZeroDHier([np.eye(4)])
+   #samp = rp.ProductHier(samp, flip)
+   #=======
    if type(flip_components) is list: flip_components = flip_components[0]
    if flip_components:
       flip = rp.ZeroDHier([np.eye(4), rp.homog.hrot(flipax, 180)])
-      if kw.force_flip and kw.force_flip[0]: flip = rp.ZeroDHier([rp.homog.hrot(flipax, 180)])
+      if kw.force_flip and kw.force_flip[0]:
+         flip = rp.ZeroDHier([rp.homog.hrot(flipax, 180)])
       samp = rp.ProductHier(samp, flip)
+   #>>>>>>> master
    return samp
 
 def hier_multi_axis_sampler(
@@ -94,12 +106,12 @@ def hier_multi_axis_sampler(
    assert len(spec.nfold) == len(spec.axis) == len(spec.xflip)
    if isinstance(flip_components, bool):
       flip_components = [flip_components]
-   if len(flip_components) is 1:
+   if len(flip_components) == 1:
       flip_components = flip_components * len(spec.nfold)
    assert len(flip_components) == len(spec.nfold)
    # for i, flip in enumerate(flip_components):
    # flip_components[i] = flip_components[i] and not spec.comp_is_dihedral[i]
-   if len(cart_bounds) is 2 and isinstance(cart_bounds[0], int):
+   if len(cart_bounds) == 2 and isinstance(cart_bounds[0], int):
       cart_bounds = np.array([cart_bounds] * spec.num_components)
    cart_bounds = np.array(cart_bounds)
    assert len(cart_bounds) in (1, len(spec.nfold))
@@ -116,6 +128,7 @@ def hier_multi_axis_sampler(
    for i in range(len(spec.nfold)):
       if spec.comp_is_dihedral[i]:
          s = LineHier(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], spec.axis[i])
+
       elif i in fixed_rot:
          s = LineHier(cart_bounds[i, 0], cart_bounds[i, 1], cart_nstep[i], spec.axis[i])
       elif i in fixed_trans:
@@ -132,7 +145,7 @@ def hier_multi_axis_sampler(
                                          ang[i], ang_nstep[i], spec.axis[i][:3])
       samp.append(s)
    for i, s in enumerate(samp):
-      if flip_components[i]: 
+      if flip_components[i]:
          flip = rp.ZeroDHier([np.eye(4), spec.xflip[i]])
          if len(force_flip) > i and force_flip[i]: flip = rp.ZeroDHier([spec.xflip[i]])
          samp[i] = rp.sampling.ProductHier(s, flip)

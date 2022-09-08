@@ -3,7 +3,7 @@
 
 
 cfg['include_dirs'] = ['../..','../extern']
-cfg['compiler_args'] = ['-std=c++17', '-w']
+cfg['compiler_args'] = ['-std=c++2a', '-w']
 cfg['dependencies'] = ['_orientations.hpp']
 
 cfg['parallel'] = False

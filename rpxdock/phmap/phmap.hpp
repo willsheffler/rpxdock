@@ -1,5 +1,4 @@
 #pragma once
-/** \file */
 
 #include <parallel_hashmap/phmap.h>
 

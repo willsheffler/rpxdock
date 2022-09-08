@@ -1,5 +1,6 @@
 import sys, os, argparse, re, functools, logging, glob
 import numpy as np, rpxdock as rp, functools as ft
+from willutil import Bunch
 
 log = logging.getLogger(__name__)
 
@@ -93,9 +94,9 @@ def dir_plus_bool(v):
    else:
       raise argparse.ArgumentTypeError(
          ('Boolean or NoneType value expected, not "%s" of type %s\n' % (v, type(v)) +
-         'Allowed True Vals  (case independent): in down yes true ty 1\n' +
-         'Allowed False Vals (case independent): out up no false f n 0\n' +
-         'Allowed None Vals  (case independent): none na'))
+          'Allowed True Vals  (case independent): in down yes true ty 1\n' +
+          'Allowed False Vals (case independent): out up no false f n 0\n' +
+          'Allowed None Vals  (case independent): none na'))
 
 def default_cli_parser(parent=None, **kw):
    parser = parent if parent else argparse.ArgumentParser(allow_abbrev=False)
@@ -140,13 +141,19 @@ def default_cli_parser(parent=None, **kw):
    )
    addarg("--trial_run", action="store_true", default=False,
           help='reduce runtime by using minimal samples, smaller score files, etc.')
+   addarg("--verbose", action="store_true", default=False,
+          help='extra debugging output, use/respect of this is sporadic in the code')
    addarg(
       "--hscore_files", nargs="+", default=['ilv_h'],
       help='rpx score files using in scoring for most protocols. defaults to pairs involving only ILV and only in helices. Can be only a path-suffix, which will be appended to --hscore_data_dir. Can be a list of files. Score files with various parameters can be generated with rpxdock/app/genrate_motif_scores.py.'
    )
    addarg(
-      "--hscore_data_dir", default='/home/sheffler/data/rpx/hscore',
+      "--hscore_data_dir", default='/home/sheffler/data/rpx/hscore/willsheffler',
       help='default path to search for hcores_files. defaults to /home/sheffler/data/rpx/hscore')
+
+   addarg("--generate_hscore_pickle_files", default=False, action='store_true',
+          help='use to generate faster but non-portable .pickle hscore files')
+
    addarg(
       "--max_trim", type=int, default=0,
       help='maximum allowed trimming of residues from docking components. specifying 0 will completely disable trimming, and may allow significantly shorter runtimes. defaults to 0.'
@@ -309,9 +316,17 @@ def default_cli_parser(parent=None, **kw):
           help='Lower bound for fixed_wiggle rotation (in degrees) Default 5.0')
    addarg("--fw_rotub", default=5.0, type=float,
           help='Upper bound for fixed_wiggle rotation (in degrees) Default 5.0')
+
+   addarg(
+      "--components_already_aligned_to_sym_axes", action='store_true', default=False,
+      help='use this flag if components are already aligned along the appropriate symmetry axes. If absent, components are assumed to be aligned along Z and centered on the origin'
+   )
+
    addarg("--use_orig_coords", action='store_true', default=False,
           help='remember and output the original sidechains from the input structures')
+
    addarg("--primary_iface_cut", default=None, help='score cut for helix primary interface')
+
    addarg("--symframe_num_helix_repeats", default=10,
           help='number of helix repeat frames to dump. Default 10')
    addarg("--ignored_aas", default='CGP', help='Amino acids to ignore in scoring. Default CGP')
@@ -333,7 +348,7 @@ def default_cli_parser(parent=None, **kw):
 
    addarg("--output_closest_subunits", action='store_true', default=False,
           help='for two component stuff, output subunit 2 most contacting subunit 1')
-          
+
    # Termini accessibility and orientation
    addarg("--term_access", nargs="+", type=str2bool, default=[False], help=argparse.SUPPRESS)
    addarg(
@@ -349,8 +364,7 @@ def default_cli_parser(parent=None, **kw):
       help='Specify if termini of third component for 3+ component protocols should be sterically protected during docking, ensuring accessbility. List of bools in order of N term, C term. If one value is given, same value will apply to BOTH termini. Default False.'
    )
 
-   addarg(
-      "--termini_dir", nargs='+', default=[None], type=dir_plus_bool, help=argparse.SUPPRESS)
+   addarg("--termini_dir", nargs='+', default=[None], type=dir_plus_bool, help=argparse.SUPPRESS)
    addarg(
       "--termini_dir1", nargs="+", default=[None], type=dir_plus_bool,
       help='Specify direction that termini of single component or first component will point relative to the origin in final docks. List of strings or bools in order of N term, C term. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction unspecified). If one value is given, it will apply to BOTH termini. Defaults to [None]'
@@ -364,6 +378,18 @@ def default_cli_parser(parent=None, **kw):
       help='Specify direction that termini of third component will point relative to the origin in final docks. List of strings or bools in order of N term, C term. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction unspecified). If one value is given, it will apply to BOTH termini. Defaults to [None]'
    )
 
+   addarg("--recenter_input", action='store_true', default=False,
+          help='center coorinates from pdb input files')
+
+   addarg("--save_results_as_tarball", default=True, type=str2bool,
+          help='save results as portable xz compressed tarball')
+
+   addarg("--save_results_as_pickle", default=True, type=str2bool,
+          help='save results as fast loading python pickle')
+
+   addarg("--overwrite_existing_results", action='store_true', default=False,
+          help='overwrite existing results')
+
    parser.has_rpxdock_args = True
    return parser
 
@@ -371,7 +397,7 @@ def get_cli_args(argv=None, parent=None, process_args=True, **kw):
    parser = default_cli_parser(parent, **kw)
    argv = sys.argv[1:] if argv is None else argv
    argv = make_argv_with_atfiles(argv, **kw)
-   options = rp.Bunch(parser.parse_args(argv))
+   options = Bunch(parser.parse_args(argv))
    if process_args: options = process_cli_args(options, **kw)
    return options
 
@@ -389,8 +415,8 @@ def set_loglevel(loglevel):
    log.info(f'set loglevel to {numeric_level}')
 
 def process_cli_args(options, **kw):
-   options = rp.Bunch(options)
-   kw = rp.Bunch(kw)
+   options = Bunch(options)
+   kw = Bunch(kw, _strict=False)
 
    options = _process_inputs(options, **kw)
 
@@ -413,12 +439,10 @@ def process_cli_args(options, **kw):
    if options.architecture:
       options.architecture = options.architecture.upper()
 
-   if not kw.dont_set_default_cart_bounds:
+   if not kw.get('dont_set_default_cart_bounds'):
       options.cart_bounds = _process_cart_bounds(options.cart_bounds)
 
    options.trimmable_components = options.trimmable_components.upper()
-
-   log.info(str(options))
 
    return options
 
@@ -448,77 +472,77 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
 
    if not opt.inputs:
       msg = '--allowed_residues cant be used if --inputs not used'
-      assert len(opt.allowed_residues) is 0, msg
+      assert len(opt.allowed_residues) == 0, msg
       msg = '--term_access cant be used if --inputs not used'
       assert opt.term_access == [False], msg
       msg = '--termini_dir cant be used if --inputs not used'
       assert opt.termini_dir == [None], msg
    if not opt.inputs1:
       msg = '--allowed_residues1 cant be used if --inputs1 not used'
-      assert len(opt.allowed_residues1) is 0, msg
+      assert len(opt.allowed_residues1) == 0, msg
       msg = '--term_access1 cant be used if --inputs1 not used'
       assert opt.term_access1 == [False], msg
       msg = '--termini_dir1 cant be used if --inputs1 not used'
       assert opt.termini_dir1 == [None], msg
    if not opt.inputs2:
       msg = '--allowed_residues2 cant be used if --inputs2 not used'
-      assert len(opt.allowed_residues2) is 0, msg
+      assert len(opt.allowed_residues2) == 0, msg
       msg = '--term_access2 cant be used if --inputs2 not used'
       assert opt.term_access2 == [False], msg
       msg = '--termini_dir2 cant be used if --inputs2 not used'
       assert opt.termini_dir2 == [None], msg
    if not opt.inputs3:
       msg = '--allowed_residues3 cant be used if --inputs3 not used'
-      assert len(opt.allowed_residues3) is 0, msg
+      assert len(opt.allowed_residues3) == 0, msg
       msg = '--term_access3 cant be used if --inputs3 not used'
       assert opt.term_access3 == [False], msg
       msg = '--termini_dir3 cant be used if --inputs2 not used'
       assert opt.termini_dir3 == [None], msg
 
    msg = 'number of inputs for term_access must be zero, one, or twice the number of inputs'
-   assert len(opt.term_access) in (0, 1, len(opt.inputs)*2), msg
+   assert len(opt.term_access) in (0, 1, len(opt.inputs) * 2), msg
    msg = 'number of inputs for term_access1 must be zero, one, or twice the number of inputs1'
-   assert len(opt.term_access1) in (0, 1, len(opt.inputs1)*2), msg
+   assert len(opt.term_access1) in (0, 1, len(opt.inputs1) * 2), msg
    msg = 'number of inputs for term_access2 must be zero, one, or twice the number of inputs2'
-   assert len(opt.term_access2) in (0, 1, len(opt.inputs2)*2), msg
+   assert len(opt.term_access2) in (0, 1, len(opt.inputs2) * 2), msg
    msg = 'number of inputs for term_access3 must be zero, one, or twice the number of inputs3'
-   assert len(opt.term_access3) in (0, 1, len(opt.inputs3)*2), msg
+   assert len(opt.term_access3) in (0, 1, len(opt.inputs3) * 2), msg
 
    msg = 'number of inputs for termini_dir must be zero, one, or twice the number of inputs'
-   assert len(opt.termini_dir) in (0, 1, len(opt.inputs)*2), msg
+   assert len(opt.termini_dir) in (0, 1, len(opt.inputs) * 2), msg
    msg = 'number of inputs for termini_dir1 must be zero, one, or twice the number of inputs1'
-   assert len(opt.termini_dir1) in (0, 1, len(opt.inputs1)*2), msg
+   assert len(opt.termini_dir1) in (0, 1, len(opt.inputs1) * 2), msg
    msg = 'number of inputs for termini_dir2 must be zero, one, or twice the number of inputs2'
-   assert len(opt.termini_dir2) in (0, 1, len(opt.inputs2)*2), msg
+   assert len(opt.termini_dir2) in (0, 1, len(opt.inputs2) * 2), msg
    msg = 'number of inputs for termini_dir3 must be zero, one, or twice the number of inputs3'
-   assert len(opt.termini_dir3) in (0, 1, len(opt.inputs3)*2), msg
+   assert len(opt.termini_dir3) in (0, 1, len(opt.inputs3) * 2), msg
 
-   if len(opt.allowed_residues) is 1: opt.allowed_residues *= len(opt.inputs)
-   if len(opt.allowed_residues1) is 1: opt.allowed_residues1 *= len(opt.inputs1)
-   if len(opt.allowed_residues2) is 1: opt.allowed_residues2 *= len(opt.inputs2)
-   if len(opt.allowed_residues3) is 1: opt.allowed_residues3 *= len(opt.inputs3)
+   if len(opt.allowed_residues) == 1: opt.allowed_residues *= len(opt.inputs)
+   if len(opt.allowed_residues1) == 1: opt.allowed_residues1 *= len(opt.inputs1)
+   if len(opt.allowed_residues2) == 1: opt.allowed_residues2 *= len(opt.inputs2)
+   if len(opt.allowed_residues3) == 1: opt.allowed_residues3 *= len(opt.inputs3)
 
-   if len(opt.allowed_residues) is 0: opt.allowed_residues = [None] * len(opt.inputs)
-   if len(opt.allowed_residues1) is 0: opt.allowed_residues1 = [None] * len(opt.inputs1)
-   if len(opt.allowed_residues2) is 0: opt.allowed_residues2 = [None] * len(opt.inputs2)
-   if len(opt.allowed_residues3) is 0: opt.allowed_residues3 = [None] * len(opt.inputs3)
+   if len(opt.allowed_residues) == 0: opt.allowed_residues = [None] * len(opt.inputs)
+   if len(opt.allowed_residues1) == 0: opt.allowed_residues1 = [None] * len(opt.inputs1)
+   if len(opt.allowed_residues2) == 0: opt.allowed_residues2 = [None] * len(opt.inputs2)
+   if len(opt.allowed_residues3) == 0: opt.allowed_residues3 = [None] * len(opt.inputs3)
 
    if opt.inputs:
       # Term_access
-      if len(opt.term_access) is 1:
+      if len(opt.term_access) == 1:
          if len(opt.inputs) > 0: opt.term_access1 = [opt.term_access[0]]
          if len(opt.inputs) > 1: opt.term_access2 = [opt.term_access[0]]
          if len(opt.inputs) > 2: opt.term_access3 = [opt.term_access[0]]
-      elif len(opt.term_access) is len(opt.inputs)*2:
+      elif len(opt.term_access) is len(opt.inputs) * 2:
          if len(opt.inputs) > 0: opt.term_access1 = opt.term_access[0:2]
          if len(opt.inputs) > 1: opt.term_access2 = opt.term_access[2:4]
          if len(opt.inputs) > 2: opt.term_access3 = opt.term_access[4:6]
       # Termini_dir
-      if len(opt.termini_dir) is 1:
+      if len(opt.termini_dir) == 1:
          if len(opt.inputs) > 0: opt.termini_dir1 = [opt.termini_dir[0]]
          if len(opt.inputs) > 1: opt.termini_dir2 = [opt.termini_dir[0]]
          if len(opt.inputs) > 2: opt.termini_dir3 = [opt.termini_dir[0]]
-      elif len(opt.termini_dir) is len(opt.inputs)*2:
+      elif len(opt.termini_dir) is len(opt.inputs) * 2:
          if len(opt.inputs) > 0: opt.termini_dir1 = opt.termini_dir[0:2]
          if len(opt.inputs) > 1: opt.termini_dir2 = opt.termini_dir[2:4]
          if len(opt.inputs) > 2: opt.termini_dir3 = opt.termini_dir[4:6]
@@ -538,7 +562,7 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
    if len(opt.inputs) > 0: opt.termini_dir.append(opt.termini_dir1)
    if len(opt.inputs) > 1: opt.termini_dir.append(opt.termini_dir2)
    if len(opt.inputs) > 2: opt.termini_dir.append(opt.termini_dir3)
-   
+
    if read_allowed_res_files:
       opt.allowed_residues = [_read_allowed_res_file(_) for _ in opt.allowed_residues]
       opt.allowed_residues1 = [_read_allowed_res_file(_) for _ in opt.allowed_residues1]
@@ -564,7 +588,7 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
 
    opt.force_flip = [False] * len(opt.inputs)
    if len(opt.flip_components) != len(opt.inputs):
-      opt.flip_components = opt.flip_components * len(opt.inputs) 
+      opt.flip_components = opt.flip_components * len(opt.inputs)
 
    return opt
 
@@ -626,7 +650,7 @@ def _read_allowed_res_file(fname):
 
 def _process_cart_bounds(cart_bounds):
    if not cart_bounds: cart_bounds = 0, 500
-   elif len(cart_bounds) is 1: cart_bounds = [0, cart_bounds[0]]
+   elif len(cart_bounds) == 1: cart_bounds = [0, cart_bounds[0]]
    tmp = list()
    for i in range(0, len(cart_bounds), 2):
       tmp.append(cart_bounds[i:i + 2])
@@ -648,7 +672,7 @@ def make_argv_with_atfiles(argv=None, **kw):
 
 def _extract_weights(kw):
    pref = 'weight_'
-   wts = rp.Bunch()
+   wts = Bunch()
    todel = list()
    for k in kw:
       if k.startswith(pref):
@@ -661,7 +685,7 @@ def _extract_weights(kw):
 
 def _extract_sscount(kw):
    pref = 'sscount_'
-   ssc = rp.Bunch()
+   ssc = Bunch()
    todel = list()
    for k in kw:
       if k.startswith(pref):
@@ -674,7 +698,7 @@ def _extract_sscount(kw):
 
 def _extract_sasa(kw):
    pref = 'sasa_'
-   sasa = rp.Bunch()
+   sasa = Bunch()
    todel = list()
    for k in kw:
       if k.startswith(pref):
@@ -696,7 +720,8 @@ def _process_arg_sspair(kw):
 
 def process_term_options(option, inputs):
    tmp = []
-   if len(option) is 1: tmp = [[elem, elem] for elem in option for inp in range(len(inputs))]
-   elif len(option) is len(inputs): tmp = [[option[j],option[j]] for j in range(0, len(inputs))]
-   elif len(option) is len(inputs)*2: tmp = [[option[j],option[j+1]] for j in range(0, len(inputs)*2,2)]
+   if len(option) == 1: tmp = [[elem, elem] for elem in option for inp in range(len(inputs))]
+   elif len(option) is len(inputs): tmp = [[option[j], option[j]] for j in range(0, len(inputs))]
+   elif len(option) is len(inputs) * 2:
+      tmp = [[option[j], option[j + 1]] for j in range(0, len(inputs) * 2, 2)]
    return tmp

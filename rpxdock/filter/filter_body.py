@@ -3,7 +3,7 @@ import rpxdock.homog as hm
 import logging
 
 def filter_body(body, xforms, arch):
-   logging.debug(f"\nArchitecture for filtering {arch}\n")
+   logging.debug(f"Architecture for filtering {arch}")
    arch = arch.upper()
    if arch.startswith('C') and len(arch) == 2:
       #Do cx stuff
@@ -15,17 +15,16 @@ def filter_body(body, xforms, arch):
       pos2 = xsym
       body1 = body
       body2 = body
-      
 
-   else: #get spec to get bodies
+   else:  #get spec to get bodies
       spec = dock.get_spec(arch)
       if len(body) == 2:
          X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
          B = [b.copy_with_sym(spec.nfold[i], spec.axis[i]) for i, b in enumerate(body)]
          body1 = B[0]
          body2 = B[1]
-         pos1 = X[:,0]
-         pos2 = X[:,1]
+         pos1 = X[:, 0]
+         pos2 = X[:, 1]
       else:
          B = body.copy_with_sym(spec.nfold, spec.axis)
          pos1 = xforms.reshape(-1, 4, 4)  #@ body.pos

@@ -5,6 +5,8 @@ import rpxdock.sampling.orientations as ori
 import pytest
 
 from cppimport import import_hook
+# from cppimport.config import turn_off_strict_prototypes
+# turn_off_strict_prototypes()
 from rpxdock.sampling._orientations_test import *
 
 def test_orientation_cpp():
@@ -12,7 +14,7 @@ def test_orientation_cpp():
 
 def test_read_karney_orientations():
    with gzip.open(ori.karney_data_path("c48u1.grid.gz")) as input:
-      if sys.version_info.major is 3:
+      if sys.version_info.major == 3:
          quat, weight = ori.read_karney_orientations(str(input.read(), "utf-8"))
       else:
          quat, weight = ori.read_karney_orientations(str(input.read()))

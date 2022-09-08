@@ -1,7 +1,7 @@
 from time import perf_counter
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
-from rpxdock import Bunch
+from willutil import Bunch
 
 def grid_search(sampler, evaluator, **kw):
    if (not isinstance(sampler, np.ndarray) or sampler.ndim not in (3, 4) or sampler.shape[-2:] !=

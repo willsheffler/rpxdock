@@ -1,6 +1,6 @@
 from rpxdock.motif import ResPairData
 from rpxdock.motif.pairdat import _change_seq_ss_to_ids
-from rpxdock.util.timer import Timer
+from willutil import Timer
 import numpy as np
 import xarray as xr
 import pytest
@@ -107,4 +107,4 @@ if __name__ == '__main__':
    with Timer() as t:
       test_pairdat_subset_by_aa(rp)
    print('total', t.total)
-   # test_pairdat_subset_by_ss(rp)
+   test_pairdat_subset_by_ss(rp)

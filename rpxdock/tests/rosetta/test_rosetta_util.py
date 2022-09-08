@@ -26,7 +26,28 @@ def test_get_sc_coords(top7):
       aset.update(a)
    print(aset)
 
+def test_get_bb_coords(top7):
+   crd = get_bb_coords(top7, recenter_input=False).reshape(-1, 4)
+   cen = np.mean(crd, axis=0)
+   cen[3] = 0
+   # print(np.mean(crd, axis=0))
+   ccrd = get_bb_coords(top7, recenter_input=True).reshape(-1, 4)
+   assert np.allclose([0, 0, 0, 1], np.mean(ccrd, axis=0))
+   # print(np.mean(ccrd, axis=0))
+
+   sccrd0 = get_sc_coords(top7, recenter_input=False)[1]
+   sccrd1 = get_sc_coords(top7, recenter_input=True)[1]
+
+   for a, b in zip(sccrd0, sccrd1):
+      for c in a - b:
+         assert np.allclose(c, cen, atol=1e-4)
+
+   cbcrd0 = get_cb_coords(top7, recenter_input=False)[1]
+   cbcrd1 = get_cb_coords(top7, recenter_input=True)[1]
+   assert np.allclose(cbcrd0 - cbcrd1, cen, atol=1e-5)
+
 if __name__ == '__main__':
    from rpxdock.rosetta.triggers_init import get_pose_cached
 
-   test_get_sc_coords(get_pose_cached('top7.pdb.gz', pdbdir))
+   # test_get_sc_coords(get_pose_cached('top7.pdb.gz', pdbdir))
+   test_get_bb_coords(get_pose_cached('top7.pdb.gz', pdbdir))

@@ -17,6 +17,15 @@ pybind11::arg operator"" _c(const char *name, size_t) {
 }
 
 template <typename F>
+X3<F> xform_py_to_X3(pybind11::array_t<F> a) {
+  if (!a) throw std::runtime_error("bad array");
+  if (a.ndim() != 2) throw std::runtime_error("must be 2D array shape (4,4)");
+  if (a.shape()[0] != 4 || a.shape()[1] != 4)
+    if (a.ndim() != 2) throw std::runtime_error("must be 2D array shape (4,4)");
+  return (X3<F>)*((X3<F> *)(a.request().ptr));
+}
+
+template <typename F>
 MapVxX3<F> xform_py_to_eigen(pybind11::array_t<F> a) {
   auto buf = pybind11::array::ensure(a);
   size_t s = buf.itemsize();
@@ -39,11 +48,12 @@ MapVxX3<F> xform_py_to_eigen(pybind11::array_t<F> a) {
 }
 
 template <typename XformArray>
-auto xform_eigen_to_py(XformArray xform) {
+auto xform_eigen_to_py(XformArray xform, int size = -1) {
   using Xform = typename XformArray::Scalar;
   using F = typename Xform::Scalar;
+  if (size < 0) size = (int)xform.size();
   F *data = (F *)xform.data();
-  std::vector<size_t> shape{xform.size(), 4, 4};
+  std::vector<size_t> shape{size, 4, 4};
   std::vector<size_t> stride{16 * sizeof(F), 4 * sizeof(F), sizeof(F)};
   auto buf = pybind11::buffer_info(data, shape, stride);
   return pybind11::array_t<F>(buf);

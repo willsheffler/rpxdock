@@ -89,7 +89,8 @@ def test_map_of_selected_pairs():
    i2 = np.random.randint(0, N2, N)
    idx = np.stack([i1, i2], axis=1)
 
-   vals = xu.map_of_selected_pairs(xb, phm, idx, x1, x2)
+   vals = xu.map_of_selected_pairs(xb, phm, idx, x1.astype('f4'), x2.astype('f4'))
+   # vals = xu.map_of_selected_pairs(xb, phm, idx, x1, x2)
    assert np.all(vals == 0)
 
    phm.default = 7
@@ -124,3 +125,23 @@ if __name__ == "__main__":
    test_ssmap_of_selected_pairs()
    test_map_of_selected_pairs()
    test_selected_pairs_pos()
+
+   # Invoked with Xbin_float, PHMap_u8f8, array32, array32
+
+# E          1. (xbin: rpxdock.xbin.xbin.Xbin_double, phmap: rpxdock::phmap::PHMap<unsigned long, double>, a64 a64
+# E          2. (xbin: rpxdock.xbin.xbin.Xbin_double, phmap: rpxdock::phmap::PHMap<unsigned long, double>, a64 a64
+# E          3. (xbin: rpxdock.xbin.xbin.Xbin_float, phmap: rpxdock::phmap::PHMap<unsigned long, double>, arrayi, xform1: numpy.ndarray, xform2: numpy.ndarray, pos1: numpy.ndarray[numpy.float32[4, 4]] = array([[1., 0., 0., 0.],
+# E             [0., 1., 0., 0.],
+# E             [0., 0., 1., 0.],
+# E             [0., 0., 0., 1.]], dtype=float32), pos2: numpy.ndarray[numpy.float32[4, 4]] = array([[1., 0., 0., 0.],
+# E             [0., 1., 0., 0.],
+# E             [0., 0., 1., 0.],
+# E             [0., 0., 0., 1.]], dtype=float32)) -> numpy.ndarray[numpy.float64[m, 1]]
+# E          4. (xbin: rpxdock.xbin.xbin.Xbin_float, phmap: rpxdock::phmap::PHMap<unsigned long, double>, idx: numpy.ndarray, xform: numpy.ndarray, pos1: numpy.ndarray[numpy.float32[4, 4]] = array([[1., 0., 0., 0.],
+# E             [0., 1., 0., 0.],
+# E             [0., 0., 1., 0.],
+# E             [0., 0., 0., 1.]], dtype=float32), pos2: numpy.ndarray[numpy.float32[4, 4]] = array([[1., 0., 0., 0.],
+# E             [0., 1., 0., 0.],
+# E             [0., 0., 1., 0.],
+# E             [0., 0., 0., 1.]], dtype=float32)) -> numpy.ndarray[numpy.float64[m, 1]]
+#

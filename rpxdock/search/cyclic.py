@@ -1,6 +1,7 @@
-import numpy as np, xarray as xr, rpxdock as rp, rpxdock.homog as hm
+import numpy as np, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, grid_search
 from rpxdock.filter import filters
+from willutil import Timer, Bunch
 
 def make_cyclic_hier_sampler(monomer, hscore, **kw):
    '''
@@ -35,12 +36,11 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
    sampler enumerates positions
    search is usually hier_search but grid_search is also available
    '''
-   kw = rp.Bunch(kw)
-   t = rp.Timer().start()
+   kw = Bunch(kw, _strict=False)
+   t = Timer().start()
    sym = "C%i" % i if isinstance(sym, int) else sym
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else sym
-
    if search is None:
       if kw.docking_method not in 'hier grid'.split():
          raise ValueError(f'--docking_method must be either "hier" or "grid"')
@@ -59,7 +59,6 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
       print("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
       print("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
 
-
    if kw.filter_config:
       # Apply filters
       sbest, filter_extra = filters.filter(xforms[ibest], monomer, **kw)
@@ -68,7 +67,7 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
    xforms = xforms[ibest]
    '''
    dump pickle: (multidimensional pandas df) 
-   body_: list of bodies/pos used in docking  
+   bodies: list of bodies/pos used in docking  
    attrs: xarray of all global config args, timing stats, total time, time to dump, and sym
    scores: weighted combined score by modelid
    xforms: xforms pos by modelid 
@@ -80,7 +79,6 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
    wnct = kw.wts.sub(rpx=0, ncontact=1)
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
    ncontact, _ = evaluator(xforms, kw.nresl - 1, wnct)
-
 
    data = dict(
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, sym=sym),
@@ -103,7 +101,7 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
          data[k] = v
 
    return rp.Result(
-      body_=None if kw.dont_store_body_in_results else [monomer],
+      bodies=None if kw.dont_store_body_in_results else [[monomer]],
       **data,
    )
 
@@ -116,7 +114,7 @@ class CyclicEvaluator:
    those two things get checked for intersections and clashes and scored by scorepos
    '''
    def __init__(self, body, sym, hscore, **kw):
-      self.kw = rp.Bunch(kw)
+      self.kw = Bunch(kw, _strict=False)
       self.body = body
       self.hscore = hscore
       self.symrot = hm.hrot([0, 0, 1], 360 / int(sym[1:]), degrees=True)
@@ -134,12 +132,14 @@ class CyclicEvaluator:
 
       # check clash, or get non-clash range
       if kw.max_trim > 0:
-         trim = body.intersect_range(body, xforms[ok], xsym[ok], **kw) # what residues can you have without clashing
+         trim = body.intersect_range(body, xforms[ok], xsym[ok],
+                                     **kw)  # what residues can you have without clashing
          trim, trimok = rp.search.trim_ok(trim, body.nres, **kw)
-         ok[ok] &= trimok # given an array of pos/xforms, filter out pos/xforms that clash
+         ok[ok] &= trimok  # given an array of pos/xforms, filter out pos/xforms that clash
       else:
-         ok[ok] &= body.clash_ok(body, xforms[ok], xsym[ok], **kw) # if no trim, just checks for clashes (intersecting)
-         trim = [0], [body.nres - 1] # no trimming
+         ok[ok] &= body.clash_ok(body, xforms[ok], xsym[ok],
+                                 **kw)  # if no trim, just checks for clashes (intersecting)
+         trim = [0], [body.nres - 1]  # no trimming
 
       # score everything that didn't clash
       scores = np.zeros(len(xforms))
@@ -160,11 +160,16 @@ class CyclicEvaluator:
       ub = np.ones(len(scores), dtype="i4") * (body.nres - 1)
       if trim: lb[ok], ub[ok] = trim[0], trim[1]
 
-      return scores, rp.Bunch(reslb=lb, resub=ub)
+      # if iresl is 4:
+      # sel = (scores > 136.3) * (scores < 136.306)
+      # if np.any(sel): print(xforms[sel])
+      # assert 0
+
+      return scores, Bunch(reslb=lb, resub=ub)
 
 def _debug_dump_cyclic(xforms, body, sym, scores, ibest, evaluator, **kw):
-   kw = rp.Bunch(kw)
-   t = rp.Timer().start()
+   kw = Bunch(kw, _strict=False)
+   t = Timer().start()
    nout_debug = min(10 if kw.nout_debug is None else kw.nout_debug, len(ibest))
    for iout in range(nout_debug):
       i = ibest[iout]

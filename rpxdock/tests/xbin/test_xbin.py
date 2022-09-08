@@ -57,9 +57,14 @@ def test_key_of():
 
 def test_xbin_covrad(niter=20, nsamp=5000):
    ori_tight, cart_tight = False, False
+
+   niter = 1000
+
    for i in range(niter):
       cart_resl = np.random.rand() * 10 + 0.125
-      ori_resl = np.random.rand() * 50 + 2.6
+      ori_resl = np.random.rand() * 50 + 5
+      print(f'cart_resl {cart_resl} ori_resl {ori_resl:7.3f}')
+
       xforms = hm.rand_xform(nsamp)
       xb = Xbin_double(cart_resl, ori_resl, 512)
       ori_resl = xb.ori_resl
@@ -74,7 +79,13 @@ def test_xbin_covrad(niter=20, nsamp=5000):
       # print('ori_resl', ori_resl, 'nside:', xb.ori_nside,
       # 'max(ori_dist):', np.max(ori_dist))
       assert np.all(cart_dist < cart_resl)
-      assert np.all(ori_dist < 1.2 * ori_resl / 180 * np.pi)
+
+      check = ori_dist < 1.1 * ori_resl / 180 * np.pi
+
+      # print(f'!!!!!!!!!! ZOMG len {len(check)} sum {np.sum(check)} shape {check.shape}')
+
+      assert np.all(check)
+
       cart_tight |= np.max(cart_dist) > cart_resl * 0.85
       ori_tight |= np.max(ori_dist) > ori_resl * 0.8 / 180 * np.pi
    assert cart_tight
@@ -116,9 +127,9 @@ def test_pickle(tmpdir):
 if __name__ == "__main__":
    import tempfile
 
-   test_xbin_cpp()
-   test_key_of()
-   test_create_binner()
+   # test_xbin_cpp()
+   # test_key_of()
+   # test_create_binner()
    test_xbin_covrad()
-   test_xbin_covrad_ori()
-   test_pickle(tempfile.mkdtemp())
+   # test_xbin_covrad_ori()
+   # test_pickle(tempfile.mkdtemp())

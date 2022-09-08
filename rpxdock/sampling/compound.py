@@ -126,7 +126,7 @@ class SlideHier:
    def __init__(self, sampler, body1, body2):
       self.sampler = sampler
       if isintance(sampler, (list, tuple)):
-         assert len(sampler) is 3
+         assert len(sampler) == 3
          self.sampler = rp.CompoundHier(*sampler)
       self.body1 = body1
       self.body2 = body2

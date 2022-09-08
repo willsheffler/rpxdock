@@ -1,10 +1,11 @@
 import os, time, logging
-import xarray as xr, numpy as np
+import numpy as np
 
 log = logging.getLogger(__name__)
 
 class ResPairData:
    def __init__(self, data, sanity_check=None):
+      import xarray as xr
       if isinstance(data, xr.Dataset): self.data = data
       elif isinstance(data, ResPairData): self.data = data.data
       if hasattr(self, "data"):
@@ -39,7 +40,7 @@ class ResPairData:
    def subset_by_pdb(self, keep, sanity_check=False, update_p_res=True, **kw):
       """keep subset of data in same order as original"""
       keepers = self._get_keepers_by_pdb(keep, **kw)
-      if np.sum(keepers) is 0: raise ValueError('no pdbs remain')
+      if np.sum(keepers) == 0: raise ValueError('no pdbs remain')
       residx = np.isin(self.data.r_pdbid, keepers)
       pairidx = np.isin(self.data.p_pdbid, keepers)
 
@@ -74,7 +75,7 @@ class ResPairData:
 
    def subset_by_res(self, keepers, sanity_check=False):
       assert len(keepers) == len(self.data.resid)
-      if np.sum(keepers) is 0: raise ValueError('no residues remain')
+      if np.sum(keepers) == 0: raise ValueError('no residues remain')
 
       # t1 = time.perf_counter()
       # remove residues w/o removing pdbs
@@ -232,6 +233,7 @@ class ResPairData:
       # print(timer)
 
    def only_whats_needed(self, task):
+      raise NotImplementedError('why is this being called?')
       not_needed = dict(
          seqproftest=
          "phi psi omega chi1 chi2 chi3 chi4 chain r_fa_sol r_fa_intra_atr_xover4 r_fa_intra_rep_xover4 r_fa_intra_sol_xover4 r_lk_ball r_lk_ball_iso r_lk_ball_bridge r_lk_ball_bridge_uncpl r_fa_elec r_fa_intra_elec r_pro_close r_hbond_sr_bb r_hbond_lr_bb r_hbond_bb_sc r_hb_sc r_dslf_fa13 r_rama_prepro r_omega r_p_aa_pp r_fa_dun_rot r_fa_dun_dev r_fa_dun_semi r_hxl_tors r_ref sasa2 sasa4 nnb6 nnb8 nnb12 nnb14 p_hb_bb_bb p_hb_bb_sc p_hb_sc_bb p_hb_sc_sc p_fa_atr p_fa_rep p_fa_sol p_lk_ball p_fa_elec p_hbond_sr_bb p_hbond_lr_bb"
@@ -278,13 +280,14 @@ def _update_relational_data(data, prev_pdb_res_offsets, pdb_subset=None, update_
    assert np.all(data.p_resj >= 0)
 
 def _change_seq_ss_to_ids(rp):
+   import xarray as xr
    dat = rp.data
-
    id2aa = np.array(list("ACDEFGHIKLMNPQRSTVWY"))
    aa2id = xr.DataArray(np.arange(20, dtype="i4"), [("aa", id2aa)])
    aaid = aa2id.sel(aa=dat.seq).values.astype("i4")
    dat["aaid"] = xr.DataArray(aaid, dims=["resid"])
-   dat = dat.drop("seq")
+   if hasattr(dat, 'drop_vars'): dat = dat.drop_vars("seq")
+   else: dat = dat.drop("seq")
    dat["id2aa"] = xr.DataArray(id2aa, [aa2id], ["aai"])
    dat["aa2id"] = xr.DataArray(aa2id, [id2aa], ["aa"])
 
@@ -292,13 +295,15 @@ def _change_seq_ss_to_ids(rp):
    ss2id = xr.DataArray(np.arange(3, dtype="i4"), [("ss", id2ss)])
    ssid = ss2id.sel(ss=dat.ss).values.astype("i4")
    dat["ssid"] = xr.DataArray(ssid, dims=["resid"])
-   dat = dat.drop("ss")
+   if hasattr(dat, 'drop_vars'): dat = dat.drop_vars("ss")
+   else: dat = dat.drop("ss")
    dat["id2ss"] = xr.DataArray(id2ss, [ss2id], ["ssi"])
    dat["ss2id"] = xr.DataArray(ss2id, [id2ss], ["ss"])
    rp.data = dat
 
 def _rp_from_raw_dicts(self, data, sanity_check):
    # loading from raw dicts
+   import xarray as xr
    assert isinstance(data, dict)
 
    raw = data

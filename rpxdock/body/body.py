@@ -1,7 +1,9 @@
-import os, copy, numpy as np, rpxdock, logging, rpxdock as rp
-from pandas.core.internals.concat import trim_join_unit
+import os, copy, numpy as np, rpxdock, logging, rpxdock as rp, io, tempfile
+# from pandas.core.internals.concat import trim_join_unit
 from rpxdock.filter.sscount import secondary_structure_map
 from pyrosetta import rosetta as ros
+import willutil as wu
+from willutil import Bunch
 
 log = logging.getLogger(__name__)
 _CLASHRAD = 1.75
@@ -17,50 +19,68 @@ class Body:
       allowed_res=None,
       trim_direction='NC',
       is_subbody=False,
-      modified_term=[False,False],
+      modified_term=[False, False],
       og_seqlen=None,
+      source_filename=None,
       **kw,
    ):
-      kw = rpxdock.Bunch(kw)
+      kw = wu.Bunch(kw)
 
       import rpxdock.rosetta.triggers_init as ros
+
       # pose stuff
+      # timer = wu.Timer()
       pose = source
       if isinstance(source, str):
          # import rpxdock.rosetta.triggers_init as ros
          self.pdbfile = source
-         if kw.posecache:
+         if kw.get('posecache'):
             pose = ros.get_pose_cached(source)
          else:
             pose = ros.pose_from_file(source)
             ros.assign_secstruct(pose)
+      elif isinstance(source, io.BytesIO):
+         # timer.checkpoint('body load start')
+         import rpxdock.rosetta.triggers_init as ros
+         self.pdbfile = source_filename
+         # timer.checkpoint('body load pyrosetta')
+         with tempfile.TemporaryDirectory() as td:
+            # timer.checkpoint('body open TemporaryDirectory')
+            with open(td + '/tmp.pdb', 'w') as out:
+               out.write(source.read().decode())
+            # timer.checkpoint('body wrote file')
+
+            pose = ros.pose_from_file(td + '/tmp.pdb')
+            # timer.checkpoint('pose_from_file')
+            ros.assign_secstruct(pose)
+      # timer.checkpoint('body load file')
       self.pdbfile = pose.pdb_info().name() if pose.pdb_info() else None
-      self.orig_anames, self.orig_coords = rp.rosetta.get_sc_coords(pose)
+      self.orig_anames, self.orig_coords = rp.rosetta.get_sc_coords(pose, **kw)
       self.seq = np.array(list(pose.sequence()))
       self.ss = np.array(list(pose.secstruct()))
-      self.coord = rp.rosetta.get_bb_coords(pose)
+      self.coord = rp.rosetta.get_bb_coords(pose, **kw)
       self.set_asym_body(pose, sym, **kw)
       self.modified_term = modified_term
       if og_seqlen == None: self.og_seqlen = pose.size()
       else: self.og_seqlen = og_seqlen
 
-      self.label = kw.label
+      self.label = kw.get('label')
       if self.label is None and self.pdbfile:
          self.label = os.path.basename(self.pdbfile.replace('.gz', '').replace('.pdb', ''))
       if self.label is None: self.label = 'unk'
-      self.components = kw.components if kw.components else []
-      self.score_only_ss = kw.score_only_ss if kw.score_only_ss else "EHL"
+      self.components = kw.get('components', [])
+      self.score_only_ss = kw.get('score_only_ss', 'EHL')
       self.ssid = rp.motif.ss_to_ssid(self.ss)
       self.chain = np.repeat(0, self.seq.shape[0])
       self.resno = np.arange(len(self.seq))
-      # self.trim_direction = trim_direction
-      self.trim_direction = kw.trim_direction if kw.trim_direction else 'NC'
+      self.trim_direction = kw.get('trim_direction', 'NC')
       if allowed_res is None:
          if True in self.modified_term:
             self.allowed_residues = np.zeros(len(self.seq), dtype='?')
             for j in range(0, self.og_seqlen):
                self.allowed_residues[j] = True
-         else: self.allowed_residues = np.ones(len(self.seq), dtype='?')
+         else:
+            self.allowed_residues = np.ones(len(self.seq), dtype='?')
       else:
          self.allowed_residues = np.zeros(len(self.seq), dtype='?')
          for i in allowed_res(self, **kw):
@@ -70,20 +90,31 @@ class Body:
       self.is_subbody = is_subbody
       if not is_subbody:
          self.trimN_subbodies, self.trimC_subbodies = get_trimming_subbodies(self, pose, **kw)
-         print('trimN_subbodies', len(self.trimN_subbodies))
-         print('trimC_subbodies', len(self.trimC_subbodies))
+         # print('trimN_subbodies', len(self.trimN_subbodies))
+         # print('trimC_subbodies', len(self.trimC_subbodies))
          # assert 0
+      # timer.checkpoint('body init file')
+      # print(timer)
 
-   def init_coords(self, sym, symaxis, xform=np.eye(4), ignored_aas='CGP', **kw):
-      kw = rp.Bunch(kw)
+   def init_coords(
+         self,
+         sym,
+         symaxis=np.array([0, 0, 1, 0]),
+         xform=np.eye(4),
+         ignored_aas='CGP',
+         **kw,
+   ):
+      kw = wu.Bunch(kw)
       if isinstance(sym, np.ndarray):
          assert len(sym) == 1
          sym = sym[0]
       if isinstance(sym, (int, np.int32, np.int64, np.uint32, np.uint64)):
          sym = "C%i" % sym
+      sym = sym.upper()
       self.sym = sym
       self.symaxis = symaxis
       self.nfold = int(sym[1:])
+      self.symframes = np.eye(4).reshape(1, 4, 4)
       if sym and sym[0] == "C" and int(sym[1:]):
          n = self.coord.shape[0]
          nfold = int(sym[1:])
@@ -95,10 +126,13 @@ class Body:
          newcoord = np.empty((nfold * n, ) + self.coord.shape[1:])
          newcoord[:n] = self.coord
          new_orig_coords = self.orig_coords
+         symframes = [np.eye(4)]
          for i in range(1, nfold):
-            self.pos = rpxdock.homog.hrot(self.symaxis, 360.0 * i / nfold)
+            symframes.append(wu.hrot(self.symaxis, 360.0 * i / nfold))
+            self.pos = symframes[-1]
             newcoord[i * n:][:n] = self.positioned_coord()
             new_orig_coords.extend(self.positioned_orig_coords())
+         self.symframes = np.stack(symframes)
          self.coord = (xform @ newcoord[:, :, :, None]).reshape(-1, 5, 4)
          self.orig_coords = [(xform @ oc[:, :, None]).reshape(-1, 4) for oc in new_orig_coords]
       else:
@@ -106,12 +140,12 @@ class Body:
       assert len(self.seq) == len(self.coord)
       assert len(self.ss) == len(self.coord)
       assert len(self.chain) == len(self.coord)
-
       self.nres = len(self.coord)
       self.stub = rp.motif.bb_stubs(self.coord)
       ids = np.repeat(np.arange(self.nres, dtype=np.int32), self.coord.shape[1])
       self.bvh_bb = rp.BVH(self.coord[..., :3].reshape(-1, 3), [], ids)
       self.bvh_bb_atomno = rp.BVH(self.coord[..., :3].reshape(-1, 3), [])
+      self._symcom = wu.homog.hxform(self.symframes, wu.homog.htrans(self.asym_body.bvh_bb.com()))
       self.allcen = self.stub[:, :, 3]
       which_cen = np.repeat(False, len(self.ss))
       for ss in "EHL":
@@ -133,6 +167,31 @@ class Body:
       self.cen = self.allcen[self.which_cen]
       self.pos = np.eye(4, dtype="f4")
       self.pcavals, self.pcavecs = rp.util.numeric.pca_eig(self.cen)
+
+   def copy_with_sym(self, sym, symaxis=[0, 0, 1], newaxis=None, phase=0):
+      x = np.eye(4)
+      if newaxis is not None:
+         x = wu.homog.align_vector(symaxis, newaxis)
+         x = wu.hrot(newaxis, phase) @ x
+      b = copy.deepcopy(self.asym_body)
+
+      if isinstance(sym, str): sym = int(sym[1:])
+      if isinstance(sym, np.ndarray): sym = int(sym[0])
+      if isinstance(sym, (np.int32, np.int64)): sym = int(sym)
+      #print(sym, type(sym))
+      assert isinstance(sym, int)
+      if sym == 1: return b
+      b.pos = np.eye(4, dtype='f4')
+      b.asym_body = self.asym_body
+      b.init_coords(sym, symaxis, xform=x)
+      return b
+
+   def copy_xformed(self, xform):
+      b = copy.deepcopy(self.asym_body)
+      b.pos = np.eye(4, dtype='f4')
+      b.asym_body = b
+      b.init_coords('C1', [0, 0, 1], xform)
+      return b
 
    def set_asym_body(self, pose, sym, **kw):
       if isinstance(sym, int): sym = "C%i" % sym
@@ -160,6 +219,18 @@ class Body:
       self.bvh_bb = None
       self.bvh_cen = None
       self.asym_body = None
+
+   @property
+   def pos(self):
+      if not hasattr(self, '_pos'):
+         self._pos = np.eye(4)
+      return self._pos
+
+   @pos.setter
+   def pos(self, xform):
+      if not hasattr(self, '_pos'):
+         self._pos = np.eye(4)
+      self._pos = xform
 
    def com(self):
       return self.bvh_bb.com()
@@ -254,12 +325,24 @@ class Body:
    def clash_ok(self, *args, **kw):
       return np.logical_not(self.intersect(*args, **kw))
 
-   def distance_to(self, other):
-      return rp.bvh.bvh_min_dist(self.bvh_bb, other.bvh_bb, self.pos, other.pos)
+   def distance_to(self, other, spos=None, opos=None):
+      spos = self.pos if spos is None else spos
+      opos = self.pos if opos is None else opos
+      dist, i1, i2 = rp.bvh.bvh_min_dist_vec(self.bvh_bb, other.bvh_bb, spos, opos)
+      return dist
 
-   def positioned_coord(self, asym=False):
+   def positioned_coord(self, asym=False, pos=None):
+      pos = self.pos if pos is None else pos
+      assert pos.shape == (4, 4)
       n = len(self.coord) // self.nfold if asym else len(self.coord)
       return (self.pos @ self.coord[:n, :, :, None]).squeeze()
+
+      foo = self.coord[:n, :, :]
+      # print(pos.shape, foo.shape)
+      bar = pos @ foo
+      # print(bar.shape)
+      # assert 0
+      return bar.squeeze()
 
    def positioned_coord_atomno(self, i):
       return self.pos @ self.coord.reshape(-1, 4)[i]
@@ -272,22 +355,40 @@ class Body:
    def positioned_orig_coords(self):
       return [(self.pos @ x[..., None]).squeeze() for x in self.orig_coords]
 
-   def contact_pairs(self, other, maxdis, buf=None, use_bb=False, atomno=False):
+   def contact_pairs(self, other, pos1=None, pos2=None, maxdis=10, buf=None, use_bb=False,
+                     atomno=False):
+      if pos1 is None: pos1 = self.pos
+      if pos2 is None: pos2 = other.pos
       if not buf:
          buf = np.empty((10000, 2), dtype="i4")
       pairs, overflow = rp.bvh.bvh_collect_pairs(
          self.bvh_bb_atomno if atomno else (self.bvh_bb if use_bb else self.bvh_cen),
-         other.bvh_bb_atomno if atomno else (other.bvh_bb if use_bb else other.bvh_cen),
-         self.pos,
-         other.pos,
-         maxdis,
-         buf,
-      )
+         other.bvh_bb_atomno if atomno else (other.bvh_bb if use_bb else other.bvh_cen), pos1,
+         pos2, maxdis, buf)
       assert not overflow
       return pairs
 
-   def contact_count(self, other, maxdis):
-      return rp.bvh.bvh_count_pairs(self.bvh_cen, other.bvh_cen, self.pos, other.pos, maxdis)
+   def contact_count(self, other, pos1=None, pos2=None, maxdis=10, debug=False):
+      if pos1 is None:
+            if debug: print("pos1 = self.pos")
+            pos1 = self.pos
+      if pos2 is None:
+            if debug: print("pos2 = other.pos")
+            pos2 = other.pos
+      
+      if debug:
+         print("self.bvh_cen"); print(self.bvh_cen)
+         print("other.bvh_cen"); print(other.bvh_cen)
+         print("pos1"); print(pos1)
+         print("pos2"); print(pos2)
+         print("maxdis"); print(maxdis)
+
+      return rp.bvh.bvh_count_pairs_vec(self.bvh_cen, other.bvh_cen, pos1, pos2, maxdis)
+
+   def contact_count_bb(self, other, pos1=None, pos2=None, maxdis=10):
+      if pos1 is None: pos1 = self.pos
+      if pos2 is None: pos2 = other.pos
+      return rp.bvh.bvh_count_pairs_vec(self.bvh_bb, other.bvh_bb, pos1, pos2, maxdis)
 
    def dump_pdb(self, fname, **kw):
       # import needs to be here to avoid cyclic import
@@ -297,6 +398,7 @@ class Body:
    def str_pdb(self, **kw):
       # import needs to be here to avoid cyclic import
       from rpxdock.io.io_body import dump_pdb_from_bodies
+      self.pos = np.eye(4)
       return rp.io.make_pdb_from_bodies([self], **kw)
 
    def copy(self):
@@ -304,20 +406,6 @@ class Body:
       b.pos = np.eye(4, dtype="f4")  # mutable state can't be same ref as orig
       assert b.pos is not self.pos
       assert b.coord is self.coord
-      return b
-
-   def copy_with_sym(self, sym, symaxis=[0, 0, 1]):
-      b = copy.deepcopy(self.asym_body)
-      b.pos = np.eye(4, dtype='f4')
-      b.init_coords(sym, symaxis)
-      b.asym_body = self.asym_body
-      return b
-
-   def copy_xformed(self, xform):
-      b = copy.deepcopy(self.asym_body)
-      b.pos = np.eye(4, dtype='f4')
-      b.init_coords('C1', [0, 0, 1], xform)
-      b.asym_body = b
       return b
 
    def filter_pairs(self, pairs, score_only_sspair, other=None, lbub=None, sanity_check=True):
@@ -344,10 +432,14 @@ class Body:
       else:
          return pairs[ok]
 
+   def source(self):
+      return self.pdbfile if self.pdbfile else '<rosetta Pose of unknown origin>'
+
    def __repr__(self):
+      return f'Body(source="{self.source()}")'
       source = self.pdbfile if self.pdbfile else '<rosetta Pose of unknown origin>'
       return f'Body(source="{source}")'
-   
+
    # Make copy of body that had helix appended at termini, such that new body
    # is a copy of original but does not include info about the helical residues
    def copy_exclude_term_res(self):
@@ -361,12 +453,11 @@ class Body:
             if len(val) != self.og_seqlen and len(val) == self.nres:
                setattr(newbody, attribute, val.copy()[:(self.og_seqlen)])
       newbody.nres = self.og_seqlen
-      newbody.modified_term = [False, False] #no longer includes modified termini
+      newbody.modified_term = [False, False]  #no longer includes modified termini
       return newbody
 
-
 def get_trimming_subbodies(body, pose, debug=False, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    if kw.helix_trim_max == 0 or kw.helix_trim_max is None:
       return [], []
    print('body.ss', ''.join(body.ss))
@@ -455,3 +546,40 @@ def get_trimming_subbodies(body, pose, debug=False, **kw):
          b.dump_pdb('trimN_%i.pdb' % i)
 
    return trimN_subbodies, trimC_subbodies
+
+   def symcom(self, pos=np.eye(4).reshape(-1, 4, 4), flat=False):
+      # print('symcom', pos.shape)
+      return wu.homog.hxform(pos, self._symcom, outerprod=True, flat=flat)
+
+   def symcomdist(self, pos=np.eye(4).reshape(-1, 4, 4), pos2=None, mask=False):
+      if pos2 is None: pos2 = pos
+      else: mask = False
+      coms = self.symcom(pos, flat=False)
+      coms2 = self.symcom(pos2, flat=False)
+      dist = wu.homog.hdist(coms, coms2)
+      if mask and pos2 is not None:
+         for i in range(len(pos)):
+            for j in range(i + 1):
+               dist[i, :, j, :] = 9e9
+      return dist
+
+def get_body_cached(
+      fname,
+      csym='c1',
+      xaln=np.eye(4),
+      cachedir='.rpxcache',
+      **kw,
+):
+   os.makedirs(cachedir, exist_ok=True)
+   cache_fname = os.path.join(cachedir, os.path.basename(fname))
+   cache_fname += '_' + csym
+   cache_fname += '_xaln%i' % rp.util.hash_str_to_int(repr(xaln))
+   cache_fname += '.body.pickle'
+   if os.path.exists(cache_fname):
+      body = rp.load(cache_fname)
+   else:
+      body = Body(fname, **kw)
+      body = body.copy_xformed(xaln)
+      body = body.copy_with_sym(csym)
+      rp.dump(body, cache_fname)
+   return body
