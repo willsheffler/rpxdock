@@ -511,6 +511,11 @@ def result_to_tarball(result, fname, overwrite=False):
 
    return fname
 
+def result_to_summary(result, fname, overwrite=False):
+   logging.debug("printing summary")
+
+   #return fname
+
 def process_body_labels(bodies, labels, data):
    njob = max(data.ijob.data,default=-1)+1 if 'ijob' in data else 1
    ndim = data['xforms'].shape[1] if data['xforms'].ndim == 4 else 1

@@ -515,6 +515,13 @@ def main():
          ## print(result2)
          #result2.dump_pdbs()
 
+      if True:
+         summaryfname = kw.output_prefix + '_Summary.txt'
+         logging.info(f"saving summary to {str(summaryfname)}")
+         rp.search.result_to_summary()
+         #rp.search.result_to_summary(result, summaryfname, overwrite=True)
+         logging.info(f"saved summary to {str(summaryfname)}")
+
 if __name__ == '__main__':
    main()
    logging.info('DONE')
