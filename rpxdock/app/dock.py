@@ -498,28 +498,21 @@ def main():
       result.dump_pdbs_top_score_each(hscore=hscore, **kw)
    if not kw.suppress_dump_results:
 
+      picklefname = None
       if kw.save_results_as_pickle:
          picklefname = kw.output_prefix + '_Result.pickle'
          rp.util.dump(result, picklefname)
          logging.info(f"saved result to {str(picklefname)}")
 
+      tarfname = None
       if kw.save_results_as_tarball:
          tarfname = kw.output_prefix + '_Result.txz'
          rp.search.result_to_tarball(result, tarfname, overwrite=True)
          logging.info(f"saved result to {str(tarfname)}")
 
-         #print('try to read')
-         #result2 = rp.search.result_from_tarball(tarfname)
-         #assert result == result2
-         #assert result2.sym
-         ## print(result2)
-         #result2.dump_pdbs()
-
-      if True:
+      if kw.dump_result_summary:
          summaryfname = kw.output_prefix + '_Summary.txt'
-         logging.info(f"saving summary to {str(summaryfname)}")
-         rp.search.result_to_summary()
-         #rp.search.result_to_summary(result, summaryfname, overwrite=True)
+         rp.search.result_to_summary(result, summaryfname, picklefname, tarfname)
          logging.info(f"saved summary to {str(summaryfname)}")
 
 if __name__ == '__main__':
