@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import willutil as wu
 import rpxdock as rp
-from willutil import I
+# from willutil import I
 
 if 'pymol' in sys.modules:
 
@@ -11,7 +11,8 @@ if 'pymol' in sys.modules:
       ds,
       state,
       name,
-      pos=I,
+      # pos=I,
+      pos=None,
       delprev=False,
       resrange=(0, -1),
       sym=None,

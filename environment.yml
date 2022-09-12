@@ -1,7 +1,7 @@
 name: rpxdock39
 channels:
  - conda-forge
- - https://username:password@conda.graylab.jhu.edu
+ - https://pose:foldtree@conda.graylab.jhu.edu
  - schrodinger
 dependencies:
  - python<3.10
@@ -14,6 +14,7 @@ dependencies:
  # - pandas=0.24.2
  # - xarray=0.11.3
  - pandas
+ - icecream
  - xarray
  - netcdf4
  - ipython
@@ -37,5 +38,6 @@ dependencies:
  - pip:
    - cppimport
    - deferred-import
+   # - git+https://github.com/willsheffler/willutil.git
    # - breathe>=4.13.0
-   # - exhale
+   # - exhale 
