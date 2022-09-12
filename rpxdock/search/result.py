@@ -252,7 +252,7 @@ class Result:
          symframes = [np.eye(4)]
 
       outfnames.append(fname)
-      print('dumping', fname)
+      logging.info(f'dumping {fname}')
       rp.io.dump_pdb_from_bodies(
          fname,
          bod,
@@ -509,6 +509,67 @@ def result_to_tarball(result, fname, overwrite=False):
 
       cmd = f'cd {td} && tar cjf {os.path.abspath(fname)} *'
       assert not os.system(cmd)
+
+   return fname
+
+def result_to_summary(result, fname, picklefname, tarfname, direction="top", nout_top="all" ):
+   logging.debug("printing summary")
+   logging.debug(f"fname {fname}")
+   logging.debug(f"picklefname {picklefname}")
+   logging.debug(f"tarfname {tarfname}")
+
+   #print result xarry dataset
+   logging.info(result)
+
+   #set paths
+   if picklefname:
+      logging.debug("pickle file output ON")
+      output_path = picklefname
+   if tarfname:
+      logging.debug("tarball file output ON")
+      output_path = tarfname
+
+   #sort result
+   best = np.argsort(-result.scores)
+   logging.info(best)
+   if nout_top == 'all':
+      nout_top = len(result.data)
+
+   assert ( direction == "top" ) or ( direction == "bot" )
+   if direction == "top":
+      dir_range = slice(0,nout_top)
+   else:
+      dir_range = slice(-nout_top-1,-1)
+
+   logging.debug(f"direction {direction}")
+   logging.debug(f"nout_top {nout_top}")
+   logging.debug(f"dir_range {dir_range}")
+   
+   #pad model number with leading zeros
+   max_model_num = best[dir_range].values.max()
+   max_model_num_char = len(str(max_model_num))
+
+   #open summary text file to write
+   f = open(f"{fname}","w")
+
+   #figure out name and write the file
+   count=0
+   for model in best:
+      bod = result.bodies[result.ijob[model.values].values]
+      body_names = [b.label for b in bod]
+      output_body = list(range(len(bod)))
+      if len(bod) > 1 and result.labels:
+         bodlab = [result.labels[result.ijob[model.values].values][z] for z in output_body]
+         body_names = [bl + '_' + lbl for bl, lbl in zip(bodlab, body_names)]
+      middle = '__'.join(body_names)
+
+      logging.debug(f"{os.path.abspath(output_path)},{result.sym}__{direction}{count}_{str(model.values).zfill(max_model_num_char)}__{middle}.pdb"  )
+      f.write(      f"{os.path.abspath(output_path)},{result.sym}__{direction}{count}_{str(model.values).zfill(max_model_num_char)}__{middle}.pdb\n")
+
+      count += 1
+
+   #close the summary text file
+   f.close()
 
    return fname
 
