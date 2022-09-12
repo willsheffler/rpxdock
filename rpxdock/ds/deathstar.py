@@ -2,7 +2,7 @@ import rmsd
 import numpy as np
 import rpxdock as rp
 import willutil as wu
-from willutil import htrans, hrot, hxform, I
+from willutil import htrans, hrot, hxform
 
 try:
    import sys
@@ -22,14 +22,18 @@ class DeathStar(object):
       laser,
       cagesym,
       cycsym,
-      origin=I,
+      # origin=I,
+      origin=None,
       contact_dist=6,
       clash_dist=3,
       begnbr=1,
       # origframes=None,
-      capcen=I,
-      capaln=I,
-      capxform=I,
+      # capcen=I,
+      capcen=None,
+      # capaln=I,
+      capaln=None,
+      # capxform=I,
+      capxform=None,
       timer=None,
    ):
       super(DeathStar, self).__init__()
@@ -326,7 +330,8 @@ class DeathStar(object):
    def iface_rel_xforms(self, original=False):
       ifacepos = self.iface_positions(original=original)
       # xaln = wu.hinv(ifacepos[self.ref_iface_idx, 1]) @ ifacepos[self.ref_iface_idx, 0]
-      xaln = I
+      # xaln = I
+      xaln = None
       ip0 = ifacepos[:, 0] @ self.toifacececen
       ip1 = ifacepos[:, 1] @ self.toifacececen
       ifpos = xaln @ wu.hinv(ip0) @ ip1
@@ -417,7 +422,8 @@ class DeathStar(object):
             rp.io.dump_pdb_from_bodies(f'{fprefix}_hull{i}{j}.pdb', [self.hull])
 
       ifacepos = self.iface_positions()
-      xaln = I
+      # xaln = I
+      xaln = None
       for inbr, (pos1, pos2) in enumerate(ifacepos):
          x1 = xaln @ I  #wu.hinv(pos1) @ pos1
          x2 = xaln @ wu.hinv(pos1) @ pos2
@@ -447,7 +453,8 @@ def cage_to_cyclic(
    hull,
    cagesym,
    cycsym,
-   origin=I,
+   # origin=I,
+   origin=None,
 ):
    # kw = wu.Bunch(headless=True)
    # kw.headless = False
