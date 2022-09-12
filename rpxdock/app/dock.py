@@ -422,7 +422,7 @@ def dock_axel(hscore, **kw):
 
 
 def dock_layer(hscore, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    spec = get_spec(kw.architecture)
 
    bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
@@ -456,7 +456,7 @@ def dock_layer(hscore, **kw):
 
 
 def dock_nside(hscore, **kw):
-   kw = rp.Bunch(kw)
+   kw = Bunch(kw, _strict=False)
    spec = get_spec(kw.architecture)
    bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
               for fn, ar2 in zip(inp, ar)]
