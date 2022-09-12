@@ -52,7 +52,7 @@ def hier_axis_sampler(
    :return: "arrays of pos" to check for a given search resolution where pos are represented by matrices
    '''
 
-   kw=rp.Bunch(kw)
+   kw=Bunch(kw)
 
    cart_nstep = int(np.ceil((ub - lb) / resl))
    ang = 360 / nfold
