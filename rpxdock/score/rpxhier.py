@@ -56,7 +56,9 @@ class RpxHier:
 
    def score_matrix_inter(self, bodyA, bodyB, wts, symframes=[np.eye(4)], iresl=-1, **kw):
       m = np.zeros((len(bodyA), len(bodyB)), dtype='f4')
-      for xsym in symframes[1:].astype('f4'):
+      symframes=[np.eye(4, dtype='f4')]
+      for xsym in symframes[1:]:
+         #.astype('f4')
          pairs, lbub = rp.bvh.bvh_collect_pairs_vec(
             bodyA.bvh_cen,
             bodyB.bvh_cen,

@@ -46,6 +46,7 @@ def make_multicomp(
       logging.debug(f"ibest {ibest}")
       ibest = ibest[sbest]
 
+   
    tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw)
 
    if kw.verbose:
@@ -121,7 +122,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       kw = self.kw.sub(wts=wts)
       xeye = np.eye(4, dtype="f4")
       B = self.bodies
-      # print(f"docking {len(B)} bodies")
+      print(f"docking {len(B)} bodies")
       X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
       xnbr = self.spec.to_neighbor_olig
       # check for "flatness" (ok = an array of "the good stuff that passes these checks")
@@ -129,38 +130,53 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          [hm.hdot(X[:, i] @ B[i].com(), self.spec.axis[i]) for i in range(len(B))])
       ok = np.max(np.abs(delta_h[None] - delta_h[:, None]), axis=(0, 1)) < kw.max_delta_h
       # ok = np.repeat(True, len(X))
-
-      # check clash, or get non-clash range
+      specky = str(self.spec)
+      #print(f"B is {B}")
+      #print(f"Neigh is {self.spec.to_neighbor_olig}")
+      #print(f"symrots are {self.symrots}")
+      # check clash, or get non-clash range  <-- think I need to change this to look in full symmetric object
       for i in range(len(B)):
          if xnbr[i] is not None:
             ok[ok] &= B[i].clash_ok(B[i], X[ok, i], xnbr[i] @ X[ok, i], **kw)
          for j in range(i):
             ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
+            if specky.startswith('<rpxdock.search.dockspec.DockSpecDiscrete'):
+               ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
+                #print(f"B is {B[i]}")
+                #print(self.symrots[i])
+                #print(f"X is {X}")
+                #print(f"xnbr is {xnbr}")
 
-      if xnbr[0] is None and xnbr[1] is not None and xnbr[2] is not None:  # layer hack
+      if xnbr[0] is None and xnbr[1] is not None:  # layer hack
          logging.debug("touch")
+         inv = np.linalg.inv
+         #print(f"check is {xnbr[1] @ X[ok, 1]}")
+         #print(f"inverse check is {inv(xnbr[1]) @ X[ok, 1]}")
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[1] @ X[ok, 1], **kw)
-         ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], xnbr[2] @ X[ok, 2], **kw)
-         ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[2] @ X[ok, 1], **kw)
-         ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], xnbr[1] @ X[ok, 2], **kw)
-         ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], xnbr[2] @ X[ok, 2], **kw)
-         ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], xnbr[1] @ X[ok, 2], **kw)
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], inv(xnbr[1]) @ X[ok, 1], **kw)
-         ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], inv(xnbr[1]) @ X[ok, 2], **kw)
-         ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[1]) @ X[ok, 2], **kw)
+         #ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], inv(xnbr[1]) @ X[ok, 2], **kw)
+         #ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[1]) @ X[ok, 2], **kw)
          # check clash, or get non-clash range
+         
+         ##chelsea.self.clashing 
+         #need to look for self clash (lines marked with ##)
+         ok[ok] &= B[0].clash_ok(B[0], X[ok, 0], inv(xnbr[1]) @ X[ok, 1], **kw) ##
+         ok[ok] &= B[1].clash_ok(B[0], X[ok, 1], xnbr[1] @ X[ok, 0], **kw)
+         ok[ok] &= B[1].clash_ok(B[0], X[ok, 1], inv(xnbr[1]) @ X[ok, 0], **kw)
+         ok[ok] &= B[1].clash_ok(B[1], X[ok, 1], inv(xnbr[1]) @ X[ok, 0], **kw) ##
+         
       for i in range(len(B)):
-         if xnbr[i] is not None:
-            ok[ok] &= B[i].clash_ok(B[i], X[ok, i], xnbr[i] @ X[ok, i], **kw)
-         for j in range(i):
-            ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
-
+      	if xnbr[i] is not None:
+      		ok[ok] &= B[i].clash_ok(B[i], X[ok, i], xnbr[i] @ X[ok, i], **kw)
+      	for j in range(i):
+      		ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
+           
       # score everything that didn't clash
       # Behaves normally if arg.score_self is not set
       if not kw.score_self:
          ifscore = list()
          for i in range(len(B)):
-            for j in range(i):
+           for j in range(i):
                ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl,
                                                    wts=wts))
                # ifscore = np.stack(ifscore)
@@ -170,7 +186,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          logging.debug(f"scores is shaped like {scores.shape} and is a {type(scores)}")
          scores[ok] = kw.iface_summary(ifscore, axis=0)
          logging.debug(f"scores is now shaped like {scores.shape}")
-         extra = Bunch()
+         extra = Bunch() 
       else:  #return all of the interface scores
          logging.debug("Scoring self")
          s_ifscore = list()
@@ -340,8 +356,13 @@ def _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw):
       wrpx, wnct = (kw.wts.sub(rpx=1, ncontact=0), kw.wts.sub(rpx=0, ncontact=1))
       scr, extra = evaluator(xforms[i], kw.nresl - 1, wrpx)
       cnt, extra = evaluator(xforms[i], kw.nresl - 1, wnct)
+      
       fn = kw.output_prefix + "_%02i.pdb" % iout
-      lbub = [extra.lbub] if extra.lbub else []
+      
+      if hasattr(extra, 'lbub') == True:
+      	lbub = [extra.lbub] 
+      else:
+       	lbub = []  
       if len(lbub) > 1:
          logging.info(
             f"{fn} score {scores[i]:7.3f} rpx {scr[0]:7.3f} cnt {cnt[0]:4}",

@@ -6,7 +6,8 @@ tetrahedral_frames = np.load(rp.data.datadir + "/tetrahedral_frames.pickle", all
 octahedral_frames = np.load(rp.data.datadir + "/octahedral_frames.pickle", allow_pickle=True)
 icosahedral_frames = np.load(rp.data.datadir + "/icosahedral_frames.pickle", allow_pickle=True)
 
-def symframes(sym, pos=None, axis=[0, 0, 1], **kw):
+
+def symframes(sym, pos=None, axis=[0,0,1], **kw):
    kw = Bunch(kw, _strict=False)
    if isinstance(sym, np.ndarray):
       assert len(sym) == 1
@@ -44,12 +45,126 @@ def symframes(sym, pos=None, axis=[0, 0, 1], **kw):
       c3 = hm.hrot(axis, np.arange(3) / 3 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
       c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[pos[2, 0, 3], pos[2, 1, 3], 0])
       frames = c6[None, None, :] @ c3[None, :, None] @ c2[:, None, None]
-      # frames = (c6[:, None, None, None] @ c2[None, :, None, None] @ c3[None, None, :, None]
-      # @ c6[None, None, None, :])
-      # frames = c3[None, :, None] @ c2[:, None, None]
-      # frames = np.concatenate([c6, c3, c2])
-      # frames = c6
-      # frames = np.eye(4)
+      return frames.reshape(-1, 4, 4)
+
+   elif sym == 'P6_32':
+      c3 = hm.hrot(axis, np.arange(3) / 3 * 360)
+      c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
+      #center inputs are 3 x,y,z, each list should be something like position, spin, offset (idk for sure)
+      #if you change the center of c2, c3 spins to compensate for change
+
+      frames = c3[:, None] @ c2[None, :]
+      #doesnt know what nfold is yet
+      return frames.reshape(-1, 4, 4)
+
+   elif sym == 'P6_33':
+      c3 = hm.hrot(axis, np.arange(3) / 3 * 360)
+      c3b = hm.hrot(axis, np.arange(3) / 3 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
+      frames = c3[:, None] @ c3b[None, :]
+      return frames.reshape(-1, 4, 4)
+
+   elif sym == 'P6_63':
+      c6 = hm.hrot(axis, np.arange(6) / 6 * 360)
+      c3 = hm.hrot(axis, np.arange(3) / 3 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
+      frames = c6[:, None] @ c3[None, :]
+      return frames.reshape(-1, 4, 4)
+
+   elif sym == 'P6_62':
+      c6 = hm.hrot(axis, np.arange(6) / 6 * 360)
+      c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
+      frames = c6[:, None] @ c2[None, :]
+      return frames.reshape(-1, 4, 4)
+
+   elif sym == 'P4_42':
+      c4 = hm.hrot(axis, np.arange(4) / 4 * 360)
+      c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
+      frames = c4[:, None] @ c2[None, :]
+      return frames.reshape(-1, 4, 4)
+
+   elif sym == 'P4_44':
+      c4 = hm.hrot(axis, np.arange(4) / 4 * 360)
+      c4b = hm.hrot(axis, np.arange(4) / 4 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
+      frames = c4[:, None] @ c4b[None, :]
+      return frames.reshape(-1, 4, 4)
+
+   elif sym.startswith('F_32'):
+      c3 = hm.hrot(axis, np.arange(3) / 3 * 360)
+      if sym.endswith('4'):
+         axis2 = [1, 0, 0]
+      if sym.endswith('6'):
+         axis2 = [1.7320508075688767, 0, 1]
+      if sym.endswith('8'):
+         axis2 = [1, 0, 1]
+      if sym.endswith('10'):
+         axis2 = [0.7265425280053609, 0, 1]
+      if sym.endswith('12'):
+         axis2 = [0.5773502691896257, 0, 1]
+      if sym.endswith('14'):
+         axis2 = [0.48157461880752883, 0, 1]
+      if sym.endswith('16'):
+         axis2 = [0.41421356237309503, 0, 1]
+      if sym.endswith('18'):
+         axis2 = [0.36397023426620234, 0, 1]
+      if sym.endswith('20'):
+         axis2 = [0.3249196962329063, 0, 1]
+      if sym.endswith('22'):
+         axis2 = [0.2936264929383669, 0, 1],
+      if sym.endswith('24'):
+         axis2 = [0.2679491924311227, 0, 1]
+      if sym.endswith('26'):
+         axis2 = [0.24647786303197738, 0, 1]
+      if sym.endswith('28'):
+         axis2 = [0.22824347439015003, 0, 1]
+      if sym.endswith('30'):
+         axis2 = [0.21255656167002213, 0, 1]
+      if sym.endswith('32'):
+         axis2 = [0.198912367379658, 0, 1]
+      if sym.endswith('34'):
+         axis2 = [0.18693239710797724, 0, 1]
+      if sym.endswith('36'):
+         axis2 = [0.17632698070846498, 0, 1]
+      c2 = hm.hrot(axis2, np.arange(2) / 2 * 360,  center=[pos[1, 0, 3], pos[1, 1, 3], pos[1, 2, 3]])
+      frames = c3[:, None] @ c2[None, :]
+      return frames.reshape(-1, 4, 4)
+
+   elif sym.startswith('F_42'):
+      c4 = hm.hrot(axis, np.arange(4) / 4 * 360)
+      if sym.endswith('4'):
+         axis2 = [1, 0, 0]
+      if sym.endswith('6'):
+         axis2 = [1.7320508075688767, 0, 1]
+      if sym.endswith('8'):
+         axis2 = [1, 0, 1]
+      if sym.endswith('10'):
+         axis2 = [0.7265425280053609, 0, 1]
+      if sym.endswith('12'):
+         axis2 = [0.5773502691896257, 0, 1]
+      if sym.endswith('14'):
+         axis2 = [0.48157461880752883, 0, 1]
+      if sym.endswith('16'):
+         axis2 = [0.41421356237309503, 0, 1]
+      if sym.endswith('18'):
+         axis2 = [0.36397023426620234, 0, 1]
+      if sym.endswith('20'):
+         axis2 = [0.3249196962329063, 0, 1]
+      if sym.endswith('22'):
+         axis2 = [0.2936264929383669, 0, 1],
+      if sym.endswith('24'):
+         axis2 = [0.2679491924311227, 0, 1]
+      if sym.endswith('26'):
+         axis2 = [0.24647786303197738, 0, 1]
+      if sym.endswith('28'):
+         axis2 = [0.22824347439015003, 0, 1]
+      if sym.endswith('30'):
+         axis2 = [0.21255656167002213, 0, 1]
+      if sym.endswith('32'):
+         axis2 = [0.198912367379658, 0, 1]
+      if sym.endswith('34'):
+         axis2 = [0.18693239710797724, 0, 1]
+      if sym.endswith('36'):
+         axis2 = [0.17632698070846498, 0, 1]
+      c2 = hm.hrot(axis2, np.arange(2) / 2 * 360,  center=[pos[1, 0, 3], pos[1, 1, 3], pos[1, 2, 3]])
+      frames = c4[:, None] @ c2[None, :]
       return frames.reshape(-1, 4, 4)
    elif sym == 'P4M_4':
       c4a = hm.hrot(axis, np.arange(4) / 4 * 360)

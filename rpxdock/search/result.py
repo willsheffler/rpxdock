@@ -261,6 +261,7 @@ class Result:
          bfactor=bfactor,
          **kw,
       )
+
       if hasattr(self, 'pdb_extra_') and self.pdb_extra_ is not None:
          with open(fname, 'a') as out:
             out.write(self.pdb_extra_[int(imodel)])
