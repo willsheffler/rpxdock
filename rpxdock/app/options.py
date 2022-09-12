@@ -390,6 +390,9 @@ def default_cli_parser(parent=None, **kw):
    addarg("--overwrite_existing_results", action='store_true', default=False,
           help='overwrite existing results')
 
+   addarg("--dump_result_summary", action='store_true', default=False,
+          help='dump result filenames in a Summary.txt file')
+
    parser.has_rpxdock_args = True
    return parser
 
