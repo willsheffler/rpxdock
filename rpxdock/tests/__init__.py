@@ -7,7 +7,7 @@ import os
 os.environ["CC"] = "gcc-7"  # no idea if this works
 os.environ["CXX"] = "g++-7"  # no idea if this works
 
-from rpxdock.util import Bunch, Timer, load, dump
+from rpxdock.util import load, dump
 from rpxdock import app
 from rpxdock import body
 from rpxdock import bvh
