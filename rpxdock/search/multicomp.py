@@ -45,29 +45,34 @@ def make_multicomp(
       logging.debug(f"sbest {sbest}")
       logging.debug(f"ibest {ibest}")
       ibest = ibest[sbest]
-
-   
-   tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw)
-
-   if kw.verbose:
-      logging.info(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
-      logging.info("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
-      logging.info("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
-
    xforms = xforms[ibest]
    wrpx = kw.wts.sub(rpx=1, ncontact=0)
    wnct = kw.wts.sub(rpx=0, ncontact=1)
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
    ncontact, ncont_extra = evaluator(xforms, kw.nresl - 1, wnct)
-
-   data = dict(
-      attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, output_prefix=kw.output_prefix,
-                 output_body='all', sym=spec.arch),
-      scores=(["model"], scores[ibest].astype("f4")),
-      xforms=(["model", "comp", "hrow", "hcol"], xforms),
-      rpx=(["model"], rpx.astype("f4")),
-      ncontact=(["model"], ncontact.astype("f4")),
-   )
+   
+   ##only do tpump for cages 
+   specky = str(spec)
+   if not specky.startswith('<rpxdock.search.dockspec.DockSpecDiscrete') and not specky.startswith('<rpxdock.search.dockspec.DockSpec2CompLayer') and not specky.startswith('<rpxdock.search.dockspec.DockSpec3CompLayer'):
+   
+	   tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw)
+	   if kw.verbose:
+	   	logging.info(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
+	   	logging.info("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
+	   	logging.info("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
+	   	data = dict(
+			attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, output_prefix=kw.output_prefix, output_body='all', sym=spec.arch),
+			scores=(["model"], scores[ibest].astype("f4")),
+			xforms=(["model", "comp", "hrow", "hcol"], xforms),
+			rpx=(["model"], rpx.astype("f4")),
+			ncontact=(["model"], ncontact.astype("f4")))
+   else:
+   	data = dict(
+		attrs=dict(arg=kw, stats=stats, ttotal=t.total, output_prefix=kw.output_prefix, output_body='all', sym=spec.arch),
+		scores=(["model"], scores[ibest].astype("f4")),
+		xforms=(["model", "comp", "hrow", "hcol"], xforms),
+		rpx=(["model"], rpx.astype("f4")),
+		ncontact=(["model"], ncontact.astype("f4")))
 
    for k, v in extra.items():
       if not isinstance(v, (list, tuple)) or len(v) > 3:
@@ -131,10 +136,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       ok = np.max(np.abs(delta_h[None] - delta_h[:, None]), axis=(0, 1)) < kw.max_delta_h
       # ok = np.repeat(True, len(X))
       specky = str(self.spec)
-      #print(f"B is {B}")
-      #print(f"Neigh is {self.spec.to_neighbor_olig}")
-      #print(f"symrots are {self.symrots}")
-      # check clash, or get non-clash range  <-- think I need to change this to look in full symmetric object
+
       for i in range(len(B)):
          if xnbr[i] is not None:
             ok[ok] &= B[i].clash_ok(B[i], X[ok, i], xnbr[i] @ X[ok, i], **kw)
@@ -142,16 +144,10 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
             ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
             if specky.startswith('<rpxdock.search.dockspec.DockSpecDiscrete'):
                ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
-                #print(f"B is {B[i]}")
-                #print(self.symrots[i])
-                #print(f"X is {X}")
-                #print(f"xnbr is {xnbr}")
 
       if xnbr[0] is None and xnbr[1] is not None:  # layer hack
          logging.debug("touch")
          inv = np.linalg.inv
-         #print(f"check is {xnbr[1] @ X[ok, 1]}")
-         #print(f"inverse check is {inv(xnbr[1]) @ X[ok, 1]}")
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], xnbr[1] @ X[ok, 1], **kw)
          ok[ok] &= B[0].clash_ok(B[1], X[ok, 0], inv(xnbr[1]) @ X[ok, 1], **kw)
          #ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], inv(xnbr[1]) @ X[ok, 2], **kw)

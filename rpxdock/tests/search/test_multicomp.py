@@ -120,13 +120,11 @@ def test_layer_hier_3comp(hscore, bodyC6, bodyC3, bodyC2):
                                                  flip_components=True)
    result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **kw)
 
-   # result.dump_pdbs_top_score(hscore=hscore,
-   # **kw.sub(
-   # nout_top=10,
-   # output_prefix='test_layer_hier_3comp',
-   # ))
-   # assert 0
-   # rp.dump(result, 'rpxdock/data/testdata/test_layer_hier_3comp.pickle')
+
+   result.dump_pdbs_top_score(hscore=hscore,
+    **kw.sub(nout_top=5, output_prefix='test_layer_hier_3comp_test', output_asym_only=False))
+    
+   rp.dump(result, 'rpxdock/data/testdata/test_layer_hier_3comp.pickle')
    ref = rp.data.get_test_data('test_layer_hier_3comp')
    rp.search.assert_results_close(result, ref)
 
@@ -206,18 +204,11 @@ def test_cage_term_access(hscore, term_mod_C3_and_C2):
       # result[j].dump_pdbs_top_score(hscore=hscore,
       #                         **kw.sub(nout_top=10, output_prefix=f'test_cage_term_access{j}'))
    result = rp.concat_results(result)
-   # print(result)
 
-   # rp.dump(result, 'rpxdock/data/testdata/test_cage_term_access.pickle')
+   rp.dump(result, 'rpxdock/data/testdata/test_cage_term_access.pickle')
 
-   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   # data file is missing
-   # ref = rp.data.get_test_data('test_cage_term_access')
-   # rp.search.assert_results_close(result, ref)
-   result.dump_pdbs_top_score(hscore=hscore,
-   **kw.sub(nout_top=5, output_prefix='test_layer_hier_3comp'))
 
-   ref = rp.data.get_test_data('test_layer_hier_3comp')
+   ref = rp.data.get_test_data('test_cage_term_access')
    rp.search.assert_results_close(result, ref)
 
 def test_layer_hier_2comp(hscore, bodyC3, bodyC2):
@@ -234,10 +225,12 @@ def test_layer_hier_2comp(hscore, bodyC3, bodyC2):
    spec = rp.search.DockSpec2CompLayer('P6_32')
    sampler = rp.sampling.hier_multi_axis_sampler(spec, [[-100, 100], [-100, 100]],
                                                  flip_components=True)
-   #bounds for the hier_multi_axis_sampler are critical for getting dock solutions - need big search space?
-   #bounds set limits in x,y,z cartesian space. limits are same in each direction, and each term refers to bounds for each component
 
    result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **kw)
+   
+   rp.dump(result, '../../data/testdata/test_layer_hier_2comp.pickle')
+   ref = rp.data.get_test_data('test_layer_hier_2comp.pickle')
+   rp.search.result.result_to_tarball(ref, f'../../data/testdata/test_layer_hier_2comp.result.txz', overwrite=True)
 
    result.dump_pdbs_top_score(hscore=hscore,
     **kw.sub(nout_top=5, output_prefix='test_layer_hier_2comp_test', output_asym_only=False))
@@ -264,9 +257,14 @@ def test_discrete_2comp(hscore, body1, body2):
    #some issue with lbub in kw not talking to will util in new env 
 
    result.dump_pdbs_top_score(hscore=hscore,
-    **kw.sub(nout_top=5, output_prefix='test_discrete_2comp_n12', output_asym_only=False))
+    **kw.sub(nout_top=5, output_prefix='test_discrete_2comp_4', output_asym_only=False))
+   
+   
+   rp.dump(result, '../../data/testdata/test_discrete_2comp.pickle')
+   ref = rp.data.get_test_data('test_discrete_2comp.pickle')
+   rp.search.result.result_to_tarball(ref, f'../../data/testdata/test_discrete_2comp.result.txz', overwrite=True)
 
-   ref = rp.data.get_test_data('test_discrete_2comp')
+
    rp.search.assert_results_close(result, ref)
 
 
@@ -280,15 +278,12 @@ if __name__ == '__main__':
    # rp.dump(body2, rp.data.bodydir + '/T33_dn2_asymB.pickle')
 
    hscore = rp.data.small_hscore()
-   # hscore = rp.RpxHier('ilv_h', hscore_data_dir='/home/sheffler/data/rpx/hscore')
-   # hscore = rp.RpxHier('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
    C2 = rp.data.get_body('C2_3hm4_1')
    C3 = rp.data.get_body('C3_1nza_1')
+   C6 = rp.data.get_body('C6_3H22')
+   test_layer_hier_3comp(hscore, C6, C3, C2)
    #test_layer_hier_2comp(hscore, C3, C2)
-   test_discrete_2comp(hscore, C3, C2)
-   #test_cage_hier_no_trim(hscore, C3, C2)
-   
-   
+   #test_discrete_2comp(hscore, C3, C2)
 
 '''
    body1 = rp.data.get_body('T33_dn2_asymA')
@@ -310,7 +305,6 @@ if __name__ == '__main__':
    # C4 = rp.data.get_body('C4_1na0-G1_1')
    # C6 = rp.data.get_body('C6_3H22')
    # test_layer_hier_3comp(hscore, C6, C3, C2)
-
    # test_cage_hier_fixed0(hscore, C3, C2)
 
 
