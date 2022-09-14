@@ -4,6 +4,8 @@ import logging, itertools, concurrent, tqdm, os, sys
 import rpxdock as rp
 import numpy as np
 from willutil import Bunch
+#from icecream import ic
+#ic.configureOutput(includeContext=True)
 
 def get_rpxdock_args():
    kw = rp.options.get_cli_args()
@@ -42,7 +44,13 @@ def gcd(a, b):
 ## All dock_cyclic, dock_onecomp, and dock_multicomp do similar things
 
 def dock_asym(hscore, **kw):
+   logging.debug("lanching dock_asym()")
    kw = Bunch(kw, _strict=False)
+   
+   #these are kind of arbitrary numbers, but they seem to work well/better
+   kw.cart_resl = 20
+   kw.ori_resl = 40
+
    if kw.cart_bounds[0]:
       crtbnd = kw.cart_bounds[0]
       extent = crtbnd[1]
@@ -53,11 +61,10 @@ def dock_asym(hscore, **kw):
       cartlb = np.array([-extent] * 3)
       cartub = np.array([extent] * 3)
 
-   cartbs = np.array([kw.cart_resl] * 3, dtype="i")
+   #sets number of cells (blocksize)
+   cartbs = np.ceil((cartub - cartlb) / kw.cart_resl)
 
    logging.debug('dock_asym bounds')
-   cartub = [30, 30, 30]
-   kw.ori_resl = 60
    logging.debug(f"  cartlb {cartlb}")
    logging.debug(f"  cartub {cartub}")
    logging.debug(f"  cartbs {cartbs}")
@@ -65,19 +72,23 @@ def dock_asym(hscore, **kw):
 
    sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, kw.ori_resl)
    logging.info(f'num base samples {sampler.size(0):,}')
+   if sampler.size(0) >= 10_000_000:
+      logging.info("cart_bounds range is very large, you may need a ton of memory.") 
 
    bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
               for fn, ar2 in zip(inp, ar)]
              for inp, ar in zip(kw.inputs, kw.allowed_residues)]
 
    exe = concurrent.futures.ProcessPoolExecutor
-   # exe = rp.util.InProcessExecutor
+   #exe = rp.util.InProcessExecutor
+
    with exe(kw.ncpu) as pool:
       # if 0:
       futures = list()
       # TODO: why is this a product? not same behavior as other protocols
       # should ask ppl if this is desired behavior
       for ijob, bod in enumerate(itertools.product(*bodies)):
+         logging.debug(f"ijob {ijob}")
          futures.append(
             pool.submit(
                rp.search.make_asym,
@@ -89,6 +100,10 @@ def dock_asym(hscore, **kw):
             ))
          futures[-1].ijob = ijob
       results = [None] * len(futures)
+      logging.debug(f"results {results}")
+
+      logging.debug(f"futures {futures}")
+      logging.debug(f"len(futures) {len(futures)}")
       for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          results[f.ijob] = f.result()
 
