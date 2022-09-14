@@ -261,7 +261,6 @@ class Result:
          bfactor=bfactor,
          **kw,
       )
-
       if hasattr(self, 'pdb_extra_') and self.pdb_extra_ is not None:
          with open(fname, 'a') as out:
             out.write(self.pdb_extra_[int(imodel)])
@@ -525,9 +524,12 @@ def result_to_summary(result, fname, picklefname, tarfname, direction="top", nou
    if picklefname:
       logging.debug("pickle file output ON")
       output_path = picklefname
-   if tarfname:
+   elif tarfname:
       logging.debug("tarball file output ON")
       output_path = tarfname
+   else:
+      logging.debug("both *.pickle and *.tarball output OFF")
+      output_path = "null"
 
    #sort result
    best = np.argsort(-result.scores)
