@@ -622,6 +622,3 @@ def process_body_labels(bodies, labels, data):
             raise TypeError(f'bodies must be type rp.Body or None, not {type(bodies[0][0])}')
 
    return bodies, labels
-
-# github.com/minkbaek/BFF
-# https://github.com/minkbaek/BFF/blob/main/rf_diffusion/TEST_COMMANDS
