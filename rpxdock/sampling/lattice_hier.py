@@ -13,11 +13,15 @@ class LatticeHier(CompoundHier):
 
    def combine_xforms(self, xparts):
       offset = xparts[:, 0, 2, 3]
+    #need conditional statement to change d indexing for 2,3 comp layers
       for i, d in enumerate(self.directions):
-         xparts[:, i + 1, 0, 3] = offset * d[0,0]
-         #last term needs to be a scalar
-         #since d is a 2D array, give 2 indices
-         xparts[:, i + 1, 1, 3] = offset * d[0,1]
+       if len(d.shape) == 1:
+       	xparts[:, i + 1, 0, 3] = offset * d[0]
+       	xparts[:, i + 1, 1, 3] = offset * d[1]
+       if len(d.shape) == 2:
+       	xparts[:, i + 1, 0, 3] = offset * d[0,0]
+       	xparts[:, i + 1, 1, 3] = offset * d[0,1]
+      
       xparts[:, 0, 2, 3] = 0
       return xparts
 

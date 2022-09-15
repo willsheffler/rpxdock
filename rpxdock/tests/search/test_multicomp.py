@@ -116,8 +116,9 @@ def test_layer_hier_3comp(hscore, bodyC6, bodyC3, bodyC2):
 
    bodies = [bodyC6, bodyC3, bodyC2]
    spec = rp.search.DockSpec3CompLayer('P6_632')
-   sampler = rp.sampling.hier_multi_axis_sampler(spec, [[0, 100], [0, 40], [0, 40]],
+   sampler = rp.sampling.hier_multi_axis_sampler(spec, [[0, 40], [0, 40], [0, 40]],
                                                  flip_components=True)
+                                                 
    result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **kw)
 
 
@@ -125,7 +126,8 @@ def test_layer_hier_3comp(hscore, bodyC6, bodyC3, bodyC2):
     **kw.sub(nout_top=5, output_prefix='test_layer_hier_3comp_test', output_asym_only=False))
     
    rp.dump(result, 'rpxdock/data/testdata/test_layer_hier_3comp.pickle')
-   ref = rp.data.get_test_data('test_layer_hier_3comp')
+   ref = rp.data.get_test_data('test_layer_hier_3comp.pickle')
+   rp.search.result.result_to_tarball(ref, f'test_layer_hier_2comp.result.txz', overwrite=True)
    rp.search.assert_results_close(result, ref)
 
 # Check that specifying termini direction is restricting search properly
@@ -205,7 +207,7 @@ def test_cage_term_access(hscore, term_mod_C3_and_C2):
       #                         **kw.sub(nout_top=10, output_prefix=f'test_cage_term_access{j}'))
    result = rp.concat_results(result)
 
-   rp.dump(result, 'rpxdock/data/testdata/test_cage_term_access.pickle')
+  # rp.dump(result, 'rpxdock/data/testdata/test_cage_term_access.pickle')
 
 
    ref = rp.data.get_test_data('test_cage_term_access')
@@ -228,14 +230,14 @@ def test_layer_hier_2comp(hscore, bodyC3, bodyC2):
 
    result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **kw)
    
-   rp.dump(result, '../../data/testdata/test_layer_hier_2comp.pickle')
+   rp.dump(result, 'test_layer_hier_2comp.pickle')
    ref = rp.data.get_test_data('test_layer_hier_2comp.pickle')
-   rp.search.result.result_to_tarball(ref, f'../../data/testdata/test_layer_hier_2comp.result.txz', overwrite=True)
+   rp.search.result.result_to_tarball(ref, f'test_layer_hier_2comp.result.txz', overwrite=True)
 
    result.dump_pdbs_top_score(hscore=hscore,
     **kw.sub(nout_top=5, output_prefix='test_layer_hier_2comp_test', output_asym_only=False))
 
-   ref = rp.data.get_test_data('test_layer_hier_2comp')
+   #ref = rp.data.get_test_data('test_layer_hier_2comp')
    rp.search.assert_results_close(result, ref)
 
 def test_discrete_2comp(hscore, body1, body2):
@@ -260,11 +262,10 @@ def test_discrete_2comp(hscore, body1, body2):
     **kw.sub(nout_top=5, output_prefix='test_discrete_2comp_4', output_asym_only=False))
    
    
-   rp.dump(result, '../../data/testdata/test_discrete_2comp.pickle')
+   rp.dump(result, 'test_discrete_2comp.pickle')
    ref = rp.data.get_test_data('test_discrete_2comp.pickle')
-   rp.search.result.result_to_tarball(ref, f'../../data/testdata/test_discrete_2comp.result.txz', overwrite=True)
-
-
+   rp.search.result.result_to_tarball(ref, f'test_discrete_2comp.result.txz', overwrite=True)
+   
    rp.search.assert_results_close(result, ref)
 
 
@@ -282,8 +283,8 @@ if __name__ == '__main__':
    C3 = rp.data.get_body('C3_1nza_1')
    C6 = rp.data.get_body('C6_3H22')
    test_layer_hier_3comp(hscore, C6, C3, C2)
-   #test_layer_hier_2comp(hscore, C3, C2)
-   #test_discrete_2comp(hscore, C3, C2)
+   test_layer_hier_2comp(hscore, C3, C2)
+   test_discrete_2comp(hscore, C3, C2)
 
 '''
    body1 = rp.data.get_body('T33_dn2_asymA')
