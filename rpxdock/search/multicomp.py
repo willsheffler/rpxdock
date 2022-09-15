@@ -51,28 +51,33 @@ def make_multicomp(
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
    ncontact, ncont_extra = evaluator(xforms, kw.nresl - 1, wnct)
    
-   ##only do tpump for cages 
+   #bypass for specs that need to avoid "_debug_dump_cage"
    specky = str(spec)
-   if not specky.startswith('<rpxdock.search.dockspec.DockSpecDiscrete') and not specky.startswith('<rpxdock.search.dockspec.DockSpec2CompLayer') and not specky.startswith('<rpxdock.search.dockspec.DockSpec3CompLayer'):
-   
-	   tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw)
-	   if kw.verbose:
-	   	logging.info(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
-	   	logging.info("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
-	   	logging.info("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
-	   	data = dict(
-			attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, output_prefix=kw.output_prefix, output_body='all', sym=spec.arch),
-			scores=(["model"], scores[ibest].astype("f4")),
-			xforms=(["model", "comp", "hrow", "hcol"], xforms),
-			rpx=(["model"], rpx.astype("f4")),
-			ncontact=(["model"], ncontact.astype("f4")))
+   if specky.startswith('<rpxdock.search.dockspec.DockSpecDiscrete') or \
+      specky.startswith('<rpxdock.search.dockspec.DockSpec2CompLayer') or \
+      specky.startswith('<rpxdock.search.dockspec.DockSpec3CompLayer'):
+      data = dict(
+		   attrs=dict(arg=kw, stats=stats, ttotal=t.total, output_prefix=kw.output_prefix, output_body='all', sym=spec.arch),
+		   scores=(["model"], scores[ibest].astype("f4")),
+		   xforms=(["model", "comp", "hrow", "hcol"], xforms),
+		   rpx=(["model"], rpx.astype("f4")),
+		   ncontact=(["model"], ncontact.astype("f4")))
+
+   #default behavior
    else:
-   	data = dict(
-		attrs=dict(arg=kw, stats=stats, ttotal=t.total, output_prefix=kw.output_prefix, output_body='all', sym=spec.arch),
-		scores=(["model"], scores[ibest].astype("f4")),
-		xforms=(["model", "comp", "hrow", "hcol"], xforms),
-		rpx=(["model"], rpx.astype("f4")),
-		ncontact=(["model"], ncontact.astype("f4")))
+      tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw)
+      
+      if kw.verbose:
+         logging.info(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
+         logging.info("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
+         logging.info("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
+      
+      data = dict(
+         attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, output_prefix=kw.output_prefix, output_body='all', sym=spec.arch),
+         scores=(["model"], scores[ibest].astype("f4")),
+         xforms=(["model", "comp", "hrow", "hcol"], xforms),
+         rpx=(["model"], rpx.astype("f4")),
+         ncontact=(["model"], ncontact.astype("f4")))
 
    for k, v in extra.items():
       if not isinstance(v, (list, tuple)) or len(v) > 3:
