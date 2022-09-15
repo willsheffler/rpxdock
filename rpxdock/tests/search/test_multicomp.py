@@ -1,5 +1,7 @@
 import concurrent, os, argparse, sys, numpy as np, rpxdock as rp, pytest
 from willutil import Bunch
+from icecream import ic
+ic.configureOutput(includeContext=True)
 
 def get_arg(**kw):
    arg = rp.app.defaults()
@@ -31,7 +33,7 @@ def test_cage_hier_no_trim(hscore, body_cageA, body_cageB):
    result = rp.search.make_multicomp([body_cageA, body_cageB], spec, hscore, rp.hier_search,
                                      sampler, **kw)
    # print(result)
-   result.dump_pdbs_top_score(hscore=hscore, **kw.sub(nout_top=10, output_prefix='old_test_cage_hier_no_trim'))
+   #result.dump_pdbs_top_score(hscore=hscore, **kw.sub(nout_top=10, output_prefix='old_test_cage_hier_no_trim'))
 
 @pytest.mark.skip
 def test_cage_hier_fixed0(hscore, body_cageA, body_cageB):
@@ -77,7 +79,7 @@ def test_cage_hier_trim(hscore, body_cageA_extended, body_cageB_extended):
    # print('ubA', result.resub.data[:, 0])
    # print('ubB', result.resub.data[:, 1])
    # print(result.scores.data)
-   result.dump_pdbs_top_score(hscore=hscore, **kw.sub(nout_top=10, output_prefix="test_cage_hier_trim"))
+   #result.dump_pdbs_top_score(hscore=hscore, **kw.sub(nout_top=10, output_prefix="test_cage_hier_trim"))
    # result.resub[:] = np.max(result.resub, axis=0)
 
    # result.dump_pdbs_top_score(hscore=hscore,
@@ -225,22 +227,18 @@ def test_layer_hier_2comp(hscore, bodyC3, bodyC2):
 
    bodies = [bodyC3, bodyC2]
    spec = rp.search.DockSpec2CompLayer('P6_32')
-   sampler = rp.sampling.hier_multi_axis_sampler(spec, [[-100, 100], [-100, 100]],
-                                                 flip_components=True)
+   sampler = rp.sampling.hier_multi_axis_sampler(spec, [[-100, 100], [-100, 100]], flip_components=True)
 
    result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **kw)
-   
-   rp.dump(result, 'test_layer_hier_2comp.pickle')
-   ref = rp.data.get_test_data('test_layer_hier_2comp.pickle')
-   rp.search.result.result_to_tarball(ref, f'test_layer_hier_2comp.result.txz', overwrite=True)
 
-   result.dump_pdbs_top_score(hscore=hscore,
-    **kw.sub(nout_top=5, output_prefix='test_layer_hier_2comp_test', output_asym_only=False))
+   ref = rp.data.get_test_data('test_layer_hier_2comp')
+   #rp.dump(result, 'test_layer_hier_2comp.pickle')
+   #rp.search.result.result_to_tarball(ref, f'test_layer_hier_2comp.result.txz', overwrite=True)
+   #result.dump_pdbs_top_score(hscore=hscore, **kw.sub(nout_top=5, output_prefix='test_layer_hier_2comp_test', output_asym_only=False))
 
-   #ref = rp.data.get_test_data('test_layer_hier_2comp')
    rp.search.assert_results_close(result, ref)
 
-def test_discrete_2comp(hscore, body1, body2):
+def test_discrete_2comp(hscore, bodyC3, bodyC2):
    #these dont actually need to be C3 and C2, just adjust docksepc for other oligomers
    kw = get_arg()
    kw.wts.ncontact = 0.01
@@ -250,24 +248,19 @@ def test_discrete_2comp(hscore, body1, body2):
    #kw.executor = None
    kw.nout_debug = 2
 
-   bodies = [body1, body2]
+   bodies = [bodyC3, bodyC2]
    spec = rp.search.DockSpecDiscrete('F_32_4')
-   sampler = rp.sampling.hier_multi_axis_sampler(spec, [-300, 300],
-                                                 flip_components=False)
+   sampler = rp.sampling.hier_multi_axis_sampler(spec, [-300, 300], flip_components=False)
 
    result = rp.search.make_multicomp(bodies, spec, hscore, rp.hier_search, sampler, **kw)
    #some issue with lbub in kw not talking to will util in new env 
 
-   result.dump_pdbs_top_score(hscore=hscore,
-    **kw.sub(nout_top=5, output_prefix='test_discrete_2comp_4', output_asym_only=False))
-   
-   
-   rp.dump(result, 'test_discrete_2comp.pickle')
-   ref = rp.data.get_test_data('test_discrete_2comp.pickle')
-   rp.search.result.result_to_tarball(ref, f'test_discrete_2comp.result.txz', overwrite=True)
-   
-   rp.search.assert_results_close(result, ref)
+   ref = rp.data.get_test_data('test_discrete_2comp')
+   #rp.dump(result, 'test_discrete_2comp.pickle')
+   #rp.search.result.result_to_tarball(ref, f'test_discrete_2comp.result.txz', overwrite=True)
+   #result.dump_pdbs_top_score(hscore=hscore, **kw.sub(nout_top=5, output_prefix='test_discrete_2comp_4', output_asym_only=False))   
 
+   rp.search.assert_results_close(result, ref)
 
 if __name__ == '__main__':
    import logging
@@ -278,15 +271,15 @@ if __name__ == '__main__':
    # rp.dump(body1, rp.data.bodydir + '/T33_dn2_asymA.pickle')
    # rp.dump(body2, rp.data.bodydir + '/T33_dn2_asymB.pickle')
 
+'''
    hscore = rp.data.small_hscore()
-   C2 = rp.data.get_body('C2_3hm4_1')
-   C3 = rp.data.get_body('C3_1nza_1')
+   C2 = rp.data.get_body('C2_3hm4')
+   C3 = rp.data.get_body('C3_1nza')
    C6 = rp.data.get_body('C6_3H22')
    test_layer_hier_3comp(hscore, C6, C3, C2)
    test_layer_hier_2comp(hscore, C3, C2)
    test_discrete_2comp(hscore, C3, C2)
 
-'''
    body1 = rp.data.get_body('T33_dn2_asymA')
    body2 = rp.data.get_body('T33_dn2_asymB')
    test_cage_hier_no_trim(hscore, body1, body2)
