@@ -147,7 +147,8 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
             ok[ok] &= B[i].clash_ok(B[i], X[ok, i], xnbr[i] @ X[ok, i], **kw)
          for j in range(i):
             ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
-            if specky.startswith('<rpxdock.search.dockspec.DockSpecDiscrete'):
+            if specky.startswith('<rpxdock.search.dockspec.DockSpecDiscrete') or \
+               specky.startswith('<rpxdock.search.dockspec.DockSpec2CompLayer'):
                ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
 
       if xnbr[0] is None and xnbr[1] is not None:  # layer hack
