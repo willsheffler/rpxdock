@@ -16,20 +16,44 @@ class Body:
       source,
       sym="C1",
       symaxis=[0, 0, 1],
-      allowed_res=None,
       trim_direction='NC',
       is_subbody=False,
       modified_term=[False, False],
       og_seqlen=None,
-      source_filename=None,
       **kw,
    ):
       kw = wu.Bunch(kw)
 
-      import rpxdock.rosetta.triggers_init as ros
+      pose = self.set_pose_info(source, sym=sym, **kw)
+      self.modified_term = modified_term
+      self.og_seqlen = og_seqlen or pose.size()
 
+      self.label = kw.get('label')
+      if self.label is None and self.pdbfile:
+         self.label = os.path.basename(self.pdbfile.replace('.gz', '').replace('.pdb', ''))
+      if self.label is None: self.label = 'unk'
+
+      self.components = kw.get('components', [])
+      self.score_only_ss = kw.get('score_only_ss', 'EHL')
+      self.trim_direction = kw.get('trim_direction', 'NC')
+
+      self.set_allowed_residues(**kw)
+
+      self.init_coords(sym, symaxis, **kw)
+
+      self.is_subbody = is_subbody
+      if not is_subbody:
+         self.trimN_subbodies, self.trimC_subbodies = get_trimming_subbodies(self, pose, **kw)
+         # print('trimN_subbodies', len(self.trimN_subbodies))
+         # print('trimC_subbodies', len(self.trimC_subbodies))
+         # assert 0
+      # timer.checkpoint('body init file')
+      # print(timer)
+
+   def set_pose_info(self, source, sym, **kw):
       # pose stuff
-      # timer = wu.Timer()
+      import rpxdock.rosetta.triggers_init as ros
+      kw = Bunch(kw)
       pose = source
       if isinstance(source, str):
          # import rpxdock.rosetta.triggers_init as ros
@@ -42,7 +66,7 @@ class Body:
       elif isinstance(source, io.BytesIO):
          # timer.checkpoint('body load start')
          import rpxdock.rosetta.triggers_init as ros
-         self.pdbfile = source_filename
+         self.pdbfile = kw.source_filename
          # timer.checkpoint('body load pyrosetta')
          with tempfile.TemporaryDirectory() as td:
             # timer.checkpoint('body open TemporaryDirectory')
@@ -58,43 +82,55 @@ class Body:
       self.orig_anames, self.orig_coords = rp.rosetta.get_sc_coords(pose, **kw)
       self.seq = np.array(list(pose.sequence()))
       self.ss = np.array(list(pose.secstruct()))
-      self.coord = rp.rosetta.get_bb_coords(pose, **kw)
-      self.set_asym_body(pose, sym, **kw)
-      self.modified_term = modified_term
-      if og_seqlen == None: self.og_seqlen = pose.size()
-      else: self.og_seqlen = og_seqlen
-
-      self.label = kw.get('label')
-      if self.label is None and self.pdbfile:
-         self.label = os.path.basename(self.pdbfile.replace('.gz', '').replace('.pdb', ''))
-      if self.label is None: self.label = 'unk'
-      self.components = kw.get('components', [])
-      self.score_only_ss = kw.get('score_only_ss', 'EHL')
       self.ssid = rp.motif.ss_to_ssid(self.ss)
       self.chain = np.repeat(0, self.seq.shape[0])
       self.resno = np.arange(len(self.seq))
-      self.trim_direction = kw.get('trim_direction', 'NC')
+      self.coord = rp.rosetta.get_bb_coords(pose, **kw)
+      self.set_asym_body(pose, sym, **kw)
+      return pose
+
+   def set_allowed_residues(
+      self,
+      allowed_res=None,
+      required_res_sets=None,
+      **kw,
+   ):
+
+      self.allowed_residues = np.zeros(len(self), dtype='?')
       if allowed_res is None:
          if True in self.modified_term:
-            self.allowed_residues = np.zeros(len(self.seq), dtype='?')
-            for j in range(0, self.og_seqlen):
+            for j in range(self.og_seqlen):
                self.allowed_residues[j] = True
          else:
-            self.allowed_residues = np.ones(len(self.seq), dtype='?')
+            self.allowed_residues = np.ones(len(self), dtype='?')
       else:
-         self.allowed_residues = np.zeros(len(self.seq), dtype='?')
-         for i in allowed_res(self, **kw):
-            self.allowed_residues[i - 1] = True
-      self.init_coords(sym, symaxis, **kw)
+         if callable(allowed_res):
+            allowed_res = allowed_res(self, **kw)
+         for j in allowed_res:
+            self.allowed_residues[j] = True
+      ic(self.allowed_residues.shape, np.sum(self.allowed_residues))
 
-      self.is_subbody = is_subbody
-      if not is_subbody:
-         self.trimN_subbodies, self.trimC_subbodies = get_trimming_subbodies(self, pose, **kw)
-         # print('trimN_subbodies', len(self.trimN_subbodies))
-         # print('trimC_subbodies', len(self.trimC_subbodies))
-         # assert 0
-      # timer.checkpoint('body init file')
-      # print(timer)
+      # list of sets of residues
+      # participating protocols should require at least one residue at iface for ALL sets
+      # sets represnted at PHMaps because I never implement a set... just ignore value
+      # us np.sum(mymap.has(value)) >= num_required to test
+      if required_res_sets is None:
+         required_res_sets = []
+      # for s in required_res_sets:
+      # required_res_sets = [np.asarray(x, dtype='i4') for x in required_res_sets]
+      self.required_res_sets = list()
+      for s in required_res_sets:
+         if callable(s): s = s(self, **kw)
+         s = np.asarray(list(s), dtype='i4')
+         self.allowed_residues[s] = True
+         phmap = rp.phmap.PHMap_i4i4()
+         phmap[s] = np.repeat(np.array([12345], dtype='i4'), len(s))
+         self.required_res_sets.append(phmap)
+         # ic(phmap.keys())
+
+      ic(self.allowed_residues.shape, np.sum(self.allowed_residues))
+      for s in self.required_res_sets:
+         ic(s.keys())
 
    def init_coords(
          self,
@@ -147,7 +183,7 @@ class Body:
       self.bvh_bb_atomno = rp.BVH(self.coord[..., :3].reshape(-1, 3), [])
       self._symcom = wu.homog.hxform(self.symframes, wu.homog.htrans(self.asym_body.bvh_bb.com()))
       self.allcen = self.stub[:, :, 3]
-      which_cen = np.repeat(False, len(self.ss))
+      which_cen = np.repeat(False, len(self))
       for ss in "EHL":
          if ss in self.score_only_ss:
             which_cen |= self.ss == ss
@@ -157,10 +193,10 @@ class Body:
          self.allowed_residues = np.ones(len(self.seq), dtype='?')
       allowed_res = self.allowed_residues
       nallow = len(self.allowed_residues)
-      if nallow > len(self.ss):
-         allowed_res = self.allowed_residues[:len(self.ss)]
-      elif nallow < len(self.ss):
-         allowed_res = np.tile(self.allowed_residues, len(self.ss) // nallow)
+      if nallow > len(self):
+         allowed_res = self.allowed_residues[:len(self)]
+      elif nallow < len(self):
+         allowed_res = np.tile(self.allowed_residues, len(self) // nallow)
       self.which_cen = which_cen & allowed_res
 
       self.bvh_cen = rp.BVH(self.allcen[:, :3], self.which_cen)
@@ -178,7 +214,6 @@ class Body:
       if isinstance(sym, str): sym = int(sym[1:])
       if isinstance(sym, np.ndarray): sym = int(sym[0])
       if isinstance(sym, (np.int32, np.int64)): sym = int(sym)
-      #print(sym, type(sym))
       assert isinstance(sym, int)
       if sym == 1: return b
       b.pos = np.eye(4, dtype='f4')
@@ -370,18 +405,23 @@ class Body:
 
    def contact_count(self, other, pos1=None, pos2=None, maxdis=10, debug=False):
       if pos1 is None:
-            if debug: print("pos1 = self.pos")
-            pos1 = self.pos
+         if debug: print("pos1 = self.pos")
+         pos1 = self.pos
       if pos2 is None:
-            if debug: print("pos2 = other.pos")
-            pos2 = other.pos
-      
+         if debug: print("pos2 = other.pos")
+         pos2 = other.pos
+
       if debug:
-         print("self.bvh_cen"); print(self.bvh_cen)
-         print("other.bvh_cen"); print(other.bvh_cen)
-         print("pos1"); print(pos1)
-         print("pos2"); print(pos2)
-         print("maxdis"); print(maxdis)
+         print("self.bvh_cen")
+         print(self.bvh_cen)
+         print("other.bvh_cen")
+         print(other.bvh_cen)
+         print("pos1")
+         print(pos1)
+         print("pos2")
+         print(pos2)
+         print("maxdis")
+         print(maxdis)
 
       return rp.bvh.bvh_count_pairs_vec(self.bvh_cen, other.bvh_cen, pos1, pos2, maxdis)
 

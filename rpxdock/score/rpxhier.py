@@ -102,35 +102,16 @@ class RpxHier:
          residue_summary=np.mean,  # TODO hook up to options to select
          **kw,
    ):
-      '''
-      TODO WSH rearrange so ppl can add different ways of scoring
-      Get scores for all docks
-      :param body1:
-      :param body2:
-      :param pos1:
-      :param pos2:
-      :param iresl:
-      :param bounds:
-      :param kw:
-      :return:
-      '''
+      '''      '''
 
       kw = wu.Bunch(kw, _strict=False)
       pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
-      # if not bounds:
-      # bounds = [-2e9], [2e9], nsym[0], [-2e9], [2e9], nsym[1]
-      # if len(bounds) == 2:
-      # bounds += nsym[1],
-      # if len(bounds) == 3:
-      # bounds += [-2e9], [2e9], 1
+
       bounds = list(bounds)
       if len(bounds) > 2 and (bounds[2] is None or bounds[2] < 0):
          bounds[2] = body1.asym_body.nres
       if len(bounds) > 5 and (bounds[5] is None or bounds[5] < 0):
          bounds[5] = body2.asym_body.nres
-
-      # print('nres asym', body1.asym_body.nres, body2.asym_body.nres)
-      # print(bounds[2], bounds[5])
 
       # calling bvh c++ function that will look at pair of (arrays of) positions, scores pairs that are in contact (ID from maxpair distance)
       # lbub: len pos1
@@ -143,7 +124,31 @@ class RpxHier:
          *bounds,
       )
 
-      # TODO some output or analysis of distances?
+      contains_res = list()
+      if hasattr(body1, 'required_res_sets') and body1.required_res_sets:
+         res0 = np.ascontiguousarray(pairs[:, 0])
+         hasit0 = [s.has(res0) for s in body1.required_res_sets]
+         contains_res.extend(hasit0)
+
+      if hasattr(body2, 'required_res_sets') and body2.required_res_sets:
+         res1 = np.ascontiguousarray(pairs[:, 1])
+         hasit1 = [s.has(res1) for s in body2.required_res_sets]
+         contains_res.extend(hasit1)
+
+      #
+
+      ok = np.ones(len(lbub), dtype='?')
+      # ic(lbub.shape)
+      if contains_res:
+         ic([np.sum(x) for x in contains_res])
+         for i in range(len(lbub)):
+            ok[i] = all([5 < np.sum(x[lbub[i, 0]:lbub[i, 1]]) for x in contains_res])
+      # ic(ok.shape, np.sum(ok))
+
+      # "remove" all contacts that don't have required set of contacts
+      lbub[~ok, 1] = lbub[~ok, 0]
+
+      #
 
       # pairs, lbub = body1.filter_pairs(pairs, self.score_only_sspair, other=body2, lbub=lbub)
 
@@ -164,8 +169,8 @@ class RpxHier:
 
       #TODO: Figure out if this should be handled in the score functions below.
       if kw.wts.rpx == 0:
-         return kw.wts.ncontact * (lbub[:, 1] - lbub[:, 0]
-                                   )  # option to score based on ncontacts only
+         return kw.wts.ncontact * (lbub[:, 1] - lbub[:, 0])
+         # option to score based on ncontacts only
 
       xbin = self.hier[iresl].xbin
       phmap = self.hier[iresl].phmap
@@ -182,6 +187,7 @@ class RpxHier:
          lbub,
          pos1,
          pos2,
+         incomplete_ok=True,
       )
 
       # summarize pscores for a dock
@@ -205,9 +211,12 @@ class RpxHier:
          scores = score_fx(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, pairs=pairs,
                            wts=kw.wts, iresl=iresl)
       else:
-         logging.info(f"Failed to find score function {self.function}, falling back to 'stnd'")
+         logging.debug(f"Failed to find score function {self.function}, falling back to 'stnd'")
          scores = score_functions["stnd"](pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2,
                                           wts=kw.wts)
+
+      scores[~ok] = 0
+
       return scores
 
    def iresls(self):
@@ -228,25 +237,36 @@ class RpxHier:
 def get_hscore_file_names(alias, hscore_data_dir):
    # try:
    picklepattern = os.path.join(hscore_data_dir, alias, '*.pickle')
-   picklefiles = sorted(glob.glob(picklepattern))
+   picklefiles1 = sorted(glob.glob(picklepattern))
    picklepattern = os.path.join(hscore_data_dir, alias, '*.pickle.bz2')
    picklefiles2 = sorted(glob.glob(picklepattern))
-   picklefiles = picklefiles or picklefiles2
+   picklefiles = picklefiles1 or picklefiles2
    xmappattern = os.path.join(hscore_data_dir, alias, '*.txz')
    txzfiles = sorted(glob.glob(xmappattern))
    fnames = txzfiles
+   # print(picklefiles)
+   # print(alias)
+   # print(hscore_data_dir)
+   # assert 0
    if len(picklefiles):
       assert len(txzfiles) in (0, len(txzfiles))
       fnames = picklefiles
       for f in fnames:
          print(' ', f)
-      print(sum([s.count('base') for s in fnames]))
-      assert sum([s.count('base') for s in fnames]) == 1
+      # ic(sum([s.count('base') for s in fnames]))
+      assert sum([s.count('base') for s in fnames]) < 2
       # assert sum([s.count('.rpx.pickle') for s in fnames]) == 1
    else:
       print(
          'WARNING: using slower, portable tarball format. generate pickle files with --generate_hscore_pickle_files and place with original .txz files for faster operation!'
       )
+      ic(alias)
+      ic(hscore_data_dir)
+      ic(picklepattern)
+      ic(picklefiles1)
+      ic(picklefiles2)
+      ic(picklefiles)
+      # assert 0
    if not fnames:
       raise ValueError(f'not hscore files found for "{alias}" in "{hscore_data_dir}"')
 
@@ -285,10 +305,14 @@ def read_hscore_files(
       else:
          assert all("_SSdep_" in f for f in files)
          toreturn.use_ss = True
-      assert "base" in files[0]
       data = rp.util.load_threads(files, len(files))
-      toreturn.base = data[0]
-      toreturn.hier = data[1:]
+      if "base" in files[0]:
+         toreturn.base = data[0]
+         toreturn.hier = data[1:]
+      else:
+         toreturn.base = None
+         toreturn.hier = data
+
       for h in toreturn.hier:
          h.attr = wu.Bunch(h.attr)
       toreturn.resl = list(h.attr.cart_extent for h in toreturn.hier)

@@ -5,7 +5,7 @@ from willutil import Timer, Bunch
 
 log = logging.getLogger(__name__)
 
-def asym_get_sample_hierarchy(body, hscore, extent=100):
+def isnt_used_huh_asym_get_sample_hierarchy(body, hscore, extent=100):
    "set up XformHier with appropriate bounds and resolution"
    cart_xhresl, ori_xhresl = hscore.base.attr.xhresl
    rg = body.rg()

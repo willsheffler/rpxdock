@@ -43,21 +43,26 @@ def gcd(a, b):
 
 def dock_asym(hscore, **kw):
    kw = Bunch(kw, _strict=False)
+
+   # these are kind of arbitrary numbers, but they seem to work well/better
+   kw.cart_resl = 20
+   kw.ori_resl = 40
+
    if kw.cart_bounds[0]:
-      crtbnd = kw.cart_bounds[0]
-      extent = crtbnd[1]
-      cartlb = np.array([crtbnd[0], crtbnd[0], crtbnd[0]])
-      cartub = np.array([crtbnd[1], crtbnd[1], crtbnd[1]])
+      lb, ub = kw.cart_bounds[0]
+      lb = max(lb, -200)
+      ub = min(ub, 200)
+      # extent = bound[1]
+      cartlb = np.array([lb, lb, lb])
+      cartub = np.array([ub, ub, ub])
    else:
       extent = 100
       cartlb = np.array([-extent] * 3)
       cartub = np.array([extent] * 3)
 
-   cartbs = np.array([kw.cart_resl] * 3, dtype="i")
+   cartbs = np.ceil((cartub - cartlb) / kw.cart_resl)
 
    logging.debug('dock_asym bounds')
-   cartub = [30, 30, 30]
-   kw.ori_resl = 60
    logging.debug(f"  cartlb {cartlb}")
    logging.debug(f"  cartub {cartub}")
    logging.debug(f"  cartbs {cartbs}")
@@ -66,9 +71,11 @@ def dock_asym(hscore, **kw):
    sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, kw.ori_resl)
    logging.info(f'num base samples {sampler.size(0):,}')
 
-   bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
-              for fn, ar2 in zip(inp, ar)]
-             for inp, ar in zip(kw.inputs, kw.allowed_residues)]
+   bodies = [[
+      rp.Body(fn, allowed_res=ar2, required_res_sets=[ar2, ara2], **kw)
+      for fn, ar2, ara2 in zip(inp, ar, ara)
+   ]
+             for inp, ar, ara in zip(kw.inputs, kw.allowed_residues, kw.allowed_residues_also)]
 
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor

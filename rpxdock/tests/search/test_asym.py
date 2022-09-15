@@ -16,65 +16,55 @@ def _test_args():
    kw.debug = True
    return kw
 
+def _test_asym_2iface():
+   kw = rp.app.defaults()
+   kw.beam_size = 500_000
+   kw.allowed_residues
+
+   # kw.generate_hscore_pickle_files = True
+   hscore = rp.RpxHier('ilv_h/1000', **kw)
+   # ic('foo')
+   cartlb = np.array([-150, -150, -150])
+   cartub = np.array([+150, +150, +150])
+   # cartbs = np.array([10, 10, 10], dtype="i")
+   cartbs, oresl = np.array([10, 10, 10], dtype="i"), 35
+   sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, oresl)
+
+   from rpxdock.rosetta.triggers_init import get_pose_cached
+   pose1 = get_pose_cached('dhr64.pdb.gz')
+   pose2 = get_pose_cached('DHR14.pdb.gz')
+   require1 = [np.arange(50), np.arange(pose1.size() - 50, pose1.size())]
+   require2 = [np.arange(50), np.arange(pose2.size() - 50, pose2.size())]
+   body1 = rp.Body(pose1, allowed_res=require1[0], required_res_sets=require1)
+   body2 = rp.Body(pose2, allowed_res=require2[0], required_res_sets=require2)
+
+   result = rp.search.make_asym([body2, body1], hscore, sampler, **kw)
+   # rp.search.result_to_tarball(result, 'rpxdock/data/testdata/test_asym_2iface.result', overwrite=True)
+   # ref = rp.data.get_test_data('test_asym_2iface')
+
+   result.dump_pdbs_top_score(8)
+   assert 0
+
 def test_asym(hscore, body, body2):
    kw = _test_args()
    kw.max_trim = 0
    kw.output_prefix = 'test_asym'
-
    cartlb = np.array([+00, +10, +00])
    cartub = np.array([+30, +20, +30])
    cartbs = np.array([4, 1, 4], dtype="i")
    sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, 30)
-
-   # rp.dump(sampler, 'test.pickle')
-
-   # tmp = rp.load('test.pickle')
-   # print(tmp.size(0), sampler.size(0))
-   # print(tmp.cart_lb, sampler.cart_lb)
-   # print(tmp.cart_ub, sampler.cart_ub)
-   # print(tmp.ori_nside, sampler.ori_nside)
-   # print(tmp.ori_resl, sampler.ori_resl)
-   # print(tmp.cart_lb, sampler.cart_lb)
-   # print(tmp.cart_ub, sampler.cart_ub)
-   # print(tmp.cart_bs, sampler.cart_bs)
-   # print(tmp.cart_cell_width, sampler.cart_cell_width)
-   # print(tmp.cart_ncell, sampler.cart_ncell)
-   # print(tmp.ori_ncell, sampler.ori_ncell)
-   # print(tmp.ncell, sampler.ncell)
-   # print(tmp.dim, sampler.dim)
-
-   # sampler = rp.search.asym_get_sample_hierarchy(body2, hscore, 18)
-   # print(f'toplevel samples {sampler.size(0):,}')
-   result = rp.search.make_asym([body, body2], hscore, sampler, **kw)
-
-   # result.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts, output_prefix='old')
-
-   # rp.dump(result, 'rpxdock/data/testdata/test_result.pickle')
+   result = rp.search.make_asym([body2, body], hscore, sampler, **kw)
    # rp.search.result_to_tarball(result, 'rpxdock/data/testdata/test_asym.result', overwrite=True)
-
    ref = rp.data.get_test_data('test_asym')
-
-   # result.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts)
-   # ref.dump_pdbs_top_score(10, hscore=hscore, wts=kw.wts)
 
    try:
       rp.search.assert_results_close(result, ref)
    except AssertionError:
       print('WARNING full results for asym docking dont match... checking scores only')
       assert np.allclose(ref.scores, result.scores, atol=1e-6)
-   # for i in range(10):
-   #    print(i, flush=True)
-   #    # print(ref.scores[i], result.scores[i])
-   #    print(ref.xforms[i].data)
-   #    print(result.xforms[i].data)
-   #    print()
-   #    # assert np.allclose(ref.xforms[i], result.xforms[i], atol=1e-3)
-   # nbad = np.sum(np.abs(ref.xforms - result.xforms) > 0.001, axis=(1, 2))
-   # print(ref.scores.shape)
-   # print(nbad.data)
 
 @pytest.mark.skip
-def _test_asym_trim(hscore, body, body2):
+def test_asym_trim(hscore, body, body2):
    kw = _test_args()
    kw.max_trim = 100
    kw.output_prefix = 'test_asym_trim'
@@ -96,13 +86,13 @@ def _test_asym_trim(hscore, body, body2):
    rp.search.assert_results_close(result, ref)
 
 def main():
-   hscore = rp.data.small_hscore()
+   # hscore = rp.data.small_hscore()
    # hscore = rp.RpxHier('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
    # hscore = rp.RpxHier('ilv_h', hscore_data_dir='/home/sheffler/data/rpx/hscore')
    # hscore.score_only_sspair = ['HH']
 
-   body1 = rp.data.get_body('DHR14')
-   body2 = rp.data.get_body('top7')
+   # body1 = rp.data.get_body('DHR14')
+   # body2 = rp.data.get_body('top7')
    # body1.score_only_ss = 'H'
    # body2.score_only_ss = 'H'
    # body1 = rp.Body('rpxdock/data/pdb/DHR14.pdb.gz')
@@ -110,8 +100,10 @@ def main():
 
    # body1 = rp.data.get_body('top7b')
 
-   test_asym(hscore, body1, body2)
+   # test_asym(hscore, body1, body2)
    # test_asym_trim(hscore, body1, body2)
+
+   _test_asym_2iface()
 
 if __name__ == '__main__':
    main()
