@@ -527,9 +527,12 @@ def result_to_summary(result, fname, picklefname, tarfname, direction="top", nou
    if picklefname:
       logging.debug("pickle file output ON")
       output_path = picklefname
-   if tarfname:
+   elif tarfname:
       logging.debug("tarball file output ON")
       output_path = tarfname
+   else:
+      logging.debug("both *.pickle and *.tarball output OFF")
+      output_path = "null"
 
    #sort result
    best = np.argsort(-result.scores)
@@ -626,6 +629,3 @@ def process_body_labels(bodies, labels, data):
             raise TypeError(f'bodies must be type rp.Body or None, not {type(bodies[0][0])}')
 
    return bodies, labels
-
-# github.com/minkbaek/BFF
-# https://github.com/minkbaek/BFF/blob/main/rf_diffusion/TEST_COMMANDS

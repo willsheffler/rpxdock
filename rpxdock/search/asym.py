@@ -2,6 +2,8 @@ import logging, numpy as np, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search
 from rpxdock.filter import filters
 from willutil import Timer, Bunch
+#from icecream import ic
+#ic.configureOutput(includeContext=True)
 
 log = logging.getLogger(__name__)
 
@@ -24,6 +26,8 @@ def isnt_used_huh_asym_get_sample_hierarchy(body, hscore, extent=100):
    return xh
 
 def make_asym(bodies, hscore, sampler, search=hier_search, **kw):
+   logging.debug("entering make_asym()")
+
    kw = Bunch(kw, _strict=False)
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else sym

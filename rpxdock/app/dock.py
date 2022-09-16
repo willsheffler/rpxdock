@@ -4,6 +4,8 @@ import logging, itertools, concurrent, tqdm, os, sys
 import rpxdock as rp
 import numpy as np
 from willutil import Bunch
+#from icecream import ic
+#ic.configureOutput(includeContext=True)
 
 def get_rpxdock_args():
    kw = rp.options.get_cli_args()
@@ -12,7 +14,9 @@ def get_rpxdock_args():
 
 def get_spec(arch):
    arch = arch.upper()
-   if arch.startswith('P') and not arch.startswith('PLUG'):
+   if len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
+      spec = rp.search.DockSpec1CompCage(arch)
+   elif arch.startswith('P') and not arch.startswith('PLUG'):
       sym = arch.split('_')[0]
       component_nfold = arch.split('_')[1]
       ismirror = sym[-1] == 'M'
@@ -25,11 +29,9 @@ def get_spec(arch):
       elif len(component_nfold) == 3:
          spec = rp.search.DockSpec3CompLayer(arch)
       else:
-         raise ValueError('number of conponents must be 1, 2 or 3')
-   elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):
-      spec = rp.search.DockSpec1CompCage(arch)
-   elif arch.startswith('AXEL_'):
-      spec = rp.search.DockSpecAxel(arch)
+         raise ValueError('number of components must be 1, 2 or 3')
+   elif arch.startswith('F'):
+         spec = rp.search.DockSpecDiscrete(arch)
    else:
       spec = rp.search.DockSpec2CompCage(arch)
    return spec
@@ -42,9 +44,10 @@ def gcd(a, b):
 ## All dock_cyclic, dock_onecomp, and dock_multicomp do similar things
 
 def dock_asym(hscore, **kw):
+   logging.debug("lanching dock_asym()")
    kw = Bunch(kw, _strict=False)
 
-   # these are kind of arbitrary numbers, but they seem to work well/better
+   #these are kind of arbitrary numbers, but they seem to work well/better
    kw.cart_resl = 20
    kw.ori_resl = 40
 
@@ -60,6 +63,7 @@ def dock_asym(hscore, **kw):
       cartlb = np.array([-extent] * 3)
       cartub = np.array([extent] * 3)
 
+   #sets number of cells (blocksize)
    cartbs = np.ceil((cartub - cartlb) / kw.cart_resl)
 
    logging.debug('dock_asym bounds')
@@ -70,6 +74,8 @@ def dock_asym(hscore, **kw):
 
    sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, kw.ori_resl)
    logging.info(f'num base samples {sampler.size(0):,}')
+   if sampler.size(0) >= 10_000_000:
+      logging.info("cart_bounds range is very large, you may need a ton of memory.") 
 
    bodies = [[
       rp.Body(fn, allowed_res=ar2, required_res_sets=[ar2, ara2], **kw)
@@ -78,13 +84,15 @@ def dock_asym(hscore, **kw):
              for inp, ar, ara in zip(kw.inputs, kw.allowed_residues, kw.allowed_residues_also)]
 
    exe = concurrent.futures.ProcessPoolExecutor
-   # exe = rp.util.InProcessExecutor
+   #exe = rp.util.InProcessExecutor
+
    with exe(kw.ncpu) as pool:
       # if 0:
       futures = list()
       # TODO: why is this a product? not same behavior as other protocols
       # should ask ppl if this is desired behavior
       for ijob, bod in enumerate(itertools.product(*bodies)):
+         logging.debug(f"ijob {ijob}")
          futures.append(
             pool.submit(
                rp.search.make_asym,
@@ -96,6 +104,10 @@ def dock_asym(hscore, **kw):
             ))
          futures[-1].ijob = ijob
       results = [None] * len(futures)
+      logging.debug(f"results {results}")
+
+      logging.debug(f"futures {futures}")
+      logging.debug(f"len(futures) {len(futures)}")
       for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          results[f.ijob] = f.result()
 
@@ -254,7 +266,6 @@ def dock_multicomp(hscore, **kw):
       poses, og_lens = rp.rosetta.helix_trix.init_termini(make_poselist, **kw)
 
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
-   # >>>>>>> master
    logging.info(f'num base samples {sampler.size(0):,}')
 
    # Use list of modified poses to make bodies if such list exists
@@ -297,7 +308,6 @@ def dock_multicomp(hscore, **kw):
 def dock_plug(hscore, **kw):
    kw = Bunch(kw, _strict=False)
    kw.plug_fixed_olig = True
-
    arch = kw.architecture
    kw.nfold = int(arch.split('_')[1][-1])
 
@@ -429,13 +439,49 @@ def dock_axel(hscore, **kw):
    else:
       raise ValueError(f'not compatible with docking method {kw.dock_method}')
 
+
+def dock_layer(hscore, **kw):
+   kw = Bunch(kw, _strict=False)
+   spec = get_spec(kw.architecture)
+
    bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
               for fn, ar2 in zip(inp, ar)]
              for inp, ar in zip(kw.inputs, kw.allowed_residues)]
    assert len(bodies) == spec.num_components
-   #   bodies = [[rp.Body(fn, **kw) for fn in inp] for inp in kw.inputs]
-   #   assert len(bodies) == spec.num_components
 
+   sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
+
+   exe = concurrent.futures.ProcessPoolExecutor
+   # exe = rp.util.InProcessExecutor
+   with exe(kw.ncpu) as pool:
+      futures = list()
+      for ijob, bod in enumerate(itertools.product(*bodies)):
+         futures.append(
+            pool.submit(
+               rp.search.make_multicomp,
+               bod,
+               spec,
+               hscore,
+               rp.hier_search,
+               sampler,
+               **kw,
+            ))
+         futures[-1].ijob = ijob
+      result = [None] * len(futures)
+      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+         result[f.ijob] = f.result()
+   result = rp.concat_results(result)
+   return result
+
+
+def dock_nside(hscore, **kw):
+   kw = Bunch(kw, _strict=False)
+   spec = get_spec(kw.architecture)
+   bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
+              for fn, ar2 in zip(inp, ar)]
+             for inp, ar in zip(kw.inputs, kw.allowed_residues)]
+   assert len(bodies) == spec.num_components
+   sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
    exe = concurrent.futures.ProcessPoolExecutor
    with exe(kw.ncpu) as pool:
       futures = list()
@@ -446,7 +492,7 @@ def dock_axel(hscore, **kw):
                bod,
                spec,
                hscore,
-               search,
+               rp.hier_search,
                sampler,
                **kw,
             ))
@@ -456,6 +502,7 @@ def dock_axel(hscore, **kw):
          result[f.ijob] = f.result()
    result = rp.concat_results(result)
    return result
+
 
 def check_result_files_exist(kw):
    kw = Bunch(kw)
@@ -495,8 +542,10 @@ def main():
       result = dock_onecomp(hscore, **kw)
    elif arch.startswith('PLUG'):
       result = dock_plug(hscore, **kw)
-   elif arch.startswith('AXEL_'):
-      result = dock_axel(hscore, **kw)
+   elif arch.startswith('P'):
+      result = dock_layer(hscore, **kw)
+   elif arch.startswith('F'):
+      result = dock_nside(hscore, **kw)
    else:
       result = dock_multicomp(hscore, **kw)
 

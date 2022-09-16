@@ -2,6 +2,8 @@ from time import perf_counter
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from willutil import Bunch
+#from icecream import ic
+#ic.configureOutput(includeContext=True)
 
 def grid_search(sampler, evaluator, **kw):
    if (not isinstance(sampler, np.ndarray) or sampler.ndim not in (3, 4) or sampler.shape[-2:] !=
@@ -14,9 +16,11 @@ def grid_search(sampler, evaluator, **kw):
 
 def evaluate_positions(evaluator, xforms, executor=None, **kw):
    t = perf_counter()
+
    if executor:
       result = evaluate_positions_executor(executor, evaluator, xforms, **kw)
       return (*result, perf_counter() - t)
+
    scores, extra = evaluator(xforms, **kw)
    return scores, extra, perf_counter() - t
 

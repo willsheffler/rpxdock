@@ -14,6 +14,7 @@ def get_arg(**kw):
    arg.max_trim = 0
    # arg.debug = True
    arg.executor = concurrent.futures.ThreadPoolExecutor(min(4, arg.ncpu / 2))
+   #arg.force_flip = [False, False]
    return arg.sub(kw)
 
 def test_axel(hscore):
@@ -26,8 +27,7 @@ def test_axel(hscore):
    kw.beam_size = 5000
    spec = rp.search.DockSpecAxel("AXEL_3")
 
-   sampler1 = rp.sampling.hier_axis_sampler(3, 0, 100, 10, 10, axis=spec.axis[0],
-                                            flipax=spec.flip_axis[0])
+   sampler1 = rp.sampling.hier_axis_sampler(3, 0, 100, 10, 10, axis=spec.axis[0], flipax=spec.flip_axis[0])
    sampler2 = rp.sampling.ZeroDHier([np.eye(4), rp.homog.hrot([1, 0, 0], 180)])
    sampler = rp.sampling.CompoundHier(sampler2, sampler1)
    _, x = sampler.get_xforms(resl=0, idx=[0])
@@ -51,8 +51,7 @@ def test_axel_asym(hscore):
    kw.beam_size = 5000
    spec = rp.search.DockSpecAxel("AXEL_1_2_3")
 
-   sampler1 = rp.sampling.hier_axis_sampler(2 * 3, 0, 100, 10, 10, axis=spec.axis[0],
-                                            flipax=spec.flip_axis[0])
+   sampler1 = rp.sampling.hier_axis_sampler(2 * 3, 0, 100, 10, 10, axis=spec.axis[0], flipax=spec.flip_axis[0])
    sampler2 = rp.sampling.ZeroDHier([np.eye(4), rp.homog.hrot([1, 0, 0], 180)])
    sampler = rp.sampling.CompoundHier(sampler2, sampler1)
    _, x = sampler.get_xforms(resl=0, idx=[0])

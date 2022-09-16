@@ -1,5 +1,7 @@
 import logging, itertools, numpy as np, rpxdock as rp
 from willutil import Bunch
+#from icecream import ic
+#ic.configureOutput(includeContext=True)
 
 log = logging.getLogger(__name__)
 
