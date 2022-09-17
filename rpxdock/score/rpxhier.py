@@ -2,6 +2,8 @@ import os, logging, glob, numpy as np, rpxdock as rp
 from rpxdock.xbin import xbin_util as xu
 from rpxdock.score import score_functions as sfx
 import willutil as wu
+from icecream import ic
+ic.configureOutput(includeContext=True)
 
 log = logging.getLogger(__name__)
 """

@@ -4,8 +4,8 @@ from rpxdock.filter.sscount import secondary_structure_map
 from pyrosetta import rosetta as ros
 import willutil as wu
 from willutil import Bunch
-#from icecream import ic
-#ic.configureOutput(includeContext=True)
+from icecream import ic
+ic.configureOutput(includeContext=True)
 
 log = logging.getLogger(__name__)
 _CLASHRAD = 1.75
