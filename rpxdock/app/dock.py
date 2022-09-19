@@ -46,18 +46,16 @@ def gcd(a, b):
 def dock_asym(hscore, **kw):
    logging.debug("lanching dock_asym()")
    kw = Bunch(kw, _strict=False)
-
+   
    #these are kind of arbitrary numbers, but they seem to work well/better
    kw.cart_resl = 20
    kw.ori_resl = 40
 
    if kw.cart_bounds[0]:
-      lb, ub = kw.cart_bounds[0]
-      lb = max(lb, -200)
-      ub = min(ub, 200)
-      # extent = bound[1]
-      cartlb = np.array([lb, lb, lb])
-      cartub = np.array([ub, ub, ub])
+      crtbnd = kw.cart_bounds[0]
+      extent = crtbnd[1]
+      cartlb = np.array([crtbnd[0], crtbnd[0], crtbnd[0]])
+      cartub = np.array([crtbnd[1], crtbnd[1], crtbnd[1]])
    else:
       extent = 100
       cartlb = np.array([-extent] * 3)
@@ -77,11 +75,9 @@ def dock_asym(hscore, **kw):
    if sampler.size(0) >= 10_000_000:
       logging.info("cart_bounds range is very large, you may need a ton of memory.") 
 
-   bodies = [[
-      rp.Body(fn, allowed_res=ar2, required_res_sets=[ar2, ara2], **kw)
-      for fn, ar2, ara2 in zip(inp, ar, ara)
-   ]
-             for inp, ar, ara in zip(kw.inputs, kw.allowed_residues, kw.allowed_residues_also)]
+   bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
+              for fn, ar2 in zip(inp, ar)]
+             for inp, ar in zip(kw.inputs, kw.allowed_residues)]
 
    exe = concurrent.futures.ProcessPoolExecutor
    #exe = rp.util.InProcessExecutor

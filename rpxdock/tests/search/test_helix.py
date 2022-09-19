@@ -18,14 +18,12 @@ def test_helix(hscore, body_tiny):
    kw = _test_args()
    kw.max_trim = 0
    kw.output_prefix = 'test_helix'
-   kw.beam_size = 10_000
+   kw.beam_size = 1e5
    kw.max_bb_redundancy = 3.0
    kw.wts.ncontact = 0
 
    kw.helix_min_isecond = 8
    kw.helix_max_isecond = 16
-   kw.helix_min_radius = 0
-   kw.helix_max_radius = 9e9
    kw.helix_min_primary_score = 30
    kw.helix_max_primary_score = 100
    kw.helix_iresl_second_shift = 2
@@ -42,28 +40,20 @@ def test_helix(hscore, body_tiny):
    # cartlb = np.array([00, -150, -150])
    # cartub = np.array([150, 150, 150])
    # cartbs = np.array([15, 30, 30], dtype="i")
-   cartlb = np.array([+0, -0, -0])
-   cartub = np.array([+120, +90, +90])
-   cartbs = np.array([4, 3, 3], dtype="i")
-   sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, 40)
+   cartlb = np.array([+000, -100, -100])
+   cartub = np.array([+100, +100, +100])
+   cartbs = np.array([10, 20, 20], dtype="i")
+   sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, 30)
    # sampler = rp.search.asym_get_sample_hierarchy(body2, hscore, 18)
 
    print(f'toplevel samples {sampler.size(0):,}')
    result = rp.search.make_helix(body_tiny, hscore, sampler, **kw)
+   print(result)
    # result.dump_pdbs_top_score(hscore=hscore, **kw)
 
-   #rp.search.result_to_tarball(result, 'rpxdock/data/testdata/test_helix.result.txz', overwrite=True)
-   rp.dump(result, 'rpxdock/data/testdata/test_helix.pickle')
-
-   ref = rp.data.get_test_data('test_helix')
-
-   print('-' * 80)
-   print(result)
-   print('-' * 80)
-   print(ref)
-   print('-' * 80)
-
-   rp.search.assert_results_close(result, ref)
+   # rp.dump(result, 'rpxdock/data/testdata/test_asym.pickle')
+   # ref = rp.data.get_test_data('test_asym')
+   # rp.search.assert_results_close(result, ref)
 
 def main():
    import logging
@@ -76,9 +66,8 @@ def main():
    console_handler.setFormatter(log_formatter)
    log.addHandler(console_handler)
 
-   hscore = rp.data.small_hscore()
-   # hscore = rp.RpxHier('ilv_h/1000',
-   # hscore_data_dir='/home/sheffler/data/rpx/hscore/willsheffler')
+   # hscore = rp.data.small_hscore()
+   hscore = rp.RpxHier('ilv_h/1000', hscore_data_dir='/home/sheffler/data/rpx/hscore')
    # hscore = rp.RpxHier('ilv_h', hscore_data_dir='/home/sheffler/data/rpx/hscore')
    # hscore = rp.RpxHier('afilmv_elh', hscore_data_dir='/home/sheffler/data/rpx/hscore')
    # body = rp.data.get_body('tiny')

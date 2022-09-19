@@ -4,8 +4,6 @@ import numpy as np, rpxdock as rp
 from rpxdock.util import sanitize_for_storage, num_digits
 import rpxdock as rp
 import willutil as wu
-#from icecream import ic
-#ic.configureOutput(includeContext=True)
 
 log = logging.getLogger(__name__)
 
@@ -217,8 +215,6 @@ class Result:
          middle = '__'.join(body_names)
          output_suffix = sep + output_suffix if output_suffix else ''
          fname = output_prefix + middle + output_suffix + '.pdb'
-         #ic(fname)
-
       fname = os.path.abspath(fname)
       log.info(f'dumping pdb {fname} score {self.scores.data[imodel]}')
       bfactor = None
@@ -492,7 +488,7 @@ def result_to_tarball(result, fname, overwrite=False):
          for j, bod in enumerate(bods):
             sources.append(f'ijob {i} icomponent {j} source {bod.source()}')
             fn = f'body_{i}_{j}_{bod.source()}'.replace("/", "^")
-            logging.debug('fname for tarball', fn)
+            print('fname for tarball', fn)
             with open(td + '/' + fn, 'w') as out:
                pdbstr, _ = bod.str_pdb()
                out.write(pdbstr)
@@ -515,7 +511,7 @@ def result_to_tarball(result, fname, overwrite=False):
 
    return fname
 
-def result_to_summary(result, fname, picklefname, tarfname, direction="top", nout_top="all"):
+def result_to_summary(result, fname, picklefname, tarfname, direction="top", nout_top="all" ):
    logging.debug("printing summary")
    logging.debug(f"fname {fname}")
    logging.debug(f"picklefname {picklefname}")
@@ -541,25 +537,25 @@ def result_to_summary(result, fname, picklefname, tarfname, direction="top", nou
    if nout_top == 'all':
       nout_top = len(result.data)
 
-   assert (direction == "top") or (direction == "bot")
+   assert ( direction == "top" ) or ( direction == "bot" )
    if direction == "top":
-      dir_range = slice(0, nout_top)
+      dir_range = slice(0,nout_top)
    else:
-      dir_range = slice(-nout_top - 1, -1)
+      dir_range = slice(-nout_top-1,-1)
 
    logging.debug(f"direction {direction}")
    logging.debug(f"nout_top {nout_top}")
    logging.debug(f"dir_range {dir_range}")
-
+   
    #pad model number with leading zeros
    max_model_num = best[dir_range].values.max()
    max_model_num_char = len(str(max_model_num))
 
    #open summary text file to write
-   f = open(f"{fname}", "w")
+   f = open(f"{fname}","w")
 
    #figure out name and write the file
-   count = 0
+   count=0
    for model in best:
       bod = result.bodies[result.ijob[model.values].values]
       body_names = [b.label for b in bod]
@@ -569,12 +565,8 @@ def result_to_summary(result, fname, picklefname, tarfname, direction="top", nou
          body_names = [bl + '_' + lbl for bl, lbl in zip(bodlab, body_names)]
       middle = '__'.join(body_names)
 
-      logging.debug(
-         f"{os.path.abspath(output_path)},{result.sym}__{direction}{count}_{str(model.values).zfill(max_model_num_char)}__{middle}.pdb"
-      )
-      f.write(
-         f"{os.path.abspath(output_path)},{result.sym}__{direction}{count}_{str(model.values).zfill(max_model_num_char)}__{middle}.pdb\n"
-      )
+      logging.debug(f"{os.path.abspath(output_path)},{result.sym}__{direction}{count}_{str(model.values).zfill(max_model_num_char)}__{middle}.pdb"  )
+      f.write(      f"{os.path.abspath(output_path)},{result.sym}__{direction}{count}_{str(model.values).zfill(max_model_num_char)}__{middle}.pdb\n")
 
       count += 1
 
@@ -584,7 +576,7 @@ def result_to_summary(result, fname, picklefname, tarfname, direction="top", nou
    return fname
 
 def process_body_labels(bodies, labels, data):
-   njob = max(data.ijob.data, default=-1) + 1 if 'ijob' in data else 1
+   njob = max(data.ijob.data,default=-1)+1 if 'ijob' in data else 1
    ndim = data['xforms'].shape[1] if data['xforms'].ndim == 4 else 1
    if bodies in ([], [[[]]]): bodies = None
    if labels in ([], [[[]]]): labels = None

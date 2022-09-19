@@ -24,21 +24,13 @@
 				"name": "test_multicomp",
 				"shell_cmd" : "cd $folder; CC='ccache gcc' PYTHONPATH=. python rpxdock/tests/search/test_multicomp.py &> sublime_build.log"
 			},
-		   	{
+	   	{
 				"name": "helix_beta",
-				"shell_cmd" : "cd $folder; PYTHONPATH=. python rpxdock/app/pilot/helix_beta.py --inputs1 rpxdock/data/pdb/DHR14.pdb.gz --cart_bounds 0 100 -100 100 -100 100 --dump_pdbs &> sublime_build.log"
+				"shell_cmd" : "cd $folder; python rpxdock/app/pilot/helix_beta.py --inputs1 rpxdock/data/pdb/DHR14.pdb.gz --cart_bounds 0 100 -100 100 -100 100 --dump_pdbs &> sublime_build.log"
 			},
-			{
-				"name": "test_helix",
-				"shell_cmd" : "cd $folder; PYTHONPATH=. python rpxdock/tests/search/test_helix.py &> sublime_build.log"
-			},
-		   	{
+	   	{
 				"name": "test_homog",
 				"shell_cmd" : "cd $folder; python rpxdock/tests/test_homog.py &> sublime_build.log"
-			},
-		   	{
-				"name": "test_asym",
-				"shell_cmd" : "cd $folder; rm -f *.pdb; PYTHONPATH=. python rpxdock/tests/search/test_asym.py &> sublime_build.log"
 			},
 			{
 				"name": "run expand_xforms",
