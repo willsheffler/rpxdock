@@ -56,7 +56,7 @@ def filter(xforms, body, **kw):
       data = dict(
          attrs=dict(arg=kw, filters=all_filter_data, output_prefix=kw.output_prefix,
                     output_body='all'),
-         xforms=(["model", "comp", "hrow", "hcol"], np.zeros(dtype="f",shape=(1,2,4,4))),
+         xforms=(["model", "comp", "hrow", "hcol"], np.zeros(dtype="f", shape=(1, 2, 4, 4))),
          scores=(["model"], np.array([0])),
       )
 

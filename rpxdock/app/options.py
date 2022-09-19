@@ -127,6 +127,19 @@ def default_cli_parser(parent=None, **kw):
       "--allowed_residues3", nargs="*", type=str, default=[],
       help='allowed residues for third component for 3+ component protocols. Takes either nothing (if you leave them out), a single file which applies to all the corresponding inputs, or a list of files which must have the same length as the list of inputs. The files themselves must contain a whitespace separated list of either numbers or ranges.'
    )
+   addarg("--allowed_residues_also", nargs="*", type=str, default=[], help=argparse.SUPPRESS)
+   addarg(
+      "--allowed_residues_also1", nargs="*", type=str, default=[],
+      help='like --allowed_residues1, but an interaction involving these residues is *also* required'
+   )
+   addarg(
+      "--allowed_residues_also2", nargs="*", type=str, default=[],
+      help='like --allowed_residues2, but an interaction involving these residues is *also* required'
+   )
+   addarg(
+      "--allowed_residues_also3", nargs="*", type=str, default=[],
+      help='like --allowed_residues3, but an interaction involving these residues is *also* required'
+   )
    addarg(
       "--ncpu", type=int, default=rp.util.cpu_count(),
       help='number of cpu cores available. defaults to all cores or cores available according to slurm allocation'
@@ -472,6 +485,14 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
    assert len(opt.allowed_residues2) in (0, 1, len(opt.inputs2)), msg
    msg = 'allowed_residues3 must be a single file or match number of inputs3'
    assert len(opt.allowed_residues3) in (0, 1, len(opt.inputs3)), msg
+   msg = 'allowed_residues_also must be a single file or match number of inputs'
+   assert len(opt.allowed_residues_also) in (0, 1, len(opt.inputs)), msg
+   msg = 'allowed_residues_also1 must be a single file or match number of inputs1'
+   assert len(opt.allowed_residues_also1) in (0, 1, len(opt.inputs1)), msg
+   msg = 'allowed_residues_also2 must be a single file or match number of inputs2'
+   assert len(opt.allowed_residues_also2) in (0, 1, len(opt.inputs2)), msg
+   msg = 'allowed_residues_also3 must be a single file or match number of inputs3'
+   assert len(opt.allowed_residues_also3) in (0, 1, len(opt.inputs3)), msg
 
    if not opt.inputs:
       msg = '--allowed_residues cant be used if --inputs not used'
@@ -530,6 +551,16 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
    if len(opt.allowed_residues2) == 0: opt.allowed_residues2 = [None] * len(opt.inputs2)
    if len(opt.allowed_residues3) == 0: opt.allowed_residues3 = [None] * len(opt.inputs3)
 
+   if len(opt.allowed_residues_also) == 1: opt.allowed_residues_also *= len(opt.inputs)
+   if len(opt.allowed_residues_also1) == 1: opt.allowed_residues_also1 *= len(opt.inputs1)
+   if len(opt.allowed_residues_also2) == 1: opt.allowed_residues_also2 *= len(opt.inputs2)
+   if len(opt.allowed_residues_also3) == 1: opt.allowed_residues_also3 *= len(opt.inputs3)
+
+   if len(opt.allowed_residues_also) == 0: opt.allowed_residues_also = [None] * len(opt.inputs)
+   if len(opt.allowed_residues_also1) == 0: opt.allowed_residues_also1 = [None] * len(opt.inputs1)
+   if len(opt.allowed_residues_also2) == 0: opt.allowed_residues_also2 = [None] * len(opt.inputs2)
+   if len(opt.allowed_residues_also3) == 0: opt.allowed_residues_also3 = [None] * len(opt.inputs3)
+
    if opt.inputs:
       # Term_access
       if len(opt.term_access) == 1:
@@ -572,20 +603,29 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
       opt.allowed_residues2 = [_read_allowed_res_file(_) for _ in opt.allowed_residues2]
       opt.allowed_residues3 = [_read_allowed_res_file(_) for _ in opt.allowed_residues3]
 
+   if read_allowed_res_files:
+      opt.allowed_residues_also = [_read_allowed_res_file(_) for _ in opt.allowed_residues_also]
+      opt.allowed_residues_also1 = [_read_allowed_res_file(_) for _ in opt.allowed_residues_also1]
+      opt.allowed_residues_also2 = [_read_allowed_res_file(_) for _ in opt.allowed_residues_also2]
+      opt.allowed_residues_also3 = [_read_allowed_res_file(_) for _ in opt.allowed_residues_also3]
+
    if not opt.inputs:
       if opt.inputs1:
          opt.inputs.append(opt.inputs1)
          opt.allowed_residues.append(opt.allowed_residues1)
+         opt.allowed_residues_also.append(opt.allowed_residues_also1)
          opt.term_access.append(opt.term_access1)
          opt.termini_dir.append(opt.termini_dir1)
          if opt.inputs2:
             opt.inputs.append(opt.inputs2)
             opt.allowed_residues.append(opt.allowed_residues2)
+            opt.allowed_residues_also.append(opt.allowed_residues_also2)
             opt.term_access.append(opt.term_access2)
             opt.termini_dir.append(opt.termini_dir2)
             if opt.inputs3:
                opt.inputs.append(opt.inputs3)
                opt.allowed_residues.append(opt.allowed_residues3)
+               opt.allowed_residues_also.append(opt.allowed_residues_also3)
                opt.term_access.append(opt.term_access3)
                opt.termini_dir.append(opt.termini_dir3)
 
