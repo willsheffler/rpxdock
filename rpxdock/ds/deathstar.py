@@ -17,20 +17,24 @@ class DSError(Exception):
 class DeathStar(object):
    """represents data for asymmetrized cage"""
    def __init__(
-         self,
-         hull,
-         laser,
-         cagesym,
-         cycsym,
-         origin=np.eye(4),
-         contact_dist=6,
-         clash_dist=3,
-         begnbr=1,
-         # origframes=None,
-         capcen=np.eye(4),
-         capaln=np.eye(4),
-         capxform=np.eye(4),
-         timer=None,
+      self,
+      hull,
+      laser,
+      cagesym,
+      cycsym,
+      # origin=I,
+      origin=None,
+      contact_dist=6,
+      clash_dist=3,
+      begnbr=1,
+      # origframes=None,
+      # capcen=I,
+      capcen=None,
+      # capaln=I,
+      capaln=None,
+      # capxform=I,
+      capxform=None,
+      timer=None,
    ):
       super(DeathStar, self).__init__()
 
@@ -58,7 +62,7 @@ class DeathStar(object):
       self.ref_iface_idx = len(self.neighbors) - 1 - self.begnbr  # totally arbitrary
 
       # record original positions
-      # symx[-1] is a bit mysterious, just now frames 0/1 align np.eye(4) guess
+      # symx[-1] is a bit mysterious, just now frames 0/1 align I guess
       # may not generalize...
       twofoldcen = (self.frames[0, :, 3] + self.frames[1, :, 3]) / 2
       twofolddiff = self.frames[1, :, 3] - self.frames[0, :, 3]
@@ -326,7 +330,8 @@ class DeathStar(object):
    def iface_rel_xforms(self, original=False):
       ifacepos = self.iface_positions(original=original)
       # xaln = wu.hinv(ifacepos[self.ref_iface_idx, 1]) @ ifacepos[self.ref_iface_idx, 0]
-      xaln = np.eye(4)
+      # xaln = I
+      xaln = None
       ip0 = ifacepos[:, 0] @ self.toifacececen
       ip1 = ifacepos[:, 1] @ self.toifacececen
       ifpos = xaln @ wu.hinv(ip0) @ ip1
@@ -369,7 +374,7 @@ class DeathStar(object):
    #       Bcom = np.mean(B, axis=0)
    #       Bcen = wu.hpoint(B[:, :3] - Bcom[:3])
    #       U = rmsd.kabsch(Bcen[:, :3], Acen[:, :3])
-   #       X = np.eye(4)
+   #       X = I
    #       X[:3, :3] = U.T
    #       X = wu.htrans(Acom) @ X @ wu.htrans(-Bcom)
    #       Bfit = wu.hpoint(wu.hxform(X, B))
@@ -417,9 +422,10 @@ class DeathStar(object):
             rp.io.dump_pdb_from_bodies(f'{fprefix}_hull{i}{j}.pdb', [self.hull])
 
       ifacepos = self.iface_positions()
-      xaln = np.eye(4)
+      # xaln = I
+      xaln = None
       for inbr, (pos1, pos2) in enumerate(ifacepos):
-         x1 = xaln @ np.eye(4)  #wu.hinv(pos1) @ pos1
+         x1 = xaln @ I  #wu.hinv(pos1) @ pos1
          x2 = xaln @ wu.hinv(pos1) @ pos2
          ha, hb = self.hull.copy(), self.hull.copy()
          ha.pos = x1
@@ -444,10 +450,11 @@ class DeathStar(object):
       #    out.write(s)
 
 def cage_to_cyclic(
-      hull,
-      cagesym,
-      cycsym,
-      origin=np.eye(4),
+   hull,
+   cagesym,
+   cycsym,
+   # origin=I,
+   origin=None,
 ):
    # kw = wu.Bunch(headless=True)
    # kw.headless = False

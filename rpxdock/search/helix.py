@@ -103,11 +103,11 @@ def get_xtrema_coords(bodyA, bodyB):
    # assert 0
    return a, b
 
-def get_tether_to(tether_to=None, **kw):
-   if not tether_to: return None, None, None
-   assert len(tether_to) == 2
-   bodyA = rp.body.Body(tether_to[0])
-   bodyB = rp.body.Body(tether_to[1])
+def get_tether_xform(tether_xform, **kw):
+   if not tether_xform: return None
+   assert len(tether_xform) == 2
+   bodyA = rp.body.Body(tether_xform[0])
+   bodyB = rp.body.Body(tether_xform[1])
    coordA, coordB = get_xtrema_coords(bodyA, bodyB)
 
    # print(coordA.shape, coordA[0].shape)
@@ -182,9 +182,9 @@ class HelixEvaluator:
       self.kw = Bunch(kw, _strict=False)
       self.body = body.copy()
       self.hscore = hscore
-      self.tether_to, self.tmp_ca, self.tmp_cb = get_tether_to(**kw)
+      self.tether_xform, self.tmp_ca, self.tmp_cb = get_tether_xform(**kw)
       print('--------- tether xform ----------')
-      print(self.tether_to)
+      print(self.tether_xform)
       print('---------------------------------')
 
    def __call__(self, xforms, iresl=-1, wts={}, **kw):
@@ -197,7 +197,7 @@ class HelixEvaluator:
       cart_extent = self.hscore.cart_extent[iresl]
       ori_extent = self.hscore.ori_extent[iresl]
 
-      ok = check_tether(xforms, self.tether_to, kw.tether_dist, kw.tether_ang, cart_extent,
+      ok = check_tether(xforms, self.tether_xform, kw.tether_dist, kw.tether_ang, cart_extent,
                         ori_extent, self.tmp_ca, self.tmp_cb, **kw)
 
       if not kw.helix_max_delta_z:

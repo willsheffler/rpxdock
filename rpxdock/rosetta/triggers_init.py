@@ -49,7 +49,7 @@ def create_residue(resname, typeset='fa_standard'):
    rfactory = rosetta.core.conformation.ResidueFactory
    return rfactory.create_residue(rts.name_map(resname))
 
-def get_pose_cached(fname, pdbdir=rp.data.pdbdir):
+def get_pose_cached(fname, pdbdir="."):
    path = os.path.join(pdbdir, fname)
    h = str(rp.util.hash_str_to_int(version().encode()))
    ppath = path + "_v" + h + ".pickle"

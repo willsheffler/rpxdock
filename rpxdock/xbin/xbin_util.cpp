@@ -429,7 +429,7 @@ Vx<V> ssmap_pairs_multipos(Xbin<F, K> const &xb, PHMap<K, V> const &map,
                            Mx<int32_t> pairs, Vx<K> ss1, Vx<K> ss2,
                            py::array_t<F> x1, py::array_t<F> x2,
                            Mx<int32_t> lbub, py::array_t<F> p1,
-                           py::array_t<F> p2, bool incomplete_ok = false) {
+                           py::array_t<F> p2) {
   auto stub1 = xform_py_to_eigen(x1);
   auto stub2 = xform_py_to_eigen(x2);
   auto pos1 = xform_py_to_eigen(p1);
@@ -459,7 +459,7 @@ Vx<V> ssmap_pairs_multipos(Xbin<F, K> const &xb, PHMap<K, V> const &map,
       vals[ntot++] = map.get_default(k);
     }
   }
-  if (ntot != pairs.rows() && !incomplete_ok)
+  if (ntot != pairs.rows())
     throw std::runtime_error("ssmap_pairs_multipos error");
   return vals;
 }
@@ -468,7 +468,7 @@ template <typename K, typename F, typename V>
 Vx<V> map_pairs_multipos(Xbin<F, K> const &xb, PHMap<K, V> const &map,
                          Mx<int32_t> pairs, py::array_t<F> x1,
                          py::array_t<F> x2, Mx<int32_t> lbub, py::array_t<F> p1,
-                         py::array_t<F> p2, bool incomplete_ok = false) {
+                         py::array_t<F> p2) {
   auto stub1 = xform_py_to_eigen(x1);
   auto stub2 = xform_py_to_eigen(x2);
   auto pos1 = xform_py_to_eigen(p1);
@@ -495,7 +495,7 @@ Vx<V> map_pairs_multipos(Xbin<F, K> const &xb, PHMap<K, V> const &map,
       vals[ntot++] = map.get_default(k);
     }
   }
-  if (ntot != pairs.rows() && !incomplete_ok)
+  if (ntot != pairs.rows())
     throw std::runtime_error("ssmap_pairs_multipos error");
   return vals;
 }
@@ -545,10 +545,10 @@ void bind_xbin_util(py::module m) {
 
   m.def("map_pairs_multipos", &map_pairs_multipos<K, F, double>, "xbin"_a,
         "phmap"_a, "idx"_c, "xform1"_c, "xform2"_c, "lbub"_c, "pos1"_a = eye4,
-        "pos2"_a = eye4, "incomplete_ok"_a = false);
+        "pos2"_a = eye4);
   m.def("ssmap_pairs_multipos", &ssmap_pairs_multipos<K, F, double>, "xbin"_a,
         "phmap"_a, "idx"_c, "ss1"_c, "ss2"_c, "xform1"_c, "xform2"_c, "lbub"_c,
-        "pos1"_a = eye4, "pos2"_a = eye4, "incomplete_ok"_a = false);
+        "pos1"_a = eye4, "pos2"_a = eye4);
 }
 
 PYBIND11_MODULE(xbin_util, m) {

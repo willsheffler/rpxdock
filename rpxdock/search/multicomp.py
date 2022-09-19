@@ -371,7 +371,9 @@ def _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw):
             f"resi {lbub[0][0]}-{lbub[1][0]}",
          )
       else:
-         logging.info(f"{fn} score {scores[i]:7.3f} rpx {scr[0]:7.3f} cnt {cnt[0]:4}")
+         logging.info(
+            f"{fn} score {scores[i]:7.3f} rpx {scr[0]:7.3f} cnt {cnt[0]:4}"
+         )
       rp.dump_pdb_from_bodies(fn, bodies, rp.geom.symframes(spec.sym, xforms[iout]),
                               resbounds=lbub)
    return t.total
