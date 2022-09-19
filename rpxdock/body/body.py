@@ -4,8 +4,8 @@ from rpxdock.filter.sscount import secondary_structure_map
 from pyrosetta import rosetta as ros
 import willutil as wu
 from willutil import Bunch
-from icecream import ic
-ic.configureOutput(includeContext=True)
+#from icecream import ic
+#ic.configureOutput(includeContext=True)
 
 log = logging.getLogger(__name__)
 _CLASHRAD = 1.75
@@ -110,7 +110,7 @@ class Body:
             allowed_res = allowed_res(self, **kw)
          for j in allowed_res:
             self.allowed_residues[j] = True
-      ic(self.allowed_residues.shape, np.sum(self.allowed_residues))
+      #ic(self.allowed_residues.shape, np.sum(self.allowed_residues))
 
       # list of sets of residues
       # participating protocols should require at least one residue at iface for ALL sets
@@ -130,9 +130,9 @@ class Body:
          self.required_res_sets.append(phmap)
          # ic(phmap.keys())
 
-      ic(self.allowed_residues.shape, np.sum(self.allowed_residues))
-      for s in self.required_res_sets:
-         ic(s.keys())
+      #ic(self.allowed_residues.shape, np.sum(self.allowed_residues))
+      #for s in self.required_res_sets:
+         #ic(s.keys())
 
    def init_coords(
          self,

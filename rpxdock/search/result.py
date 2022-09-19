@@ -1,10 +1,11 @@
 import copy, logging, os, tempfile, tarfile, io, json, itertools
 from collections import OrderedDict, abc, defaultdict, Sequence
-from icecream import ic
 import numpy as np, rpxdock as rp
 from rpxdock.util import sanitize_for_storage, num_digits
 import rpxdock as rp
 import willutil as wu
+#from icecream import ic
+#ic.configureOutput(includeContext=True)
 
 log = logging.getLogger(__name__)
 
@@ -216,7 +217,7 @@ class Result:
          middle = '__'.join(body_names)
          output_suffix = sep + output_suffix if output_suffix else ''
          fname = output_prefix + middle + output_suffix + '.pdb'
-         ic(fname)
+         #ic(fname)
 
       fname = os.path.abspath(fname)
       log.info(f'dumping pdb {fname} score {self.scores.data[imodel]}')
@@ -491,7 +492,7 @@ def result_to_tarball(result, fname, overwrite=False):
          for j, bod in enumerate(bods):
             sources.append(f'ijob {i} icomponent {j} source {bod.source()}')
             fn = f'body_{i}_{j}_{bod.source()}'.replace("/", "^")
-            print('fname for tarball', fn)
+            logging.debug('fname for tarball', fn)
             with open(td + '/' + fn, 'w') as out:
                pdbstr, _ = bod.str_pdb()
                out.write(pdbstr)

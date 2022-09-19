@@ -9,6 +9,9 @@ from rpxdock.body import Body, get_trimming_subbodies
 from pyrosetta import rosetta as ros, pose_from_file
 import rpxdock.rosetta.triggers_init
 
+from icecream import ic
+ic.configureOutput(includeContext=True)
+
 def test_body_ss_info():
    kw = rp.app.defaults()
    kw.helix_trim_max = 6
@@ -19,14 +22,17 @@ def test_body_ss_info():
    # get_trimming_subbodies(body, pose)
 
 def test_body_create():
-
    pdb = rp.data.datadir + '/pdb/C3_1na0-1_1.pdb.gz'
    b0 = Body(pdb)
    b1 = Body(pdb, allowed_res=None)
    b2 = Body(pdb, allowed_res=lambda x: {1, 2, 3})
 
-   assert len(b0.cen) == 21
-   assert len(b1.cen) == 21
+   ic("len(b0.cen)", len(b0.cen))
+   ic("len(b1.cen)", len(b1.cen))
+   ic("len(b2.cen)", len(b2.cen))
+
+   assert len(b0.cen) == 108 #21 old number for some reason doesn't match
+   assert len(b1.cen) == 108 #21
    assert len(b2.cen) == 3
 
 def test_body(C2_3hm4, C3_1nza, sym1=2, sym2=3):

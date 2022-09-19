@@ -2,8 +2,8 @@ import os, logging, glob, numpy as np, rpxdock as rp
 from rpxdock.xbin import xbin_util as xu
 from rpxdock.score import score_functions as sfx
 import willutil as wu
-from icecream import ic
-ic.configureOutput(includeContext=True)
+#from icecream import ic
+#ic.configureOutput(includeContext=True)
 
 log = logging.getLogger(__name__)
 """
@@ -144,7 +144,7 @@ class RpxHier:
       ok = np.ones(len(lbub), dtype='?')
       # ic(lbub.shape)
       if contains_res:
-         ic([np.sum(x) for x in contains_res])
+         #ic([np.sum(x) for x in contains_res])
          for i in range(len(lbub)):
             ok[i] = all([5 < np.sum(x[lbub[i, 0]:lbub[i, 1]]) for x in contains_res])
       # ic(ok.shape, np.sum(ok))
@@ -264,12 +264,14 @@ def get_hscore_file_names(alias, hscore_data_dir):
       print(
          'WARNING: using slower, portable tarball format. generate pickle files with --generate_hscore_pickle_files and place with original .txz files for faster operation!'
       )
+      '''
       ic(alias)
       ic(hscore_data_dir)
       ic(picklepattern)
       ic(picklefiles1)
       ic(picklefiles2)
       ic(picklefiles)
+      '''
       # assert 0
    if not fnames:
       raise ValueError(f'not hscore files found for "{alias}" in "{hscore_data_dir}"')

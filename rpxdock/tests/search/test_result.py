@@ -62,7 +62,7 @@ def test_result_tarball():
 
    # timer = wu.Timer()
 
-   r2 = result_from_tarball('O43_Result.txz')
+   #r2 = result_from_tarball('O43_Result.txz')
    # ic('foo')
    # ic(r2.labels)
    # files = r2.dump_pdbs_top_score(3)

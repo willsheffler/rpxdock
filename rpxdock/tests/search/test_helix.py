@@ -13,6 +13,7 @@ def _test_args():
    kw.debug = True
    return kw
 
+@pytest.mark.skip
 def test_helix(hscore, body_tiny):
    kw = _test_args()
    kw.max_trim = 0
@@ -51,8 +52,9 @@ def test_helix(hscore, body_tiny):
    result = rp.search.make_helix(body_tiny, hscore, sampler, **kw)
    # result.dump_pdbs_top_score(hscore=hscore, **kw)
 
-   rp.search.result_to_tarball(result, 'rpxdock/data/testdata/test_helix.result.txz',
-                               overwrite=True)
+   #rp.search.result_to_tarball(result, 'rpxdock/data/testdata/test_helix.result.txz', overwrite=True)
+   rp.dump(result, 'rpxdock/data/testdata/test_helix.pickle')
+
    ref = rp.data.get_test_data('test_helix')
 
    print('-' * 80)
