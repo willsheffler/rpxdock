@@ -1,8 +1,11 @@
-import _pickle, collections, pytest, rpxdock as rp, tempfile
+import _pickle, collections, pytest, tempfile
+from icecream import ic
+import rpxdock as rp
 from rpxdock.search.result import *
 import willutil as wu
 
 def main():
+
    import tempfile
    # test_result(dummy_result(1000))
    # test_result_pickle(dummy_result(1000), tempfile.mkdtemp())
@@ -56,13 +59,23 @@ def test_labels():
                                                         ['poo']], **dummydat)
 
 def test_result_tarball():
+
    # timer = wu.Timer()
+
+   #r2 = result_from_tarball('O43_Result.txz')
+   # ic('foo')
+   # ic(r2.labels)
+   # files = r2.dump_pdbs_top_score(3)
+   # ic(files)
+   # ic(r.attrs)
+   # ic(r2.attrs)
+   # assert 0
+
    with tempfile.TemporaryDirectory() as tmpdir:
 
       r = rp.data.get_test_data('test_result.pickle')
 
       outfiles = r.dump_pdbs_top_score(1, output_prefix=f'{tmpdir}/')
-
       f = os.listdir(tmpdir)
       assert len(f) == 1
       with open(f'{tmpdir}/{f[0]}') as inp:

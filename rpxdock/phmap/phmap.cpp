@@ -192,6 +192,8 @@ void bind_phmap(const py::module &m, std::string name) {
 }
 
 PYBIND11_MODULE(phmap, m) {
+  bind_phmap<int32_t, int32_t>(m, "PHMap_i4i4");
+  // bind_phmap<uint32_t, uint32_t>(m, "PHMap_u4u4");
   bind_phmap<uint32_t, float>(m, "PHMap_u4f4");
   bind_phmap<uint64_t, float>(m, "PHMap_u8f4");
   bind_phmap<uint64_t, double>(m, "PHMap_u8f8");

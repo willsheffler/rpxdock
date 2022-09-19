@@ -55,7 +55,7 @@ def get_helix_args():
    # parser.add_argument("--angle_cell_width", type=float, default=30,
    #                     help='angular resolution of the initial search stage, default 30')
 
-   parser.add_argument("--tether_xform", type=str, nargs='*', default=[],
+   parser.add_argument("--tether_to", type=str, nargs='*', default=[],
                        help='two structs with configuration to sample around')
    parser.add_argument("--tether_dist", type=float, default=3,
                        help='max dist from supplied dimer configuration')
