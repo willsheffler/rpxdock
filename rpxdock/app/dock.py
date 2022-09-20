@@ -544,6 +544,8 @@ def main():
       result = dock_onecomp(hscore, **kw)
    elif arch.startswith('PLUG'):
       result = dock_plug(hscore, **kw)
+   elif arch.startswith('AXEL_'):
+      result = dock_axel(hscore, **kw)
    elif arch.startswith('P'):
       result = dock_layer(hscore, **kw)
    elif arch.startswith('F'):
