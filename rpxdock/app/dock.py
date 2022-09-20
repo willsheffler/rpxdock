@@ -30,6 +30,8 @@ def get_spec(arch):
          spec = rp.search.DockSpec3CompLayer(arch)
       else:
          raise ValueError('number of components must be 1, 2 or 3')
+   elif arch.startswith('AXEL_'):
+      spec = rp.search.DockSpecAxel(arch)
    elif arch.startswith('F'):
          spec = rp.search.DockSpecDiscrete(arch)
    else:
