@@ -442,6 +442,33 @@ def dock_axel(hscore, **kw):
       raise ValueError(f'not compatible with docking method {kw.dock_method}')
 
 
+   bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
+              for fn, ar2 in zip(inp, ar)]
+             for inp, ar in zip(kw.inputs, kw.allowed_residues)]
+   assert len(bodies) == spec.num_components
+   #   bodies = [[rp.Body(fn, **kw) for fn in inp] for inp in kw.inputs]
+   #   assert len(bodies) == spec.num_components
+   exe = concurrent.futures.ProcessPoolExecutor
+   with exe(kw.ncpu) as pool:
+      futures = list()
+      for ijob, bod in enumerate(itertools.product(*bodies)):
+         futures.append(
+            pool.submit(
+               rp.search.make_multicomp,
+               bod,
+               spec,
+               hscore,
+               search,
+               sampler,
+               **kw,
+            ))
+         futures[-1].ijob = ijob
+      result = [None] * len(futures)
+      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+         result[f.ijob] = f.result()
+   result = rp.concat_results(result)
+   return result
+   
 def dock_layer(hscore, **kw):
    kw = Bunch(kw, _strict=False)
    spec = get_spec(kw.architecture)
