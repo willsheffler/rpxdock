@@ -4,8 +4,6 @@ from rpxdock.filter.sscount import secondary_structure_map
 from pyrosetta import rosetta as ros
 import willutil as wu
 from willutil import Bunch
-#from icecream import ic
-#ic.configureOutput(includeContext=True)
 
 log = logging.getLogger(__name__)
 _CLASHRAD = 1.75
@@ -116,12 +114,15 @@ class Body:
       # participating protocols should require at least one residue at iface for ALL sets
       # sets represnted at PHMaps because I never implement a set... just ignore value
       # us np.sum(mymap.has(value)) >= num_required to test
+      logging.debug(required_res_sets)
       if required_res_sets is None:
          required_res_sets = []
       # for s in required_res_sets:
       # required_res_sets = [np.asarray(x, dtype='i4') for x in required_res_sets]
       self.required_res_sets = list()
       for s in required_res_sets:
+         if s is None:
+            continue
          if callable(s): s = s(self, **kw)
          s = np.asarray(list(s), dtype='i4')
          self.allowed_residues[s] = True
