@@ -107,7 +107,7 @@ class Body:
          if callable(allowed_res):
             allowed_res = allowed_res(self, **kw)
          for j in allowed_res:
-            self.allowed_residues[j] = True
+            self.allowed_residues[j - 1] = True
       #ic(self.allowed_residues.shape, np.sum(self.allowed_residues))
 
       # list of sets of residues
