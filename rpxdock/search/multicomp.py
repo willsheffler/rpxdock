@@ -96,7 +96,7 @@ def make_multicomp(
          if not isinstance(v, (list, tuple)) or len(v) > 3:
             v = ['model', v]
          data[f"ncont_{k}"] = v
-   if not spec.arch.lower().startswith("axel_"):
+   if not spec.arch.lower().startswith("axle_"):
       for i in range(len(bodies)):
          data[f'disp{i}'] = (['model'],
                              np.sum(xforms[:, i, :3, 3] * spec.axis[None, i, :3], axis=1))

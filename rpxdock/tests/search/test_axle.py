@@ -17,7 +17,7 @@ def get_arg(**kw):
    #arg.force_flip = [False, False]
    return arg.sub(kw)
 
-def test_axel(hscore):
+def test_axle(hscore):
    C3_A = rp.data.get_body_copy('C3_1na0-1_1')
    C3_B = rp.data.get_body_copy('C3_1nza_1')
    C3_A.init_coords(3, [0, 0, 1, 0])
@@ -25,7 +25,7 @@ def test_axel(hscore):
 
    kw = get_arg(fixed_components=True)
    kw.beam_size = 5000
-   spec = rp.search.DockSpecAxel("AXEL_3")
+   spec = rp.search.DockSpecAxel("AXLE_3")
 
    sampler1 = rp.sampling.hier_axis_sampler(3, 0, 100, 10, 10, axis=spec.axis[0], flipax=spec.flip_axis[0])
    sampler2 = rp.sampling.ZeroDHier([np.eye(4), rp.homog.hrot([1, 0, 0], 180)])
@@ -36,12 +36,12 @@ def test_axel(hscore):
    print(result)
 
    # result.dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=10, output_prefix='test_axel'))
-   # rp.dump(result, 'rpxdock/data/testdata/test_axel.pickle')
-   ref = rp.data.get_test_data('test_axel')
+   #                            **kw.sub(nout_top=10, output_prefix='test_axle'))
+   # rp.dump(result, 'rpxdock/data/testdata/test_axle.pickle')
+   ref = rp.data.get_test_data('test_axle')
    rp.search.assert_results_close(result, ref)
 
-def test_axel_asym(hscore):
+def test_axle_asym(hscore):
    C2_A = rp.data.get_body_copy('C2_3hm4_1')
    C2_A.init_coords(2, [0, 0, 1, 0])
    C3_B = rp.data.get_body_copy('C3_1nza_1')
@@ -49,7 +49,7 @@ def test_axel_asym(hscore):
 
    kw = get_arg(fixed_components=True)
    kw.beam_size = 5000
-   spec = rp.search.DockSpecAxel("AXEL_1_2_3")
+   spec = rp.search.DockSpecAxel("AXLE_1_2_3")
 
    sampler1 = rp.sampling.hier_axis_sampler(2 * 3, 0, 100, 10, 10, axis=spec.axis[0], flipax=spec.flip_axis[0])
    sampler2 = rp.sampling.ZeroDHier([np.eye(4), rp.homog.hrot([1, 0, 0], 180)])
@@ -60,12 +60,12 @@ def test_axel_asym(hscore):
    print(result)
 
    # result.dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=50, output_prefix='test_axel_asym'))
-   # rp.dump(result, 'rpxdock/data/testdata/test_axel_asym.pickle')
-   ref = rp.data.get_test_data('test_axel_asym')
+   #                            **kw.sub(nout_top=50, output_prefix='test_axle_asym'))
+   # rp.dump(result, 'rpxdock/data/testdata/test_axle_asym.pickle')
+   ref = rp.data.get_test_data('test_axle_asym')
    rp.search.assert_results_close(result, ref)
 
-def test_axel_grid(hscore):
+def test_axle_grid(hscore):
    C3_A = rp.data.get_body_copy('C3_1na0-1_1')
    C3_A.init_coords(3, [0, 0, 1, 0])
    C3_B = rp.data.get_body_copy('C3_1nza_1')
@@ -73,7 +73,7 @@ def test_axel_grid(hscore):
 
    kw = get_arg(fixed_components=True)
    kw.beam_size = 5000
-   spec = rp.search.DockSpecAxel("AXEL_3")
+   spec = rp.search.DockSpecAxel("AXLE_3")
 
    sampler1 = rp.sampling.grid_sym_axis(
       cart=np.arange(0, 100, 2),
@@ -93,9 +93,9 @@ def test_axel_grid(hscore):
    print(result)
 
    # result.dump_pdbs_top_score(hscore=hscore,
-   #                            **kw.sub(nout_top=10, output_prefix='test_axel_grid'))
-   # rp.dump(result, 'rpxdock/data/testdata/test_axel_grid.pickle')
-   ref = rp.data.get_test_data('test_axel_grid')
+   #                            **kw.sub(nout_top=10, output_prefix='test_axle_grid'))
+   # rp.dump(result, 'rpxdock/data/testdata/test_axle_grid.pickle')
+   ref = rp.data.get_test_data('test_axle_grid')
    rp.search.assert_results_close(result, ref)
 
 if __name__ == "__main__":
@@ -110,6 +110,6 @@ if __name__ == "__main__":
    # C2_A = rp.data.get_body_copy('C2_3hm4_1')
    # C2_A.init_coords(2, [0, 0, 1, 0])
 
-   test_axel(hscore)
-   test_axel_asym(hscore)
-   test_axel_grid(hscore)
+   test_axle(hscore)
+   test_axle_asym(hscore)
+   test_axle_grid(hscore)
