@@ -95,4 +95,4 @@ def convert_rpxdata_datafile(fname, **opts):
 if __name__ == '__main__':
    main()
 
-# PYTHONPATH=. python rpxdock/app/util/convert_rpxdata_to_portable_format.py rpxdock/data/testdata/test_cage_term_access.pickle rpxdock/data/testdata/test_axel.pickle rpxdock/data/testdata/test_cage_termini_dirs.pickle rpxdock/data/testdata/test_cage_onecomp_grid_termini_dirs.pickle rpxdock/data/testdata/test_cage_onecomp_grid_term_access.pickle rpxdock/data/testdata/test_cage_onecomp_hier_term_access.pickle
+# PYTHONPATH=. python rpxdock/app/util/convert_rpxdata_to_portable_format.py rpxdock/data/testdata/test_cage_term_access.pickle rpxdock/data/testdata/test_axle.pickle rpxdock/data/testdata/test_cage_termini_dirs.pickle rpxdock/data/testdata/test_cage_onecomp_grid_termini_dirs.pickle rpxdock/data/testdata/test_cage_onecomp_grid_term_access.pickle rpxdock/data/testdata/test_cage_onecomp_hier_term_access.pickle

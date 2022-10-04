@@ -30,7 +30,7 @@ def get_spec(arch):
          spec = rp.search.DockSpec3CompLayer(arch)
       else:
          raise ValueError('number of components must be 1, 2 or 3')
-   elif arch.startswith('AXEL_'):
+   elif arch.startswith('AXLE_'):
       spec = rp.search.DockSpecAxel(arch)
    elif arch.startswith('F'):
          spec = rp.search.DockSpecDiscrete(arch)
@@ -368,7 +368,7 @@ def dock_plug(hscore, **kw):
 # Docks two comopnents against one another, algined along axis of sym
 # Component one (inputs1) remains stationary during docking, but can flip
 # Component 2 (inputs2) rotates about axis, and can also flip
-def dock_axel(hscore, **kw):
+def dock_axle(hscore, **kw):
    kw = Bunch(kw, _strict=False)
    spec = get_spec(kw.architecture)
    flip = list(spec.flip_axis)
@@ -571,8 +571,8 @@ def main():
       result = dock_onecomp(hscore, **kw)
    elif arch.startswith('PLUG'):
       result = dock_plug(hscore, **kw)
-   elif arch.startswith('AXEL_'):
-      result = dock_axel(hscore, **kw)
+   elif arch.startswith('AXLE_'):
+      result = dock_axle(hscore, **kw)
    elif arch.startswith('P'):
       result = dock_layer(hscore, **kw)
    elif arch.startswith('F'):
