@@ -32,8 +32,7 @@ def print_options(kw):
    print(f'{" SETTINGS EXTRA INFO ":=^80}')
    for k, v in kw.items():
       vstr = str(v)
-      if (vstr.startswith('<') and vstr.count(' at 0x') and vstr.endswith('>')
-          and hasattr(v, '__doc__')):
+      if (vstr.startswith('<') and vstr.count(' at 0x') and vstr.endswith('>') and hasattr(v, '__doc__')):
          print(f'    {f" EXTRA INFO ABOUT: {k} ":=^76s}')
          print('   ', k, '.' * (maxlen - len(k)), v)
          doc = v.__doc__
@@ -61,10 +60,9 @@ def str2bool(v):
    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
       return False
    else:
-      raise argparse.ArgumentTypeError(
-         ('Boolean value expected, not "%s" of type %s\n' % (v, type(v)) +
-          'Allowed True Vals  (case independant): yes true ty 1\n' +
-          'Allowed False Vals (case independant): no false f n 0'))
+      raise argparse.ArgumentTypeError(('Boolean value expected, not "%s" of type %s\n' % (v, type(v)) +
+                                        'Allowed True Vals  (case independant): yes true ty 1\n' +
+                                        'Allowed False Vals (case independant): no false f n 0'))
 
 def parse_list_of_strtuple(s):
    if isinstance(s, list):
@@ -92,11 +90,10 @@ def dir_plus_bool(v):
    elif type(v) is str and v.lower() in ('none', 'na'):
       return None
    else:
-      raise argparse.ArgumentTypeError(
-         ('Boolean or NoneType value expected, not "%s" of type %s\n' % (v, type(v)) +
-          'Allowed True Vals  (case independent): in down yes true ty 1\n' +
-          'Allowed False Vals (case independent): out up no false f n 0\n' +
-          'Allowed None Vals  (case independent): none na'))
+      raise argparse.ArgumentTypeError(('Boolean or NoneType value expected, not "%s" of type %s\n' % (v, type(v)) +
+                                        'Allowed True Vals  (case independent): in down yes true ty 1\n' +
+                                        'Allowed False Vals (case independent): out up no false f n 0\n' +
+                                        'Allowed None Vals  (case independent): none na'))
 
 def default_cli_parser(parent=None, **kw):
    parser = parent if parent else argparse.ArgumentParser(allow_abbrev=False)
@@ -128,30 +125,18 @@ def default_cli_parser(parent=None, **kw):
       help='allowed residues for third component for 3+ component protocols. Takes either nothing (if you leave them out), a single file which applies to all the corresponding inputs, or a list of files which must have the same length as the list of inputs. The files themselves must contain a whitespace separated list of either numbers or ranges.'
    )
    addarg("--allowed_residues_also", nargs="*", type=str, default=[], help=argparse.SUPPRESS)
-   addarg(
-      "--allowed_residues_also1", nargs="*", type=str, default=[],
-      help='like --allowed_residues1, but an interaction involving these residues is *also* required'
-   )
-   addarg(
-      "--allowed_residues_also2", nargs="*", type=str, default=[],
-      help='like --allowed_residues2, but an interaction involving these residues is *also* required'
-   )
-   addarg(
-      "--allowed_residues_also3", nargs="*", type=str, default=[],
-      help='like --allowed_residues3, but an interaction involving these residues is *also* required'
-   )
-   addarg(
-      "--ncpu", type=int, default=rp.util.cpu_count(),
-      help='number of cpu cores available. defaults to all cores or cores available according to slurm allocation'
-   )
-   addarg(
-      "--nthread", type=int, default=0,
-      help='number of threads to use in threaded protocols, default single thread and/or ncpu for some things'
-   )
-   addarg(
-      "--nprocess", type=int, default=0,
-      help='number of processes to use for multiprocess protocols, defaults to ncpu most of the time'
-   )
+   addarg("--allowed_residues_also1", nargs="*", type=str, default=[],
+          help='like --allowed_residues1, but an interaction involving these residues is *also* required')
+   addarg("--allowed_residues_also2", nargs="*", type=str, default=[],
+          help='like --allowed_residues2, but an interaction involving these residues is *also* required')
+   addarg("--allowed_residues_also3", nargs="*", type=str, default=[],
+          help='like --allowed_residues3, but an interaction involving these residues is *also* required')
+   addarg("--ncpu", type=int, default=rp.util.cpu_count(),
+          help='number of cpu cores available. defaults to all cores or cores available according to slurm allocation')
+   addarg("--nthread", type=int, default=0,
+          help='number of threads to use in threaded protocols, default single thread and/or ncpu for some things')
+   addarg("--nprocess", type=int, default=0,
+          help='number of processes to use for multiprocess protocols, defaults to ncpu most of the time')
    addarg("--trial_run", action="store_true", default=False,
           help='reduce runtime by using minimal samples, smaller score files, etc.')
    addarg("--verbose", action="store_true", default=False,
@@ -160,9 +145,8 @@ def default_cli_parser(parent=None, **kw):
       "--hscore_files", nargs="+", default=['ilv_h'],
       help='rpx score files using in scoring for most protocols. defaults to pairs involving only ILV and only in helices. Can be only a path-suffix, which will be appended to --hscore_data_dir. Can be a list of files. Score files with various parameters can be generated with rpxdock/app/genrate_motif_scores.py.'
    )
-   addarg(
-      "--hscore_data_dir", default='/home/sheffler/data/rpx/hscore/willsheffler',
-      help='default path to search for hcores_files. defaults to /home/sheffler/data/rpx/hscore')
+   addarg("--hscore_data_dir", default='/home/sheffler/data/rpx/hscore/willsheffler',
+          help='default path to search for hcores_files. defaults to /home/sheffler/data/rpx/hscore')
 
    addarg("--generate_hscore_pickle_files", default=False, action='store_true',
           help='use to generate faster but non-portable .pickle hscore files')
@@ -180,8 +164,7 @@ def default_cli_parser(parent=None, **kw):
       help="maxium distance between centroids for a pair of residues do be considered interacting. In hierarchical protocols, coarser stages will add appropriate amounts to this distance. defaults to 8.0"
    )
    # addarg("--use_fixed_mindis", action='store_true', default=False)
-   addarg("--debug", action="store_true", default=False,
-          help='Enable potentially expensive debugging checks')
+   addarg("--debug", action="store_true", default=False, help='Enable potentially expensive debugging checks')
    addarg(
       "--nout_debug", type=int, default=0,
       help='Specify number of pdb outputs for individual protocols to output for each search. This is not the preferred way to get pdb outputs, use --nout_top and --nout_each unless you have a reason not to. defaults to 0'
@@ -195,16 +178,13 @@ def default_cli_parser(parent=None, **kw):
       help='number of top scoring output structurs for each individual dock. only happens if --dump_pdbs is also specfied. defaults to 1'
    )
    addarg("--dump_pdbs", action='store_true', default=False, help='activate output of pdb files.')
-   addarg("--output_asym_only", action='store_true', default=False,
-          help="dump only asym unit to pdbs")
-   addarg("--suppress_dump_results", action='store_true', default=False,
-          help="suppress the output of results files")
+   addarg("--output_asym_only", action='store_true', default=False, help="dump only asym unit to pdbs")
+   addarg("--suppress_dump_results", action='store_true', default=False, help="suppress the output of results files")
    addarg(
       "--nresl", type=int, default=None,
       help="number of hierarchical stages to do for hierarchical searches. probably use only for debugging, default is to do all stages"
    )
-   addarg("--clashdis", type=float, default=3.5,
-          help='minimum distance allowed between heavy atoms. default 3.5')
+   addarg("--clashdis", type=float, default=3.5, help='minimum distance allowed between heavy atoms. default 3.5')
    addarg(
       "--beam_size", type=int, default=100000,
       help='Maximum number of samples for each stage of a hierarchical search protocol (except the first, coarsest stage, which must sample all available positions. This is the most important parameter for determining rumtime (aside from number of allowed residues list). defaults to 100,000'
@@ -229,42 +209,30 @@ def default_cli_parser(parent=None, **kw):
       "--iface_summary", default="min",
       help='method to use for summarizing multiple created interface into a single score. For example, a three component cage could have 3 interfaces A/B B/C and C/A, or a monomer-based cage plug will have an oligomer interface and an oligomer / cage interface. default is min. e.g. to take the overall score as the worst of the multiple interfaces'
    )
-   addarg("--weight_rpx", type=float, default=1.0,
-          help='score weight of the main RPX score component. defaults to 1.0')
-   addarg(
-      "--weight_ncontact", type=float, default=0.01,
-      help='score weight of each contact (pair of centroids within --max_pair_dist). defaults to 0.01'
-   )
-   addarg(
-      "--weight_plug", type=float, default=1.0,
-      help='Only for monomer-to-plug docking. score weight of plug oligomer interface. defaults to 1.0'
-   )
-   addarg(
-      "--weight_hole", type=float, default=1.0,
-      help='Only for monomer-to-plug docking. score weight of plug / cage hole interface. defaults to 1.0'
-   )
+   addarg("--weight_rpx", type=float, default=1.0, help='score weight of the main RPX score component. defaults to 1.0')
+   addarg("--weight_ncontact", type=float, default=0.01,
+          help='score weight of each contact (pair of centroids within --max_pair_dist). defaults to 0.01')
+   addarg("--weight_plug", type=float, default=1.0,
+          help='Only for monomer-to-plug docking. score weight of plug oligomer interface. defaults to 1.0')
+   addarg("--weight_hole", type=float, default=1.0,
+          help='Only for monomer-to-plug docking. score weight of plug / cage hole interface. defaults to 1.0')
 
    addarg("--weight_sasa", type=float, default=1152,
           help="Desired SASA used to weight dock scoring for sasa_priority scorefunction")
    addarg(
       "--weight_error", type=float, default=4,
-      help="Standard deviation used to calculate the distribution of SASA weighting for sasa_priority scorefunction"
-   )
+      help="Standard deviation used to calculate the distribution of SASA weighting for sasa_priority scorefunction")
 
-   addarg(
-      "--output_prefix", nargs="?", default="rpxdock", type=str,
-      help="output file prefix. will output pickles for a base ResPairScore plus --hierarchy_depth hier XMaps"
-   )
+   addarg("--output_prefix", nargs="?", default="rpxdock", type=str,
+          help="output file prefix. will output pickles for a base ResPairScore plus --hierarchy_depth hier XMaps")
    addarg(
       "--dont_store_body_in_results", action="store_true", default=False,
       help='reduce result output size and maybe runtime by not including structure information in results objects. will not be able to rescore or output pdbs from results objects.'
    )
    addarg("--loglevel", default='INFO',
           help='select log level from CRITICAL, ERROR, WARNING, INFO or DEBUG. defaults to INFO')
-   addarg(
-      "--score_only_ss", default='EHL',
-      help="only consider residues of the specified secondary structure type when scoring. defaults to all (EHL)"
-   )
+   addarg("--score_only_ss", default='EHL',
+          help="only consider residues of the specified secondary structure type when scoring. defaults to all (EHL)")
    addarg(
       "--score_only_aa", default='ANYAA',
       help='only consider residues of the specified type when generating score files. Not currently supported in all protocols. defaults to ANYAA'
@@ -305,14 +273,10 @@ def default_cli_parser(parent=None, **kw):
       "--flip_components", nargs='+', default=[True], type=str2bool,
       help='list of boolean value or values specifying if and which components should be allowed to flip in axis aligned docking protocols. Defaults to flipping all components'
    )
-   addarg(
-      "--fixed_rot", nargs='+', type=int, default=[],
-      help='list of components (0,1,2 etc) which should be fixed from rotating in hierarchical docking'
-   )
-   addarg(
-      "--fixed_trans", nargs='+', type=int, default=[],
-      help='list of components (0,1,2 etc) which should be fixed from translating in hierarchical docking'
-   )
+   addarg("--fixed_rot", nargs='+', type=int, default=[],
+          help='list of components (0,1,2 etc) which should be fixed from rotating in hierarchical docking')
+   addarg("--fixed_trans", nargs='+', type=int, default=[],
+          help='list of components (0,1,2 etc) which should be fixed from translating in hierarchical docking')
    addarg(
       "--fixed_components", nargs='+', type=int, default=[],
       help='list of components (0,1,2 etc) which should be fixed from rotating *and* translating in hierarchical docking'
@@ -325,10 +289,8 @@ def default_cli_parser(parent=None, **kw):
           help='Lower bound for fixed_wiggle translation (in Angstroms) Default 5.0')
    addarg("--fw_cartub", default=5.0, type=float,
           help='Upper bound for fixed_wiggle translation (in Angstroms) Default 5.0')
-   addarg("--fw_rotlb", default=-5.0, type=float,
-          help='Lower bound for fixed_wiggle rotation (in degrees) Default 5.0')
-   addarg("--fw_rotub", default=5.0, type=float,
-          help='Upper bound for fixed_wiggle rotation (in degrees) Default 5.0')
+   addarg("--fw_rotlb", default=-5.0, type=float, help='Lower bound for fixed_wiggle rotation (in degrees) Default 5.0')
+   addarg("--fw_rotub", default=5.0, type=float, help='Upper bound for fixed_wiggle rotation (in degrees) Default 5.0')
 
    addarg(
       "--components_already_aligned_to_sym_axes", action='store_true', default=False,
@@ -340,8 +302,7 @@ def default_cli_parser(parent=None, **kw):
 
    addarg("--primary_iface_cut", default=None, help='score cut for helix primary interface')
 
-   addarg("--symframe_num_helix_repeats", default=10,
-          help='number of helix repeat frames to dump. Default 10')
+   addarg("--symframe_num_helix_repeats", default=10, help='number of helix repeat frames to dump. Default 10')
    addarg("--ignored_aas", default='CGP', help='Amino acids to ignore in scoring. Default CGP')
    addarg("--score_self", action='store_true', default=False,
           help='score each interface seperately and dump in output pickle')
@@ -390,18 +351,16 @@ def default_cli_parser(parent=None, **kw):
       "--termini_dir3", nargs="+", default=[None], type=dir_plus_bool,
       help='Specify direction that termini of third component will point relative to the origin in final docks. List of strings or bools in order of N term, C term. Accepted inputs: True or in (toward origin), False or out (away from origin), None (direction unspecified). If one value is given, it will apply to BOTH termini. Defaults to [None]'
    )
+   addarg('--termini_max_dist', default=9e9, type=float, help='max distance between a pair of N/C termini')
 
-   addarg("--recenter_input", action='store_true', default=False,
-          help='center coorinates from pdb input files')
+   addarg("--recenter_input", action='store_true', default=False, help='center coorinates from pdb input files')
 
    addarg("--save_results_as_tarball", default=True, type=str2bool,
           help='save results as portable xz compressed tarball')
 
-   addarg("--save_results_as_pickle", default=True, type=str2bool,
-          help='save results as fast loading python pickle')
+   addarg("--save_results_as_pickle", default=True, type=str2bool, help='save results as fast loading python pickle')
 
-   addarg("--overwrite_existing_results", action='store_true', default=False,
-          help='overwrite existing results')
+   addarg("--overwrite_existing_results", action='store_true', default=False, help='overwrite existing results')
 
    addarg("--dump_result_summary", action='store_true', default=False,
           help='dump result filenames in a Summary.txt file')
@@ -757,8 +716,7 @@ def _process_arg_sspair(kw):
    kw.score_only_sspair = sorted(set(kw.score_only_sspair))
    if any(len(p) != 2 for p in kw.score_only_sspair):
       raise argparse.ArgumentError(None, '--score_only_sspair accepts two letter SS pairs')
-   if (any(p[0] not in "EHL" for p in kw.score_only_sspair)
-       or any(p[1] not in "EHL" for p in kw.score_only_sspair)):
+   if (any(p[0] not in "EHL" for p in kw.score_only_sspair) or any(p[1] not in "EHL" for p in kw.score_only_sspair)):
       raise argparse.ArgumentError(None, '--score_only_sspair accepts only EHL')
 
 def process_term_options(option, inputs):

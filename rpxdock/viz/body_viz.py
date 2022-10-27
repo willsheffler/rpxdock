@@ -9,7 +9,7 @@ if 'pymol' in sys.modules:
    def pymol_load_Body(
       body,
       state,
-      name,
+      name='BODY',
       pos=np.eye(4),
       delprev=False,
       resrange=(0, -1),

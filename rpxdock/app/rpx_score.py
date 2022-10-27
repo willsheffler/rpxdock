@@ -16,7 +16,7 @@ def score_onebody(hscore, **kw):
    kw = Bunch(kw, _strict=False)
    for fn in kw.bodies:
       body = rp.Body(fn)
-      iscores = hscore.score_matrix_intra(body, kw.wts)
+      iscores = hscore.score_matrix_intra(body)
       overall = np.sum(np.max(iscores, axis=0))
       # print(np.max(iscores, axis=1))
       meanmean = np.mean(iscores)

@@ -34,7 +34,7 @@ def make_multicomp(
    #TODO: Quinton: spec and bodies are added to test resolution level score function weighting
    xforms, scores, extra, stats = search(sampler, evaluator, spec=spec, bodies=bodies, **kw)
 
-   ibest = rp.filter_redundancy(xforms, bodies, scores, **kw)
+   ibest = rp.filter_redundancy(xforms, bodies, scores, symframes=spec.sym, **kw)
    logging.debug(f"ibest = {ibest} and length {len(ibest)}")
    logging.debug(f"Apply filters to docks? {kw.filter_config}")
    if kw.filter_config:
@@ -50,34 +50,32 @@ def make_multicomp(
    wnct = kw.wts.sub(rpx=0, ncontact=1)
    rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
    ncontact, ncont_extra = evaluator(xforms, kw.nresl - 1, wnct)
-   
+
    #bypass for specs that need to avoid "_debug_dump_cage"
    specky = str(spec)
    if specky.startswith('<rpxdock.search.dockspec.DockSpecDiscrete') or \
       specky.startswith('<rpxdock.search.dockspec.DockSpec2CompLayer') or \
       specky.startswith('<rpxdock.search.dockspec.DockSpec3CompLayer'):
       data = dict(
-		   attrs=dict(arg=kw, stats=stats, ttotal=t.total, output_prefix=kw.output_prefix, output_body='all', sym=spec.arch),
-		   scores=(["model"], scores[ibest].astype("f4")),
-		   xforms=(["model", "comp", "hrow", "hcol"], xforms),
-		   rpx=(["model"], rpx.astype("f4")),
-		   ncontact=(["model"], ncontact.astype("f4")))
+         attrs=dict(arg=kw, stats=stats, ttotal=t.total, output_prefix=kw.output_prefix, output_body='all',
+                    sym=spec.arch), scores=(["model"], scores[ibest].astype("f4")),
+         xforms=(["model", "comp", "hrow",
+                  "hcol"], xforms), rpx=(["model"], rpx.astype("f4")), ncontact=(["model"], ncontact.astype("f4")))
 
    #default behavior
    else:
       tdump = _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw)
-      
+
       if kw.verbose:
          logging.info(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
          logging.info("stage time:", " ".join([f"{t:8.2f}s" for t, n in stats.neval]))
          logging.info("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
-      
+
       data = dict(
-         attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, output_prefix=kw.output_prefix, output_body='all', sym=spec.arch),
-         scores=(["model"], scores[ibest].astype("f4")),
-         xforms=(["model", "comp", "hrow", "hcol"], xforms),
-         rpx=(["model"], rpx.astype("f4")),
-         ncontact=(["model"], ncontact.astype("f4")))
+         attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, output_prefix=kw.output_prefix, output_body='all',
+                    sym=spec.arch), scores=(["model"], scores[ibest].astype("f4")),
+         xforms=(["model", "comp", "hrow",
+                  "hcol"], xforms), rpx=(["model"], rpx.astype("f4")), ncontact=(["model"], ncontact.astype("f4")))
 
    for k, v in extra.items():
       if not isinstance(v, (list, tuple)) or len(v) > 3:
@@ -98,8 +96,7 @@ def make_multicomp(
          data[f"ncont_{k}"] = v
    if not spec.arch.lower().startswith("axle_"):
       for i in range(len(bodies)):
-         data[f'disp{i}'] = (['model'],
-                             np.sum(xforms[:, i, :3, 3] * spec.axis[None, i, :3], axis=1))
+         data[f'disp{i}'] = (['model'], np.sum(xforms[:, i, :3, 3] * spec.axis[None, i, :3], axis=1))
          data[f'angle{i}'] = (['model'], rp.homog.angle_of(xforms[:, i]) * 180 / np.pi)
    default_label = [f'comp{c}' for c in 'ABCDEFD'[:len(bodies)]]
 
@@ -132,12 +129,11 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       kw = self.kw.sub(wts=wts)
       xeye = np.eye(4, dtype="f4")
       B = self.bodies
-      print(f"docking {len(B)} bodies")
+      # print(f"docking {len(B)} bodies")
       X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
       xnbr = self.spec.to_neighbor_olig
       # check for "flatness" (ok = an array of "the good stuff that passes these checks")
-      delta_h = np.array(
-         [hm.hdot(X[:, i] @ B[i].com(), self.spec.axis[i]) for i in range(len(B))])
+      delta_h = np.array([hm.hdot(X[:, i] @ B[i].com(), self.spec.axis[i]) for i in range(len(B))])
       ok = np.max(np.abs(delta_h[None] - delta_h[:, None]), axis=(0, 1)) < kw.max_delta_h
       # ok = np.repeat(True, len(X))
       specky = str(self.spec)
@@ -159,28 +155,27 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          #ok[ok] &= B[0].clash_ok(B[2], X[ok, 0], inv(xnbr[1]) @ X[ok, 2], **kw)
          #ok[ok] &= B[1].clash_ok(B[2], X[ok, 1], inv(xnbr[1]) @ X[ok, 2], **kw)
          # check clash, or get non-clash range
-         
-         ##chelsea.self.clashing 
+
+         ##chelsea.self.clashing
          #need to look for self clash (lines marked with ##)
-         ok[ok] &= B[0].clash_ok(B[0], X[ok, 0], inv(xnbr[1]) @ X[ok, 1], **kw) ##
+         ok[ok] &= B[0].clash_ok(B[0], X[ok, 0], inv(xnbr[1]) @ X[ok, 1], **kw)  ##
          ok[ok] &= B[1].clash_ok(B[0], X[ok, 1], xnbr[1] @ X[ok, 0], **kw)
          ok[ok] &= B[1].clash_ok(B[0], X[ok, 1], inv(xnbr[1]) @ X[ok, 0], **kw)
-         ok[ok] &= B[1].clash_ok(B[1], X[ok, 1], inv(xnbr[1]) @ X[ok, 0], **kw) ##
-         
+         ok[ok] &= B[1].clash_ok(B[1], X[ok, 1], inv(xnbr[1]) @ X[ok, 0], **kw)  ##
+
       for i in range(len(B)):
-      	if xnbr[i] is not None:
-      		ok[ok] &= B[i].clash_ok(B[i], X[ok, i], xnbr[i] @ X[ok, i], **kw)
-      	for j in range(i):
-      		ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
-           
+         if xnbr[i] is not None:
+            ok[ok] &= B[i].clash_ok(B[i], X[ok, i], xnbr[i] @ X[ok, i], **kw)
+         for j in range(i):
+            ok[ok] &= B[i].clash_ok(B[j], X[ok, i], X[ok, j], **kw)
+
       # score everything that didn't clash
       # Behaves normally if arg.score_self is not set
       if not kw.score_self:
          ifscore = list()
          for i in range(len(B)):
-           for j in range(i):
-               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl,
-                                                   wts=wts))
+            for j in range(i):
+               ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, **kw))
                # ifscore = np.stack(ifscore)
                logging.debug(f"ifscore is {len(ifscore)} long and is a {type(ifscore)}")
 
@@ -188,7 +183,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
          logging.debug(f"scores is shaped like {scores.shape} and is a {type(scores)}")
          scores[ok] = kw.iface_summary(ifscore, axis=0)
          logging.debug(f"scores is now shaped like {scores.shape}")
-         extra = Bunch() 
+         extra = Bunch()
       else:  #return all of the interface scores
          logging.debug("Scoring self")
          s_ifscore = list()
@@ -208,12 +203,11 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
                   logging.debug("found self")
                   Xsym = self.spec.to_neighbor_olig @ X
                   s_ifscore.append(
-                     self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, wts=wts))
+                     self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, **kw))
                else:
-                  ns_ifscore.append(
-                     self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, wts=wts))
+                  ns_ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, **kw))
                   s_ifscore.append(
-                     self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, wts=wts))
+                     self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, **kw))
          logging.debug(f"self scores is length {len(s_ifscore[0])}")
          logging.debug(f"non-self scores is length {len(ns_ifscore[0])}")
          logging.debug(f"OK len is {len(ok)}")
@@ -336,8 +330,8 @@ class TwoCompEvaluatorWithTrim(MultiCompEvaluatorBase):
       # score everything that didn't clash
       bounds = lbA[ok], ubA[ok], B[0].asym_body.nres, lbB[ok], ubB[ok], B[1].asym_body.nres
       scores = np.zeros(len(X))
-      scores[ok] = self.hscore.scorepos(body1=B[0], body2=B[1], pos1=X[ok, 0], pos2=X[ok, 1],
-                                        iresl=iresl, bounds=bounds, **kw)
+      scores[ok] = self.hscore.scorepos(body1=B[0], body2=B[1], pos1=X[ok, 0], pos2=X[ok, 1], iresl=iresl,
+                                        bounds=bounds, **kw)
 
       # if np.sum(ok):
       # print(iresl, np.sum(ok), np.min(scores[ok]), np.max(scores[ok]), np.mean(lbA),
@@ -358,13 +352,13 @@ def _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw):
       wrpx, wnct = (kw.wts.sub(rpx=1, ncontact=0), kw.wts.sub(rpx=0, ncontact=1))
       scr, extra = evaluator(xforms[i], kw.nresl - 1, wrpx)
       cnt, extra = evaluator(xforms[i], kw.nresl - 1, wnct)
-      
+
       fn = kw.output_prefix + "_%02i.pdb" % iout
-      
+
       if hasattr(extra, 'lbub') == True:
-      	lbub = [extra.lbub] 
+         lbub = [extra.lbub]
       else:
-       	lbub = []  
+         lbub = []
       if len(lbub) > 1:
          logging.info(
             f"{fn} score {scores[i]:7.3f} rpx {scr[0]:7.3f} cnt {cnt[0]:4}",
@@ -372,6 +366,5 @@ def _debug_dump_cage(xforms, bodies, spec, scores, ibest, evaluator, **kw):
          )
       else:
          logging.info(f"{fn} score {scores[i]:7.3f} rpx {scr[0]:7.3f} cnt {cnt[0]:4}")
-      rp.dump_pdb_from_bodies(fn, bodies, rp.geom.symframes(spec.sym, xforms[iout]),
-                              resbounds=lbub)
+      rp.dump_pdb_from_bodies(fn, bodies, rp.geom.symframes(spec.sym, xforms[iout]), resbounds=lbub)
    return t.total

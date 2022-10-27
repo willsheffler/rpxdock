@@ -175,6 +175,7 @@ class Result:
       output_closest_subunits=False,
       **kw,
    ):
+      kw = wu.Bunch(kw)
       outfnames = list()
       if not sym and 'sym' in self.attrs: sym = self.attrs['sym']
       if not sym and 'sym' in self.data: sym = self.data.sym.data[imodel]
@@ -223,18 +224,13 @@ class Result:
       log.info(f'dumping pdb {fname} score {self.scores.data[imodel]}')
       bfactor = None
       # hscore scores residue pairs and puts bfactor in pdb
+      symframes = rp.geom.symframes(sym, pos=self.xforms.data[imodel], **kw)
       if hscore and len(bod) == 2:
-         sm = hscore.score_matrix_inter(
-            bod[0],
-            bod[1],
-            symframes=rp.geom.symframes(sym, pos=self.xforms.data[imodel], **kw),
-            wts=kw['wts'],
-         )
+         sm = hscore.score_matrix_inter(bod[0], bod[1], symframes=symframes, wts=kw.wts)
          bfactor = [sm.sum(axis=1), sm.sum(axis=0)]
       bounds = np.tile([[-9e9], [9e9]], len(bod)).T
       if 'reslb' in self.data and 'resub' in self.data:
          bounds = np.stack([self.reslb[imodel], self.resub[imodel]], axis=-1)
-      symframes = rp.geom.symframes(sym, pos=self.xforms.data[imodel], **kw)
 
       if output_asym_only and output_closest_subunits:
          if len(bod) == 2:
@@ -271,8 +267,8 @@ class Result:
       if hasattr(self.data, 'helix_n_to_primary'):
          symframes = symframes[np.array(
             [0, self.data.helix_n_to_primary[imodel], self.data.helix_n_to_secondry[imodel]])]
-         rp.io.dump_pdb_from_bodies(fname + '_hbase.pdb', bod, symframes=symframes,
-                                    resbounds=bounds, bfactor=bfactor, **kw)
+         rp.io.dump_pdb_from_bodies(fname + '_hbase.pdb', bod, symframes=symframes, resbounds=bounds, bfactor=bfactor,
+                                    **kw)
          # assert 0, 'testing helix dump'
       return outfnames
 
@@ -506,8 +502,7 @@ def result_to_tarball(result, fname, overwrite=False):
             out.write(json.dumps(result.pdb_extra_))
 
       with open(td + '/body_labels.json', 'w') as out:
-         body_labels = dict(bodylabels=[[b.label for b in bod] for bod in result.bodies],
-                            resultlabels=result.labels)
+         body_labels = dict(bodylabels=[[b.label for b in bod] for bod in result.bodies], resultlabels=result.labels)
          out.write(json.dumps(body_labels))
 
       cmd = f'cd {td} && tar cjf {os.path.abspath(fname)} *'

@@ -292,19 +292,12 @@ class DockSpecMonomerToCyclic(DockSpec):
       return newpos.reshape(origshape)
 
 _layer_comp_center_directions = dict(
-   P6_632=(np.array([[0.86602540378, 0.5, 0, 0]]), np.array([[0.86602540378, 0.0, 0, 0]])),
-
-   P6_6=(),
-   P4M_4=(np.array([1, 0, 0]), ),
-
-   P6_63=(np.array([[0.86602540378, 0.5, 0, 0]]),),
-   P6_62=(np.array([[0.86602540378, 0.5, 0, 0]]),),
-   P6_32=(np.array([[1, -1.73205081, 0, 0]]),),
-   P3_33=(np.array([[1, -1.73205081, 0, 0]]),),
-
-   P4_42=(np.array([[1, 0, 0, 0]]),),
-   P4_44=(np.array([[1, 0, 0, 0]]),)
-)    #double brackets are needed for indexing in lattice sampler
+   P6_632=(np.array([[0.86602540378, 0.5, 0, 0]]), np.array(
+      [[0.86602540378, 0.0, 0, 0]])), P6_6=(), P4M_4=(np.array([1, 0, 0]), ), P6_63=(np.array(
+         [[0.86602540378, 0.5, 0, 0]]), ), P6_62=(np.array([[0.86602540378, 0.5, 0, 0]]), ),
+   P6_32=(np.array([[1, -1.73205081, 0, 0]]), ), P3_33=(np.array(
+      [[1, -1.73205081, 0, 0]]), ), P4_42=(np.array([[1, 0, 0, 0]]), ), P4_44=(np.array(
+         [[1, 0, 0, 0]]), ))  #double brackets are needed for indexing in lattice sampler
 
 class DockSpec1CompLayer(DockSpec):
    @property
@@ -362,9 +355,8 @@ class DockSpec2CompLayer(DockSpec):
       #axis dictates the angle between docked components, cannot enter 2 separate arrays or [0,0,0]
       #I think it makes sense for the self axes to be the same because the dimer should be parallel to 1 arm of trimer
 
-
       self.xflip = [hm.hrot([0, 0, 1], 180)] * 2
-         #confident in x flip
+      #confident in x flip
       self.comp_is_dihedral = [False, False]
       self.num_components = 2
       ang = 360 / self.nfold[0]
@@ -374,28 +366,20 @@ class DockSpec2CompLayer(DockSpec):
       #to_neigh_olig references sym def files for all cages, used w rot
       #second term is a 4x4 array, rotating around z makes sense to me
 
-_discrete_angle_planes = dict(
-   all=np.array([1, 0, 0, 0]))
-   #don't think this actually gets used
+_discrete_angle_planes = dict(all=np.array([1, 0, 0, 0]))
+#don't think this actually gets used
 
-_nside_axes = dict(
-   n4=[1, 0, 0],
-   n6=[1.7320508075688767, 0, 1],
-   n8=[1, 0, 1],
-   n10=[0.7265425280053609, 0, 1],
-   n12=[0.5773502691896257, 0, 1],
-   n14=[0.48157461880752883, 0, 1],
-   n16=[0.41421356237309503, 0, 1],
-   n18=[0.36397023426620234, 0, 1],
-   n20=[0.3249196962329063, 0, 1],
-   n22=[0.2936264929383669, 0, 1],
-   n24=[0.2679491924311227, 0, 1],
-   n26=[0.24647786303197738, 0, 1],
-   n28=[0.22824347439015003, 0, 1],
-   n30=[0.21255656167002213, 0, 1],
-   n32=[0.198912367379658, 0, 1],
-   n34=[0.18693239710797724, 0, 1],
-   n36=[0.17632698070846498, 0, 1])
+_nside_axes = dict(n4=[1, 0, 0], n6=[1.7320508075688767, 0,
+                                     1], n8=[1, 0, 1], n10=[0.7265425280053609, 0,
+                                                            1], n12=[0.5773502691896257, 0, 1],
+                   n14=[0.48157461880752883, 0, 1], n16=[0.41421356237309503, 0,
+                                                         1], n18=[0.36397023426620234, 0, 1],
+                   n20=[0.3249196962329063, 0, 1], n22=[0.2936264929383669, 0, 1], n24=[
+                      0.2679491924311227, 0, 1
+                   ], n26=[0.24647786303197738, 0, 1], n28=[0.22824347439015003, 0, 1], n30=[
+                      0.21255656167002213, 0, 1
+                   ], n32=[0.198912367379658, 0, 1], n34=[0.18693239710797724, 0,
+                                                          1], n36=[0.17632698070846498, 0, 1])
 
 class DockSpecDiscrete(DockSpec):
    @property
@@ -418,8 +402,8 @@ class DockSpecDiscrete(DockSpec):
       self.num_components = 2
       ang = 360 / self.nfold[0]
       self.to_neighbor_olig = [None, hm.hrot([0, 0, 1], ang), None]
-       #this might actually be within the oligomer
-       #has to do with first component, so I dont think I need to change axes here
+      #this might actually be within the oligomer
+      #has to do with first component, so I dont think I need to change axes here
 
 class DockSpecAxel:
    '''Specs for sliding two components into contact along the zz axis. Can use same symmetry blocks (asu subunits) or different symmetry (full holigomers)'''
@@ -427,6 +411,7 @@ class DockSpecAxel:
       assert len(arch) >= 6
       assert int(arch.split('_')[1]) > 0
       self.arch = arch
+      self.sym = arch.split('_')[0]
       if int(arch.split('_')[1]) == 1:
          self.nfold = [int(arch.split('_')[2]), int(arch.split('_')[3])]
       else:

@@ -133,7 +133,7 @@ class Body:
 
       #ic(self.allowed_residues.shape, np.sum(self.allowed_residues))
       #for s in self.required_res_sets:
-         #ic(s.keys())
+      #ic(s.keys())
 
    def init_coords(
          self,
@@ -154,6 +154,8 @@ class Body:
       self.symaxis = symaxis
       self.nfold = int(sym[1:])
       self.symframes = np.eye(4).reshape(1, 4, 4)
+      self.nterms = [self.coord[0, 0]]
+      self.cterms = [self.coord[-1, 2]]
       if sym and sym[0] == "C" and int(sym[1:]):
          n = self.coord.shape[0]
          nfold = int(sym[1:])
@@ -171,6 +173,8 @@ class Body:
             self.pos = symframes[-1]
             newcoord[i * n:][:n] = self.positioned_coord()
             new_orig_coords.extend(self.positioned_orig_coords())
+            self.nterms.append(symframes[-1] @ self.nterms[0])
+            self.cterms.append(symframes[-1] @ self.cterms[0])
          self.symframes = np.stack(symframes)
          self.coord = (xform @ newcoord[:, :, :, None]).reshape(-1, 5, 4)
          self.orig_coords = [(xform @ oc[:, :, None]).reshape(-1, 4) for oc in new_orig_coords]
@@ -499,6 +503,22 @@ class Body:
       newbody.modified_term = [False, False]  #no longer includes modified termini
       return newbody
 
+   def symcom(self, pos=np.eye(4).reshape(-1, 4, 4), flat=False):
+      # print('symcom', pos.shape)
+      return wu.homog.hxform(pos, self._symcom, outerprod=True, flat=flat)
+
+   def symcomdist(self, pos=np.eye(4).reshape(-1, 4, 4), pos2=None, mask=False):
+      if pos2 is None: pos2 = pos
+      else: mask = False
+      coms = self.symcom(pos, flat=False)
+      coms2 = self.symcom(pos2, flat=False)
+      dist = wu.homog.hdist(coms, coms2)
+      if mask and pos2 is not None:
+         for i in range(len(pos)):
+            for j in range(i + 1):
+               dist[i, :, j, :] = 9e9
+      return dist
+
 def get_trimming_subbodies(body, pose, debug=False, **kw):
    kw = Bunch(kw, _strict=False)
    if kw.helix_trim_max == 0 or kw.helix_trim_max is None:
@@ -589,22 +609,6 @@ def get_trimming_subbodies(body, pose, debug=False, **kw):
          b.dump_pdb('trimN_%i.pdb' % i)
 
    return trimN_subbodies, trimC_subbodies
-
-   def symcom(self, pos=np.eye(4).reshape(-1, 4, 4), flat=False):
-      # print('symcom', pos.shape)
-      return wu.homog.hxform(pos, self._symcom, outerprod=True, flat=flat)
-
-   def symcomdist(self, pos=np.eye(4).reshape(-1, 4, 4), pos2=None, mask=False):
-      if pos2 is None: pos2 = pos
-      else: mask = False
-      coms = self.symcom(pos, flat=False)
-      coms2 = self.symcom(pos2, flat=False)
-      dist = wu.homog.hdist(coms, coms2)
-      if mask and pos2 is not None:
-         for i in range(len(pos)):
-            for j in range(i + 1):
-               dist[i, :, j, :] = 9e9
-      return dist
 
 def get_body_cached(
       fname,

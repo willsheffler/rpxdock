@@ -9,8 +9,10 @@ from rpxdock.body import Body, get_trimming_subbodies
 from pyrosetta import rosetta as ros, pose_from_file
 import rpxdock.rosetta.triggers_init
 
-from icecream import ic
-ic.configureOutput(includeContext=True)
+# ic.configureOutput(includeContext=True)
+
+def main():
+   test_body_create()
 
 def test_body_ss_info():
    kw = rp.app.defaults()
@@ -31,9 +33,12 @@ def test_body_create():
    ic("len(b1.cen)", len(b1.cen))
    ic("len(b2.cen)", len(b2.cen))
 
-   assert len(b0.cen) == 108 #21 old number for some reason doesn't match
-   assert len(b1.cen) == 108 #21
+   assert len(b0.cen) == 108  #21 old number for some reason doesn't match
+   assert len(b1.cen) == 108  #21
    assert len(b2.cen) == 3
+
+   assert len(b0.nterms) == 1
+   assert len(b0.cterms) == 1
 
 def test_body(C2_3hm4, C3_1nza, sym1=2, sym2=3):
    body1 = Body(C2_3hm4, sym1)
@@ -173,7 +178,9 @@ def test_body_with_terminal_helices(C2_3hm4, C3_1nza, helix):
 
 if __name__ == "__main__":
    from rpxdock.rosetta.triggers_init import get_pose_cached
-   from tempfile import mkdtemp
+   main()
+
+   # from tempfile import mkdtemp
 
    #f1 = "C2_3hm4_1.pdb.gz"
    #f2 = "C3_1nza_1.pdb.gz"
@@ -188,7 +195,6 @@ if __name__ == "__main__":
    # test_body(pose1, pose2)
 
    # test_body_pickle(f2, mkdtemp())
-
 
    # b = rp.data.get_body('tiny')
    # test_body_copy_sym(b)

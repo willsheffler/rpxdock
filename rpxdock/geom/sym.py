@@ -6,8 +6,7 @@ tetrahedral_frames = np.load(rp.data.datadir + "/tetrahedral_frames.pickle", all
 octahedral_frames = np.load(rp.data.datadir + "/octahedral_frames.pickle", allow_pickle=True)
 icosahedral_frames = np.load(rp.data.datadir + "/icosahedral_frames.pickle", allow_pickle=True)
 
-
-def symframes(sym, pos=None, axis=[0,0,1], **kw):
+def symframes(sym, pos=None, axis=[0, 0, 1], **kw):
    kw = Bunch(kw, _strict=False)
    if isinstance(sym, np.ndarray):
       assert len(sym) == 1
@@ -123,7 +122,8 @@ def symframes(sym, pos=None, axis=[0,0,1], **kw):
          axis2 = [0.18693239710797724, 0, 1]
       if sym.endswith('36'):
          axis2 = [0.17632698070846498, 0, 1]
-      c2 = hm.hrot(axis2, np.arange(2) / 2 * 360,  center=[pos[1, 0, 3], pos[1, 1, 3], pos[1, 2, 3]])
+      c2 = hm.hrot(axis2,
+                   np.arange(2) / 2 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], pos[1, 2, 3]])
       frames = c3[:, None] @ c2[None, :]
       return frames.reshape(-1, 4, 4)
 
@@ -163,7 +163,8 @@ def symframes(sym, pos=None, axis=[0,0,1], **kw):
          axis2 = [0.18693239710797724, 0, 1]
       if sym.endswith('36'):
          axis2 = [0.17632698070846498, 0, 1]
-      c2 = hm.hrot(axis2, np.arange(2) / 2 * 360,  center=[pos[1, 0, 3], pos[1, 1, 3], pos[1, 2, 3]])
+      c2 = hm.hrot(axis2,
+                   np.arange(2) / 2 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], pos[1, 2, 3]])
       frames = c4[:, None] @ c2[None, :]
       return frames.reshape(-1, 4, 4)
    elif sym == 'P4M_4':

@@ -1,4 +1,6 @@
-import os, logging, glob, numpy as np, rpxdock as rp
+import os, logging, glob, itertools as it
+import numpy as np
+import rpxdock as rp
 from rpxdock.xbin import xbin_util as xu
 from rpxdock.score import score_functions as sfx
 import willutil as wu
@@ -58,7 +60,7 @@ class RpxHier:
 
    def score_matrix_inter(self, bodyA, bodyB, wts, symframes=[np.eye(4)], iresl=-1, **kw):
       m = np.zeros((len(bodyA), len(bodyB)), dtype='f4')
-      symframes=[np.eye(4, dtype='f4')]
+      symframes = [np.eye(4, dtype='f4')]
       for xsym in symframes[1:]:
          #.astype('f4')
          pairs, lbub = rp.bvh.bvh_collect_pairs_vec(
@@ -104,12 +106,28 @@ class RpxHier:
          iresl=-1,
          bounds=(),
          residue_summary=np.mean,  # TODO hook up to options to select
+         termini_max_dist=9e9,
          **kw,
    ):
-      '''      '''
 
       kw = wu.Bunch(kw, _strict=False)
       pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
+
+      # docks we don't need to score because we already know they are bad
+      excluded = np.zeros(len(pos1), dtype='?')
+      if termini_max_dist < 9e8 and not bounds:
+         tmindis = np.ones(len(pos1)) * 9e9
+         for term1, term2 in it.chain(it.product(body1.nterms, body2.cterms), it.product(body1.cterms, body2.nterms)):
+            tpos1 = pos1 @ term1
+            tpos2 = pos2 @ term2
+            d = np.linalg.norm(tpos1 - tpos2, axis=-1)
+            tmindis = np.minimum(tmindis, d)
+            # ic(np.min(tmindis))
+            # ic(tpos1.shape, tpos2.shape, d.shape)
+         excluded = tmindis > termini_max_dist + self.cart_extent[iresl]
+         pos1 = pos1[~excluded]
+         pos2 = pos2[~excluded]
+
 
       bounds = list(bounds)
       if len(bounds) > 2 and (bounds[2] is None or bounds[2] < 0):
@@ -149,7 +167,7 @@ class RpxHier:
             ok[i] = all([5 < np.sum(x[lbub[i, 0]:lbub[i, 1]]) for x in contains_res])
       # ic(ok.shape, np.sum(ok))
 
-      # "remove" all contacts that don't have required set of contacts
+      # "remove" all docks that don't have required set of contacts
       lbub[~ok, 1] = lbub[~ok, 0]
 
       #
@@ -212,16 +230,18 @@ class RpxHier:
       score_fx = score_functions.get(self.function)
 
       if score_fx:
-         scores = score_fx(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, pairs=pairs,
-                           wts=kw.wts, iresl=iresl)
+         scores = score_fx(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, pairs=pairs, wts=kw.wts, iresl=iresl)
       else:
          logging.debug(f"Failed to find score function {self.function}, falling back to 'stnd'")
-         scores = score_functions["stnd"](pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2,
-                                          wts=kw.wts)
+         scores = score_functions["stnd"](pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, wts=kw.wts)
 
       scores[~ok] = 0
 
-      return scores
+      # insert non-excluded scores into full score array
+      all_scores = np.zeros(len(excluded))
+      all_scores[~excluded] = scores
+
+      return all_scores
 
    def iresls(self):
       return [i for i in range(len(self.hier))]
@@ -280,9 +300,7 @@ def get_hscore_file_names(alias, hscore_data_dir):
       if fnames[0].endswith(filetype):
          log.info(f'Detected hscore files filetype: "{filetype}"')
          for f in fnames:
-            assert f.endswith(
-               filetype
-            ), 'inconsistent hscore filetypes, all must be same (.gz, .bz2, .pickle, etc)'
+            assert f.endswith(filetype), 'inconsistent hscore filetypes, all must be same (.gz, .bz2, .pickle, etc)'
    return fnames
 
 # except:
@@ -337,8 +355,7 @@ def read_hscore_files(
          import sys
          sys.exit()
 
-   elif (isinstance(files[0], rp.ResPairScore)
-         and all(isinstance(f, rp.Xmap) for f in files[1:])):
+   elif (isinstance(files[0], rp.ResPairScore) and all(isinstance(f, rp.Xmap) for f in files[1:])):
       toreturn.base = files[0]
       toreturn.hier = list(files[1:])
       toreturn.use_ss = toreturn.base.attr.opts.use_ss_key

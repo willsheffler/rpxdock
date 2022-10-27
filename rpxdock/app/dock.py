@@ -33,7 +33,7 @@ def get_spec(arch):
    elif arch.startswith('AXLE_'):
       spec = rp.search.DockSpecAxel(arch)
    elif arch.startswith('F'):
-         spec = rp.search.DockSpecDiscrete(arch)
+      spec = rp.search.DockSpecDiscrete(arch)
    else:
       spec = rp.search.DockSpec2CompCage(arch)
    return spec
@@ -77,7 +77,7 @@ def dock_asym(hscore, **kw):
    sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, kw.ori_resl)
    logging.info(f'num base samples {sampler.size(0):,}')
    if sampler.size(0) >= 10_000_000:
-      logging.info("cart_bounds range is very large, you may need a ton of memory.") 
+      logging.info("cart_bounds range is very large, you may need a ton of memory.")
 
    bodies = [[
       rp.Body(fn, allowed_res=ar2, required_res_sets=[ar2, ara2], **kw)
@@ -441,7 +441,6 @@ def dock_axle(hscore, **kw):
    else:
       raise ValueError(f'not compatible with docking method {kw.dock_method}')
 
-
    bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
               for fn, ar2 in zip(inp, ar)]
              for inp, ar in zip(kw.inputs, kw.allowed_residues)]
@@ -468,7 +467,7 @@ def dock_axle(hscore, **kw):
          result[f.ijob] = f.result()
    result = rp.concat_results(result)
    return result
-   
+
 def dock_layer(hscore, **kw):
    kw = Bunch(kw, _strict=False)
    spec = get_spec(kw.architecture)
@@ -502,7 +501,6 @@ def dock_layer(hscore, **kw):
    result = rp.concat_results(result)
    return result
 
-
 def dock_nside(hscore, **kw):
    kw = Bunch(kw, _strict=False)
    spec = get_spec(kw.architecture)
@@ -531,7 +529,6 @@ def dock_nside(hscore, **kw):
          result[f.ijob] = f.result()
    result = rp.concat_results(result)
    return result
-
 
 def check_result_files_exist(kw):
    kw = Bunch(kw)

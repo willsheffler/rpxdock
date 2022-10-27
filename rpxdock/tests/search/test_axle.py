@@ -27,7 +27,8 @@ def test_axle(hscore):
    kw.beam_size = 5000
    spec = rp.search.DockSpecAxel("AXLE_3")
 
-   sampler1 = rp.sampling.hier_axis_sampler(3, 0, 100, 10, 10, axis=spec.axis[0], flipax=spec.flip_axis[0])
+   sampler1 = rp.sampling.hier_axis_sampler(3, 0, 100, 10, 10, axis=spec.axis[0],
+                                            flipax=spec.flip_axis[0])
    sampler2 = rp.sampling.ZeroDHier([np.eye(4), rp.homog.hrot([1, 0, 0], 180)])
    sampler = rp.sampling.CompoundHier(sampler2, sampler1)
    _, x = sampler.get_xforms(resl=0, idx=[0])
@@ -51,7 +52,8 @@ def test_axle_asym(hscore):
    kw.beam_size = 5000
    spec = rp.search.DockSpecAxel("AXLE_1_2_3")
 
-   sampler1 = rp.sampling.hier_axis_sampler(2 * 3, 0, 100, 10, 10, axis=spec.axis[0], flipax=spec.flip_axis[0])
+   sampler1 = rp.sampling.hier_axis_sampler(2 * 3, 0, 100, 10, 10, axis=spec.axis[0],
+                                            flipax=spec.flip_axis[0])
    sampler2 = rp.sampling.ZeroDHier([np.eye(4), rp.homog.hrot([1, 0, 0], 180)])
    sampler = rp.sampling.CompoundHier(sampler2, sampler1)
    _, x = sampler.get_xforms(resl=0, idx=[0])
