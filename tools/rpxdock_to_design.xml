@@ -1,6 +1,6 @@
 <ROSETTASCRIPTS> //2022-11-30
     <SCOREFXNS>
-        <ScoreFunction name="sfxn_clean" weights="beta" symmetric="1" />
+        <ScoreFunction name="sfxn_clean" />
     </SCOREFXNS>
 
     //legacy interface detection code that does not work with ResidueSelectors. See RESIDUE_SELECTORS section.
@@ -27,12 +27,12 @@
 
         //set design_resis
         <Or name="design_resis" selectors="design_int_no_nonnative,nonnative_selector" /> //selects full interface, including preserved residues
-
     </RESIDUE_SELECTORS>
     
     <MOVERS>
-        //regen sym and sample without a/r
-        <SymDofMover name="gen_docked_config_no_transforms_%%comp%%_mover" symm_file="%%sym%%" sym_dof_names="%%symdof1%%,%%symdof2%%" flip_input_about_axes="0,0" />
+        //regen sym
+        <SymDofMover name="gen_docked_config_no_transforms_1comp_mover" symm_file="%%sym%%" sym_dof_names="%%symdof1%%" flip_input_about_axes="0,0" />
+        <SymDofMover name="gen_docked_config_no_transforms_2comp_mover" symm_file="%%sym%%" sym_dof_names="%%symdof1%%,%%symdof2%%" flip_input_about_axes="0,0" />
     </MOVERS>
 
 
@@ -47,8 +47,9 @@
     <PROTOCOLS>
         //generate docked configuration
         <Add mover_name="gen_docked_config_no_transforms_%%comp%%_mover" />
-
         <Add mover_name="label_design_resis" />
+        //insert your sequence design method of choice here
+        //insert your filters of choice here
     </PROTOCOLS>
     
     <OUTPUT scorefxn="sfxn_clean" />
