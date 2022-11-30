@@ -1,0 +1,55 @@
+<ROSETTASCRIPTS> //2022-11-30
+    <SCOREFXNS>
+        <ScoreFunction name="sfxn_clean" weights="beta" symmetric="1" />
+    </SCOREFXNS>
+
+    //legacy interface detection code that does not work with ResidueSelectors. See RESIDUE_SELECTORS section.
+    <TASKOPERATIONS> 
+        //detects residues between building blocks
+        <BuildingBlockInterface name="design_bbi_1comp" multicomp="0" sym_dof_names="%%symdof1%%" nsub_bblock="%%nsub_bb%%" fa_rep_cut="3.0" contact_dist="10" bblock_dist="5" />
+        <BuildingBlockInterface name="design_bbi_2comp" multicomp="1" sym_dof_names="%%symdof1%%,%%symdof2%%" fa_rep_cut="3.0" contact_dist="10" bblock_dist="5" />
+        //selects surface and boundary residues of BUILDING BLOCK
+        <SelectBySASA name="bb_surf" mode="sc" state="monomer" core_asa="0" surface_asa="0" core="0" boundary="1" surface="1" verbose="0" />
+        //MAKE SURE invert=0, detects if any residues are not the same as native input
+        <RestrictNativeResidues name="nonnative" prevent_repacking="1" invert="0" />
+    </TASKOPERATIONS>
+
+    <RESIDUE_SELECTORS>
+        //selects CPG residues (don't design these away)
+        <ResidueName name="CPG" residue_name3="CYS,PRO,GLY" />
+            <Not name="not_CPG" selector="CPG" />
+
+        //import legacy interface detection code
+        <Task name="design_bbi_selector" designable="true" task_operations="design_bbi_%%comp%%" />
+        <Task name="bb_surf_selector" designable="true" task_operations="bb_surf" />
+            <And name="design_int_no_nonnative" selectors="design_bbi_selector,bb_surf_selector,not_CPG" />
+        <Task name="nonnative_selector" designable="true" task_operations="nonnative" />
+
+        //set design_resis
+        <Or name="design_resis" selectors="design_int_no_nonnative,nonnative_selector" /> //selects full interface, including preserved residues
+
+    </RESIDUE_SELECTORS>
+    
+    <MOVERS>
+        //regen sym and sample without a/r
+        <SymDofMover name="gen_docked_config_no_transforms_%%comp%%_mover" symm_file="%%sym%%" sym_dof_names="%%symdof1%%,%%symdof2%%" flip_input_about_axes="0,0" />
+    </MOVERS>
+
+
+    //label stuff
+    <MOVERS>
+        <AddResidueLabel name="label_design_resis" residue_selector="design_resis" label="design_resis" />
+    </MOVERS>
+
+    <APPLY_TO_POSE>
+    </APPLY_TO_POSE>
+
+    <PROTOCOLS>
+        //generate docked configuration
+        <Add mover_name="gen_docked_config_no_transforms_%%comp%%_mover" />
+
+        <Add mover_name="label_design_resis" />
+    </PROTOCOLS>
+    
+    <OUTPUT scorefxn="sfxn_clean" />
+</ROSETTASCRIPTS>
