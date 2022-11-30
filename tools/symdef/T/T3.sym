@@ -1,0 +1,73 @@
+symmetry_name T3
+subunits 12
+number_of_interfaces 11
+E = 2*BA11+1*(BA11:BA12)+1*(BA11:BA13)+1*(BA11:BA21)+1*(BA11:BA22)+1*(BA11:BA23)+1*(BA11:BA31)+1*(BA11:BA32)+1*(BA11:BA33)+1*(BA11:BA41)+1*(BA11:BA42)+1*(BA11:BA43)
+
+anchor_residue COM
+virtual_coordinates_start
+
+# foldtree root virtuals
+xyz ROOT +1,+0,+0 +0,+1,+0 0,0,0
+xyz RA   +1,+0,+0 +0,+1,+0 0,0,0
+# trimer virtuals
+xyz CA1  +1,+1,+1 +1,+1,-2 0,0,0
+xyz PA1  +1,+1,+1 +1,+1,-2 0,0,0
+xyz BA11 +1,+1,+1 +1,+1,-2 0,0,0
+xyz BA12 +1,+1,+1 +1,-2,+1 0,0,0
+xyz BA13 +1,+1,+1 -2,+1,+1 0,0,0
+xyz CA2  -1,-1,+1 -1,-1,-2 0,0,0
+xyz PA2  -1,-1,+1 -1,-1,-2 0,0,0
+xyz BA21 -1,-1,+1 -1,-1,-2 0,0,0
+xyz BA22 -1,-1,+1 -1,+2,+1 0,0,0
+xyz BA23 -1,-1,+1 +2,-1,+1 0,0,0
+xyz CA3  -1,+1,-1 -1,-2,-1 0,0,0
+xyz PA3  -1,+1,-1 -1,-2,-1 0,0,0
+xyz BA31 -1,+1,-1 -1,-2,-1 0,0,0
+xyz BA32 -1,+1,-1 -1,+1,+2 0,0,0
+xyz BA33 -1,+1,-1 +2,+1,-1 0,0,0
+xyz CA4  +1,-1,-1 -2,-1,-1 0,0,0
+xyz PA4  +1,-1,-1 -2,-1,-1 0,0,0
+xyz BA41 +1,-1,-1 -2,-1,-1 0,0,0
+xyz BA42 +1,-1,-1 +1,-1,+2 0,0,0
+xyz BA43 +1,-1,-1 +1,+2,-1 0,0,0
+#
+virtual_coordinates_stop
+#
+connect_virtual JRA   ROOT RA
+connect_virtual JAR1  RA   CA1
+connect_virtual JAR2  RA   CA2
+connect_virtual JAR3  RA   CA3
+connect_virtual JAR4  RA   CA4
+connect_virtual JAC1  CA1  PA1
+connect_virtual JAC2  CA2  PA2
+connect_virtual JAC3  CA3  PA3
+connect_virtual JAC4  CA4  PA4
+connect_virtual JAP11 PA1  BA11
+connect_virtual JAP12 PA1  BA12
+connect_virtual JAP13 PA1  BA13
+connect_virtual JAP21 PA2  BA21
+connect_virtual JAP22 PA2  BA22
+connect_virtual JAP23 PA2  BA23
+connect_virtual JAP31 PA3  BA31
+connect_virtual JAP32 PA3  BA32
+connect_virtual JAP33 PA3  BA33
+connect_virtual JAP41 PA4  BA41
+connect_virtual JAP42 PA4  BA42
+connect_virtual JAP43 PA4  BA43
+connect_virtual JAB11 BA11 SUBUNIT
+connect_virtual JAB12 BA12 SUBUNIT
+connect_virtual JAB13 BA13 SUBUNIT
+connect_virtual JAB21 BA21 SUBUNIT
+connect_virtual JAB22 BA22 SUBUNIT
+connect_virtual JAB23 BA23 SUBUNIT
+connect_virtual JAB31 BA31 SUBUNIT
+connect_virtual JAB32 BA32 SUBUNIT
+connect_virtual JAB33 BA33 SUBUNIT
+connect_virtual JAB41 BA41 SUBUNIT
+connect_virtual JAB42 BA42 SUBUNIT
+connect_virtual JAB43 BA43 SUBUNIT
+#
+set_dof JAC1 x angle_x
+#
+set_jump_group GJAC JAC1 JAC2 JAC3 JAC4
+set_jump_group GJAB JAB11 JAB12 JAB13 JAB21 JAB22 JAB23 JAB31 JAB32 JAB33 JAB41 JAB42 JAB43

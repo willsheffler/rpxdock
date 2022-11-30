@@ -1,0 +1,120 @@
+symmetry_name O4_full
+#
+subunits 24
+#
+number_of_interfaces 23
+#
+E = 2*BQ11+1*(BQ11:BQ12)+1*(BQ11:BQ13)+1*(BQ11:BQ14)+1*(BQ11:BQ21)+1*(BQ11:BQ22)+1*(BQ11:BQ23)+1*(BQ11:BQ24)+1*(BQ11:BQ31)+1*(BQ11:BQ32)+1*(BQ11:BQ33)+1*(BQ11:BQ34)+1*(BQ11:BQ41)+1*(BQ11:BQ42)+1*(BQ11:BQ43)+1*(BQ11:BQ44)+1*(BQ11:BQ51)+1*(BQ11:BQ52)+1*(BQ11:BQ53)+1*(BQ11:BQ54)+1*(BQ11:BQ61)+1*(BQ11:BQ62)+1*(BQ11:BQ63)+1*(BQ11:BQ64)
+#
+anchor_residue COM
+#
+virtual_coordinates_start
+#
+# foldtree root virtuals
+xyz ROOT +1,+0,+0 +0,+1,+0 0,0,0
+xyz RQ +1,+0,+0 +0,+1,+0 0,0,0
+# Tetramer virtuals
+xyz CQ1  +1,+0,+0 +0,+1,+0 0,0,0
+xyz CQ2  -1,+0,+0 +0,+1,+0 0,0,0
+xyz CQ3  +0,+1,+0 +1,+0,+0 0,0,0
+xyz CQ4  +0,-1,+0 +1,+0,+0 0,0,0
+xyz CQ5  +0,+0,+1 +1,+0,+0 0,0,0
+xyz CQ6  +0,+0,-1 +1,+0,+0 0,0,0
+xyz PQ1  +1,+0,+0 +0,+1,+0 0,0,0
+xyz PQ2  -1,+0,+0 +0,+1,+0 0,0,0
+xyz PQ3  +0,+1,+0 +1,+0,+0 0,0,0
+xyz PQ4  +0,-1,+0 +1,+0,+0 0,0,0
+xyz PQ5  +0,+0,+1 +1,+0,+0 0,0,0
+xyz PQ6  +0,+0,-1 +1,+0,+0 0,0,0
+xyz BQ11 +1,+0,+0 +0,+1,+0 0,0,0
+xyz BQ12 +1,+0,+0 +0,+0,+1 0,0,0
+xyz BQ13 +1,+0,+0 +0,-1,+0 0,0,0
+xyz BQ14 +1,+0,+0 +0,+0,-1 0,0,0
+xyz BQ21 -1,+0,+0 +0,+1,+0 0,0,0
+xyz BQ22 -1,+0,+0 +0,+0,+1 0,0,0
+xyz BQ23 -1,+0,+0 +0,-1,+0 0,0,0
+xyz BQ24 -1,+0,+0 +0,+0,-1 0,0,0
+xyz BQ31 +0,+1,+0 +1,+0,+0 0,0,0
+xyz BQ32 +0,+1,+0 +0,+0,+1 0,0,0
+xyz BQ33 +0,+1,+0 -1,+0,+0 0,0,0
+xyz BQ34 +0,+1,+0 +0,+0,-1 0,0,0
+xyz BQ41 +0,-1,+0 +1,+0,+0 0,0,0
+xyz BQ42 +0,-1,+0 +0,+0,+1 0,0,0
+xyz BQ43 +0,-1,+0 -1,+0,+0 0,0,0
+xyz BQ44 +0,-1,+0 +0,+0,-1 0,0,0
+xyz BQ51 +0,+0,+1 +1,+0,+0 0,0,0
+xyz BQ52 +0,+0,+1 +0,+1,+0 0,0,0
+xyz BQ53 +0,+0,+1 -1,+0,+0 0,0,0
+xyz BQ54 +0,+0,+1 +0,-1,+0 0,0,0
+xyz BQ61 +0,+0,-1 +1,+0,+0 0,0,0
+xyz BQ62 +0,+0,-1 +0,+1,+0 0,0,0
+xyz BQ63 +0,+0,-1 -1,+0,+0 0,0,0
+xyz BQ64 +0,+0,-1 +0,-1,+0 0,0,0
+#
+virtual_coordinates_stop
+# Tetramer jumps
+connect_virtual JQR   ROOT RQ
+connect_virtual JQR1  RQ   CQ1
+connect_virtual JQR2  RQ   CQ2
+connect_virtual JQR3  RQ   CQ3
+connect_virtual JQR4  RQ   CQ4
+connect_virtual JQR5  RQ   CQ5
+connect_virtual JQR6  RQ   CQ6
+connect_virtual JQP1  CQ1  PQ1
+connect_virtual JQP2  CQ2  PQ2
+connect_virtual JQP3  CQ3  PQ3
+connect_virtual JQP4  CQ4  PQ4
+connect_virtual JQP5  CQ5  PQ5
+connect_virtual JQP6  CQ6  PQ6
+connect_virtual JQP11 PQ1  BQ11
+connect_virtual JQP12 PQ1  BQ12
+connect_virtual JQP13 PQ1  BQ13
+connect_virtual JQP14 PQ1  BQ14
+connect_virtual JQP21 PQ2  BQ21
+connect_virtual JQP22 PQ2  BQ22
+connect_virtual JQP23 PQ2  BQ23
+connect_virtual JQP24 PQ2  BQ24
+connect_virtual JQP31 PQ3  BQ31
+connect_virtual JQP32 PQ3  BQ32
+connect_virtual JQP33 PQ3  BQ33
+connect_virtual JQP34 PQ3  BQ34
+connect_virtual JQP41 PQ4  BQ41
+connect_virtual JQP42 PQ4  BQ42
+connect_virtual JQP43 PQ4  BQ43
+connect_virtual JQP44 PQ4  BQ44
+connect_virtual JQP51 PQ5  BQ51
+connect_virtual JQP52 PQ5  BQ52
+connect_virtual JQP53 PQ5  BQ53
+connect_virtual JQP54 PQ5  BQ54
+connect_virtual JQP61 PQ6  BQ61
+connect_virtual JQP62 PQ6  BQ62
+connect_virtual JQP63 PQ6  BQ63
+connect_virtual JQP64 PQ6  BQ64
+connect_virtual JQB11 BQ11 SUBUNIT
+connect_virtual JQB12 BQ12 SUBUNIT
+connect_virtual JQB13 BQ13 SUBUNIT
+connect_virtual JQB14 BQ14 SUBUNIT
+connect_virtual JQB21 BQ21 SUBUNIT
+connect_virtual JQB22 BQ22 SUBUNIT
+connect_virtual JQB23 BQ23 SUBUNIT
+connect_virtual JQB24 BQ24 SUBUNIT
+connect_virtual JQB31 BQ31 SUBUNIT
+connect_virtual JQB32 BQ32 SUBUNIT
+connect_virtual JQB33 BQ33 SUBUNIT
+connect_virtual JQB34 BQ34 SUBUNIT
+connect_virtual JQB41 BQ41 SUBUNIT
+connect_virtual JQB42 BQ42 SUBUNIT
+connect_virtual JQB43 BQ43 SUBUNIT
+connect_virtual JQB44 BQ44 SUBUNIT
+connect_virtual JQB51 BQ51 SUBUNIT
+connect_virtual JQB52 BQ52 SUBUNIT
+connect_virtual JQB53 BQ53 SUBUNIT
+connect_virtual JQB54 BQ54 SUBUNIT
+connect_virtual JQB61 BQ61 SUBUNIT
+connect_virtual JQB62 BQ62 SUBUNIT
+connect_virtual JQB63 BQ63 SUBUNIT
+connect_virtual JQB64 BQ64 SUBUNIT
+#
+set_dof JQP1 x angle_x
+set_jump_group GJQP JQP1 JQP2 JQP3 JQP4 JQP5 JQP6
+set_jump_group GJQB JQB11 JQB12 JQB13 JQB14 JQB21 JQB22 JQB23 JQB24 JQB31 JQB32 JQB33 JQB34 JQB41 JQB42 JQB43 JQB44 JQB51 JQB52 JQB53 JQB54 JQB61 JQB62 JQB63 JQB64

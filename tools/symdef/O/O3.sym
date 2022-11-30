@@ -1,0 +1,128 @@
+symmetry_name O3_full
+#
+subunits 24
+#
+number_of_interfaces 23
+#
+E = 2*BT11+1*(BT11:BT12)+1*(BT11:BT13)+1*(BT11:BT21)+1*(BT11:BT22)+1*(BT11:BT23)+1*(BT11:BT31)+1*(BT11:BT32)+1*(BT11:BT33)+1*(BT11:BT41)+1*(BT11:BT42)+1*(BT11:BT43)+1*(BT11:BT51)+1*(BT11:BT52)+1*(BT11:BT53)+1*(BT11:BT61)+1*(BT11:BT62)+1*(BT11:BT63)+1*(BT11:BT71)+1*(BT11:BT72)+1*(BT11:BT73)+1*(BT11:BT81)+1*(BT11:BT82)+1*(BT11:BT83)
+#
+anchor_residue COM
+#
+virtual_coordinates_start
+#
+# foldtree root virtuals
+xyz ROOT +1,+0,+0 +0,+1,+0 0,0,0
+xyz RT +1,+0,+0 +0,+1,+0 0,0,0
+# Trimer virtuals
+xyz CT1  +1,+1,+1 +1,+1,-2 0,0,0
+xyz CT2  +1,+1,-1 +1,+1,+2 0,0,0
+xyz CT3  +1,-1,+1 +1,+2,+1 0,0,0
+xyz CT4  -1,+1,+1 +2,+1,+1 0,0,0
+xyz CT5  -1,-1,+1 -1,-1,-2 0,0,0
+xyz CT6  -1,+1,-1 -1,-2,-1 0,0,0
+xyz CT7  +1,-1,-1 -2,-1,-1 0,0,0
+xyz CT8  -1,-1,-1 -1,-1,+2 0,0,0
+xyz PT1  +1,+1,+1 +1,+1,-2 0,0,0
+xyz PT2  +1,+1,-1 +1,+1,+2 0,0,0
+xyz PT3  +1,-1,+1 +1,+2,+1 0,0,0
+xyz PT4  -1,+1,+1 +2,+1,+1 0,0,0
+xyz PT5  -1,-1,+1 -1,-1,-2 0,0,0
+xyz PT6  -1,+1,-1 -1,-2,-1 0,0,0
+xyz PT7  +1,-1,-1 -2,-1,-1 0,0,0
+xyz PT8  -1,-1,-1 -1,-1,+2 0,0,0
+xyz BT11 +1,+1,+1 +1,+1,-2 0,0,0
+xyz BT12 +1,+1,+1 +1,-2,+1 0,0,0
+xyz BT13 +1,+1,+1 -2,+1,+1 0,0,0
+xyz BT21 +1,+1,-1 +1,+1,+2 0,0,0
+xyz BT22 +1,+1,-1 +1,-2,-1 0,0,0
+xyz BT23 +1,+1,-1 -2,+1,-1 0,0,0
+xyz BT31 +1,-1,+1 +1,+2,+1 0,0,0
+xyz BT32 +1,-1,+1 +1,-1,-2 0,0,0
+xyz BT33 +1,-1,+1 -2,-1,+1 0,0,0
+xyz BT41 -1,+1,+1 +2,+1,+1 0,0,0
+xyz BT42 -1,+1,+1 -1,+1,-2 0,0,0
+xyz BT43 -1,+1,+1 -1,-2,+1 0,0,0
+xyz BT51 -1,-1,+1 -1,-1,-2 0,0,0
+xyz BT52 -1,-1,+1 -1,+2,+1 0,0,0
+xyz BT53 -1,-1,+1 +2,-1,+1 0,0,0
+xyz BT61 -1,+1,-1 -1,-2,-1 0,0,0
+xyz BT62 -1,+1,-1 -1,+1,+2 0,0,0
+xyz BT63 -1,+1,-1 +2,+1,-1 0,0,0
+xyz BT71 +1,-1,-1 -2,-1,-1 0,0,0
+xyz BT72 +1,-1,-1 +1,-1,+2 0,0,0
+xyz BT73 +1,-1,-1 +1,+2,-1 0,0,0
+xyz BT81 -1,-1,-1 -1,-1,+2 0,0,0
+xyz BT82 -1,-1,-1 -1,+2,-1 0,0,0
+xyz BT83 -1,-1,-1 +2,-1,-1 0,0,0
+virtual_coordinates_stop
+# Trimer jumps
+connect_virtual JTR   ROOT RT
+connect_virtual JTR1  RT  CT1
+connect_virtual JTR2  RT  CT2
+connect_virtual JTR3  RT  CT3
+connect_virtual JTR4  RT  CT4
+connect_virtual JTR5  RT  CT5
+connect_virtual JTR6  RT  CT6
+connect_virtual JTR7  RT  CT7
+connect_virtual JTR8  RT  CT8
+connect_virtual JTP1  CT1  PT1
+connect_virtual JTP2  CT2  PT2
+connect_virtual JTP3  CT3  PT3
+connect_virtual JTP4  CT4  PT4
+connect_virtual JTP5  CT5  PT5
+connect_virtual JTP6  CT6  PT6
+connect_virtual JTP7  CT7  PT7
+connect_virtual JTP8  CT8  PT8
+connect_virtual JTP11 PT1  BT11
+connect_virtual JTP12 PT1  BT12
+connect_virtual JTP13 PT1  BT13
+connect_virtual JTP21 PT2  BT21
+connect_virtual JTP22 PT2  BT22
+connect_virtual JTP23 PT2  BT23
+connect_virtual JTP31 PT3  BT31
+connect_virtual JTP32 PT3  BT32
+connect_virtual JTP33 PT3  BT33
+connect_virtual JTP41 PT4  BT41
+connect_virtual JTP42 PT4  BT42
+connect_virtual JTP43 PT4  BT43
+connect_virtual JTP51 PT5  BT51
+connect_virtual JTP52 PT5  BT52
+connect_virtual JTP53 PT5  BT53
+connect_virtual JTP61 PT6  BT61
+connect_virtual JTP62 PT6  BT62
+connect_virtual JTP63 PT6  BT63
+connect_virtual JTP71 PT7  BT71
+connect_virtual JTP72 PT7  BT72
+connect_virtual JTP73 PT7  BT73
+connect_virtual JTP81 PT8  BT81
+connect_virtual JTP82 PT8  BT82
+connect_virtual JTP83 PT8  BT83
+connect_virtual JTB11 BT11 SUBUNIT
+connect_virtual JTB12 BT12 SUBUNIT
+connect_virtual JTB13 BT13 SUBUNIT
+connect_virtual JTB21 BT21 SUBUNIT
+connect_virtual JTB32 BT32 SUBUNIT
+connect_virtual JTB72 BT72 SUBUNIT
+connect_virtual JTB51 BT51 SUBUNIT
+connect_virtual JTB81 BT81 SUBUNIT
+connect_virtual JTB42 BT42 SUBUNIT
+connect_virtual JTB62 BT62 SUBUNIT
+connect_virtual JTB31 BT31 SUBUNIT
+connect_virtual JTB22 BT22 SUBUNIT
+connect_virtual JTB73 BT73 SUBUNIT
+connect_virtual JTB61 BT61 SUBUNIT
+connect_virtual JTB82 BT82 SUBUNIT
+connect_virtual JTB43 BT43 SUBUNIT
+connect_virtual JTB52 BT52 SUBUNIT
+connect_virtual JTB41 BT41 SUBUNIT
+connect_virtual JTB23 BT23 SUBUNIT
+connect_virtual JTB63 BT63 SUBUNIT
+connect_virtual JTB71 BT71 SUBUNIT
+connect_virtual JTB83 BT83 SUBUNIT
+connect_virtual JTB33 BT33 SUBUNIT
+connect_virtual JTB53 BT53 SUBUNIT
+#
+set_dof JTP1 x angle_x
+set_jump_group GJTP JTP1 JTP2 JTP3 JTP4 JTP5 JTP6 JTP7 JTP8
+set_jump_group GJTB JTB11 JTB12 JTB13 JTB21 JTB22 JTB23 JTB31 JTB32 JTB33 JTB41 JTB42 JTB43 JTB51 JTB52 JTB53 JTB61 JTB62 JTB63 JTB71 JTB72 JTB73 JTB81 JTB82 JTB83 
+
