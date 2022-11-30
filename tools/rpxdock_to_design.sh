@@ -1,8 +1,8 @@
 #example command:
-#./rpxdock_to_design.sh RPXDock_pdb.pdb
+#./rpxdock_to_design.sh /path/to/extracted/RPXDock_pdb.pdb
 
 #parse inputs
-input=${1}
+file_input=${1}
 
 #parse components
 sym="I53" #Change to architecture from RPXDock
@@ -22,7 +22,14 @@ mkdir -p output/
 outpath="output/"
     
 #symmmetry
-if [[ ${num_comp} == "1" ]]; then
+#cyclic symmetries
+if [[ ${arche} == "C" ]]; then
+    nsub_bb="1"
+    symfile="/path/to/${sym}.sym" #these are included in a standard Rosetta compile
+    symdof="JS1"
+  
+#cage symmetries
+elif [[ ${num_comp} == "1" ]]; then
     nsub_bb=${axis1}
     symfile="/path/to/${sym}.sym"
     if   [[ ${sym} == "T2" ]]; then symdof1="JDP1"
@@ -35,6 +42,7 @@ if [[ ${num_comp} == "1" ]]; then
     elif [[ ${sym} == "I5" ]]; then symdof1="JCP00"
     else echo "undefined 1-comp sym?"; exit ; fi
     symdof2="${symdof1}"
+    
 elif [[ ${num_comp} == "2" ]]; then
     nsub_bb="1"
     symfile="/path/to/${sym}.sym"
@@ -47,8 +55,10 @@ elif [[ ${num_comp} == "2" ]]; then
     elif [[ ${sym} == "I52" ]]; then symdof1="JCP00"; symdof2="JCD00"
     elif [[ ${sym} == "I53" ]]; then symdof1="JCP00"; symdof2="JCT00"
     else echo "undefined 2-comp sym?"; exit ; fi
+    
 elif [[ ${num_comp} == "3" ]]; then
     echo "this script doesn't work for 3-comp stuff yet"
+    
 else
     echo "undefined sym ?????"; exit
 fi
