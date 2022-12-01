@@ -1,0 +1,247 @@
+symmetry_name O42_full
+#
+subunits 24
+#
+number_of_interfaces 23
+#
+E = 2*BQ11+1*(BQ11:BQ12)+1*(BQ11:BQ13)+1*(BQ11:BQ14)+1*(BQ11:BQ21)+1*(BQ11:BQ22)+1*(BQ11:BQ23)+1*(BQ11:BQ24)+1*(BQ11:BQ31)+1*(BQ11:BQ32)+1*(BQ11:BQ33)+1*(BQ11:BQ34)+1*(BQ11:BQ41)+1*(BQ11:BQ42)+1*(BQ11:BQ43)+1*(BQ11:BQ44)+1*(BQ11:BQ51)+1*(BQ11:BQ52)+1*(BQ11:BQ53)+1*(BQ11:BQ54)+1*(BQ11:BQ61)+1*(BQ11:BQ62)+1*(BQ11:BQ63)+1*(BQ11:BQ64)
+#
+anchor_residue COM
+#
+virtual_coordinates_start
+# foldtree root virtuals
+xyz ROOT +1,+0,+0 +0,+1,+0 0,0,0
+xyz RQ +1,+0,+0 +0,+1,+0 0,0,0
+xyz RD +1,+0,+0 +0,+1,+0 0,0,0
+# Tetramer virtuals
+xyz CQ1  +1,+0,+0 +0,+1,+0 0,0,0
+xyz CQ2  -1,+0,+0 +0,+1,+0 0,0,0
+xyz CQ3  +0,+1,+0 +1,+0,+0 0,0,0
+xyz CQ4  +0,-1,+0 +1,+0,+0 0,0,0
+xyz CQ5  +0,+0,+1 +1,+0,+0 0,0,0
+xyz CQ6  +0,+0,-1 +1,+0,+0 0,0,0
+xyz PQ1  +1,+0,+0 +0,+1,+0 0,0,0
+xyz PQ2  -1,+0,+0 +0,+1,+0 0,0,0
+xyz PQ3  +0,+1,+0 +1,+0,+0 0,0,0
+xyz PQ4  +0,-1,+0 +1,+0,+0 0,0,0
+xyz PQ5  +0,+0,+1 +1,+0,+0 0,0,0
+xyz PQ6  +0,+0,-1 +1,+0,+0 0,0,0
+xyz BQ11 +1,+0,+0 +0,+1,+0 0,0,0
+xyz BQ12 +1,+0,+0 +0,+0,+1 0,0,0
+xyz BQ13 +1,+0,+0 +0,-1,+0 0,0,0
+xyz BQ14 +1,+0,+0 +0,+0,-1 0,0,0
+xyz BQ21 -1,+0,+0 +0,+1,+0 0,0,0
+xyz BQ22 -1,+0,+0 +0,+0,+1 0,0,0
+xyz BQ23 -1,+0,+0 +0,-1,+0 0,0,0
+xyz BQ24 -1,+0,+0 +0,+0,-1 0,0,0
+xyz BQ31 +0,+1,+0 +1,+0,+0 0,0,0
+xyz BQ32 +0,+1,+0 +0,+0,+1 0,0,0
+xyz BQ33 +0,+1,+0 -1,+0,+0 0,0,0
+xyz BQ34 +0,+1,+0 +0,+0,-1 0,0,0
+xyz BQ41 +0,-1,+0 +1,+0,+0 0,0,0
+xyz BQ42 +0,-1,+0 +0,+0,+1 0,0,0
+xyz BQ43 +0,-1,+0 -1,+0,+0 0,0,0
+xyz BQ44 +0,-1,+0 +0,+0,-1 0,0,0
+xyz BQ51 +0,+0,+1 +1,+0,+0 0,0,0
+xyz BQ52 +0,+0,+1 +0,+1,+0 0,0,0
+xyz BQ53 +0,+0,+1 -1,+0,+0 0,0,0
+xyz BQ54 +0,+0,+1 +0,-1,+0 0,0,0
+xyz BQ61 +0,+0,-1 +1,+0,+0 0,0,0
+xyz BQ62 +0,+0,-1 +0,+1,+0 0,0,0
+xyz BQ63 +0,+0,-1 -1,+0,+0 0,0,0
+xyz BQ64 +0,+0,-1 +0,-1,+0 0,0,0
+# Dimer virtuals
+xyz CD1  +1,+1,+0 +0,+0,+1 0,0,0
+xyz CD2  +1,-1,+0 +0,+0,+1 0,0,0
+xyz CD3  -1,-1,+0 +0,+0,+1 0,0,0
+xyz CD4  -1,+1,+0 +0,+0,+1 0,0,0
+xyz CD5  +1,+0,+1 +0,+1,+0 0,0,0
+xyz CD6  +1,+0,-1 +0,+1,+0 0,0,0
+xyz CD7  -1,+0,-1 +0,+1,+0 0,0,0
+xyz CD8  -1,+0,+1 +0,+1,+0 0,0,0
+xyz CD9  +0,+1,+1 +1,+0,+0 0,0,0
+xyz CDa  +0,+1,-1 +1,+0,+0 0,0,0
+xyz CDb  +0,-1,-1 +1,+0,+0 0,0,0
+xyz CDc  +0,-1,+1 +1,+0,+0 0,0,0
+xyz PD1  +1,+1,+0 +0,+0,+1 0,0,0
+xyz PD2  +1,-1,+0 +0,+0,+1 0,0,0
+xyz PD3  -1,-1,+0 +0,+0,+1 0,0,0
+xyz PD4  -1,+1,+0 +0,+0,+1 0,0,0
+xyz PD5  +1,+0,+1 +0,+1,+0 0,0,0
+xyz PD6  +1,+0,-1 +0,+1,+0 0,0,0
+xyz PD7  -1,+0,-1 +0,+1,+0 0,0,0
+xyz PD8  -1,+0,+1 +0,+1,+0 0,0,0
+xyz PD9  +0,+1,+1 +1,+0,+0 0,0,0
+xyz PDa  +0,+1,-1 +1,+0,+0 0,0,0
+xyz PDb  +0,-1,-1 +1,+0,+0 0,0,0
+xyz PDc  +0,-1,+1 +1,+0,+0 0,0,0
+xyz BD11 +1,+1,+0 +0,+0,+1 0,0,0
+xyz BD12 +1,+1,+0 +0,-0,-1 0,0,0
+xyz BD21 +1,-1,+0 +0,+0,+1 0,0,0
+xyz BD22 +1,-1,+0 +0,-0,-1 0,0,0
+xyz BD31 -1,-1,+0 +0,+0,+1 0,0,0
+xyz BD32 -1,-1,+0 +0,-0,-1 0,0,0
+xyz BD41 -1,+1,+0 +0,+0,+1 0,0,0
+xyz BD42 -1,+1,+0 +0,-0,-1 0,0,0
+xyz BD51 +1,+0,+1 +0,+1,+0 0,0,0
+xyz BD52 +1,+0,+1 +0,-1,-0 0,0,0
+xyz BD61 +1,+0,-1 +0,+1,+0 0,0,0
+xyz BD62 +1,+0,-1 +0,-1,-0 0,0,0
+xyz BD71 -1,+0,-1 +0,+1,+0 0,0,0
+xyz BD72 -1,+0,-1 +0,-1,-0 0,0,0
+xyz BD81 -1,+0,+1 +0,+1,+0 0,0,0
+xyz BD82 -1,+0,+1 +0,-1,-0 0,0,0
+xyz BD91 +0,+1,+1 +1,+0,+0 0,0,0
+xyz BD92 +0,+1,+1 -1,+0,-0 0,0,0
+xyz BDa1 +0,+1,-1 +1,+0,+0 0,0,0
+xyz BDa2 +0,+1,-1 -1,+0,-0 0,0,0
+xyz BDb1 +0,-1,-1 +1,+0,+0 0,0,0
+xyz BDb2 +0,-1,-1 -1,+0,-0 0,0,0
+xyz BDc1 +0,-1,+1 +1,+0,+0 0,0,0
+xyz BDc2 +0,-1,+1 -1,+0,-0 0,0,0
+#
+virtual_coordinates_stop
+# Tetramer jumps
+connect_virtual JQR   ROOT RQ
+connect_virtual JQR1  RQ   CQ1
+connect_virtual JQR2  RQ   CQ2
+connect_virtual JQR3  RQ   CQ3
+connect_virtual JQR4  RQ   CQ4
+connect_virtual JQR5  RQ   CQ5
+connect_virtual JQR6  RQ   CQ6
+connect_virtual JQP1  CQ1  PQ1
+connect_virtual JQP2  CQ2  PQ2
+connect_virtual JQP3  CQ3  PQ3
+connect_virtual JQP4  CQ4  PQ4
+connect_virtual JQP5  CQ5  PQ5
+connect_virtual JQP6  CQ6  PQ6
+connect_virtual JQP11 PQ1  BQ11
+connect_virtual JQP12 PQ1  BQ12
+connect_virtual JQP13 PQ1  BQ13
+connect_virtual JQP14 PQ1  BQ14
+connect_virtual JQP21 PQ2  BQ21
+connect_virtual JQP22 PQ2  BQ22
+connect_virtual JQP23 PQ2  BQ23
+connect_virtual JQP24 PQ2  BQ24
+connect_virtual JQP31 PQ3  BQ31
+connect_virtual JQP32 PQ3  BQ32
+connect_virtual JQP33 PQ3  BQ33
+connect_virtual JQP34 PQ3  BQ34
+connect_virtual JQP41 PQ4  BQ41
+connect_virtual JQP42 PQ4  BQ42
+connect_virtual JQP43 PQ4  BQ43
+connect_virtual JQP44 PQ4  BQ44
+connect_virtual JQP51 PQ5  BQ51
+connect_virtual JQP52 PQ5  BQ52
+connect_virtual JQP53 PQ5  BQ53
+connect_virtual JQP54 PQ5  BQ54
+connect_virtual JQP61 PQ6  BQ61
+connect_virtual JQP62 PQ6  BQ62
+connect_virtual JQP63 PQ6  BQ63
+connect_virtual JQP64 PQ6  BQ64
+connect_virtual JQB11 BQ11 SUBUNIT A COM
+connect_virtual JQB31 BQ31 SUBUNIT A COM
+connect_virtual JQB41 BQ41 SUBUNIT A COM
+connect_virtual JQB13 BQ13 SUBUNIT A COM
+connect_virtual JQB23 BQ23 SUBUNIT A COM
+connect_virtual JQB43 BQ43 SUBUNIT A COM
+connect_virtual JQB33 BQ33 SUBUNIT A COM
+connect_virtual JQB21 BQ21 SUBUNIT A COM
+connect_virtual JQB51 BQ51 SUBUNIT A COM
+connect_virtual JQB12 BQ12 SUBUNIT A COM
+connect_virtual JQB14 BQ14 SUBUNIT A COM
+connect_virtual JQB61 BQ61 SUBUNIT A COM
+connect_virtual JQB63 BQ63 SUBUNIT A COM
+connect_virtual JQB24 BQ24 SUBUNIT A COM
+connect_virtual JQB22 BQ22 SUBUNIT A COM
+connect_virtual JQB53 BQ53 SUBUNIT A COM
+connect_virtual JQB32 BQ32 SUBUNIT A COM
+connect_virtual JQB52 BQ52 SUBUNIT A COM
+connect_virtual JQB62 BQ62 SUBUNIT A COM
+connect_virtual JQB34 BQ34 SUBUNIT A COM
+connect_virtual JQB44 BQ44 SUBUNIT A COM
+connect_virtual JQB64 BQ64 SUBUNIT A COM
+connect_virtual JQB54 BQ54 SUBUNIT A COM
+connect_virtual JQB42 BQ42 SUBUNIT A COM
+# Dimer jumps
+connect_virtual JDR   ROOT RD
+connect_virtual JDR1  RD   CD1
+connect_virtual JDR2  RD   CD2
+connect_virtual JDR3  RD   CD3
+connect_virtual JDR4  RD   CD4
+connect_virtual JDR5  RD   CD5
+connect_virtual JDR6  RD   CD6
+connect_virtual JDR7  RD   CD7
+connect_virtual JDR8  RD   CD8
+connect_virtual JDR9  RD   CD9
+connect_virtual JDRa  RD   CDa
+connect_virtual JDRb  RD   CDb
+connect_virtual JDRc  RD   CDc
+connect_virtual JDP1  CD1  PD1
+connect_virtual JDP2  CD2  PD2
+connect_virtual JDP3  CD3  PD3
+connect_virtual JDP4  CD4  PD4
+connect_virtual JDP5  CD5  PD5
+connect_virtual JDP6  CD6  PD6
+connect_virtual JDP7  CD7  PD7
+connect_virtual JDP8  CD8  PD8
+connect_virtual JDP9  CD9  PD9
+connect_virtual JDPa  CDa  PDa
+connect_virtual JDPb  CDb  PDb
+connect_virtual JDPc  CDc  PDc
+connect_virtual JDP11 PD1  BD11
+connect_virtual JDP12 PD1  BD12
+connect_virtual JDP21 PD2  BD21
+connect_virtual JDP22 PD2  BD22
+connect_virtual JDP31 PD3  BD31
+connect_virtual JDP32 PD3  BD32
+connect_virtual JDP41 PD4  BD41
+connect_virtual JDP42 PD4  BD42
+connect_virtual JDP51 PD5  BD51
+connect_virtual JDP52 PD5  BD52
+connect_virtual JDP61 PD6  BD61
+connect_virtual JDP62 PD6  BD62
+connect_virtual JDP71 PD7  BD71
+connect_virtual JDP72 PD7  BD72
+connect_virtual JDP81 PD8  BD81
+connect_virtual JDP82 PD8  BD82
+connect_virtual JDP91 PD9  BD91
+connect_virtual JDP92 PD9  BD92
+connect_virtual JDPa1 PDa  BDa1
+connect_virtual JDPa2 PDa  BDa2
+connect_virtual JDPb1 PDb  BDb1
+connect_virtual JDPb2 PDb  BDb2
+connect_virtual JDPc1 PDc  BDc1
+connect_virtual JDPc2 PDc  BDc2
+connect_virtual JDB11 BD11 SUBUNIT B COM
+connect_virtual JDB12 BD12 SUBUNIT B COM
+connect_virtual JDB21 BD21 SUBUNIT B COM
+connect_virtual JDB22 BD22 SUBUNIT B COM
+connect_virtual JDB31 BD31 SUBUNIT B COM
+connect_virtual JDB32 BD32 SUBUNIT B COM
+connect_virtual JDB41 BD41 SUBUNIT B COM
+connect_virtual JDB42 BD42 SUBUNIT B COM
+connect_virtual JDB51 BD51 SUBUNIT B COM
+connect_virtual JDB52 BD52 SUBUNIT B COM
+connect_virtual JDB61 BD61 SUBUNIT B COM
+connect_virtual JDB62 BD62 SUBUNIT B COM
+connect_virtual JDB71 BD71 SUBUNIT B COM
+connect_virtual JDB72 BD72 SUBUNIT B COM
+connect_virtual JDB81 BD81 SUBUNIT B COM
+connect_virtual JDB82 BD82 SUBUNIT B COM
+connect_virtual JDB91 BD91 SUBUNIT B COM
+connect_virtual JDB92 BD92 SUBUNIT B COM
+connect_virtual JDBa1 BDa1 SUBUNIT B COM
+connect_virtual JDBa2 BDa2 SUBUNIT B COM
+connect_virtual JDBb1 BDb1 SUBUNIT B COM
+connect_virtual JDBb2 BDb2 SUBUNIT B COM
+connect_virtual JDBc1 BDc1 SUBUNIT B COM
+connect_virtual JDBc2 BDc2 SUBUNIT B COM
+#
+set_dof JQP1 x angle_x
+set_jump_group GJQP JQP1 JQP2 JQP3 JQP4 JQP5 JQP6
+set_jump_group GJQB JQB11 JQB12 JQB13 JQB14 JQB21 JQB22 JQB23 JQB24 JQB31 JQB32 JQB33 JQB34 JQB41 JQB42 JQB43 JQB44 JQB51 JQB52 JQB53 JQB54 JQB61 JQB62 JQB63 JQB64
+#
+set_dof JDP1 x angle_x
+set_jump_group GJDP JDP1 JDP2 JDP3 JDP4 JDP5 JDP6 JDP7 JDP8 JDP9 JDPa JDPb JDPc
+set_jump_group GJDB JDB11 JDB12 JDB21 JDB22 JDB31 JDB32 JDB41 JDB42 JDB51 JDB52 JDB61 JDB62 JDB71 JDB72 JDB81 JDB82 JDB91 JDB92 JDBa1 JDBa2 JDBb1 JDBb2 JDBc1 JDBc2

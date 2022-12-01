@@ -1,0 +1,197 @@
+symmetry_name O32_18subs
+subunits 18
+number_of_interfaces 18
+E = 2*BD11+1*(BD11:BD12)+1*(BD11:BD21)+1*(BD11:BD22)+1*(BD11:BD41)+1*(BD11:BD42)+1*(BD11:BD51)+1*(BD11:BD52)+1*(BD11:BD61)+1*(BD11:BD62)+1*(BD11:BD81)+1*(BD11:BD82)+1*(BD11:BD91)+1*(BD11:BD92)+1*(BD11:BDa1)+1*(BD11:BDa2)+1*(BD11:BDc1)+1*(BD11:BDc2)
+anchor_residue COM
+virtual_coordinates_start
+xyz ROOT +1,+0,+0 +0,+1,+0 0,0,0
+xyz RT +1,+0,+0 +0,+1,+0 0,0,0
+xyz RD +1,+0,+0 +0,+1,+0 0,0,0
+#
+xyz CD1  +1,+1,+0 +0,+0,+1 0,0,0
+xyz PD1  +1,+1,+0 +0,+0,+1 0,0,0
+xyz BD11 +1,+1,+0 +0,+0,+1 0,0,0
+xyz BD12 +1,+1,+0 +0,-0,-1 0,0,0
+xyz CD2  +1,-1,+0 +0,+0,+1 0,0,0
+xyz PD2  +1,-1,+0 +0,+0,+1 0,0,0
+xyz BD21 +1,-1,+0 +0,+0,+1 0,0,0
+xyz BD22 +1,-1,+0 +0,-0,-1 0,0,0
+xyz CD4  -1,+1,+0 +0,+0,+1 0,0,0
+xyz PD4  -1,+1,+0 +0,+0,+1 0,0,0
+xyz BD41 -1,+1,+0 +0,+0,+1 0,0,0
+xyz BD42 -1,+1,+0 +0,-0,-1 0,0,0
+xyz CD5  +1,+0,+1 +0,+1,+0 0,0,0
+xyz PD5  +1,+0,+1 +0,+1,+0 0,0,0
+xyz BD51 +1,+0,+1 +0,+1,+0 0,0,0
+xyz BD52 +1,+0,+1 +0,-1,-0 0,0,0
+xyz CD6  +1,+0,-1 +0,+1,+0 0,0,0
+xyz PD6  +1,+0,-1 +0,+1,+0 0,0,0
+xyz BD61 +1,+0,-1 +0,+1,+0 0,0,0
+xyz BD62 +1,+0,-1 +0,-1,-0 0,0,0
+xyz CD8  -1,+0,+1 +0,+1,+0 0,0,0
+xyz PD8  -1,+0,+1 +0,+1,+0 0,0,0
+xyz BD81 -1,+0,+1 +0,+1,+0 0,0,0
+xyz BD82 -1,+0,+1 +0,-1,-0 0,0,0
+xyz CD9  +0,+1,+1 +1,+0,+0 0,0,0
+xyz PD9  +0,+1,+1 +1,+0,+0 0,0,0
+xyz BD91 +0,+1,+1 +1,+0,+0 0,0,0
+xyz BD92 +0,+1,+1 -1,+0,-0 0,0,0
+xyz CDa  +0,+1,-1 +1,+0,+0 0,0,0
+xyz PDa  +0,+1,-1 +1,+0,+0 0,0,0
+xyz BDa1 +0,+1,-1 +1,+0,+0 0,0,0
+xyz BDa2 +0,+1,-1 -1,+0,-0 0,0,0
+xyz CDc  +0,-1,+1 +1,+0,+0 0,0,0
+xyz PDc  +0,-1,+1 +1,+0,+0 0,0,0
+xyz BDc1 +0,-1,+1 +1,+0,+0 0,0,0
+xyz BDc2 +0,-1,+1 -1,+0,-0 0,0,0
+#
+xyz CT1  +1,+1,+1 +1,+1,-2 0,0,0
+xyz PT1  +1,+1,+1 +1,+1,-2 0,0,0
+xyz BT11 +1,+1,+1 +1,+1,-2 0,0,0
+xyz BT12 +1,+1,+1 +1,-2,+1 0,0,0
+xyz BT13 +1,+1,+1 -2,+1,+1 0,0,0
+xyz CT2  +1,+1,-1 +1,+1,+2 0,0,0
+xyz PT2  +1,+1,-1 +1,+1,+2 0,0,0
+xyz BT21 +1,+1,-1 +1,+1,+2 0,0,0
+xyz BT22 +1,+1,-1 +1,-2,-1 0,0,0
+xyz BT23 +1,+1,-1 -2,+1,-1 0,0,0
+xyz CT3  +1,-1,+1 +1,+2,+1 0,0,0
+xyz PT3  +1,-1,+1 +1,+2,+1 0,0,0
+xyz BT31 +1,-1,+1 +1,+2,+1 0,0,0
+xyz BT32 +1,-1,+1 +1,-1,-2 0,0,0
+xyz BT33 +1,-1,+1 -2,-1,+1 0,0,0
+xyz CT4  -1,+1,+1 +2,+1,+1 0,0,0
+xyz PT4  -1,+1,+1 +2,+1,+1 0,0,0
+xyz BT41 -1,+1,+1 +2,+1,+1 0,0,0
+xyz BT42 -1,+1,+1 -1,+1,-2 0,0,0
+xyz BT43 -1,+1,+1 -1,-2,+1 0,0,0
+xyz CT5  -1,-1,+1 -1,-1,-2 0,0,0
+xyz PT5  -1,-1,+1 -1,-1,-2 0,0,0
+xyz BT52 -1,-1,+1 -1,+2,+1 0,0,0
+xyz BT53 -1,-1,+1 +2,-1,+1 0,0,0
+xyz CT6  -1,+1,-1 -1,-2,-1 0,0,0
+xyz PT6  -1,+1,-1 -1,-2,-1 0,0,0
+xyz BT62 -1,+1,-1 -1,+1,+2 0,0,0
+xyz BT63 -1,+1,-1 +2,+1,-1 0,0,0
+xyz CT7  +1,-1,-1 -2,-1,-1 0,0,0
+xyz PT7  +1,-1,-1 -2,-1,-1 0,0,0
+xyz BT72 +1,-1,-1 +1,-1,+2 0,0,0
+xyz BT73 +1,-1,-1 +1,+2,-1 0,0,0
+virtual_coordinates_stop
+connect_virtual JDR   ROOT RD
+connect_virtual JDR1  RD   CD1
+connect_virtual JDR2  RD   CD2
+connect_virtual JDR4  RD   CD4
+connect_virtual JDR5  RD   CD5
+connect_virtual JDR6  RD   CD6
+connect_virtual JDR8  RD   CD8
+connect_virtual JDR9  RD   CD9
+connect_virtual JDRa  RD   CDa
+connect_virtual JDRc  RD   CDc
+connect_virtual JDP1  CD1  PD1
+connect_virtual JDP2  CD2  PD2
+connect_virtual JDP4  CD4  PD4
+connect_virtual JDP5  CD5  PD5
+connect_virtual JDP6  CD6  PD6
+connect_virtual JDP8  CD8  PD8
+connect_virtual JDP9  CD9  PD9
+connect_virtual JDPa  CDa  PDa
+connect_virtual JDPc  CDc  PDc
+connect_virtual JDP11 PD1  BD11
+connect_virtual JDP12 PD1  BD12
+connect_virtual JDP21 PD2  BD21
+connect_virtual JDP22 PD2  BD22
+connect_virtual JDP41 PD4  BD41
+connect_virtual JDP42 PD4  BD42
+connect_virtual JDP51 PD5  BD51
+connect_virtual JDP52 PD5  BD52
+connect_virtual JDP61 PD6  BD61
+connect_virtual JDP62 PD6  BD62
+connect_virtual JDP81 PD8  BD81
+connect_virtual JDP82 PD8  BD82
+connect_virtual JDP91 PD9  BD91
+connect_virtual JDP92 PD9  BD92
+connect_virtual JDPa1 PDa  BDa1
+connect_virtual JDPa2 PDa  BDa2
+connect_virtual JDPc1 PDc  BDc1
+connect_virtual JDPc2 PDc  BDc2
+connect_virtual JDB11 BD11 SUBUNIT B COM
+connect_virtual JDB12 BD12 SUBUNIT B COM
+connect_virtual JDB21 BD21 SUBUNIT B COM
+connect_virtual JDB22 BD22 SUBUNIT B COM
+connect_virtual JDB41 BD41 SUBUNIT B COM
+connect_virtual JDB42 BD42 SUBUNIT B COM
+connect_virtual JDB51 BD51 SUBUNIT B COM
+connect_virtual JDB52 BD52 SUBUNIT B COM
+connect_virtual JDB61 BD61 SUBUNIT B COM
+connect_virtual JDB62 BD62 SUBUNIT B COM
+connect_virtual JDB81 BD81 SUBUNIT B COM
+connect_virtual JDB82 BD82 SUBUNIT B COM
+connect_virtual JDB91 BD91 SUBUNIT B COM
+connect_virtual JDB92 BD92 SUBUNIT B COM
+connect_virtual JDBa1 BDa1 SUBUNIT B COM
+connect_virtual JDBa2 BDa2 SUBUNIT B COM
+connect_virtual JDBc1 BDc1 SUBUNIT B COM
+connect_virtual JDBc2 BDc2 SUBUNIT B COM
+#
+connect_virtual JTR   ROOT RT
+connect_virtual JTR1  RT   CT1
+connect_virtual JTR2  RT   CT2
+connect_virtual JTR3  RT   CT3
+connect_virtual JTR4  RT   CT4
+connect_virtual JTR5  RT   CT5
+connect_virtual JTR6  RT   CT6
+connect_virtual JTR7  RT   CT7
+connect_virtual JTP1  CT1  PT1
+connect_virtual JTP2  CT2  PT2
+connect_virtual JTP3  CT3  PT3
+connect_virtual JTP4  CT4  PT4
+connect_virtual JTP5  CT5  PT5
+connect_virtual JTP6  CT6  PT6
+connect_virtual JTP7  CT7  PT7
+connect_virtual JTP11 PT1  BT11
+connect_virtual JTP12 PT1  BT12
+connect_virtual JTP13 PT1  BT13
+connect_virtual JTP21 PT2  BT21
+connect_virtual JTP22 PT2  BT22
+connect_virtual JTP23 PT2  BT23
+connect_virtual JTP31 PT3  BT31
+connect_virtual JTP32 PT3  BT32
+connect_virtual JTP33 PT3  BT33
+connect_virtual JTP41 PT4  BT41
+connect_virtual JTP42 PT4  BT42
+connect_virtual JTP43 PT4  BT43
+connect_virtual JTP52 PT5  BT52
+connect_virtual JTP53 PT5  BT53
+connect_virtual JTP62 PT6  BT62
+connect_virtual JTP63 PT6  BT63
+connect_virtual JTP72 PT7  BT72
+connect_virtual JTP73 PT7  BT73
+# perm from 3fold standalone: 1  4 8 20 13 22 11 17 2 7 5 21 16 23 12 14 3 10 6 18 19 24 9 15
+connect_virtual JTB11 BT11 SUBUNIT A COM
+connect_virtual JTB21 BT21 SUBUNIT A COM
+connect_virtual JTB32 BT32 SUBUNIT A COM
+connect_virtual JTB72 BT72 SUBUNIT A COM
+connect_virtual JTB42 BT42 SUBUNIT A COM
+connect_virtual JTB62 BT62 SUBUNIT A COM
+connect_virtual JTB12 BT12 SUBUNIT A COM
+connect_virtual JTB31 BT31 SUBUNIT A COM
+connect_virtual JTB22 BT22 SUBUNIT A COM
+connect_virtual JTB73 BT73 SUBUNIT A COM
+connect_virtual JTB43 BT43 SUBUNIT A COM
+connect_virtual JTB52 BT52 SUBUNIT A COM
+connect_virtual JTB13 BT13 SUBUNIT A COM
+connect_virtual JTB41 BT41 SUBUNIT A COM
+connect_virtual JTB23 BT23 SUBUNIT A COM
+connect_virtual JTB63 BT63 SUBUNIT A COM
+connect_virtual JTB33 BT33 SUBUNIT A COM
+connect_virtual JTB53 BT53 SUBUNIT A COM
+#
+set_dof JDP1 x angle_x
+set_jump_group GJDP JDP1 JDP2 JDP4 JDP5 JDP6 JDP8 JDP9 JDPa JDPc
+set_jump_group GJDB JDB11 JDB12 JDB21 JDB22 JDB41 JDB42 JDB51 JDB52 JDB61 JDB62 JDB81 JDB82 JDB91 JDB92 JDBa1 JDBa2 JDBc1 JDBc2
+#
+set_dof JTP1 x angle_x
+set_jump_group GJTP JTP1 JTP2 JTP3 JTP4 JTP5 JTP6 JTP7
+set_jump_group GJTB JTB11 JTB12 JTB13 JTB21 JTB22 JTB23 JTB31 JTB32 JTB33 JTB41 JTB42 JTB43 JTB52 JTB53 JTB62 JTB63 JTB72 JTB73
+
