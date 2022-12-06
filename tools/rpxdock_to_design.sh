@@ -1,4 +1,5 @@
 #example command:
+<<<<<<< HEAD
 #./rpxdock_to_design.sh RPXDock_Result.pickle,RPXDock_pdb.pdb
 
 #parse inputs
@@ -7,6 +8,12 @@ debug=${2}
 rpx_pickle_path=`echo ${input} |cut -d',' -f1`
 
 file_input=`echo ${input} |cut -d',' -f2`
+=======
+#./rpxdock_to_design.sh /path/to/extracted/RPXDock_pdb.pdb
+
+#parse inputs
+file_input=${1}
+>>>>>>> origin/master
 
 #parse components
 sym="I53" #Change to architecture from RPXDock
@@ -14,7 +21,10 @@ arche=`echo ${sym} |cut -c1`
 axis1=`echo ${sym} |cut -c2`
 axis2=`echo ${sym} |cut -c3`
 axis3=`echo ${sym} |cut -c4`
+<<<<<<< HEAD
 if [[ ${debug} ]]; then echo "axis123 " ${axis1} ${axis2} ${axis3}; fi
+=======
+>>>>>>> origin/master
 
 #check number of components
 if [[ -z ${axis1} ]]; then echo "axis 1 cannot be empty!"; exit
@@ -27,7 +37,18 @@ mkdir -p output/
 outpath="output/"
     
 #symmmetry
+<<<<<<< HEAD
 if [[ ${num_comp} == "1" ]]; then
+=======
+#cyclic symmetries
+if [[ ${arche} == "C" ]]; then
+    nsub_bb="1"
+    symfile="/path/to/${sym}.sym" #these are included in a standard Rosetta compile
+    symdof="JS1"
+  
+#cage symmetries
+elif [[ ${num_comp} == "1" ]]; then
+>>>>>>> origin/master
     nsub_bb=${axis1}
     symfile="/path/to/${sym}.sym"
     if   [[ ${sym} == "T2" ]]; then symdof1="JDP1"
@@ -40,6 +61,10 @@ if [[ ${num_comp} == "1" ]]; then
     elif [[ ${sym} == "I5" ]]; then symdof1="JCP00"
     else echo "undefined 1-comp sym?"; exit ; fi
     symdof2="${symdof1}"
+<<<<<<< HEAD
+=======
+    
+>>>>>>> origin/master
 elif [[ ${num_comp} == "2" ]]; then
     nsub_bb="1"
     symfile="/path/to/${sym}.sym"
@@ -52,18 +77,30 @@ elif [[ ${num_comp} == "2" ]]; then
     elif [[ ${sym} == "I52" ]]; then symdof1="JCP00"; symdof2="JCD00"
     elif [[ ${sym} == "I53" ]]; then symdof1="JCP00"; symdof2="JCT00"
     else echo "undefined 2-comp sym?"; exit ; fi
+<<<<<<< HEAD
 elif [[ ${num_comp} == "3" ]]; then
     nsub_bb="1"
     symfile="path/to/files/here.sym"
     if [[ 1 == 0 ]]; then echo "???";
     else echo "undefined 3-comp sym?"; exit ; fi
+=======
+    
+elif [[ ${num_comp} == "3" ]]; then
+    echo "this script doesn't work for 3-comp stuff yet"
+    
+>>>>>>> origin/master
 else
     echo "undefined sym ?????"; exit
 fi
 
+<<<<<<< HEAD
 #create run_rosetta function
 run_rosetta () {
     exe_path="/path/to/rosetta_scripts.hdf5.linuxgccrelease" \
+=======
+#run Rosetta
+/path/to/rosetta_scripts.hdf5.linuxgccrelease" \
+>>>>>>> origin/master
         -out:level 300 \
         -never_rerun_filters false \
         -out::file::pdb_comments \
@@ -79,6 +116,7 @@ run_rosetta () {
         -out:chtimestamp 1 \
         -out:suffix "" \
         -out::path::all ${outpath}/ \
+<<<<<<< HEAD
         -output_only_asymmetric_unit true \
         -failed_job_exception false \
         -mute all \
@@ -95,3 +133,8 @@ if [[ ${debug} ]]; then
 else
     run_rosetta > ${outpath}/rpxdock_to_design.log
 fi
+=======
+        -failed_job_exception false \
+        -renumber_pdb true \
+        > ${outpath}/rpxdock_to_design.log
+>>>>>>> origin/master
