@@ -1,4 +1,6 @@
-# RPXDock #
+*******
+RPXDock
+*******
 
 Version 2 of the venerable tcdock and rpxdock programs in rosetta. This version will be faster, simpler, and mostly in python.
 
