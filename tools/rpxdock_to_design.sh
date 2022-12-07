@@ -22,6 +22,7 @@ mkdir -p output/
 outpath="output/"
     
 #symmmetry
+
 #cyclic symmetries
 if [[ ${arche} == "C" ]]; then
     nsub_bb="1"
@@ -42,7 +43,7 @@ elif [[ ${num_comp} == "1" ]]; then
     elif [[ ${sym} == "I5" ]]; then symdof1="JCP00"
     else echo "undefined 1-comp sym?"; exit ; fi
     symdof2="${symdof1}"
-    
+
 elif [[ ${num_comp} == "2" ]]; then
     nsub_bb="1"
     symfile="/path/to/${sym}.sym"
@@ -62,6 +63,7 @@ elif [[ ${num_comp} == "3" ]]; then
 else
     echo "undefined sym ?????"; exit
 fi
+
 
 #run Rosetta
 /path/to/rosetta_scripts.hdf5.linuxgccrelease" \
