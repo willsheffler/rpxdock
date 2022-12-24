@@ -1,7 +1,7 @@
 name: rpxdock39
 channels:
  - conda-forge
- - https://pose:foldtree@conda.graylab.jhu.edu
+ - https://username:password@conda.graylab.jhu.edu
  - schrodinger
 dependencies:
  - python<3.10
