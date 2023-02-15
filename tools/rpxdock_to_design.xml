@@ -1,6 +1,38 @@
 <ROSETTASCRIPTS> //2022-11-30
     <SCOREFXNS>
-        <ScoreFunction name="sfxn_clean" />
+        <ScoreFunction name="sfxn_hard" weights="beta" symmetric="1" >
+            //bcov's ubh_score
+            <Reweight scoretype="approximate_buried_unsat_penalty" weight="5.0" />
+            <Set approximate_buried_unsat_penalty_hbond_energy_threshold="-0.25" />
+            <Set approximate_buried_unsat_penalty_burial_atomic_depth="4.0" />
+            <Set approximate_buried_unsat_penalty_assume_const_backbone="true" />
+            //get rid of lk_ball
+            <Reweight scoretype="lk_ball" weight="0" />
+            <Reweight scoretype="lk_ball_iso" weight="0" />
+            <Reweight scoretype="lk_ball_wtd" weight="0" />
+            <Reweight scoretype="lk_ball_bridge" weight="0" />
+            <Reweight scoretype="lk_ball_bridge_uncpl" weight="0" />
+            Reweight scoretype="aa_composition" weight="1.0" />
+        </ScoreFunction>
+
+        <ScoreFunction name="sfxn_up_ele" weights="beta" symmetric="1" >
+            //bcov's ubh_score
+            <Reweight scoretype="approximate_buried_unsat_penalty" weight="5.0" />
+            <Set approximate_buried_unsat_penalty_hbond_energy_threshold="-0.25" />
+            <Set approximate_buried_unsat_penalty_burial_atomic_depth="4.0" />
+            <Set approximate_buried_unsat_penalty_assume_const_backbone="true" />
+            //get rid of lk_ball
+            <Reweight scoretype="lk_ball" weight="0" />
+            <Reweight scoretype="lk_ball_iso" weight="0" />
+            <Reweight scoretype="lk_ball_wtd" weight="0" />
+            <Reweight scoretype="lk_ball_bridge" weight="0" />
+            <Reweight scoretype="lk_ball_bridge_uncpl" weight="0" />
+            //upweight electrostatics
+            <Reweight scoretype="fa_elec" weight="1.4" />
+            <Reweight scoretype="hbond_sc" weight="2.0" />
+        </ScoreFunction>
+
+        <ScoreFunction name="sfxn_clean" weights="beta" symmetric="1" />
     </SCOREFXNS>
 
     //legacy interface detection code that does not work with ResidueSelectors. See RESIDUE_SELECTORS section.
@@ -12,6 +44,7 @@
         <SelectBySASA name="bb_surf" mode="sc" state="monomer" core_asa="0" surface_asa="0" core="0" boundary="1" surface="1" verbose="0" />
         //MAKE SURE invert=0, detects if any residues are not the same as native input
         <RestrictNativeResidues name="nonnative" prevent_repacking="1" invert="0" />
+    
     </TASKOPERATIONS>
 
     <RESIDUE_SELECTORS>
@@ -27,19 +60,115 @@
 
         //set design_resis
         <Or name="design_resis" selectors="design_int_no_nonnative,nonnative_selector" /> //selects full interface, including preserved residues
+        <Neighborhood name="pack_resis" selector="design_resis" distance="5" include_focus_in_subset="false" />
+        <Or name="design_and_pack_resis" selectors="design_resis,pack_resis" />
+            <Not name="lock_resis" selector="design_and_pack_resis" />
+
+        //layer design
+        <Layer name="core" use_sidechain_neighbors="true" core_cutoff="4.9" surface_cutoff="2.7" sc_neighbor_dist_exponent="0.7" select_core="true" />
+        <Layer name="bdry" use_sidechain_neighbors="true" core_cutoff="4.9" surface_cutoff="2.7" sc_neighbor_dist_exponent="0.7" select_boundary="true" />
+        <Layer name="surf" use_sidechain_neighbors="true" core_cutoff="4.9" surface_cutoff="2.7" sc_neighbor_dist_exponent="0.7" select_surface="true" />
+        <SecondaryStructure name="helix" ss="H" overlap="0" minH="3" minE="3" use_dssp="true" include_terminal_loops="false" />
+        <SecondaryStructure name="sheet" ss="E" overlap="0" minH="3" minE="3" use_dssp="true" include_terminal_loops="false" />
+        <SecondaryStructure name="loop"  ss="L" overlap="0" minH="3" minE="3" use_dssp="true" include_terminal_loops="true" />
+            <And name="design_surf" selectors="surf,design_resis" />
+            <And name="design_bdry" selectors="bdry,design_resis" />
+            <And name="design_core" selectors="core,design_resis" />
+
+        //for filters
+        <Or name="design_core_bdry" selectors="design_core,design_bdry" />
+
     </RESIDUE_SELECTORS>
-    
+
+    <TASKOPERATIONS>
+        <IncludeCurrent name="ic" />                                            //includes input pdb's rotamers
+        <LimitAromaChi2 name="limitaro" chi2max="110" chi2min="70" />           //disallow extreme aromatic rotamers
+        <RestrictToRepacking name="repack_only" />                              //for minimize/repack
+        <ExtraRotamersGeneric name="ex1_ex2" ex1="1" ex2="0" ex2aro="1" />      //use ex1 ex2 rotamers
+
+        //layer design
+        <DesignRestrictions name="layer_design" >
+            <Action selector_logic="surf AND ( helix OR sheet )"    aas="DEKRNQST" />
+            <Action selector_logic="surf AND loop"                  aas="DEKRNQSTGP" />
+            <Action selector_logic="bdry AND helix"                 aas="ILVAFMDEKRNQSTWY" />
+            <Action selector_logic="bdry AND sheet"                 aas="ILVAFDEKRNQSTWY" />
+            <Action selector_logic="bdry AND loop"                  aas="ILVAFMDEKRNQSTGPWY" />
+            <Action selector_logic="core AND helix"                 aas="ILVAFM" />
+            <Action selector_logic="core AND sheet"                 aas="ILVAF" />
+            <Action selector_logic="core AND loop"                  aas="ILVAFMGP" />
+        </DesignRestrictions>
+
+        //setup tasks
+        <OperateOnResidueSubset name="pack_task" selector="pack_resis" >
+            <RestrictToRepackingRLT/> </OperateOnResidueSubset>
+        <OperateOnResidueSubset name="lock_task" selector="lock_resis" >
+            <PreventRepackingRLT/> </OperateOnResidueSubset>
+
+        //for surf_design
+        <OperateOnResidueSubset name="pack_core_task" selector="core" >
+            <RestrictToRepackingRLT/> </OperateOnResidueSubset>
+
+    </TASKOPERATIONS>
+
     <MOVERS>
         //regen sym
         <SymDofMover name="gen_docked_config_no_transforms_1comp_mover" symm_file="%%sym%%" sym_dof_names="%%symdof1%%" flip_input_about_axes="0,0" />
         <SymDofMover name="gen_docked_config_no_transforms_2comp_mover" symm_file="%%sym%%" sym_dof_names="%%symdof1%%,%%symdof2%%" flip_input_about_axes="0,0" />
-    </MOVERS>
 
+        <SymPackRotamersMover name="design_hard"    scorefxn="sfxn_hard"    task_operations="layer_design,pack_task,lock_task,limitaro,ic,ex1_ex2" />
+        <SymPackRotamersMover name="design_surf"    scorefxn="sfxn_up_ele"  task_operations="layer_design,pack_core_task,pack_task,lock_task,limitaro,ic,ex1_ex2" />
 
-    //label stuff
-    <MOVERS>
+        <TaskAwareSymMinMover name="min_clean" scorefxn="sfxn_clean" bb="0" chi="1" rb="1" task_operations="pack_task,lock_task" />
+        <SymPackRotamersMover name="repack_clean" scorefxn="sfxn_clean" task_operations="pack_task,lock_task,limitaro,ic,ex1_ex2,repack_only" />
+
+        <ParsedProtocol name="min_repack_min" >
+            <Add mover="min_clean" />
+            <Add mover="repack_clean" />
+            <Add mover="min_clean" />
+        </ParsedProtocol>
+
+        <TaskAwareSymMinMover name="min_clean_no_rb" scorefxn="sfxn_clean" bb="0" chi="1" rb="0" task_operations="pack_task,lock_task,repack_only" /> //this is for ddG
+
+        //label designable residues
         <AddResidueLabel name="label_design_resis" residue_selector="design_resis" label="design_resis" />
+
     </MOVERS>
+    
+    <FILTERS>
+        <ClashCheck name="clash_check_1comp" nsub_bblock="%%nsub_bb%%" verbose="1" write2pdb="1" cutoff="2" confidence="0" />
+        <ClashCheck name="clash_check_2comp" sym_dof_names="%%symdof1%%,%%symdof2%%" verbose="1" write2pdb="1" cutoff="2" confidence="0" />
+
+        <ShapeComplementarity name="sc1_1comp" multicomp="0" verbose="1" min_sc="0.5" sym_dof_name="%%symdof1%%" write_int_area="1" write_median_dist="1" confidence="1" />
+        <ShapeComplementarity name="sc2_1comp" multicomp="0" verbose="1" min_sc="0.5" sym_dof_name="%%symdof2%%" write_int_area="1" write_median_dist="1" confidence="1" />
+        <ShapeComplementarity name="sc1_2comp" multicomp="1" verbose="1" min_sc="0.5" sym_dof_name="%%symdof1%%" write_int_area="1" write_median_dist="1" confidence="1" />
+        <ShapeComplementarity name="sc2_2comp" multicomp="1" verbose="1" min_sc="0.5" sym_dof_name="%%symdof2%%" write_int_area="1" write_median_dist="1" confidence="1" />
+
+        <ShapeComplementarity name="sc1_1comp_hpc" multicomp="0" verbose="1" min_sc="0.5" sym_dof_name="%%symdof1%%" write_int_area="1" write_median_dist="1" confidence="1" />
+        <ShapeComplementarity name="sc2_1comp_hpc" multicomp="0" verbose="1" min_sc="0.5" sym_dof_name="%%symdof2%%" write_int_area="1" write_median_dist="1" confidence="1" />
+        <ShapeComplementarity name="sc1_2comp_hpc" multicomp="1" verbose="1" min_sc="0.5" sym_dof_name="%%symdof1%%" write_int_area="1" write_median_dist="1" confidence="1" />
+        <ShapeComplementarity name="sc2_2comp_hpc" multicomp="1" verbose="1" min_sc="0.5" sym_dof_name="%%symdof2%%" write_int_area="1" write_median_dist="1" confidence="1" />
+
+        <BuriedUnsatHbonds name="vbuns" residue_selector="design_and_pack_resis" report_all_heavy_atom_unsats="true" sym_dof_names="%%symdof1%%,%%symdof2%%" scorefxn="sfxn_clean" ignore_surface_res="false" print_out_info_to_pdb="true" atomic_depth_selection="5.5" burial_cutoff="1000" confidence="0" />
+        <BuriedUnsatHbonds name="sbuns" residue_selector="design_and_pack_resis" report_all_heavy_atom_unsats="true" sym_dof_names="%%symdof1%%,%%symdof2%%" scorefxn="sfxn_clean" cutoff="4" residue_surface_cutoff="20.0" ignore_surface_res="true" print_out_info_to_pdb="true" dalphaball_sasa="1" probe_radius="1.1" atomic_depth_selection="5.5" atomic_depth_deeper_than="false" confidence="0" />
+
+        <Sasa name="sasa_1comp" threshold="325" upper_threshold="750" jump="1" hydrophobic="0" polar="0" confidence="0" /> //1comp sasa is half of 2-component!!
+        <Sasa name="sasa_2comp" threshold="750" upper_threshold="1500" sym_dof_names="%%symdof1%%,%%symdof2%%" hydrophobic="0" polar="0" confidence="0" />
+
+        <Ddg name="ddG" repeats="1" extreme_value_removal="0" translate_by="1000" scorefxn="sfxn_clean" task_operations="pack_task,lock_task,repack_only,ic,ex1_ex2" repack="1" threshold="0" relax_mover="min_clean_no_rb" repack_bound="0" relax_bound="0" repack_unbound="1" relax_unbound="1" confidence="0" />
+
+        <SecondaryStructureCount name="ss_count_1comp" filter_helix_sheet="1" num_helix_sheet="2" min_helix_length="4" min_sheet_length="3" min_loop_length="1" return_total="1" confidence="0" residue_selector="design_core_bdry" min_element_resis="3" />
+        <SecondaryStructureCount name="ss_count_2comp" filter_helix_sheet="1" num_helix_sheet="3" min_helix_length="4" min_sheet_length="3" min_loop_length="1" return_total="1" confidence="0" residue_selector="design_core_bdry" min_element_resis="3" />
+
+        <OligomericAverageDegree name="avg_deg_1comp" threshold="0" multicomp="0" distance_threshold="10" sym_dof_names="%%symdof1%%" task_operations="pack_task,lock_task" confidence="0" />
+        <OligomericAverageDegree name="avg_deg_2comp" threshold="0" multicomp="1" distance_threshold="10" sym_dof_names="%%symdof1%%,%%symdof2%%" task_operations="pack_task,lock_task" confidence="0" />
+
+        <Mutations name="mutations" rate_threshold="0.0" mutation_threshold="60" report_mutations="1" verbose="1" write2pdb="1" task_operations="nonnative" confidence="0" />
+        <ResidueCount name="AlaCount" residue_types="ALA"               residue_selector="design_resis" confidence="0" />
+        <ResidueCount name="MetCount" residue_types="MET"               residue_selector="design_resis" confidence="0" />
+        <ResidueCount name="HPcCount" residue_types="VAL,LEU,ILE"       residue_selector="design_resis" confidence="0" />
+        <ResidueCount name="AroCount" residue_types="TRP,PHE,TYR,HIS"   residue_selector="design_resis" confidence="0" />
+       
+    </FILTERS>
 
     <APPLY_TO_POSE>
     </APPLY_TO_POSE>
@@ -48,8 +177,30 @@
         //generate docked configuration
         <Add mover_name="gen_docked_config_no_transforms_%%comp%%_mover" />
         <Add mover_name="label_design_resis" />
-        //insert your sequence design method of choice here
-        //insert your filters of choice here
+
+        //layer design
+        <Add mover_name="design_hard" />
+        <Add mover_name="min_repack_min" />
+        
+        //boundary/surface design with up_ele
+        <Add mover_name="design_surf" />
+        <Add mover_name="min_repack_min" />
+
+        //filters
+        <Add filter_name="clash_check_%%comp%%" />
+        <Add filter_name="sc1_%%comp%%" />
+        <Add filter_name="sc2_%%comp%%" />
+        
+        <Add filter_name="sasa_%%comp%%" />
+        <Add filter_name="ddG" />
+        <Add filter_name="ss_count_%%comp%%" />
+        <Add filter_name="avg_deg_%%comp%%" />
+        <Add filter_name="mutations" />
+        <Add filter_name="AlaCount" />
+        <Add filter_name="MetCount" />
+        <Add filter_name="HPcCount" />
+        <Add filter_name="AroCount" />
+
     </PROTOCOLS>
     
     <OUTPUT scorefxn="sfxn_clean" />
