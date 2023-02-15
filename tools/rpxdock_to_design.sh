@@ -1,11 +1,11 @@
 #example command:
-#./rpxdock_to_design.sh /path/to/extracted/RPXDock_pdb.pdb
+#./rpxdock_to_design.sh /path/to/extracted/RPXDock_pdb.pdb SYM
 
 #parse inputs
 file_input=${1}
 
 #parse components
-sym="I53" #Change to architecture from RPXDock
+sym=${2} #Change to architecture from RPXDock in example command. Ex. I53
 arche=`echo ${sym} |cut -c1`
 axis1=`echo ${sym} |cut -c2`
 axis2=`echo ${sym} |cut -c3`
@@ -74,6 +74,7 @@ fi
         -s      ${file_input} \
         -native ${file_input} \
         -nstruct 1 \
+        -beta \
         -parser:script_vars \
             sym="${symfile}" \
             comp="${num_comp}comp" nsub_bb="${nsub_bb}" \
