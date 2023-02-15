@@ -20,11 +20,11 @@ Useful scripts:
  * ``app/dock.py`` - the main script to initialize and run protein docking 
  * ``filters.yml`` - Example filter parameters passed in as RPXDock ``--filters`` flag
  * ``app/options.py`` - List of input parameters, descriptions, and default values
- * `tools/dock.sh` - simple docking example to execute RPXDock
- * `tools/dump_pdb_from_output.py` - Output pdb from RPXDock tarball or pickle files
- * `tools/rpxdock_to_design.sh` - simple example for using RosettaScripts to design RPXDock outputs
- * `tools/rpxdock_to_design.xml` - simple xml file used for RosettaScripts to design RPXDock outputs 
- * `tools/symdef/*.sym` - symmetry definition files for polyhedral architectures
+ * ``tools/dock.sh`` - simple docking example to execute RPXDock
+ * ``tools/dump_pdb_from_output.py`` - Output pdb from RPXDock tarball or pickle files
+ * ``tools/rpxdock_to_design.sh`` - simple example for using RosettaScripts to design RPXDock outputs
+ * ``tools/rpxdock_to_design.xml`` - simple xml file used for RosettaScripts to design RPXDock outputs 
+ * ``tools/symdef/*.sym`` - symmetry definition files for polyhedral architectures
 
 Input preparation for RPXDock:
 ##############################
