@@ -165,6 +165,7 @@ def default_cli_parser(parent=None, **kw):
    )
    # addarg("--use_fixed_mindis", action='store_true', default=False)
    addarg("--debug", action="store_true", default=False, help='Enable potentially expensive debugging checks')
+   addarg("--skip_errors", action="store_true", default=False, help='catch exceptions and continue')
    addarg(
       "--nout_debug", type=int, default=0,
       help='Specify number of pdb outputs for individual protocols to output for each search. This is not the preferred way to get pdb outputs, use --nout_top and --nout_each unless you have a reason not to. defaults to 0'
@@ -223,7 +224,7 @@ def default_cli_parser(parent=None, **kw):
       "--weight_error", type=float, default=4,
       help="Standard deviation used to calculate the distribution of SASA weighting for sasa_priority scorefunction")
 
-   addarg("--output_prefix", nargs="?", default="rpxdock", type=str,
+   addarg("--output_prefix", nargs="?", default="rpxdock_", type=str,
           help="output file prefix. will output pickles for a base ResPairScore plus --hierarchy_depth hier XMaps")
    addarg(
       "--dont_store_body_in_results", action="store_true", default=False,
@@ -233,6 +234,10 @@ def default_cli_parser(parent=None, **kw):
           help='select log level from CRITICAL, ERROR, WARNING, INFO or DEBUG. defaults to INFO')
    addarg("--score_only_ss", default='EHL',
           help="only consider residues of the specified secondary structure type when scoring. defaults to all (EHL)")
+   addarg("--trim_ss_H", default=0, type=int, help="trim SS helix elements by this many residues")
+   addarg("--trim_ss_E", default=0, type=int, help="trim SS strand elements by this many residues")
+   addarg("--trim_ss_H_min", default=14, type=int, help="trim SS min helix element size")
+   addarg("--trim_ss_E_min", default=5, type=int, help="trim SS min strand element size")
    addarg(
       "--score_only_aa", default='ANYAA',
       help='only consider residues of the specified type when generating score files. Not currently supported in all protocols. defaults to ANYAA'

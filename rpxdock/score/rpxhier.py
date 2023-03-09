@@ -16,8 +16,8 @@ Grid search just uses the last/finest scorefunction
 class RpxHier:
    def __init__(self, files, max_pair_dist=8.0, **kw):
       kw = wu.Bunch(kw, _strict=False)
-
       hscore_stuff = read_hscore_files(files, **kw)
+
       self.use_ss = hscore_stuff.use_ss
       self.base = hscore_stuff.base
       self.hier = hscore_stuff.hier
@@ -128,7 +128,6 @@ class RpxHier:
          pos1 = pos1[~excluded]
          pos2 = pos2[~excluded]
 
-
       bounds = list(bounds)
       if len(bounds) > 2 and (bounds[2] is None or bounds[2] < 0):
          bounds[2] = body1.asym_body.nres
@@ -149,6 +148,7 @@ class RpxHier:
       contains_res = list()
       if hasattr(body1, 'required_res_sets') and body1.required_res_sets:
          res0 = np.ascontiguousarray(pairs[:, 0])
+         ic(res0.shape)
          hasit0 = [s.has(res0) for s in body1.required_res_sets]
          contains_res.extend(hasit0)
 
@@ -157,15 +157,13 @@ class RpxHier:
          hasit1 = [s.has(res1) for s in body2.required_res_sets]
          contains_res.extend(hasit1)
 
-      #
-
       ok = np.ones(len(lbub), dtype='?')
-      # ic(lbub.shape)
       if contains_res:
-         #ic([np.sum(x) for x in contains_res])
-         for i in range(len(lbub)):
-            ok[i] = all([5 < np.sum(x[lbub[i, 0]:lbub[i, 1]]) for x in contains_res])
-      # ic(ok.shape, np.sum(ok))
+         for i, (lb, ub) in enumerate(lbub):
+            ncontains = [np.sum(cr[lb:ub]) for cr in contains_res]
+            ok[i] = all([10 < n for n in ncontains])
+            # if i < 3:
+            # ic(kw.ibody, i, ncontains)
 
       # "remove" all docks that don't have required set of contacts
       lbub[~ok, 1] = lbub[~ok, 0]
@@ -260,23 +258,24 @@ class RpxHier:
 
 def get_hscore_file_names(alias, hscore_data_dir):
    # try:
-   picklepattern = os.path.join(hscore_data_dir, alias, '*.pickle')
-   picklefiles1 = sorted(glob.glob(picklepattern))
-   picklepattern = os.path.join(hscore_data_dir, alias, '*.pickle.bz2')
-   picklefiles2 = sorted(glob.glob(picklepattern))
+   picklepattern1 = os.path.join(hscore_data_dir, alias, '*.pickle')
+   picklefiles1 = sorted(glob.glob(picklepattern1))
+   picklepattern2 = os.path.join(hscore_data_dir, alias, '*.pickle.bz2')
+   picklefiles2 = sorted(glob.glob(picklepattern2))
    picklefiles = picklefiles1 or picklefiles2
    xmappattern = os.path.join(hscore_data_dir, alias, '*.txz')
    txzfiles = sorted(glob.glob(xmappattern))
    fnames = txzfiles
-   # print(picklefiles)
+   # ic(picklepattern1)
+   # ic(picklefiles)
    # print(alias)
    # print(hscore_data_dir)
    # assert 0
    if len(picklefiles):
       assert len(txzfiles) in (0, len(txzfiles))
       fnames = picklefiles
-      for f in fnames:
-         print(' ', f)
+      # for f in fnames:
+      # print(' ', f)
       # ic(sum([s.count('base') for s in fnames]))
       assert sum([s.count('base') for s in fnames]) < 2
       # assert sum([s.count('.rpx.pickle') for s in fnames]) == 1
@@ -322,6 +321,7 @@ def read_hscore_files(
          log.error(f)
       raise ValueError('too many hscore_files (?)')
    assert files
+
    if all(isinstance(f, str) for f in files):
       if "_SSindep_" in files[0]:
          assert all("_SSindep_" in f for f in files)

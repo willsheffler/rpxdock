@@ -1,7 +1,7 @@
 import os, copy, numpy as np, rpxdock, logging, rpxdock as rp, io, tempfile
 # from pandas.core.internals.concat import trim_join_unit
 from rpxdock.filter.sscount import secondary_structure_map
-from pyrosetta import rosetta as ros
+
 import willutil as wu
 from willutil import Bunch
 
@@ -24,6 +24,7 @@ class Body:
    ):
       kw = wu.Bunch(kw)
 
+      self.pos = np.eye(4)
       pose = self.set_pose_info(source, sym=sym, **kw)
       self.modified_term = modified_term
       self.og_seqlen = og_seqlen or pose.size()
@@ -31,8 +32,8 @@ class Body:
       self.label = kw.get('label')
       if self.label is None and self.pdbfile:
          self.label = os.path.basename(self.pdbfile.replace('.gz', '').replace('.pdb', ''))
-      if self.label is None: self.label = 'unk'
-
+      if self.label is None: self.label = ''
+      # assert 'score_only_ss' in kw
       self.components = kw.get('components', [])
       self.score_only_ss = kw.get('score_only_ss', 'EHL')
       self.trim_direction = kw.get('trim_direction', 'NC')
@@ -50,19 +51,27 @@ class Body:
       # timer.checkpoint('body init file')
       # print(timer)
 
-   def set_pose_info(self, source, sym, **kw):
+   def set_pose_info(self, source, sym, extract_chain=None, userosetta=True, **kw):
       # pose stuff
-      import rpxdock.rosetta.triggers_init as ros
+      if userosetta:
+         try:
+            import rpxdock.rosetta.triggers_init as ros
+         except ImportError:
+            userosetta = False
+
       kw = Bunch(kw)
       pose = source
       if isinstance(source, str):
          # import rpxdock.rosetta.triggers_init as ros
          self.pdbfile = source
-         if kw.get('posecache'):
-            pose = ros.get_pose_cached(source)
-         else:
+         if userosetta:
+            if kw.get('posecache'):
+               pose = ros.get_pose_cached(source)
+            assert os.path.exists(source)
             pose = ros.pose_from_file(source)
             ros.assign_secstruct(pose)
+         else:
+            pose = wu.NotPose(source)
       elif isinstance(source, io.BytesIO):
          # timer.checkpoint('body load start')
          import rpxdock.rosetta.triggers_init as ros
@@ -75,17 +84,52 @@ class Body:
             # timer.checkpoint('body wrote file')
 
             pose = ros.pose_from_file(td + '/tmp.pdb')
+
             # timer.checkpoint('pose_from_file')
             ros.assign_secstruct(pose)
-      # timer.checkpoint('body load file')
+
+      self.crystinfo = None
+      if pose.pdb_info() is not None:
+         ci = pose.pdb_info().crystinfo()
+         self.crystinfo = wu.Bunch(spacegroup=ci.spacegroup(), cell=[ci.A(), ci.B(), ci.C()],
+                                   ang=[ci.alpha(), ci.beta(), ci.gamma()])
       self.pdbfile = pose.pdb_info().name() if pose.pdb_info() else None
+
+      if extract_chain is not None:
+         assert extract_chain == 0
+         for nres in range(pose.size()):
+            if pose.chain(nres + 1) != 1 + extract_chain: break
+
+         if userosetta:
+            p = ros.core.pose.Pose()
+            ros.core.pose.append_subpose_to_pose(p, pose, 1, nres)
+            # ic(p.size(), pose.size())
+            # assert p.size() in (pose.size(), pose.size() / 4)
+            pose = p
+            ros.assign_secstruct(pose)
+         if not userosetta:
+            pose = pose.extract(chain=extract_chain)
+
+      # timer.checkpoint('body load file')
+
       self.orig_anames, self.orig_coords = rp.rosetta.get_sc_coords(pose, **kw)
       self.seq = np.array(list(pose.sequence()))
       self.ss = np.array(list(pose.secstruct()))
+
+      # ic(''.join(self.ss))
+      self.ss = rp.util.trim_ss(self, **kw)
+      # self.ss = rp.util.trim_ss(self)
+      # ic(''.join(self.ss))
+
+      assert np.sum(self.ss == 'L') < len(self.ss), 'body is all loops!!'
       self.ssid = rp.motif.ss_to_ssid(self.ss)
       self.chain = np.repeat(0, self.seq.shape[0])
       self.resno = np.arange(len(self.seq))
+      # if userosetta:
       self.coord = rp.rosetta.get_bb_coords(pose, **kw)
+      # ic('rosetta', self.coord.shape)
+      # else:
+      # self.coord = pose.bb()
       self.set_asym_body(pose, sym, **kw)
       return pose
 
@@ -95,6 +139,7 @@ class Body:
       required_res_sets=None,
       **kw,
    ):
+      # ic(required_res_sets)
 
       self.allowed_residues = np.zeros(len(self), dtype='?')
       if allowed_res is None:
@@ -121,8 +166,7 @@ class Body:
       # required_res_sets = [np.asarray(x, dtype='i4') for x in required_res_sets]
       self.required_res_sets = list()
       for s in required_res_sets:
-         if s is None:
-            continue
+         if s is None: continue
          if callable(s): s = s(self, **kw)
          s = np.asarray(list(s), dtype='i4')
          self.allowed_residues[s] = True
@@ -156,6 +200,7 @@ class Body:
       self.symframes = np.eye(4).reshape(1, 4, 4)
       self.nterms = [self.coord[0, 0]]
       self.cterms = [self.coord[-1, 2]]
+      self._pos = np.eye(4)
       if sym and sym[0] == "C" and int(sym[1:]):
          n = self.coord.shape[0]
          nfold = int(sym[1:])
@@ -166,6 +211,7 @@ class Body:
          self.resno = np.tile(range(n), nfold)
          newcoord = np.empty((nfold * n, ) + self.coord.shape[1:])
          newcoord[:n] = self.coord
+         # ic(self.coord.shape)
          new_orig_coords = self.orig_coords
          symframes = [np.eye(4)]
          for i in range(1, nfold):
@@ -180,6 +226,7 @@ class Body:
          self.orig_coords = [(xform @ oc[:, :, None]).reshape(-1, 4) for oc in new_orig_coords]
       else:
          raise ValueError("unknown symmetry: " + sym)
+
       assert len(self.seq) == len(self.coord)
       assert len(self.ss) == len(self.coord)
       assert len(self.chain) == len(self.coord)
@@ -191,6 +238,7 @@ class Body:
       self._symcom = wu.homog.hxform(self.symframes, wu.homog.htrans(self.asym_body.bvh_bb.com()))
       self.allcen = self.stub[:, :, 3]
       which_cen = np.repeat(False, len(self))
+
       for ss in "EHL":
          if ss in self.score_only_ss:
             which_cen |= self.ss == ss
@@ -228,11 +276,12 @@ class Body:
       b.init_coords(sym, symaxis, xform=x)
       return b
 
-   def copy_xformed(self, xform):
+   def copy_xformed(self, xform, **kw):
       b = copy.deepcopy(self.asym_body)
       b.pos = np.eye(4, dtype='f4')
       b.asym_body = b
-      b.init_coords('C1', [0, 0, 1], xform)
+      b.init_coords('C1', [0, 0, 1], xform, **kw)
+      assert len(self.bvh_cen) == len(b.bvh_cen)
       return b
 
    def set_asym_body(self, pose, sym, **kw):
@@ -270,8 +319,7 @@ class Body:
 
    @pos.setter
    def pos(self, xform):
-      if not hasattr(self, '_pos'):
-         self._pos = np.eye(4)
+      assert xform.shape == (4, 4)
       self._pos = xform
 
    def com(self):
@@ -302,7 +350,8 @@ class Body:
       return self
 
    def move_to(self, x):
-      self.pos = x.copy()
+      assert x.shape == (4, 4)
+      self.pos = x[:]
       return self
 
    def move_to_center(self):
@@ -323,8 +372,8 @@ class Body:
          self.pos[:3, 3] += delta * dirn
       return delta
 
-   def intersect_range(self, other, xself=None, xother=None, mindis=2 * _CLASHRAD, max_trim=100,
-                       nasym1=None, debug=False, **kw):
+   def intersect_range(self, other, xself=None, xother=None, mindis=2 * _CLASHRAD, max_trim=100, nasym1=None,
+                       debug=False, **kw):
       '''
       :param other:
       :param xself: body1 pos
@@ -343,8 +392,7 @@ class Body:
       ntrim = max_trim if 'N' in self.trim_direction else -1
       ctrim = max_trim if 'C' in self.trim_direction else -1
       # print('intersect_range', mindis, nasym1, self.bvh_bb.max_id(), max_trim, ntrim, ctrim)
-      trim = rp.bvh.isect_range(self.bvh_bb, other.bvh_bb, xself, xother, mindis, max_trim, ntrim,
-                                ctrim, nasym1=nasym1)
+      trim = rp.bvh.isect_range(self.bvh_bb, other.bvh_bb, xself, xother, mindis, max_trim, ntrim, ctrim, nasym1=nasym1)
 
       if debug:
          ok = np.logical_and(trim[0] >= 0, trim[1] >= 0)
@@ -352,8 +400,8 @@ class Body:
          xselfok = xself[ok] if xself.ndim == 3 else xself
          # print(xselfok.shape, trim[0].shape, trim[0][ok].shape)
          # print(xotherok.shape, trim[1].shape, trim[1][ok].shape)
-         clash, ids = rp.bvh.bvh_isect_fixed_range_vec(self.bvh_bb, other.bvh_bb, xselfok,
-                                                       xotherok, mindis, trim[0][ok], trim[1][ok])
+         clash, ids = rp.bvh.bvh_isect_fixed_range_vec(self.bvh_bb, other.bvh_bb, xselfok, xotherok, mindis,
+                                                       trim[0][ok], trim[1][ok])
          # print(np.sum(clash) / len(clash))
          assert not np.any(clash)
 
@@ -397,16 +445,13 @@ class Body:
    def positioned_orig_coords(self):
       return [(self.pos @ x[..., None]).squeeze() for x in self.orig_coords]
 
-   def contact_pairs(self, other, pos1=None, pos2=None, maxdis=10, buf=None, use_bb=False,
-                     atomno=False):
+   def contact_pairs(self, other, pos1=None, pos2=None, maxdis=10, buf=None, use_bb=False, atomno=False):
       if pos1 is None: pos1 = self.pos
       if pos2 is None: pos2 = other.pos
-      if not buf:
-         buf = np.empty((10000, 2), dtype="i4")
+      if not buf: buf = np.empty((10000, 2), dtype="i4")
       pairs, overflow = rp.bvh.bvh_collect_pairs(
-         self.bvh_bb_atomno if atomno else (self.bvh_bb if use_bb else self.bvh_cen),
-         other.bvh_bb_atomno if atomno else (other.bvh_bb if use_bb else other.bvh_cen), pos1,
-         pos2, maxdis, buf)
+         self.bvh_bb_atomno if atomno else (self.bvh_bb if use_bb else self.bvh_cen), other.bvh_bb_atomno if atomno else
+         (other.bvh_bb if use_bb else other.bvh_cen), pos1, pos2, maxdis, buf)
       assert not overflow
       return pairs
 
@@ -520,6 +565,7 @@ class Body:
       return dist
 
 def get_trimming_subbodies(body, pose, debug=False, **kw):
+   from pyrosetta import rosetta as ros
    kw = Bunch(kw, _strict=False)
    if kw.helix_trim_max == 0 or kw.helix_trim_max is None:
       return [], []

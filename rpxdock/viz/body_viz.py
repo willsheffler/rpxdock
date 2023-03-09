@@ -51,6 +51,9 @@ if 'pymol' in sys.modules:
 
       wu.viz.show_ndarray_line_strip(coord, state=state, name=name + '_bbone', breaks=breaks,
                                      breaks_groups=breaks_groups, **kw)
+      if suspend_updates: cmd.set('suspend_updates', 'off')
+      return 
+
       if markfirst:
          firstpos = coord[0:None:len(body.coord)]
          wu.viz.showsphere(firstpos, col=[0.5, 0.5, 0.5], rad=3, lbl=name + '_firstpos')

@@ -1,7 +1,4 @@
 import numpy as np, rpxdock as rp
-from pyrosetta.rosetta.numeric import xyzVector_double_t as rVec
-from pyrosetta.rosetta.numeric import xyzMatrix_double_t as rMat
-from pyrosetta import AtomID
 from willutil import Bunch
 
 def rosetta_init(opts="-beta -mute all"):
@@ -89,6 +86,9 @@ def get_sc_coords(pose, which_resi=None, recenter_input=False, **kw):
    return resaname, resacrd
 
 def xform_pose(pose, xform, lb=1, ub=None):
+   from pyrosetta.rosetta.numeric import xyzVector_double_t as rVec
+   from pyrosetta import AtomID
+
    assert xform.shape == (4, 4)
    if ub is None: ub = pose.size() + 1
    for ir in range(lb, ub):

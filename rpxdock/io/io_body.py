@@ -1,7 +1,9 @@
 import numpy as np
 
+import rpxdock
 from rpxdock.body import Body
 from rpxdock.io.io import *
+import willutil as wu
 
 def make_pdb_from_bodies(
    bodies,
@@ -60,7 +62,7 @@ def make_pdb_from_bodies(
    # max_resno = np.repeat(int(-9e9), len(chain_letters))
    for isym, xsym in enumerate(symframes):
       for ibody, body in enumerate(bodies):
-         com = xsym @ body.pos[:, 3]
+         com = wu.hxform(xsym, body.pos[:, 3])
          if not keep(com):
             continue
          crd = xsym @ body.positioned_coord(asym=not use_body_sym)[..., None]
@@ -74,14 +76,14 @@ def make_pdb_from_bodies(
             iasym = i % body.asym_body.nres if use_body_sym else i
             if not reslb <= i <= resub:
                continue
-            ic = body.chain[i] + startchain
-            c = ic % len(chain_letters)
+            ich = body.chain[i] + startchain
+            c = ich % len(chain_letters)
             aa = body.seq[i]
             resno = body.resno[i]
-            if ic >= len(chain_letters):
+            if ich >= len(chain_letters):
                if no_duplicate_chains:
                   break
-               ic -= len(chain_letters)
+               ich -= len(chain_letters)
 
             #    if no_duplicate_reschain_pairs:
             #       resno = max_resno[c] + 1

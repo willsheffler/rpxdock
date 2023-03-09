@@ -1,13 +1,13 @@
 import logging, numpy as np, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search
 from rpxdock.filter import filters
-from willutil import Timer, Bunch
+import willutil as wu
 #from icecream import ic
 #ic.configureOutput(includeContext=True)
 
 log = logging.getLogger(__name__)
 
-def isnt_used_huh_asym_get_sample_hierarchy(body, hscore, extent=100):
+def isnt_used_huh_asym_get_sample_hierarchy(body, hscore, extent=100, frames=None, x2asymcen=None):
    "set up XformHier with appropriate bounds and resolution"
    cart_xhresl, ori_xhresl = hscore.base.attr.xhresl
    rg = body.rg()
@@ -25,18 +25,31 @@ def isnt_used_huh_asym_get_sample_hierarchy(body, hscore, extent=100):
    log.info(f"XformHier {xh.size(0):,} {xh.cart_bs} {xh.ori_resl} {xh.cart_lb} {xh.cart_ub}")
    return xh
 
-def make_asym(bodies, hscore, sampler, search=hier_search, **kw):
+def make_asym(bodies, hscore, sampler, search=hier_search, frames=None, x2asymcen=None, sym='C1', **kw):
    logging.debug("entering make_asym()")
+   if isinstance(bodies, rp.body.Body): bodies = [bodies]
 
-   kw = Bunch(kw, _strict=False)
+   kw = wu.Bunch(kw, _strict=False)
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else sym
-   t = Timer().start()
+   t = wu.Timer().start()
    assert sampler is not None, 'sampler is required'
 
-   evaluator = AsymEvaluator(bodies, hscore, **kw)
+   if frames is not None:
+      evaluator = AsymFramesEvaluator(bodies, hscore, frames=frames, x2asymcen=x2asymcen, **kw)
+   else:
+      evaluator = AsymEvaluator(bodies, hscore, **kw)
    xforms, scores, extra, stats = search(sampler, evaluator, **kw)
-   ibest = rp.filter_redundancy(xforms, bodies[1], scores, **kw)
+   xforms = evaluator.modify_xforms(xforms)
+   if frames is not None:
+      xforms = wu.hxform(wu.hinv(x2asymcen), wu.hxform(xforms, x2asymcen))
+
+   ibest = np.argsort(scores)
+   if kw.max_bb_redundancy > 0:
+      if frames is None:
+         ibest = rp.filter_redundancy(xforms, bodies[1], scores, **kw)
+      else:
+         ibest = rp.filter_redundancy(xforms, bodies[0][0], scores, **kw)
 
    #Not sure how to test this so leaving it commented out
    #if kw.filter_config:
@@ -51,26 +64,129 @@ def make_asym(bodies, hscore, sampler, search=hier_search, **kw):
       print("stage rate:  ", " ".join([f"{int(n/t):7,}/s" for t, n in stats.neval]))
 
    xforms = xforms[ibest]
-   wrpx = kw.wts.sub(rpx=1, ncontact=0)
-   wnct = kw.wts.sub(rpx=0, ncontact=1)
-   rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
-   ncontact, _ = evaluator(xforms, kw.nresl - 1, wnct)
-   return rp.Result(
-      bodies=None if kw.dont_store_body_in_results else bodies,
+   # wrpx = kw.wts.sub(rpx=1, ncontact=0)
+   # wnct = kw.wts.sub(rpx=0, ncontact=1)
+   # if frames is None:
+   # rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
+   # ncontact, _ = evaluator(xforms, kw.nresl - 1, wnct)
+
+   resultbodies = bodies if frames is None else bodies[0][0]
+   result = dict(
+      bodies=None if kw.dont_store_body_in_results else resultbodies,
       attrs=dict(arg=kw, stats=stats, ttotal=t.total, sym='c1'),
       scores=(["model"], scores[ibest].astype("f4")),
       xforms=(["model", "hrow", "hcol"], xforms),
-      rpx=(["model"], rpx.astype("f4")),
-      ncontact=(["model"], ncontact.astype("f4")),
-      reslb=(["model"], extra.reslb),
-      resub=(["model"], extra.resub),
    )
+   if 'reslb' in extra: result['reslb'] = (["model"], extra.reslb)
+   if 'resub' in extra: result['resub'] = (["model"], extra.resub)
+   return rp.Result(**result)
+
+class AsymFramesEvaluator:
+   def __init__(
+         self,
+         bodies,
+         hscore,
+         frames=[np.eye(4)],
+         x2asymcen=np.eye(4),
+         limit_rotation=None,
+         clashdist=3,
+         scale_translation=None,
+         **kw,
+   ):
+      self.kw = wu.Bunch(kw, _strict=False)
+      self.bodies0, self.bodies1 = bodies
+      self.hscore = hscore
+      self.frames = frames
+      self.x2asymcen = x2asymcen
+      self.limit_rotation = limit_rotation
+      # self.body2 = body.copy()
+      # self.body2.required_res_sets = list()
+      self.clashdist = clashdist
+      self.scale_translation = None
+      if isinstance(scale_translation, (int, float)):
+         self.scale_translation = scale_translation * wu.hnormalized(wu.hcom(bodies0[0]))
+
+   def modify_xforms(self, xforms):
+      if self.scale_translation is None:
+         return xforms
+      xforms2 = xforms.copy()
+      scalemag = wu.hnorm(self.scale_translation)
+      scaledir = wu.hnormalized(self.scale_translation)
+      p = wu.hproj(self.biasdir, wu.hcart3(xforms2))
+      pp = wu.hprojperp(scaledir, wu.hcart3(xforms2))
+      trans = p[:3] * scalemag + pp[:3]
+      xforms2[:3, 3] = trans
+      assert hvalid(xforms2)
+      assert xforms2.shape == xforms.shape
+
+      assert 0
+      return xforms2
+
+   def __call__(self, xforms, iresl=-1, wts={}, **kw):
+      kw = self.kw.sub(wts=wts)
+      xforms = xforms.reshape(-1, 4, 4)
+
+      if self.limit_rotation is not None:
+         _, ang = wu.haxis_angle_of(xforms)
+         ok = ang <= self.limit_rotation
+      else:
+         ok = np.ones(len(xforms), dtype=np.bool)
+
+      xasym = wu.hinv(self.x2asymcen) @ xforms @ self.x2asymcen
+
+      for iframe, xframe in enumerate(self.frames[1:]):
+         ok[ok] = self.bodies0[0].clash_ok(
+            self.bodies0[0],
+            self.frames[0] @ xasym[ok],
+            xframe @ xasym[ok],
+            mindis=self.clashdist,
+            **kw,
+         )
+         # ic(iresl, iframe, np.sum(ok))
+      # TODO: fix this into one loop...
+
+      # why was this necessary?
+      #for iframe, xframe in enumerate(self.frames[2:]):
+      #   ok[ok] = self.bodies0[0].clash_ok(
+      #      self.bodies0[0],
+      #      self.frames[1] @ xasym[ok],
+      #      xframe @ xasym[ok],
+      #      mindis=self.clashdist,
+      #      **kw,
+      #   )
+
+      # score everything that didn't clash
+      scores = np.zeros(len(xforms))
+      for ibody in range(len(self.bodies0)):
+         newscores = self.hscore.scorepos(
+            self.bodies0[ibody],
+            self.bodies1[ibody],
+            self.frames[0] @ xasym[ok],
+            self.frames[ibody + 1] @ xasym[ok],
+            iresl,
+            ibody=ibody,
+            **kw,
+         )
+         if ibody == 0:
+            scores[ok] = newscores
+         else:
+            minsc = np.minimum(scores[ok], newscores)
+            # ic(minsc.shape, scores[ok].shape)
+            scores[ok] = minsc
+         # scores[ok] = scores[ok] + newscores
+         ok[ok] = np.logical_and(ok[ok], newscores > 0)
+      if np.sum(scores > 0) == 0:
+         raise ValueError(f'no results at stage {iresl}')
+      return scores, wu.Bunch()
 
 class AsymEvaluator:
    def __init__(self, bodies, hscore, **kw):
-      self.kw = Bunch(kw, _strict=False)
+      self.kw = wu.Bunch(kw, _strict=False)
       self.bodies = bodies
       self.hscore = hscore
+
+   def modify_xforms(self, xforms):
+      return xforms
 
    def __call__(self, xforms, iresl=-1, wts={}, **kw):
       kw = self.kw.sub(wts=wts)
@@ -100,4 +216,4 @@ class AsymEvaluator:
       if kw.max_trim > 0:
          lb[ok], ub[ok] = trim2[0], trim2[1]
 
-      return scores, Bunch(reslb=lb, resub=ub)
+      return scores, wu.Bunch(reslb=lb, resub=ub)

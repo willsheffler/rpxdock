@@ -23,12 +23,10 @@ def test_redundancy(hscore, body_cageA, body_cageB):
    xforms = result.xforms.copy()
    scores = result.scores.copy()
 
-
    xforms3 = xforms.copy()
    symframes = wu.sym.frames(spec.sym)
 
    iuniq = rp.filter_redundancy(xforms, result.bodies[0], scores, symframes=spec.sym, **kw)
-   # ic(len(iuniq), len(result))
    assert len(iuniq) == len(result)
 
    iuniq4 = rp.filter_redundancy(xforms, result.bodies[0], scores, symframes=spec.sym, **kw.sub(max_bb_redundancy=4.0))
@@ -40,22 +38,16 @@ def test_redundancy(hscore, body_cageA, body_cageB):
    xforms2 = np.concatenate([xforms, xforms], axis=0)
    scores2 = np.concatenate([scores, scores], axis=0)
    iuniq = rp.filter_redundancy(xforms2, result.bodies[0], scores2, symframes=spec.sym, **kw)
-   # ic(len(iuniq), len(result))
    assert len(iuniq) == len(result)
 
-   # ic(iuniq)
    randsymframes = wu.sym.frames(spec.sym)[np.random.choice(12, len(result))]
    xforms2randsym = xforms2.copy()
    xforms1b = wu.hxform(randsymframes, result.xforms[:, 1])
+   assert 0, 'RPXDOCK test_redundancy'
    xforms2randsym[:len(xforms1b), 1] = xforms1b
-   # ic(result.xforms.shape, randsymframes.shape)
    assert not np.allclose(xforms2randsym, xforms2)
    iuniq = rp.filter_redundancy(xforms2randsym, result.bodies[0], scores2, symframes=spec.sym, **kw)
-   # ic(len(iuniq), len(result))
    assert len(iuniq) == len(result)
-
-
-   # ic(iuniq)
 
 def main():
    hscore = rp.data.small_hscore()

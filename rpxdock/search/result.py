@@ -173,6 +173,7 @@ class Result:
       hscore=None,
       output_asym_only=False,
       output_closest_subunits=False,
+      symframes=None,
       **kw,
    ):
       kw = wu.Bunch(kw)
@@ -181,7 +182,7 @@ class Result:
       if not sym and 'sym' in self.data: sym = self.data.sym.data[imodel]
       sym = sym if sym else "C1"
       if not output_prefix and 'output_prefix' in self.attrs:
-         output_prefix = self.output_prefix
+         output_prefix = self.output_prefixsymframes
 
       ijob = 0
       if 'ijob' in self.data:
@@ -224,7 +225,8 @@ class Result:
       log.info(f'dumping pdb {fname} score {self.scores.data[imodel]}')
       bfactor = None
       # hscore scores residue pairs and puts bfactor in pdb
-      symframes = rp.geom.symframes(sym, pos=self.xforms.data[imodel], **kw)
+      if symframes is None:
+         symframes = rp.geom.symframes(sym, pos=self.xforms.data[imodel], **kw)
       if hscore and len(bod) == 2:
          sm = hscore.score_matrix_inter(bod[0], bod[1], symframes=symframes, wts=kw.wts)
          bfactor = [sm.sum(axis=1), sm.sum(axis=0)]

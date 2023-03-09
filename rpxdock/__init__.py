@@ -10,6 +10,10 @@ from deferred_import import deferred_import
 # import cppimport
 # cppimport.set_quiet(False)
 
+import icecream
+
+icecream.install()
+
 # set MKL threads to 1
 import numpy, ctypes
 if hasattr(numpy.__config__, 'mkl_info'):

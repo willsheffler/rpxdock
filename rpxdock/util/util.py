@@ -3,12 +3,12 @@ import hashlib, logging, concurrent, time, gzip, bz2, lzma, zipfile, json
 from collections import abc
 import numpy as np
 from willutil import Bunch
-from xarray.backends import netCDF4_
+# from xarray.backends import netCDF4_
 
 log = logging.getLogger(__name__)
 
 def load(f, verbose=True):
-   from rpxdock.motif import respairscore_from_tarball, xmap_from_tarball
+
    if isinstance(f, str):
       if verbose: log.debug(f'loading{f}')
 
@@ -21,16 +21,20 @@ def load(f, verbose=True):
       elif f.endswith('.zip'):
          readfun = zipfile.Zipfile
       elif f.endswith('.xmap.txz'):
+         from rpxdock.motif import xmap_from_tarball
          return xmap_from_tarball(f)
       elif f.endswith('.rpx.txz'):
+         from rpxdock.motif import respairscore_from_tarball
          return respairscore_from_tarball(f)
       elif f.endswith('.nc'):
          import xarray as xr
          return xr.load_dataset(f)
       else:
          readfun = open
+
       with readfun(f, "rb") as inp:
          return _pickle.load(inp)
+
    return [load(x) for x in f]
 
 def dump(thing, f):
@@ -170,3 +174,46 @@ class NonFuture:
 
 def check_eq_json(a, b):
    return json.loads(json.dumps(a)) == json.loads(json.dumps(b))
+
+def trim_ss(body, trim_ss_H=5, trim_ss_E=0, trim_ss_H_min=14, trim_ss_E_min=5, **kw):
+
+   # ic(body.ss)
+   from rpxdock.filter.sscount import secondary_structure_map
+
+   ssmap = secondary_structure_map()
+   ssmap.map_body_ss(body)
+   # print(ssmap.ss_index)
+   # print(ssmap.ss_type_assignments)
+   # print(ssmap.ss_element_start)
+   # print(ssmap.ss_element_end)
+   sstype = np.array(ssmap.ss_type_assignments)
+   selection = sstype == 'H'
+   sstype = sstype[selection]
+   hlb = np.array(ssmap.ss_element_start)[selection]
+   hub = np.array(ssmap.ss_element_end)[selection] + 1
+   # print(hlb)
+   # print(hub)
+
+   oldss = body.ss.copy()
+   ss = body.ss.copy()
+   for l, u in zip(hlb, hub):
+      ss[l:u] = 'L'
+      hnres = u - l
+      hntrim = min(trim_ss_H, max(0, (hnres - trim_ss_H_min) // 2))
+      hntrim = min(trim_ss_H, max(1, hntrim))
+      # ic(l, u, hntrim)
+      ss[l + hntrim:u - hntrim] = 'H'
+   print(''.join(oldss))
+   print(''.join(ss))
+
+   assert trim_ss_E == 0
+   return ss
+
+   # ss = ss.copy()
+   # for i in range(ntrim):
+   #    newss = ss.copy()
+   #    for i in range(1, len(newss) - 1):
+   #       if ss[i - 1] == 'L' or ss[i + 1] == 'L':
+   #          newss[i] = 'L'
+   #    ss = newss
+   # return ss

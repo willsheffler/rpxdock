@@ -8,10 +8,8 @@ def main():
    body1 = rp.data.get_body('T33_dn2_asymA')
    body2 = rp.data.get_body('T33_dn2_asymB')
    test_cage_hier_no_trim(hscore, body1, body2)
-   test_cage_hier_no_trim_termini(hscore, body1, body2)   
-   test_cage_hier_no_trim_termini(hscore, body1, body2)     
-
-
+   test_cage_hier_no_trim_termini(hscore, body1, body2)
+   test_cage_hier_no_trim_termini(hscore, body1, body2)
 
    assert 0
 
@@ -27,7 +25,7 @@ def get_arg(**kw):
    arg.score_only_ss = 'H'
    arg.max_trim = 0
    # arg.debug = True
-   # arg.executor = concurrent.futures.ThreadPoolExecutor(min(4, arg.ncpu / 2))
+   arg.executor = concurrent.futures.ThreadPoolExecutor(min(4, arg.ncpu / 2))
 
    return arg.sub(kw)
 
@@ -50,7 +48,6 @@ def test_cage_hier_no_trim(hscore, body_cageA, body_cageB):
    ref = rp.data.get_test_data('test_cage_hier_no_trim')
    rp.search.assert_results_close(result, ref)
 
-
 def test_cage_hier_no_trim_termini(hscore, body_cageA, body_cageB):
    kw = get_arg(components_already_aligned_to_sym_axes=True)
    kw.beam_size = 5000
@@ -64,7 +61,6 @@ def test_cage_hier_no_trim_termini(hscore, body_cageA, body_cageB):
    # rp.dump(result, 'rpxdock/data/testdata/test_cage_hier_no_trim_termini.pickle')
    ref = rp.data.get_test_data('test_cage_hier_no_trim_termini')
    rp.search.assert_results_close(result, ref)
-
 
 @pytest.mark.skip
 def test_cage_hier_fixed0(hscore, body_cageA, body_cageB):
@@ -237,7 +233,6 @@ def test_cage_term_access(hscore, term_mod_C3_and_C2):
    # rp.search.result.result_to_tarball(result, f'test_cage_term_access.result.txz', overwrite=True)
    ref = rp.data.get_test_data('test_cage_term_access')
    rp.search.assert_results_close(result, ref, n=10)
-
 
 def test_layer_hier_2comp(hscore, bodyC3, bodyC2):
    #these dont actually need to be C3 and C2, just adjust docksepc for other oligomers

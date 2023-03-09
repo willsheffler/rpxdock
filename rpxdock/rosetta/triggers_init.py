@@ -10,6 +10,7 @@ def get_init_string():
    # s += ' -extra_res_fa '
    # s += ' '.join(rp.data.rosetta_params_files())
    s += ' -renumber_pdb'
+   s += ' -preserve_crystinfo'
    # s += ' -extra_patch_fa '
    # s += ' '.join(rp.data.rosetta_patch_files())
    # s += ' -include_patches VIRTUAL_CB'
@@ -79,11 +80,9 @@ def get_centroids(pose0, which_resi=None):
 def remove_terminus_variants(pose):
    for ires in range(1, pose.size() + 1):
       if (pose.residue(ires).has_variant_type(core.chemical.UPPER_TERMINUS_VARIANT)):
-         core.pose.remove_variant_type_from_pose_residue(
-            pose, core.chemical.UPPER_TERMINUS_VARIANT, ires)
+         core.pose.remove_variant_type_from_pose_residue(pose, core.chemical.UPPER_TERMINUS_VARIANT, ires)
       if (pose.residue(ires).has_variant_type(core.chemical.LOWER_TERMINUS_VARIANT)):
-         core.pose.remove_variant_type_from_pose_residue(
-            pose, core.chemical.LOWER_TERMINUS_VARIANT, ires)
+         core.pose.remove_variant_type_from_pose_residue(pose, core.chemical.LOWER_TERMINUS_VARIANT, ires)
       if (pose.residue(ires).has_variant_type(core.chemical.CUTPOINT_LOWER)):
          core.pose.remove_variant_type_from_pose_residue(pose, core.chemical.CUTPOINT_LOWER, ires)
       if (pose.residue(ires).has_variant_type(core.chemical.CUTPOINT_UPPER)):
