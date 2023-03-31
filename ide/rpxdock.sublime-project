@@ -42,11 +42,11 @@
 			},
 		   	{
 				"name": "test_asudock", 
-				"shell_cmd" : "cd $folder; rm -f *.pdb; ./rpxdock/app/asudock.py --architecture I213 --inputs1 /home/sheffler/project/diffusion/mainsrc/unbounded/output_bigsym_I213_32/I213_32_nres75_4_tot300_nstep20_cellstart180_cellstop0_asucen0.43_0.3_0.3_id0_6_sym.pdb --output_prefix=nopose_ &> sublime_build.log"
+				"shell_cmd" : "cd $folder; rm -f *.pdb; ./rpxdock/app/asudock.py --architecture I213 --inputs1  /home/sheffler/tmp/tmp.pdb  --output_prefix=diffuse_ --limit_rotation 0 --nout_each 0 --nout_top 3  --dont_use_rosetta &> sublime_build.log"
 			},
 		   	{
 				"name": "test_asudock2", 
-				"shell_cmd" : "cd $folder; rm -f *.pdb; ./rpxdock/app/asudock.py --architecture icos --inputs1 /home/sheffler/project/diffusion/runs/icos_22121105/will_test_121105_C3asI32_400_20_asufit_9_asym.pdb --output_prefix=nopose_ &> sublime_build.log"
+				"shell_cmd" : "cd $folder; rm -f *.pdb; ./rpxdock/app/asudock.py --architecture icos --inputs1 /home/sheffler/project/diffusion/runs/icos_22121105/will_test_121105_C3asI32_400_20_asufit_9_asym.pdb --output_prefix=diffuse_ --nout_each 10 &> sublime_build.log"
 			},
 			{
 				"name": "run expand_xforms",

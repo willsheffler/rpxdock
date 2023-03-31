@@ -21,6 +21,7 @@ def make_pdb_from_bodies(
    occupancy=None,
    use_orig_coords=False,
    warn_on_chain_overflow=True,
+   header='',
    **kw,
 ):
    if symframes is None and use_body_sym is None:
@@ -57,7 +58,7 @@ def make_pdb_from_bodies(
    startatm = start[0]
    startchain = start[1]
    bodies = [bodies] if isinstance(bodies, Body) else bodies
-   s = ""
+   pdbstr = header
    ia = startatm
    # max_resno = np.repeat(int(-9e9), len(chain_letters))
    for isym, xsym in enumerate(symframes):
@@ -115,7 +116,7 @@ def make_pdb_from_bodies(
                   xyz = crd[i, j] if j != 5 else cen[i]
                   aname = allatomnames[j]
                   elem = elems[j]
-               s += pdb_format_atom(
+               pdbstr += pdb_format_atom(
                   ia=ia + 1,
                   ir=resno + 1,
                   rn=aa,
@@ -126,10 +127,10 @@ def make_pdb_from_bodies(
                   b=bfac,
                   elem=elem,
                )
-               # print(s)
-               # return (s,)
+               # print(pdbstr)
+               # return (pdbstr,)
                ia += 1
-         s += "TER\n"
+         pdbstr += "TER\n"
          startchain += nchain
    startatm = ia
    if warn_on_chain_overflow:
@@ -158,9 +159,9 @@ def make_pdb_from_bodies(
                len(chain_letters),
                "will be duplicate chain/resi pairs",
             )
-   return s, (startatm, startchain)
+   return pdbstr, (startatm, startchain)
 
 def dump_pdb_from_bodies(fname, *args, **kw):
-   s, *_ = make_pdb_from_bodies(*args, **kw)
+   pdbstr, *_ = make_pdb_from_bodies(*args, **kw)
    with open(fname, "w") as out:
-      out.write(s)
+      out.write(pdbstr)

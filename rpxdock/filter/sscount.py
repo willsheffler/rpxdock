@@ -45,7 +45,7 @@ class secondary_structure_map:
             temp_start = i
             temp_ss = ss_at_resi
 
-def filter_sscount(xforms, body, **kw):
+def filter_sscount(xforms=None, body=None, bodiespos=None, **kw):
 
    kw = Bunch(kw, _strict=False)
    #Check if values are set in kw, otherwise use the default value. Also try to sanitize input and if not able to, revert
@@ -56,8 +56,7 @@ def filter_sscount(xforms, body, **kw):
          min_helix_length = int(min_helix_length)
       except:
          log.warning(
-            f"Could not convert {kw.filter_sscount['min_helix_length']} to integer, reverting to default value (4)"
-         )
+            f"Could not convert {kw.filter_sscount['min_helix_length']} to integer, reverting to default value (4)")
          min_helix_length = 4
    else:
       min_helix_length = 4
@@ -67,9 +66,7 @@ def filter_sscount(xforms, body, **kw):
          min_sheet_length = kw.filter_sscount["min_sheet_length"]
          min_sheet_length = int(min_sheet_length)
       except:
-         log.warning(
-            f"Coult not convert {kw.filter['min_sheet_length']} to integer, reverting to default value (3)."
-         )
+         log.warning(f"Coult not convert {kw.filter['min_sheet_length']} to integer, reverting to default value (3).")
          min_sheet_length = 3
    else:
       min_sheet_length = 3
@@ -79,9 +76,7 @@ def filter_sscount(xforms, body, **kw):
          min_loop_length = kw.filter_sscount["min_loop_length"]
          min_loop_length = int(min_loop_length)
       except:
-         log.warning(
-            f"Could not convert {kw.filter['min_sheet_length']} to integer, reverting to default value (1)"
-         )
+         log.warning(f"Could not convert {kw.filter['min_sheet_length']} to integer, reverting to default value (1)")
          min_loop_length = 1
    else:
       min_loop_length = 1
@@ -104,8 +99,7 @@ def filter_sscount(xforms, body, **kw):
          max_dist = int(max_dist)
       except:
          log.warning(
-            f"Could not convert max_dist {kw.filter_sscount['max_dist']} to integer, reverting to default value (9)"
-         )
+            f"Could not convert max_dist {kw.filter_sscount['max_dist']} to integer, reverting to default value (9)")
    else:
       max_dist = 9
 
@@ -115,8 +109,7 @@ def filter_sscount(xforms, body, **kw):
          sstype = str(sstype)
       except:
          log.warning(
-            f"Could not convert sstype {kw.filter_sscount['sstype']} to string, reverting to default value ('EHL')"
-         )
+            f"Could not convert sstype {kw.filter_sscount['sstype']} to string, reverting to default value ('EHL')")
          sstype = "EH"
    else:
       sstype = "EH"
@@ -150,8 +143,7 @@ def filter_sscount(xforms, body, **kw):
          simple = bool(simple)
       except:
          log.warning(
-            f"Could not convert argument 'simple' {kw.filter_sscount['simple']} to boolean, reverting to default (True)"
-         )
+            f"Could not convert argument 'simple' {kw.filter_sscount['simple']} to boolean, reverting to default (True)")
          simple = True
    else:
       simple = True
@@ -168,12 +160,11 @@ def filter_sscount(xforms, body, **kw):
       strict = False
 
    #spec = dock.get_spec(kw.architecture)
-   logging.debug(
-      f"sscount filter args:\n"
-      f"confidence : {confidence}\nmin_helix_length : {min_helix_length}\n"
-      f"min_sheet_length : {min_sheet_length}\nmin_loop_length : {min_loop_length}\n"
-      f"max_dist : {max_dist}\nmin_element_resis: {min_element_resis}\nsstype:{sstype}\n"
-      f"min_ss_count: {min_ss_count}\nstrict: {strict}")
+   logging.debug(f"sscount filter args:\n"
+                 f"confidence : {confidence}\nmin_helix_length : {min_helix_length}\n"
+                 f"min_sheet_length : {min_sheet_length}\nmin_loop_length : {min_loop_length}\n"
+                 f"max_dist : {max_dist}\nmin_element_resis: {min_element_resis}\nsstype:{sstype}\n"
+                 f"min_ss_count: {min_ss_count}\nstrict: {strict}")
 
    #TODO: Make this work for n-component docking problems
    #if len(body) == 2:
@@ -190,7 +181,10 @@ def filter_sscount(xforms, body, **kw):
    #    body1 = B
    #    body2 = B
    logging.debug(f"Architecture in sscount filter is {kw.architecture}")
-   body1, body2, pos1, pos2 = fb.filter_body(body, xforms, kw.architecture)
+   if bodiespos is None:
+      body1, body2, pos1, pos2 = fb.filter_body(body, xforms, kw.architecture)
+   else:
+      body1, body2, pos1, pos2 = bodiespos
 
    pairs, lbub = rp.bvh.bvh_collect_pairs_vec(
       body1.bvh_cen,
@@ -250,8 +244,7 @@ def filter_sscount(xforms, body, **kw):
       paired_resis = np.unique(pairs[lb:ub, 1][np.isin(pairs[lb:ub, 0], resis)])
       resis = resis - (bod_len[0] * (resis / bod_len[0]).astype(int))
       paired_resis = paired_resis - (bod_len[1] * (paired_resis / bod_len[1]).astype(int))
-      temp_result["A"][
-         "total_counts"] = temp_result["A"]["H"] + temp_result["A"]["E"] + temp_result["A"]["L"]
+      temp_result["A"]["total_counts"] = temp_result["A"]["H"] + temp_result["A"]["E"] + temp_result["A"]["L"]
       temp_result["A"]["resis"] = resis
       temp_result["A"]["paired_resis"] = paired_resis
 
@@ -271,12 +264,10 @@ def filter_sscount(xforms, body, **kw):
       paired_resis = np.unique(pairs[lb:ub, 0][np.isin(pairs[lb:ub, 1], resis)])
       resis = resis - (bod_len[1] * (resis / bod_len[1]).astype(int))
       paired_resis = paired_resis - (bod_len[0] * (paired_resis / bod_len[0]).astype(int))
-      temp_result["B"][
-         "total_counts"] = temp_result["B"]["H"] + temp_result["B"]["E"] + temp_result["B"]["L"]
+      temp_result["B"]["total_counts"] = temp_result["B"]["H"] + temp_result["B"]["E"] + temp_result["B"]["L"]
       temp_result["B"]["resis"] = resis
       temp_result["B"]["paired_resis"] = paired_resis
-      temp_result[
-         "total_count"] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
+      temp_result["total_count"] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
 
       if strict:
          #Require that, for a residue to count in an SS element, it has to be paired with a residue that is also in an SS element.
@@ -303,8 +294,7 @@ def filter_sscount(xforms, body, **kw):
             if ss_type in sstype and ss_len >= min_element_resis:
                resis = np.append(resis, list_resis)
                temp_result["A"][ss_type] = temp_result["A"][ss_type] + 1
-         temp_result["A"]["total_counts"] = temp_result["A"]["H"] + temp_result["A"][
-            "E"] + temp_result["A"]["L"]
+         temp_result["A"]["total_counts"] = temp_result["A"]["H"] + temp_result["A"]["E"] + temp_result["A"]["L"]
          temp_result["A"]["resis"] = resis
 
          resis = np.array([])
@@ -318,13 +308,11 @@ def filter_sscount(xforms, body, **kw):
             if ss_type in sstype and ss_len >= min_element_resis:
                resis = np.append(resis, list_resis)
                temp_result["B"][ss_type] = temp_result["B"][ss_type] + 1
-         temp_result["B"]["total_counts"] = temp_result["B"]["H"] + temp_result["B"][
-            "E"] + temp_result["B"]["L"]
+         temp_result["B"]["total_counts"] = temp_result["B"]["H"] + temp_result["B"]["E"] + temp_result["B"]["L"]
          temp_result["B"]["resis"] = resis
          temp_result["B"]["paired_resis"] = temp_result["A"]["resis"]
          temp_result["A"]["paired_resis"] = temp_result["B"]["resis"]
-         temp_result[
-            "total_count"] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
+         temp_result["total_count"] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
          ss_counts[i] = temp_result["A"]["total_counts"] + temp_result["B"]["total_counts"]
          sscounts_data.append(temp_result)
       else:

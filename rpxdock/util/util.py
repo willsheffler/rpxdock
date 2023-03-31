@@ -203,8 +203,8 @@ def trim_ss(body, trim_ss_H=5, trim_ss_E=0, trim_ss_H_min=14, trim_ss_E_min=5, *
       hntrim = min(trim_ss_H, max(1, hntrim))
       # ic(l, u, hntrim)
       ss[l + hntrim:u - hntrim] = 'H'
-   print(''.join(oldss))
-   print(''.join(ss))
+   # print(''.join(oldss))
+   # print(''.join(ss))
 
    assert trim_ss_E == 0
    return ss

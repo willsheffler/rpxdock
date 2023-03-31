@@ -1,4 +1,6 @@
-import os, copy, numpy as np, rpxdock, logging, rpxdock as rp, io, tempfile
+import os, copy, logging, io, tempfile, sys
+import numpy as np
+import rpxdock as rp
 # from pandas.core.internals.concat import trim_join_unit
 from rpxdock.filter.sscount import secondary_structure_map
 
@@ -6,11 +8,12 @@ import willutil as wu
 from willutil import Bunch
 
 log = logging.getLogger(__name__)
-_CLASHRAD = 1.75
+_CLASHRAD = 4.5
 
 #TODO add masking somewhere in this script by take them out of pose when checking for scoring WHS YH
 
 class Body:
+   @wu.timed
    def __init__(
       self,
       source,
@@ -20,12 +23,14 @@ class Body:
       is_subbody=False,
       modified_term=[False, False],
       og_seqlen=None,
+      dont_use_rosetta=False,
+      ignored_aas='CPG',
       **kw,
    ):
       kw = wu.Bunch(kw)
-
       self.pos = np.eye(4)
-      pose = self.set_pose_info(source, sym=sym, **kw)
+      self.is_subbody = is_subbody
+      pose = self.set_pose_info(source, sym=sym, userosetta=not dont_use_rosetta, **kw)
       self.modified_term = modified_term
       self.og_seqlen = og_seqlen or pose.size()
 
@@ -37,20 +42,14 @@ class Body:
       self.components = kw.get('components', [])
       self.score_only_ss = kw.get('score_only_ss', 'EHL')
       self.trim_direction = kw.get('trim_direction', 'NC')
-
+      self.ignored_aas = ignored_aas
       self.set_allowed_residues(**kw)
-
       self.init_coords(sym, symaxis, **kw)
 
-      self.is_subbody = is_subbody
-      if not is_subbody:
+      if not is_subbody and not dont_use_rosetta:
          self.trimN_subbodies, self.trimC_subbodies = get_trimming_subbodies(self, pose, **kw)
-         # print('trimN_subbodies', len(self.trimN_subbodies))
-         # print('trimC_subbodies', len(self.trimC_subbodies))
-         # assert 0
-      # timer.checkpoint('body init file')
-      # print(timer)
 
+   @wu.timed
    def set_pose_info(self, source, sym, extract_chain=None, userosetta=True, **kw):
       # pose stuff
       if userosetta:
@@ -61,6 +60,8 @@ class Body:
 
       kw = Bunch(kw)
       pose = source
+      self.rawpdb = None
+      self.rawcoords = None
       if isinstance(source, str):
          # import rpxdock.rosetta.triggers_init as ros
          self.pdbfile = source
@@ -71,28 +72,37 @@ class Body:
             pose = ros.pose_from_file(source)
             ros.assign_secstruct(pose)
          else:
-            pose = wu.NotPose(source)
+            pose = wu.NotPose(source, **kw)
+            self.rawpdb = None if pose.coordsonly else pose.rawpdb
       elif isinstance(source, io.BytesIO):
-         # timer.checkpoint('body load start')
          import rpxdock.rosetta.triggers_init as ros
          self.pdbfile = kw.source_filename
-         # timer.checkpoint('body load pyrosetta')
          with tempfile.TemporaryDirectory() as td:
-            # timer.checkpoint('body open TemporaryDirectory')
             with open(td + '/tmp.pdb', 'w') as out:
                out.write(source.read().decode())
-            # timer.checkpoint('body wrote file')
-
             pose = ros.pose_from_file(td + '/tmp.pdb')
-
-            # timer.checkpoint('pose_from_file')
             ros.assign_secstruct(pose)
+      elif isinstance(source, np.ndarray):
+         pose = wu.NotPose(coords=source, **kw)
+         self.rawpdb = None
+         self.rawcoords = source.copy()
+      elif isinstance(source, wu.pdb.pdbfile.PDBFile):
+         pose = wu.NotPose(pdb=source, **kw)
+         self.rawpdb = source
+      elif userosetta:
+         import pyrosetta
+         if not isinstance(source, pyrosetta.rosetta.core.pose.Pose):
+            raise ValueError(f'Body cant understand source {type(source)}')
+      else:
+         raise ValueError(f'Body cant understand source {type(source)}')
+      wu.checkpoint(kw, 'read_source')
 
       self.crystinfo = None
       if pose.pdb_info() is not None:
          ci = pose.pdb_info().crystinfo()
-         self.crystinfo = wu.Bunch(spacegroup=ci.spacegroup(), cell=[ci.A(), ci.B(), ci.C()],
-                                   ang=[ci.alpha(), ci.beta(), ci.gamma()])
+         if ci is not None:
+            self.crystinfo = wu.Bunch(spacegroup=ci.spacegroup(), cell=[ci.A(), ci.B(), ci.C()],
+                                      ang=[ci.alpha(), ci.beta(), ci.gamma()])
       self.pdbfile = pose.pdb_info().name() if pose.pdb_info() else None
 
       if extract_chain is not None:
@@ -108,7 +118,7 @@ class Body:
             pose = p
             ros.assign_secstruct(pose)
          if not userosetta:
-            pose = pose.extract(chain=extract_chain)
+            pose = pose.extract(chain=extract_chain, **kw)
 
       # timer.checkpoint('body load file')
 
@@ -116,12 +126,10 @@ class Body:
       self.seq = np.array(list(pose.sequence()))
       self.ss = np.array(list(pose.secstruct()))
 
-      # ic(''.join(self.ss))
-      self.ss = rp.util.trim_ss(self, **kw)
-      # self.ss = rp.util.trim_ss(self)
-      # ic(''.join(self.ss))
+      # what is this about? seems bugged? how should rest of body know some is trimmed???
+      # self.ss = rp.util.trim_ss(self, **kw)
 
-      assert np.sum(self.ss == 'L') < len(self.ss), 'body is all loops!!'
+      assert self.is_subbody or np.sum(self.ss == 'L') < len(self.ss), 'body is all loops and not sub-body!!'
       self.ssid = rp.motif.ss_to_ssid(self.ss)
       self.chain = np.repeat(0, self.seq.shape[0])
       self.resno = np.arange(len(self.seq))
@@ -131,8 +139,10 @@ class Body:
       # else:
       # self.coord = pose.bb()
       self.set_asym_body(pose, sym, **kw)
+
       return pose
 
+   @wu.timed
    def set_allowed_residues(
       self,
       allowed_res=None,
@@ -179,15 +189,19 @@ class Body:
       #for s in self.required_res_sets:
       #ic(s.keys())
 
+   @wu.timed
    def init_coords(
          self,
          sym,
          symaxis=np.array([0, 0, 1, 0]),
          xform=np.eye(4),
-         ignored_aas='CGP',
+         ignored_aas=None,
          **kw,
    ):
       kw = wu.Bunch(kw)
+      if ignored_aas is None:
+         ignored_aas = self.ignored_aas if hasattr(self, 'ignored_aas') else 'CGP'
+
       if isinstance(sym, np.ndarray):
          assert len(sym) == 1
          sym = sym[0]
@@ -253,12 +267,14 @@ class Body:
       elif nallow < len(self):
          allowed_res = np.tile(self.allowed_residues, len(self) // nallow)
       self.which_cen = which_cen & allowed_res
-
+      assert np.any(self.which_cen)
       self.bvh_cen = rp.BVH(self.allcen[:, :3], self.which_cen)
+      # ic(len(self.bvh_cen))
       self.cen = self.allcen[self.which_cen]
       self.pos = np.eye(4, dtype="f4")
       self.pcavals, self.pcavecs = rp.util.numeric.pca_eig(self.cen)
 
+   @wu.timed
    def copy_with_sym(self, sym, symaxis=[0, 0, 1], newaxis=None, phase=0):
       x = np.eye(4)
       if newaxis is not None:
@@ -276,6 +292,7 @@ class Body:
       b.init_coords(sym, symaxis, xform=x)
       return b
 
+   @wu.timed
    def copy_xformed(self, xform, **kw):
       b = copy.deepcopy(self.asym_body)
       b.pos = np.eye(4, dtype='f4')
@@ -569,7 +586,7 @@ def get_trimming_subbodies(body, pose, debug=False, **kw):
    kw = Bunch(kw, _strict=False)
    if kw.helix_trim_max == 0 or kw.helix_trim_max is None:
       return [], []
-   print('body.ss', ''.join(body.ss))
+   # print('body.ss', ''.join(body.ss))
    ssmap = secondary_structure_map()
    ssmap.map_body_ss(body)
    # print(ssmap.ss_index)

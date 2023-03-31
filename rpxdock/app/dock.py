@@ -533,7 +533,7 @@ def main():
    #logging.info(f'weights: {kw.wts}')
    rp.options.print_options(kw)
 
-   hscore = rp.CachedProxy(rp.RpxHier(kw.hscore_files, **kw))
+   hscore = rp.RpxHier(kw.hscore_files, **kw)
    arch = kw.architecture
 
    check_result_files_exist(kw)

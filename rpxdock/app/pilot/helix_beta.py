@@ -33,9 +33,8 @@ def get_helix_args():
                        help='maximum number of steps to second interface, default 16')
    parser.add_argument("--helix_iresl_second_shift", type=int, default=2,
                        help='steps decreased resolution of second inferface, default 2')
-   parser.add_argument(
-      "--helix_min_primary_score", type=float, default=30,
-      help='minimum score for the primary interface, mainly for speed, default=30')
+   parser.add_argument("--helix_min_primary_score", type=float, default=30,
+                       help='minimum score for the primary interface, mainly for speed, default=30')
    parser.add_argument("--helix_max_primary_score", type=float, default=100,
                        help='maximum score for the primary interface, default 100')
    parser.add_argument("--helix_min_delta_z", type=float, default=0.001,
@@ -44,12 +43,10 @@ def get_helix_args():
                        help='maximum shift alone helix axis per step, default uses body radius')
    parser.add_argument(
       "--helix_min_primary_angle", type=float, default=None,
-      help='minimum rotation around axis per step. default based on max_isecond is usually the right choice'
-   )
+      help='minimum rotation around axis per step. default based on max_isecond is usually the right choice')
    parser.add_argument(
       "--helix_max_primary_angle", type=float, default=None,
-      help='maximum rotation around axis per step. default based on min_isecond is usually the right choice'
-   )
+      help='maximum rotation around axis per step. default based on min_isecond is usually the right choice')
    # parser.add_argument("--cart_cell_width", type=float, default=10,
    #                     help='cartesian resolution of the initial search stage, default 10')
    # parser.add_argument("--angle_cell_width", type=float, default=30,
@@ -57,10 +54,8 @@ def get_helix_args():
 
    parser.add_argument("--tether_to", type=str, nargs='*', default=[],
                        help='two structs with configuration to sample around')
-   parser.add_argument("--tether_dist", type=float, default=3,
-                       help='max dist from supplied dimer configuration')
-   parser.add_argument("--tether_ang", type=float, default=10,
-                       help='max angle from supplied dimer configuration')
+   parser.add_argument("--tether_dist", type=float, default=3, help='max dist from supplied dimer configuration')
+   parser.add_argument("--tether_ang", type=float, default=10, help='max angle from supplied dimer configuration')
 
    parser.add_argument("--helix_min_radius", type=float, default=0, help='min helix radius')
    parser.add_argument("--helix_max_radius", type=float, default=9e9, help='max helix radius')
@@ -92,7 +87,7 @@ def get_helix_args():
 
 def main():
    kw = get_helix_args()
-   hscore = rp.CachedProxy(rp.RpxHier(kw.hscore_files, **kw))
+   hscore = rp.RpxHier(kw.hscore_files, **kw)
 
    # two extra sampling refinements
    kw.nresl = hscore.actual_nresl + kw.helix_iresl_second_shift

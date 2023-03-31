@@ -28,7 +28,6 @@ def filter_redundancy(xforms, body, scores=None, categories=None, every_nth=10, 
    # categories = categories[ibest]
    # ic(categories.shape)
 
-
    if kw.max_bb_redundancy <= 0:
       return ibest
 
@@ -44,22 +43,22 @@ def filter_redundancy(xforms, body, scores=None, categories=None, every_nth=10, 
       if len(isym) < 100:
          pass
          # ic(com0[0])
-         # ic(com1[0])         
-         # ic(com1sym[0,0])                  
+         # ic(com1[0])
+         # ic(com1sym[0,0])
          # ic(com1sym[isym[0],0])
          # ic(wu.hxform(symframes[isym], com1)[0])
       #    ic(dist[:,0])
-      #    ic(dist[isym[0],0])         
+      #    ic(dist[isym[0],0])
 
       #    ic(com1sym.shape)
       #    ic(com1sym[:,0])
-      #    ic(dist[:,0])         
+      #    ic(dist[:,0])
 
       #    ic(isym.shape)
       #    ic(dist.shape)
       #    ic(dist[isym,0])
       #    ic(np.min(dist,axis=0))
-      #    ic(symframes.shape)         
+      #    ic(symframes.shape)
       #    ic(symframes[isym].shape)
       #    # ic(isym)
       #    assert 0
@@ -67,11 +66,13 @@ def filter_redundancy(xforms, body, scores=None, categories=None, every_nth=10, 
       bodycrd1 = body[1].cen[::every_nth]
       # bodycrd1 = wu.hxform(symframes[isym], bodycrd1)
 
-
       crd0 = wu.hxform(xforms[ibest, 0], bodycrd0, is_points=True, outerprod=False)
       crd1 = wu.hxform(xforms[ibest, 1], bodycrd1, is_points=True, outerprod=False)
-      crd1 = wu.hxform(symframes[isym], crd1, is_points=True, outerprod=False)      
+      crd1 = wu.hxform(symframes[isym], crd1, is_points=True, outerprod=False)
       crd = np.concatenate([crd0, crd1], axis=1)
+
+   if crd.ndim == 2:
+      return ibest
 
    ncen = crd.shape[1]
    crd = crd.reshape(-1, 4 * ncen)

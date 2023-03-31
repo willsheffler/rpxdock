@@ -144,11 +144,13 @@ class RpxHier:
          self.max_pair_dist[iresl],
          *bounds,
       )
+      if len(pairs) == 0:
+         return np.zeros(len(pos1))
 
       contains_res = list()
       if hasattr(body1, 'required_res_sets') and body1.required_res_sets:
          res0 = np.ascontiguousarray(pairs[:, 0])
-         ic(res0.shape)
+         # ic(res0.shape)
          hasit0 = [s.has(res0) for s in body1.required_res_sets]
          contains_res.extend(hasit0)
 

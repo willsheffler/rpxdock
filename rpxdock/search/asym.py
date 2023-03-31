@@ -51,6 +51,15 @@ def make_asym(bodies, hscore, sampler, search=hier_search, frames=None, x2asymce
       else:
          ibest = rp.filter_redundancy(xforms, bodies[0][0], scores, **kw)
 
+   if frames is not None:
+      if 'filter_sscount' in kw:
+         # ic(bodies)
+         for i, frame in enumerate(frames[1:]):
+            sbest, filter_extra = rp.filter.sscount.filter_sscount(
+               bodiespos=(bodies[0][0], bodies[0][0], xforms[ibest], wu.hxform(frame, xforms[ibest])), **kw)
+            ibest = ibest[sbest]
+            # ic(np.sum(sbest), filter_extra)
+
    #Not sure how to test this so leaving it commented out
    #if kw.filter_config:
    #   # Apply filters
@@ -87,8 +96,9 @@ class AsymFramesEvaluator:
          bodies,
          hscore,
          frames=[np.eye(4)],
+         clashframes=None,
          x2asymcen=np.eye(4),
-         limit_rotation=None,
+         limit_rotation=0,
          clashdist=3,
          scale_translation=None,
          **kw,
@@ -103,6 +113,7 @@ class AsymFramesEvaluator:
       # self.body2.required_res_sets = list()
       self.clashdist = clashdist
       self.scale_translation = None
+      self.clashframes = frames if clashframes is None else clashframes
       if isinstance(scale_translation, (int, float)):
          self.scale_translation = scale_translation * wu.hnormalized(wu.hcom(bodies0[0]))
 
@@ -126,7 +137,7 @@ class AsymFramesEvaluator:
       kw = self.kw.sub(wts=wts)
       xforms = xforms.reshape(-1, 4, 4)
 
-      if self.limit_rotation is not None:
+      if self.limit_rotation > 0:
          _, ang = wu.haxis_angle_of(xforms)
          ok = ang <= self.limit_rotation
       else:
@@ -134,12 +145,13 @@ class AsymFramesEvaluator:
 
       xasym = wu.hinv(self.x2asymcen) @ xforms @ self.x2asymcen
 
-      for iframe, xframe in enumerate(self.frames[1:]):
+      clashdist = [4, 2, 1.5, 1, 1, 1, 1][iresl]
+      for iframe, xframe in enumerate(self.clashframes[1:]):
          ok[ok] = self.bodies0[0].clash_ok(
             self.bodies0[0],
             self.frames[0] @ xasym[ok],
             xframe @ xasym[ok],
-            mindis=self.clashdist,
+            mindis=clashdist,
             **kw,
          )
          # ic(iresl, iframe, np.sum(ok))
@@ -154,7 +166,6 @@ class AsymFramesEvaluator:
       #      mindis=self.clashdist,
       #      **kw,
       #   )
-
       # score everything that didn't clash
       scores = np.zeros(len(xforms))
       for ibody in range(len(self.bodies0)):
@@ -170,13 +181,16 @@ class AsymFramesEvaluator:
          if ibody == 0:
             scores[ok] = newscores
          else:
+            # ic(ibody)
+            if ibody == 2: newscores *= 0.5
             minsc = np.minimum(scores[ok], newscores)
             # ic(minsc.shape, scores[ok].shape)
             scores[ok] = minsc
          # scores[ok] = scores[ok] + newscores
          ok[ok] = np.logical_and(ok[ok], newscores > 0)
       if np.sum(scores > 0) == 0:
-         raise ValueError(f'no results at stage {iresl}')
+         # raise ValueError(f'no results at stage {iresl}')
+         print(f'warning: no results at stape {iresl}', flush=True)
       return scores, wu.Bunch()
 
 class AsymEvaluator:
@@ -215,5 +229,4 @@ class AsymEvaluator:
       ub = np.ones(len(scores), dtype="i4") * (body1.nres - 1)
       if kw.max_trim > 0:
          lb[ok], ub[ok] = trim2[0], trim2[1]
-
       return scores, wu.Bunch(reslb=lb, resub=ub)

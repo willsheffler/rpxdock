@@ -370,6 +370,9 @@ def default_cli_parser(parent=None, **kw):
    addarg("--dump_result_summary", action='store_true', default=False,
           help='dump result filenames in a Summary.txt file')
 
+   addarg("--limit_rotation", type=float, default=9e9, help='limit sampling to rotations less than X radians')
+   addarg("--dont_use_rosetta", action='store_true', help='don\'t use pyrosetta')
+
    parser.has_rpxdock_args = True
    return parser
 
@@ -382,7 +385,8 @@ def get_cli_args(argv=None, parent=None, process_args=True, **kw):
    return options
 
 def defaults(**kw):
-   return get_cli_args([], **kw)
+   opt = get_cli_args([], **kw)
+   return opt
 
 def set_loglevel(loglevel):
    try:

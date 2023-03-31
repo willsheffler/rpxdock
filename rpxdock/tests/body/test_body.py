@@ -12,7 +12,8 @@ import rpxdock.rosetta.triggers_init
 # ic.configureOutput(includeContext=True)
 
 def main():
-   test_body_create()
+   test_body_ss_info()
+   # test_body_create()
 
 def test_body_ss_info():
    kw = rp.app.defaults()

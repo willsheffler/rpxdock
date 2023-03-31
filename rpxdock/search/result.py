@@ -18,6 +18,7 @@ class Result:
       pdb_extra_=None,
       **kw,
    ):
+
       import xarray as xr
 
       if data_or_file:
@@ -133,6 +134,7 @@ class Result:
       lbl='',
       skip=[],
       output_prefix='rpx',
+      output_suffix='',
       **kw,
    ):
       if isinstance(which, str):
@@ -156,8 +158,9 @@ class Result:
          assert not isinstance(imodel, np.ndarray) or len(imodel) == 1
          if not imodel in skip:
             dumped.add(int(imodel))
-            prefix_tmp = f'{output_prefix}_{lbl}{i:0{ndigwhich}}_{int(imodel):0{ndigmdl}}_'
-            self.dump_pdb(imodel, output_prefix=prefix_tmp, **kw)
+            # prefix_tmp = f'{output_prefix}'
+            suffix = f'{output_suffix}_{lbl}{i:0{ndigwhich}}_{int(imodel):0{ndigmdl}}'
+            self.dump_pdb(imodel, output_prefix=output_prefix, output_suffix=suffix, **kw)
       return dumped
 
    def dump_pdb(
@@ -207,6 +210,7 @@ class Result:
             bod[0].move_to(self.xforms[imodel].data)
       if not fname:
          output_prefix = output_prefix + sep if output_prefix else ''
+
          body_names = [b.label for b in bod]
          if len(output_body) > 1 and self.labels:
 
@@ -226,7 +230,20 @@ class Result:
       bfactor = None
       # hscore scores residue pairs and puts bfactor in pdb
       if symframes is None:
-         symframes = rp.geom.symframes(sym, pos=self.xforms.data[imodel], **kw)
+         if 'unitcell' in self.data:
+            cellsize = self.data.unitcell[imodel].data
+            assert 'header' not in kw
+            kw.header = wu.sym.xtal(self.sym).cryst1(cellsize=cellsize)
+            symframes = [np.eye(4)]
+         else:
+            symframes = rp.geom.symframes(sym, pos=self.xforms.data[imodel], **kw)
+      elif symframes == 'primary':
+         cellsize = self.data.unitcell[imodel].data
+         assert 'header' not in kw
+         symframes = wu.sym.xtal(self.sym).primary_frames(cellsize=cellsize)
+
+      else:
+         assert wu.hvalid(symframes)
       if hscore and len(bod) == 2:
          sm = hscore.score_matrix_inter(bod[0], bod[1], symframes=symframes, wts=kw.wts)
          bfactor = [sm.sum(axis=1), sm.sum(axis=0)]
