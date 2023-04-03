@@ -25,6 +25,7 @@ def isnt_used_huh_asym_get_sample_hierarchy(body, hscore, extent=100, frames=Non
    log.info(f"XformHier {xh.size(0):,} {xh.cart_bs} {xh.ori_resl} {xh.cart_lb} {xh.cart_ub}")
    return xh
 
+@wu.timed
 def make_asym(bodies, hscore, sampler, search=hier_search, frames=None, x2asymcen=None, sym='C1', **kw):
    logging.debug("entering make_asym()")
    if isinstance(bodies, rp.body.Body): bodies = [bodies]
@@ -39,7 +40,9 @@ def make_asym(bodies, hscore, sampler, search=hier_search, frames=None, x2asymce
       evaluator = AsymFramesEvaluator(bodies, hscore, frames=frames, x2asymcen=x2asymcen, **kw)
    else:
       evaluator = AsymEvaluator(bodies, hscore, **kw)
+   wu.checkpoint(kw, 'make_asym')
    xforms, scores, extra, stats = search(sampler, evaluator, **kw)
+   wu.checkpoint(kw, 'search')
    xforms = evaluator.modify_xforms(xforms)
    if frames is not None:
       xforms = wu.hxform(wu.hinv(x2asymcen), wu.hxform(xforms, x2asymcen))
@@ -99,6 +102,7 @@ class AsymFramesEvaluator:
          clashframes=None,
          x2asymcen=np.eye(4),
          limit_rotation=0,
+         limit_translation=0,
          clashdist=3,
          scale_translation=None,
          **kw,
@@ -109,6 +113,7 @@ class AsymFramesEvaluator:
       self.frames = frames
       self.x2asymcen = x2asymcen
       self.limit_rotation = limit_rotation
+      self.limit_translation = limit_translation
       # self.body2 = body.copy()
       # self.body2.required_res_sets = list()
       self.clashdist = clashdist
@@ -137,15 +142,21 @@ class AsymFramesEvaluator:
       kw = self.kw.sub(wts=wts)
       xforms = xforms.reshape(-1, 4, 4)
 
+      ok = np.ones(len(xforms), dtype=np.bool)
       if self.limit_rotation > 0:
-         _, ang = wu.haxis_angle_of(xforms)
-         ok = ang <= self.limit_rotation
-      else:
-         ok = np.ones(len(xforms), dtype=np.bool)
+         _, ang = wu.haxis_angle_of(xforms[ok])
+         ok[ok] = ang <= self.limit_rotation + [0.0, 0.1, 0.2, 0.3, 0.5, 0.5, 0.5][iresl]
+      if self.limit_translation > 0:
+         ok[ok] = wu.hnorm(xforms[ok, :3, 3]) <= self.limit_translation + [0, 1, 2, 4, 8, 8, 8][iresl]
+      if np.sum(ok) == 0:
+         return np.zeros(len(xforms)), wu.Bunch()
 
       xasym = wu.hinv(self.x2asymcen) @ xforms @ self.x2asymcen
 
-      clashdist = [4, 2, 1.5, 1, 1, 1, 1][iresl]
+      clashdist = [5, 3, 2, 1.5, 1.5, 1.5, 1.5][iresl]
+      # clashdist = [5, 3, 2, 2, 2, 2, 2][iresl]
+      # clashdist = [1, 1, 1, 1, 1, 1, 1][iresl]
+      # clashdist = [4, 1, 1, 1, 1, 1, 1][iresl]
       for iframe, xframe in enumerate(self.clashframes[1:]):
          ok[ok] = self.bodies0[0].clash_ok(
             self.bodies0[0],
@@ -154,6 +165,8 @@ class AsymFramesEvaluator:
             mindis=clashdist,
             **kw,
          )
+         if np.sum(ok) == 0:
+            return np.zeros(len(xforms)), wu.Bunch()
          # ic(iresl, iframe, np.sum(ok))
       # TODO: fix this into one loop...
 
@@ -182,7 +195,7 @@ class AsymFramesEvaluator:
             scores[ok] = newscores
          else:
             # ic(ibody)
-            if ibody == 2: newscores *= 0.5
+            # if ibody == 2: newscores *= 0.5
             minsc = np.minimum(scores[ok], newscores)
             # ic(minsc.shape, scores[ok].shape)
             scores[ok] = minsc

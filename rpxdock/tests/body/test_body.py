@@ -12,6 +12,7 @@ import rpxdock.rosetta.triggers_init
 # ic.configureOutput(includeContext=True)
 
 def main():
+   test_body_copy_xform(rp.data.get_body('tiny'))
    test_body_ss_info()
    # test_body_create()
 

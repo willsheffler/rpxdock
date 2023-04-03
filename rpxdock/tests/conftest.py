@@ -138,16 +138,11 @@ def helix(pdbdir):
 
 @pytest.fixture(scope="session")
 def term_mod_C3s():
-   return [
-      data.get_body('C3_3e6q_asu'),
-      data.get_body('C3_3e6q_asu_Chelix'),
-      data.get_body('C3_3e6q_asu_NChelix')
-   ]
+   return [data.get_body('C3_3e6q_asu'), data.get_body('C3_3e6q_asu_Chelix'), data.get_body('C3_3e6q_asu_NChelix')]
 
 @pytest.fixture(scope="session")
 def term_mod_C3_and_C2():
-   return [[data.get_body('C3_1na0-1_1'),
-            data.get_body('C2_REFS10_1')],
+   return [[data.get_body('C3_1na0-1_1'), data.get_body('C2_REFS10_1')],
            [data.get_body('C3_1na0-1_1_NChelix'),
             data.get_body('C2_REFS10_1_NChelix')],
            [data.get_body('C3_1na0-1_1_Chelix'),
@@ -167,8 +162,7 @@ def mixed_inputs(pdbdir):
       pdbdir + "/top7.pdb.gz",
       get_pose_cached('dhr64.pdb.gz', pdbdir),
       get_pose_cached('DHR14.pdb.gz', pdbdir),
-      get_pose_cached("C3_1nza_1.pdb.gz", pdbdir), pdbdir + "/C2_3hm4_1.pdb.gz",
-      pdbdir + "/C2_3hm4_1.pdb.gz"
+      get_pose_cached("C3_1nza_1.pdb.gz", pdbdir), pdbdir + "/C2_3hm4_1.pdb.gz", pdbdir + "/C2_3hm4_1.pdb.gz"
    ]
 
 @pytest.fixture(scope="session")

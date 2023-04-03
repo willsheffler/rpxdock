@@ -3,6 +3,7 @@ import willutil as wu
 
 log = logging.getLogger(__name__)
 
+@wu.timed
 def filter_redundancy(xforms, body, scores=None, categories=None, every_nth=10, symframes=None, **kw):
    kw = wu.Bunch(kw, _strict=False)
    if scores is None:

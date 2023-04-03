@@ -380,7 +380,8 @@ def get_cli_args(argv=None, parent=None, process_args=True, **kw):
    parser = default_cli_parser(parent, **kw)
    argv = sys.argv[1:] if argv is None else argv
    argv = make_argv_with_atfiles(argv, **kw)
-   options = Bunch(parser.parse_args(argv))
+   arg, unk = parser.parse_known_args(argv)
+   options = Bunch(arg, unknown_arguments=unk)
    if process_args: options = process_cli_args(options, **kw)
    return options
 

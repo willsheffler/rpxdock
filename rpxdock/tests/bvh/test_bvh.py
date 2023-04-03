@@ -76,8 +76,7 @@ def test_bvh_isect():
 
       clash = list()
       for inner in range(N2):
-         clash1 = bvh.bvh_isect(bvh1=bvh1, bvh2=bvh2, pos1=pos1[inner], pos2=pos2[inner],
-                                mindist=mindist)
+         clash1 = bvh.bvh_isect(bvh1=bvh1, bvh2=bvh2, pos1=pos1[inner], pos2=pos2[inner], mindist=mindist)
          t.checkpoint('bvh_isect')
          clash2 = bvh.naive_isect(bvh1, bvh2, pos1[inner], pos2[inner], mindist)
          t.checkpoint('naive_isect')
@@ -588,8 +587,7 @@ def test_collect_pairs_range():
       assert np.all(lbub == rlbub)
       assert np.all(pairs == rpairs)
 
-      rpairs, rlbub = bvh.bvh_collect_pairs_range_vec(bvh1, bvh2, pos1, pos2, mindist, [250],
-                                                      [750])
+      rpairs, rlbub = bvh.bvh_collect_pairs_range_vec(bvh1, bvh2, pos1, pos2, mindist, [250], [750])
       assert len(rlbub) == len(pos1)
       assert np.all(rpairs[:, 0] >= 250)
       assert np.all(rpairs[:, 0] <= 750)
@@ -607,15 +605,14 @@ def test_collect_pairs_range():
       else:
          assert np.all(u1 == u2)
 
-      rpairs, rlbub = bvh.bvh_collect_pairs_range_vec(bvh1, bvh2, pos1, pos2, mindist, [600],
-                                                      [1000], -1, [100], [400], -1)
+      rpairs, rlbub = bvh.bvh_collect_pairs_range_vec(bvh1, bvh2, pos1, pos2, mindist, [600], [1000], -1, [100], [400],
+                                                      -1)
       assert len(rlbub) == len(pos1)
       assert np.all(rpairs[:, 0] >= 600)
       assert np.all(rpairs[:, 0] <= 1000)
       assert np.all(rpairs[:, 1] >= 100)
       assert np.all(rpairs[:, 1] <= 400)
-      filt_pairs = pairs[(pairs[:, 0] >= 600) * (pairs[:, 0] <= 1000) * (pairs[:, 1] >= 100) *
-                         (pairs[:, 1] <= 400)]
+      filt_pairs = pairs[(pairs[:, 0] >= 600) * (pairs[:, 0] <= 1000) * (pairs[:, 1] >= 100) * (pairs[:, 1] <= 400)]
       assert np.all(filt_pairs == rpairs)  # sketchy???
       assert np.allclose(np.unique(filt_pairs, axis=1), np.unique(rpairs, axis=1))
 
@@ -669,8 +666,8 @@ def test_collect_pairs_range_sym():
 
       def awful(p):
          return np.logical_and(
-            np.logical_or(np.logical_and(100 <= p[:, 0], p[:, 0] <= 400),
-                          np.logical_and(600 <= p[:, 0], p[:, 0] <= 900)),
+            np.logical_or(np.logical_and(100 <= p[:, 0], p[:, 0] <= 400), np.logical_and(
+               600 <= p[:, 0], p[:, 0] <= 900)),
             np.logical_or(
                np.logical_and(+20 <= p[:, 1], p[:, 1] <= 180),
                np.logical_or(
@@ -802,8 +799,7 @@ def test_bvh_isect_range(body=None, cart_sd=0.3, N2=10, mindist=0.02):
             nhit += 1
 
          tbvh = perf_counter()
-         range1 = bvh.isect_range_single(bvh1=bvh1, bvh2=bvh2, pos1=pos1[i], pos2=pos2[i],
-                                         mindist=mindist)
+         range1 = bvh.isect_range_single(bvh1=bvh1, bvh2=bvh2, pos1=pos1[i], pos2=pos2[i], mindist=mindist)
          tbvh = perf_counter() - tbvh
 
          tn = perf_counter()
@@ -911,10 +907,7 @@ def test_bvh_isect_range_lb_ub(body=None, cart_sd=0.3, N1=3, N2=20, mindist=0.02
    N = N1 * N2
    Npts = 1000
    nhit, nrangefail = 0, 0
-   kws = [
-      Bunch(maxtrim=a, maxtrim_lb=b, maxtrim_ub=c) for a in (-1, 400) for b in (-1, 300)
-      for c in (-1, 300)
-   ]
+   kws = [Bunch(maxtrim=a, maxtrim_lb=b, maxtrim_ub=c) for a in (-1, 400) for b in (-1, 300) for c in (-1, 300)]
    for ibvh, kw in it.product(range(N1), kws):
       if body:
          bvh1, bvh2 = body.bvh_bb, body.bvh_bb
@@ -932,8 +925,7 @@ def test_bvh_isect_range_lb_ub(body=None, cart_sd=0.3, N1=3, N2=20, mindist=0.02
       for i in range(N2):
          c = bvh.bvh_isect(bvh1=bvh1, bvh2=bvh2, pos1=pos1[i], pos2=pos2[i], mindist=mindist)
          if c: nhit += 1
-         range1 = bvh.isect_range_single(bvh1=bvh1, bvh2=bvh2, pos1=pos1[i], pos2=pos2[i],
-                                         mindist=mindist, **kw)
+         range1 = bvh.isect_range_single(bvh1=bvh1, bvh2=bvh2, pos1=pos1[i], pos2=pos2[i], mindist=mindist, **kw)
          ranges.append(range1)
          if range1[0] < 0:
             nrangefail += 1
@@ -1125,32 +1117,32 @@ if __name__ == "__main__":
    # b = Body("rpxdock/data/pdb/DHR14.pdb")
    # test_bvh_isect_range(b, cart_sd=15, N2=500, mindist=3.5)
 
-   # test_bvh_isect_cpp()
-   # test_bvh_isect_fixed()
-   # test_bvh_isect()
-   # test_bvh_isect_fixed_range()
-   # test_bvh_min_cpp()
-   # test_bvh_min_dist_fixed()
-   # test_bvh_min_dist()
-   # test_bvh_min_dist_floormin()
-   # test_bvh_slide_single_inline()
-   # test_bvh_slide_single()
-   # test_bvh_slide_single_xform()
-   # test_bvh_slide_whole()
-   # test_collect_pairs_simple()
-   # test_collect_pairs_simple_selection()
-   # test_collect_pairs()
-   # test_collect_pairs_range()
-   # test_collect_pairs_range_sym()
-   # test_slide_collect_pairs()
-   # test_bvh_accessors()
-   # test_bvh_isect_range()
-   # test_bvh_isect_range_ids()
-   # test_bvh_isect_range_lb_ub(N1=10, N2=20)
-   # import tempfile
-   # test_bvh_pickle(tempfile.mkdtemp())
-
-   # test_bvh_threading_mindist_may_fail()
-   # test_bvh_threading_isect_may_fail()
+   test_bvh_isect_cpp()
+   test_bvh_isect_fixed()
+   test_bvh_isect()
+   test_bvh_isect_fixed_range()
+   test_bvh_min_cpp()
+   test_bvh_min_dist_fixed()
+   test_bvh_min_dist()
+   test_bvh_min_dist_floormin()
+   test_bvh_slide_single_inline()
+   test_bvh_slide_single()
+   test_bvh_slide_single_xform()
+   test_bvh_slide_whole()
+   test_collect_pairs_simple()
+   test_collect_pairs_simple_selection()
+   test_collect_pairs()
+   test_collect_pairs_range()
+   test_collect_pairs_range_sym()
+   test_slide_collect_pairs()
+   test_bvh_accessors()
+   test_bvh_isect_range()
+   test_bvh_isect_range_ids()
+   test_bvh_isect_range_lb_ub(N1=10, N2=20)
+   import tempfile
+   test_bvh_pickle(tempfile.mkdtemp())
+   #
+   test_bvh_threading_mindist_may_fail()
+   test_bvh_threading_isect_may_fail()
 
    bvh_perf()

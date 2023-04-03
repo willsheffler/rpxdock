@@ -45,7 +45,6 @@ class Body:
       self.ignored_aas = ignored_aas
       self.set_allowed_residues(**kw)
       self.init_coords(sym, symaxis, **kw)
-
       if not is_subbody and not dont_use_rosetta:
          self.trimN_subbodies, self.trimC_subbodies = get_trimming_subbodies(self, pose, **kw)
 
@@ -57,7 +56,7 @@ class Body:
             import rpxdock.rosetta.triggers_init as ros
          except ImportError:
             userosetta = False
-
+      ic(type(source))
       kw = Bunch(kw)
       pose = source
       self.rawpdb = None
@@ -93,6 +92,13 @@ class Body:
          import pyrosetta
          if not isinstance(source, pyrosetta.rosetta.core.pose.Pose):
             raise ValueError(f'Body cant understand source {type(source)}')
+      elif 'torch' in sys.modules:
+         import torch
+         if isinstance(source, torch.Tensor):
+            source = source.detach().numpy()
+            pose = wu.NotPose(coords=source, **kw)
+            self.rawpdb = None
+            self.rawcoords = source.copy()
       else:
          raise ValueError(f'Body cant understand source {type(source)}')
       wu.checkpoint(kw, 'read_source')
@@ -128,18 +134,17 @@ class Body:
 
       # what is this about? seems bugged? how should rest of body know some is trimmed???
       # self.ss = rp.util.trim_ss(self, **kw)
-
       assert self.is_subbody or np.sum(self.ss == 'L') < len(self.ss), 'body is all loops and not sub-body!!'
       self.ssid = rp.motif.ss_to_ssid(self.ss)
       self.chain = np.repeat(0, self.seq.shape[0])
       self.resno = np.arange(len(self.seq))
       # if userosetta:
       self.coord = rp.rosetta.get_bb_coords(pose, **kw)
+      self.coord = np.ascontiguousarray(self.coord)
       # ic('rosetta', self.coord.shape)
       # else:
       # self.coord = pose.bb()
       self.set_asym_body(pose, sym, **kw)
-
       return pose
 
    @wu.timed
@@ -215,7 +220,7 @@ class Body:
       self.nterms = [self.coord[0, 0]]
       self.cterms = [self.coord[-1, 2]]
       self._pos = np.eye(4)
-      if sym and sym[0] == "C" and int(sym[1:]):
+      if sym and sym[0] == "C" and int(sym[1:]) > 0:
          n = self.coord.shape[0]
          nfold = int(sym[1:])
          self.seq = np.array(np.tile(self.seq, nfold))
@@ -237,10 +242,10 @@ class Body:
             self.cterms.append(symframes[-1] @ self.cterms[0])
          self.symframes = np.stack(symframes)
          self.coord = (xform @ newcoord[:, :, :, None]).reshape(-1, 5, 4)
+         self.coord = np.ascontiguousarray(self.coord)
          self.orig_coords = [(xform @ oc[:, :, None]).reshape(-1, 4) for oc in new_orig_coords]
       else:
          raise ValueError("unknown symmetry: " + sym)
-
       assert len(self.seq) == len(self.coord)
       assert len(self.ss) == len(self.coord)
       assert len(self.chain) == len(self.coord)
@@ -252,12 +257,10 @@ class Body:
       self._symcom = wu.homog.hxform(self.symframes, wu.homog.htrans(self.asym_body.bvh_bb.com()))
       self.allcen = self.stub[:, :, 3]
       which_cen = np.repeat(False, len(self))
-
       for ss in "EHL":
          if ss in self.score_only_ss:
             which_cen |= self.ss == ss
       which_cen &= ~np.isin(self.seq, [list(ignored_aas)])
-
       if not hasattr(self, 'allowed_residues'):
          self.allowed_residues = np.ones(len(self.seq), dtype='?')
       allowed_res = self.allowed_residues

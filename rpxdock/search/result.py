@@ -315,7 +315,8 @@ def dict_coherent_entries(alldicts):
 def concat_results(results, **kw):
    import xarray as xr
    if isinstance(results, Result): results = [results]
-   assert len(results) > 0
+   if len(results) == 0:
+      return None
    ijob = np.repeat(np.arange(len(results)), [len(r) for r in results])
    # assert all(r.labels == results[0].labels for r in results)
    allattrs = [r.attrs for r in results]
