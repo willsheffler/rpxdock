@@ -30,7 +30,12 @@ class Body:
       kw = wu.Bunch(kw)
       self.pos = np.eye(4)
       self.is_subbody = is_subbody
-      pose = self.set_pose_info(source, sym=sym, userosetta=not dont_use_rosetta, **kw)
+      self.ignored_aas = ignored_aas
+
+      kw.userosetta = not dont_use_rosetta
+      kw.dont_use_rosetta = dont_use_rosetta
+
+      pose = self.set_pose_info(source, sym=sym, **kw)
       self.modified_term = modified_term
       self.og_seqlen = og_seqlen or pose.size()
 
@@ -42,21 +47,22 @@ class Body:
       self.components = kw.get('components', [])
       self.score_only_ss = kw.get('score_only_ss', 'EHL')
       self.trim_direction = kw.get('trim_direction', 'NC')
-      self.ignored_aas = ignored_aas
       self.set_allowed_residues(**kw)
       self.init_coords(sym, symaxis, **kw)
       if not is_subbody and not dont_use_rosetta:
          self.trimN_subbodies, self.trimC_subbodies = get_trimming_subbodies(self, pose, **kw)
 
+      self.sanity_check()
+
    @wu.timed
    def set_pose_info(self, source, sym, extract_chain=None, userosetta=True, **kw):
       # pose stuff
+      assert not userosetta
       if userosetta:
          try:
             import rpxdock.rosetta.triggers_init as ros
          except ImportError:
             userosetta = False
-      ic(type(source))
       kw = Bunch(kw)
       pose = source
       self.rawpdb = None
@@ -99,6 +105,8 @@ class Body:
             pose = wu.NotPose(coords=source, **kw)
             self.rawpdb = None
             self.rawcoords = source.copy()
+      elif isinstance(source, wu.NotPose):
+         pose = source
       else:
          raise ValueError(f'Body cant understand source {type(source)}')
       wu.checkpoint(kw, 'read_source')
@@ -144,7 +152,8 @@ class Body:
       # ic('rosetta', self.coord.shape)
       # else:
       # self.coord = pose.bb()
-      self.set_asym_body(pose, sym, **kw)
+      assert not userosetta
+      self.set_asym_body(pose, sym, userosetta=userosetta, **kw)
       return pose
 
    @wu.timed
@@ -205,7 +214,9 @@ class Body:
    ):
       kw = wu.Bunch(kw)
       if ignored_aas is None:
+         # ic(self.ignored_aas)
          ignored_aas = self.ignored_aas if hasattr(self, 'ignored_aas') else 'CGP'
+      assert ignored_aas == 'CP'
 
       if isinstance(sym, np.ndarray):
          assert len(sym) == 1
@@ -277,6 +288,14 @@ class Body:
       self.pos = np.eye(4, dtype="f4")
       self.pcavals, self.pcavecs = rp.util.numeric.pca_eig(self.cen)
 
+   def sanity_check(self):
+      c = self.coord[:, 1]
+      d = wu.hnorm(c[None] - c[:, None])
+      np.fill_diagonal(d, 9e9)
+      assert np.min(d) > 0.1, f'CA atoms overlap by {np.min(d)}'
+
+      return True
+
    @wu.timed
    def copy_with_sym(self, sym, symaxis=[0, 0, 1], newaxis=None, phase=0):
       x = np.eye(4)
@@ -305,6 +324,9 @@ class Body:
       return b
 
    def set_asym_body(self, pose, sym, **kw):
+      kw = wu.Bunch(kw)
+      assert not kw.userosetta
+      assert kw.dont_use_rosetta
       if isinstance(sym, int): sym = "C%i" % sym
       self.asym_body = self
       if sym != "C1":
@@ -312,7 +334,7 @@ class Body:
             log.warning(f'asym_body not built, no pose available')
             self.asym_body = None
          else:
-            self.asym_body = Body(pose, "C1", **kw)
+            self.asym_body = Body(pose, "C1", ignored_aas=self.ignored_aas, **kw)
 
    def __len__(self):
       return len(self.seq)
@@ -430,7 +452,18 @@ class Body:
    def intersect(self, other, xself=None, xother=None, mindis=2 * _CLASHRAD, **kw):
       xself = self.pos if xself is None else xself
       xother = other.pos if xother is None else xother
-      return rp.bvh.bvh_isect_vec(self.bvh_bb, other.bvh_bb, xself, xother, mindis)
+      if xself.shape == xother.shape:
+         origshape = xself.shape[:-2]
+         isect = rp.bvh.bvh_isect_vec(
+            self.bvh_bb,
+            other.bvh_bb,
+            xself.reshape(-1, 4, 4),
+            xother.reshape(-1, 4, 4),
+            mindis,
+         )
+         return isect.reshape(origshape)
+      else:
+         return rp.bvh.bvh_isect_vec(self.bvh_bb, other.bvh_bb, xself, xother, mindis)
 
    def clash_ok(self, *args, **kw):
       return np.logical_not(self.intersect(*args, **kw))
@@ -495,7 +528,18 @@ class Body:
          print("maxdis")
          print(maxdis)
 
-      return rp.bvh.bvh_count_pairs_vec(self.bvh_cen, other.bvh_cen, pos1, pos2, maxdis)
+      if pos1.shape == pos2.shape:
+         origshape = pos1.shape[:-2]
+         contacts = rp.bvh.bvh_count_pairs_vec(
+            self.bvh_cen,
+            other.bvh_cen,
+            pos1.reshape(-1, 4, 4),
+            pos2.reshape(-1, 4, 4),
+            maxdis,
+         )
+         return contacts.reshape(origshape)
+      else:
+         return rp.bvh.bvh_count_pairs_vec(self.bvh_cen, other.bvh_cen, pos1, pos2, maxdis)
 
    def contact_count_bb(self, other, pos1=None, pos2=None, maxdis=10):
       if pos1 is None: pos1 = self.pos

@@ -111,6 +111,8 @@ class RpxHier:
    ):
 
       kw = wu.Bunch(kw, _strict=False)
+      origshape = pos1.shape[:-2]
+      assert pos1.shape[:-2] == pos2.shape[:-2]
       pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
 
       # docks we don't need to score because we already know they are bad
@@ -190,7 +192,7 @@ class RpxHier:
       #       assert np.all(asym_res2 <= bounds[4][i])
 
       #TODO: Figure out if this should be handled in the score functions below.
-      if kw.wts.rpx == 0:
+      if 'wts' in kw and kw.wts.rpx == 0:
          return kw.wts.ncontact * (lbub[:, 1] - lbub[:, 0])
          # option to score based on ncontacts only
 
@@ -218,6 +220,7 @@ class RpxHier:
          pairs,
          pscore,
       )
+
       score_functions = {
          "fun2": sfx.score_fun2,
          "lin": sfx.lin,
@@ -240,6 +243,7 @@ class RpxHier:
       # insert non-excluded scores into full score array
       all_scores = np.zeros(len(excluded))
       all_scores[~excluded] = scores
+      all_scores = all_scores.reshape(origshape)
 
       return all_scores
 

@@ -145,9 +145,11 @@ class AsymFramesEvaluator:
       ok = np.ones(len(xforms), dtype=np.bool)
       if self.limit_rotation > 0:
          _, ang = wu.haxis_angle_of(xforms[ok])
-         ok[ok] = ang <= self.limit_rotation + [0.0, 0.1, 0.2, 0.3, 0.5, 0.5, 0.5][iresl]
+         padding = [0.0, 0.1, 0.2, 0.3, 0.5, 0.5, 0.5][iresl]
+         ok[ok] = ang <= self.limit_rotation + padding
       if self.limit_translation > 0:
-         ok[ok] = wu.hnorm(xforms[ok, :3, 3]) <= self.limit_translation + [0, 1, 2, 4, 8, 8, 8][iresl]
+         padding = [0, 1, 2, 4, 8, 8, 8][iresl]
+         ok[ok] = wu.hnorm(xforms[ok, :3, 3]) <= self.limit_translation + padding
       if np.sum(ok) == 0:
          return np.zeros(len(xforms)), wu.Bunch()
 

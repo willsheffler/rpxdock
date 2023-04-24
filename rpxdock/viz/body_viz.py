@@ -13,7 +13,7 @@ if 'pymol' in sys.modules:
       pos=np.eye(4),
       delprev=False,
       resrange=(0, -1),
-      sym=None,
+      sym='C1',
       showframes=False,
       nbrs=None,
       suspend_updates=True,
@@ -31,7 +31,9 @@ if 'pymol' in sys.modules:
       if delprev:
          cmd.delete(f'{name}*')
 
-      sym = wu.sym.frames(sym)
+      if isinstance(sym, str):
+         sym = wu.sym.frames(sym)
+      # ic(sym.shape)
 
       pos0 = pos
       pos = pos0.reshape(-1, 4, 4)
@@ -52,15 +54,15 @@ if 'pymol' in sys.modules:
       wu.viz.show_ndarray_line_strip(coord, state=state, name=name + '_bbone', breaks=breaks,
                                      breaks_groups=breaks_groups, **kw)
       if suspend_updates: cmd.set('suspend_updates', 'off')
-      return 
+      return
 
       if markfirst:
          firstpos = coord[0:None:len(body.coord)]
          wu.viz.showsphere(firstpos, col=[0.5, 0.5, 0.5], rad=3, lbl=name + '_firstpos')
 
       if showframes:
-         wu.viz.pymol_visualize_xforms(body.symcom(pos), state, name=name + '_frames', scale=1,
-                                       weight=3, xyzlen=[9, 10, 11])
+         wu.viz.pymol_visualize_xforms(body.symcom(pos), state, name=name + '_frames', scale=1, weight=3,
+                                       xyzlen=[9, 10, 11])
 
       if nbrs is not None:
          pt1 = wu.homog.hxform(pos[nbrs[:, 0]], body.bvh_bb.com())
