@@ -1,7 +1,7 @@
 import numpy as np, rpxdock as rp, rpxdock.homog as hm
 from rpxdock.search import hier_search, grid_search
 from rpxdock.filter import filters
-from willutil import Timer, Bunch
+import willutil as wu
 
 def make_cyclic_hier_sampler(monomer, hscore, **kw):
    '''
@@ -16,9 +16,22 @@ def make_cyclic_hier_sampler(monomer, hscore, **kw):
    ori_resl: orientation resolution for sampling
    returns "arrays of pos" to check for a given search resolution where pos are represented by matrices
    '''
-   cart_resl, ori_resl = hscore.base.attr.xhresl
-   ncart = int(np.ceil(2 * monomer.radius_max() / cart_resl))
-   return rp.sampling.OriCart1Hier_f4([0.0], [ncart * cart_resl], [ncart], ori_resl)
+   kw = wu.Bunch(kw)
+   # cart_resl, ori_resl = hscore.base.attr.xhresl
+   if kw.limit_rotation_to_z or kw.disable_rotation:
+      maxcart = monomer.radius_max() * 3
+      sampler = rp.sampling.RotCart1Hier_f4(0.0, maxcart, int(maxcart), 0.0, 360.0, 360, axis=[0, 0, 1],
+                                            cartaxis=[1, 0, 0])
+   else:
+      cart_resl, ori_resl = 8.0, 25.0
+      ncart = int(np.ceil(3 * monomer.radius_max() / cart_resl))
+      sampler = rp.sampling.OriCart1Hier_f4([0.0], [ncart * cart_resl], [ncart], ori_resl)
+
+   # indices = np.arange(sampler.size(0), dtype='u8')
+   # mask, xforms = sampler.get_xforms(0, indices)
+   # wu.showme(xforms)
+
+   return sampler
 
 def make_cyclic_grid_sampler(monomer, cart_resl, ori_resl, **kw):
    ncart = int(np.ceil(2 * monomer.radius_max() / cart_resl))
@@ -36,8 +49,8 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
    sampler enumerates positions
    search is usually hier_search but grid_search is also available
    '''
-   kw = Bunch(kw, _strict=False)
-   t = Timer().start()
+   kw = wu.Bunch(kw, _strict=False)
+   t = wu.Timer().start()
    sym = "C%i" % i if isinstance(sym, int) else sym
    kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
    kw.output_prefix = kw.output_prefix if kw.output_prefix else sym
@@ -114,7 +127,7 @@ class CyclicEvaluator:
    those two things get checked for intersections and clashes and scored by scorepos
    '''
    def __init__(self, body, sym, hscore, **kw):
-      self.kw = Bunch(kw, _strict=False)
+      self.kw = wu.Bunch(kw, _strict=False)
       self.body = body
       self.hscore = hscore
       self.symrot = hm.hrot([0, 0, 1], 360 / int(sym[1:]), degrees=True)
@@ -126,19 +139,19 @@ class CyclicEvaluator:
       body, sfxn = self.body, self.hscore.scorepos
       xforms = xforms.reshape(-1, 4, 4)  # body.pos
       xsym = self.symrot @ xforms  # symmetrized version of xforms
+      kw.mindis = [5, 3, 2, 1.5, 1.5, 1.5, 1.5][iresl]
 
       # check for "flatness"
       ok = np.abs((xforms @ body.pcavecs[0])[:, 2]) <= self.kw.max_longaxis_dot_z
 
       # check clash, or get non-clash range
       if kw.max_trim > 0:
-         trim = body.intersect_range(body, xforms[ok], xsym[ok],
-                                     **kw)  # what residues can you have without clashing
+         trim = body.intersect_range(body, xforms[ok], xsym[ok], **kw)  # what residues can you have without clashing
          trim, trimok = rp.search.trim_ok(trim, body.nres, **kw)
          ok[ok] &= trimok  # given an array of pos/xforms, filter out pos/xforms that clash
       else:
-         ok[ok] &= body.clash_ok(body, xforms[ok], xsym[ok],
-                                 **kw)  # if no trim, just checks for clashes (intersecting)
+         # if no trim, just checks for clashes (intersecting)
+         ok[ok] &= body.clash_ok(body, xforms[ok], xsym[ok], **kw)
          trim = [0], [body.nres - 1]  # no trimming
 
       # score everything that didn't clash
@@ -165,11 +178,11 @@ class CyclicEvaluator:
       # if np.any(sel): print(xforms[sel])
       # assert 0
 
-      return scores, Bunch(reslb=lb, resub=ub)
+      return scores, wu.Bunch(reslb=lb, resub=ub)
 
 def _debug_dump_cyclic(xforms, body, sym, scores, ibest, evaluator, **kw):
-   kw = Bunch(kw, _strict=False)
-   t = Timer().start()
+   kw = wu.Bunch(kw, _strict=False)
+   t = wu.Timer().start()
    nout_debug = min(10 if kw.nout_debug is None else kw.nout_debug, len(ibest))
    for iout in range(nout_debug):
       i = ibest[iout]

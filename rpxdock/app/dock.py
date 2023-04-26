@@ -1,6 +1,7 @@
 #! /home/sheffler/.conda/envs/rpxdock/bin/python
 
-import logging, itertools, concurrent, tqdm, os, sys
+import logging, itertools, concurrent, os, sys
+from tqdm import tqdm
 import rpxdock as rp
 import numpy as np
 from willutil import Bunch
@@ -55,6 +56,7 @@ def dock_asym(hscore, **kw):
 
    if kw.cart_bounds[0]:
       lb, ub = kw.cart_bounds[0]
+      if lb == 0: lb = -ub
       lb = max(lb, -200)
       ub = min(ub, 200)
       # extent = bound[1]
@@ -74,7 +76,28 @@ def dock_asym(hscore, **kw):
    logging.debug(f"  cartbs {cartbs}")
    logging.debug(f"  ori_resl {kw.ori_resl}")
 
-   sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, kw.ori_resl)
+   if kw.disable_rotation:
+      # use hardcoded large bounds with fine spacing
+      print('dock_asym disabling rotations')
+      sampler = rp.sampling.CartHier3D_f4([-200, -200, -200], [200, 200, 200], [40, 40, 40])
+   elif kw.limit_rotation_to_z:
+      assert 0, 'this doesnt work right'
+      # sampler = rp.sampling.RotCart3Hier_f4([-20, -30, -40], [20, 30, 40], [4, 6, 8], 0.0, 360.0, 8)
+      # m, x = sampler.get_xforms(0, np.arange(sampler.size(0)))
+      # import willutil as wu
+      # ic(x[:, :3, 3])
+      # wu.showme(x)
+      # assert 0
+      print('dock_asym limiting rotations to Z')
+      ic(cartlb, cartub, cartbs * 2)
+      # sampler = rp.sampling.RotCart3Hier_f4(cartlb, cartub, cartbs * 2, -10, 10.0, 1)
+
+      sampler = rp.sampling.RotCart3Hier_f4([-200, -200, -200], [200, 200, 200], [40, 40, 40], 0, 0, 1)
+
+   else:
+      ic(cartlb, cartub, cartbs)
+      sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, kw.ori_resl)
+
    logging.info(f'num base samples {sampler.size(0):,}')
    if sampler.size(0) >= 10_000_000:
       logging.info("cart_bounds range is very large, you may need a ton of memory.")
@@ -83,8 +106,8 @@ def dock_asym(hscore, **kw):
               for fn, ar2, ara2 in zip(inp, ar, ara)]
              for inp, ar, ara in zip(kw.inputs, kw.allowed_residues, kw.allowed_residues_also)]
 
-   exe = concurrent.futures.ProcessPoolExecutor
-   #exe = rp.util.InProcessExecutor
+   # exe = concurrent.futures.ProcessPoolExecutor
+   exe = rp.util.InProcessExecutor
 
    with exe(kw.ncpu) as pool:
       # if 0:
@@ -107,13 +130,14 @@ def dock_asym(hscore, **kw):
 
       logging.debug(f"futures {futures}")
       logging.debug(f"len(futures) {len(futures)}")
-      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+      if kw.quiet: tqdm = lambda x, *a, **k: x
+      for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          results[f.ijob] = f.result()
 
       # rp.dump(results, 'tmp.pickle')
       # results = rp.load('tmp.pickle')
       result = rp.concat_results(results)
-
+   print(result)
    # print(bodies)
    # result = rp.search.make_asym(
    #    [bodies[0][0], bodies[1][0]],
@@ -144,9 +168,11 @@ def dock_cyclic(hscore, **kw):
          ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
-      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+      if kw.quiet: tqdm = lambda x, *a, **k: x
+      for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
    result = rp.concat_results(result)
+   print(result)
 
    # result = rp.search.make_cyclic(body, architecture.upper(), hscore, **kw)
 
@@ -221,7 +247,8 @@ def dock_onecomp(hscore, **kw):
          ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
-      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+      if kw.quiet: tqdm = lambda x, *a, **k: x
+      for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
 
    result = rp.concat_results(result)
@@ -288,7 +315,8 @@ def dock_multicomp(hscore, **kw):
          ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
-      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+      if kw.quiet: tqdm = lambda x, *a, **k: x
+      for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
    result = rp.concat_results(result)
    return result
@@ -343,7 +371,8 @@ def dock_plug(hscore, **kw):
          ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
-      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+      if kw.quiet: tqdm = lambda x, *a, **k: x
+      for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
    result = rp.concat_results(result)
    return result
@@ -445,7 +474,8 @@ def dock_axle(hscore, **kw):
          ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
-      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+      if kw.quiet: tqdm = lambda x, *a, **k: x
+      for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
    result = rp.concat_results(result)
    return result
@@ -476,8 +506,10 @@ def dock_layer(hscore, **kw):
             **kw,
          ))
          futures[-1].ijob = ijob
+
       result = [None] * len(futures)
-      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+      if kw.quiet: tqdm = lambda x, *a, **k: x
+      for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
    result = rp.concat_results(result)
    return result
@@ -505,7 +537,8 @@ def dock_nside(hscore, **kw):
          ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
-      for f in tqdm.tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+      if kw.quiet: tqdm = lambda x, *a, **k: x
+      for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
    result = rp.concat_results(result)
    return result
@@ -531,7 +564,8 @@ def main():
    kw = get_rpxdock_args()
    logging.info(f'{" RUNNING dock.py:main ":=^80}')
    #logging.info(f'weights: {kw.wts}')
-   rp.options.print_options(kw)
+   if not kw.quiet:
+      rp.options.print_options(kw)
 
    hscore = rp.RpxHier(kw.hscore_files, **kw)
    arch = kw.architecture

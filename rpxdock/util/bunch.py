@@ -1,3 +1,3 @@
-from willutil import Bunch
+from willutil import Bunch, WARNME
 
-print('WARNING! rpxdock.util.bunch has been replaced with willutil.Bunch!!')
+# WARNME('WARNING! rpxdock.util.bunch has been replaced with willutil.Bunch!!')

@@ -323,7 +323,7 @@ py::tuple RC1H_get_state(RotCart1Hier<F, I> const &h) {
   return py::make_tuple(h.rot_lb_, h.rot_ub_, h.rot_cell_width_, h.rot_ncell_,
                         h.axis_, h.cart_lb_[0], h.cart_ub_[0], h.cart_bs_[0],
                         h.cart_cell_width_[0], h.cart_bs_pref_prod_[0],
-                        h.cart_ncell_, h.ncell_);
+                        h.cart_ncell_, h.ncell_, h.cartaxis_);
 }
 template <typename F, typename I> auto RC1H_set_state(py::tuple state) {
   auto h = std::make_unique<RotCart1Hier<F, I>>(0, 0, 0, 0, 0, 0); // dummy
@@ -331,7 +331,77 @@ template <typename F, typename I> auto RC1H_set_state(py::tuple state) {
   h->rot_ub_ = py::cast<F>(state[1]);
   h->rot_cell_width_ = py::cast<F>(state[2]);
   h->rot_ncell_ = py::cast<I>(state[3]);
-  h->axis_ = py::cast<V3<F>>(state[4]);
+  h->cart_lb_[0] = py::cast<F>(state[5]);
+  h->cart_ub_[0] = py::cast<F>(state[6]);
+  h->cart_bs_[0] = py::cast<I>(state[7]);
+  h->cart_cell_width_[0] = py::cast<F>(state[8]);
+  h->cart_bs_pref_prod_[0] = py::cast<I>(state[9]);
+  h->cart_ncell_ = py::cast<I>(state[10]);
+  h->ncell_ = py::cast<I>(state[11]);
+  h->cartaxis_ = py::cast<V3<F>>(state[12]);
+  return h;
+}
+
+template <typename F, typename I>
+void bind_RotCart1Hier(auto m, std::string name) {
+  using THIS = RotCart1Hier<F, I>;
+  py::class_<THIS>(m, name.c_str())
+      .def(py::init<F, F, I, F, F, I, V3<F>, V3<F>>(), "cartlb"_a, "cartub"_a,
+           "cartnc"_a, "rotlb"_a, "rotub"_a, "rotnc"_a,
+           "axis"_a = V3<F>(0, 0, 1), "cartaxis"_a = V3<F>(0, 0, 0))
+      .def("size", &THIS::size)
+      .def_readonly("rot_ncell", &THIS::rot_ncell_)
+      .def_readonly("cart_lb", &THIS::cart_lb_)
+      .def_readonly("cart_ub", &THIS::cart_ub_)
+      .def_readonly("cart_ncell", &THIS::cart_ncell_)
+      .def_readonly("cart_bs_", &THIS::cart_bs_)
+      .def_readonly("cart_cell_width_", &THIS::cart_cell_width_)
+      .def_readonly("cart_bs_pref_prod_", &THIS::cart_bs_pref_prod_)
+      .def_readonly("rot_lb", &THIS::rot_lb_)
+      .def_readonly("rot_ub", &THIS::rot_ub_)
+      .def_readonly("rot_ncell", &THIS::rot_ncell_)
+      .def_readonly("rot_cell_width", &THIS::rot_cell_width_)
+      .def_readonly("axis", &THIS::axis_)
+      .def_readonly("cartaxis", &THIS::cartaxis_)
+      .def_readonly("ncell", &THIS::ncell_)
+      .def_property_readonly("dim", &THIS::dim)
+      .def("sanity_check", &THIS::sanity_check)
+      .def("cell_index_of", py::vectorize(&THIS::cell_index_of))
+      .def("hier_index_of", py::vectorize(&THIS::hier_index_of))
+      .def("parent_of", py::vectorize(&THIS::parent_of))
+      .def("child_of_begin", py::vectorize(&THIS::child_of_begin))
+      .def("child_of_end", py::vectorize(&THIS::child_of_end))
+      .def("get_xforms", &get_xforms<THIS, F, I>, "iresl"_a, "idx"_a)
+      .def("expand_top_N", expand_top_N_pairs<THIS, F, I>, "nkeep"_a, "resl"_a,
+           "score_idx"_a, "null_val"_a = 0)
+      .def("expand_top_N", expand_top_N_separate<THIS, F, I>, "nkeep"_a,
+           "resl"_a, "score"_a, "index"_a, "null_val"_a = 0)
+      .def(py::pickle([](const THIS &h) { return RC1H_get_state<F, I>(h); },
+                      [](py::tuple t) { return RC1H_set_state<F, I>(t); }))
+
+      /**/;
+}
+
+template <typename F, typename I>
+py::tuple RC3H_get_state(RotCart3Hier<F, I> const &h) {
+  return py::make_tuple(h.rot_lb_, h.rot_ub_, h.rot_cell_width_, h.rot_ncell_,
+                        h.axis_, h.cart_lb_[0], h.cart_ub_[0], h.cart_bs_[0],
+                        h.cart_cell_width_[0], h.cart_bs_pref_prod_[0],
+                        h.cart_ncell_, h.ncell_);
+}
+template <typename F, typename I> auto RC3H_set_state(py::tuple state) {
+  using F3 = Eigen::Matrix<F, 3, 1>;
+  using I3 = Eigen::Matrix<I, 3, 1>;
+  F3 cartlb(0, 0, 0);
+  F3 cartub(0, 0, 0);
+  I3 cartbs(0, 0, 0);
+  F3 axis(0, 0, 0);
+  auto h = std::make_unique<RotCart3Hier<F, I>>(cartlb, cartub, cartbs, F(0),
+                                                F(0), I(0), axis); // dummy
+  h->rot_lb_ = py::cast<F>(state[0]);
+  h->rot_ub_ = py::cast<F>(state[1]);
+  h->rot_cell_width_ = py::cast<F>(state[2]);
+  h->rot_ncell_ = py::cast<I>(state[3]);
   h->cart_lb_[0] = py::cast<F>(state[5]);
   h->cart_ub_[0] = py::cast<F>(state[6]);
   h->cart_bs_[0] = py::cast<I>(state[7]);
@@ -343,11 +413,11 @@ template <typename F, typename I> auto RC1H_set_state(py::tuple state) {
 }
 
 template <typename F, typename I>
-void bind_RotCart1Hier(auto m, std::string name) {
-  using THIS = RotCart1Hier<F, I>;
+void bind_RotCart3Hier(auto m, std::string name) {
+  using THIS = RotCart3Hier<F, I>;
   py::class_<THIS>(m, name.c_str())
-      .def(py::init<F, F, I, F, F, I, V3<F>>(), "cartlb"_a, "cartub"_a,
-           "cartnc"_a, "rotlb"_a, "rotub"_a, "rotnc"_a,
+      .def(py::init<V3<F>, V3<F>, V3<I>, F, F, I, V3<F>>(), "cartlb"_a,
+           "cartub"_a, "cartnc"_a, "rotlb"_a, "rotub"_a, "rotnc"_a,
            "axis"_a = V3<F>(0, 0, 1))
       .def("size", &THIS::size)
       .def_readonly("rot_ncell", &THIS::rot_ncell_)
@@ -375,8 +445,8 @@ void bind_RotCart1Hier(auto m, std::string name) {
            "score_idx"_a, "null_val"_a = 0)
       .def("expand_top_N", expand_top_N_separate<THIS, F, I>, "nkeep"_a,
            "resl"_a, "score"_a, "index"_a, "null_val"_a = 0)
-      .def(py::pickle([](const THIS &h) { return RC1H_get_state<F, I>(h); },
-                      [](py::tuple t) { return RC1H_set_state<F, I>(t); }))
+      .def(py::pickle([](const THIS &h) { return RC3H_get_state<F, I>(h); },
+                      [](py::tuple t) { return RC3H_set_state<F, I>(t); }))
 
       /**/;
 }
@@ -546,6 +616,8 @@ PYBIND11_MODULE(xform_hierarchy, m) {
 
   bind_RotCart1Hier<double, uint64_t>(m, "RotCart1Hier_f8");
   bind_RotCart1Hier<float, uint64_t>(m, "RotCart1Hier_f4");
+  bind_RotCart3Hier<double, uint64_t>(m, "RotCart3Hier_f8");
+  bind_RotCart3Hier<float, uint64_t>(m, "RotCart3Hier_f4");
 
   bind_XformHier<double, uint64_t>(m, "f8");
   bind_XformHier<float, uint64_t>(m, "f4");

@@ -129,6 +129,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       kw = self.kw.sub(wts=wts)
       xeye = np.eye(4, dtype="f4")
       B = self.bodies
+      kw.mindis = [5, 3, 2, 1.5, 1.5, 1.5, 1.5][iresl]
       # print(f"docking {len(B)} bodies")
       X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
       xnbr = self.spec.to_neighbor_olig
@@ -202,12 +203,10 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
                if i == j:
                   logging.debug("found self")
                   Xsym = self.spec.to_neighbor_olig @ X
-                  s_ifscore.append(
-                     self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, **kw))
+                  s_ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, **kw))
                else:
                   ns_ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], X[ok, i], iresl, **kw))
-                  s_ifscore.append(
-                     self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, **kw))
+                  s_ifscore.append(self.hscore.scorepos(B[j], B[i], X[ok, j], Xsym[ok, i], iresl, **kw))
          logging.debug(f"self scores is length {len(s_ifscore[0])}")
          logging.debug(f"non-self scores is length {len(ns_ifscore[0])}")
          logging.debug(f"OK len is {len(ok)}")

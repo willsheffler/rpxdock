@@ -81,7 +81,9 @@ def filter_redundancy(xforms, body, scores=None, categories=None, every_nth=10, 
    # sneaky way to do categories
    # crd += categories[:,None] * 1_000_000
 
+   ic(crd.shape, np.sqrt(ncen), kw.max_bb_redundancy)
    keep, clustid = rp.cluster.cookie_cutter(crd, kw.max_bb_redundancy * np.sqrt(ncen))
+   ic(keep.shape)
    assert len(np.unique(keep)) == len(keep)
 
    # log.info(f'filter_redundancy {kw.max_bb_redundancy}A Nmax {nclust} ' + f'Ntotal {len(ibest)} Nkeep {len(keep)}')

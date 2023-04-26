@@ -54,6 +54,8 @@ def make_asym(bodies, hscore, sampler, search=hier_search, frames=None, x2asymce
       else:
          ibest = rp.filter_redundancy(xforms, bodies[0][0], scores, **kw)
 
+   ic(np.sum(scores > 0), len(ibest))
+
    if frames is not None:
       if 'filter_sscount' in kw:
          # ic(bodies)
@@ -89,8 +91,9 @@ def make_asym(bodies, hscore, sampler, search=hier_search, frames=None, x2asymce
       scores=(["model"], scores[ibest].astype("f4")),
       xforms=(["model", "hrow", "hcol"], xforms),
    )
-   if 'reslb' in extra: result['reslb'] = (["model"], extra.reslb)
-   if 'resub' in extra: result['resub'] = (["model"], extra.resub)
+   if 'reslb' in extra: result['reslb'] = (["model"], extra.reslb[ibest])
+   if 'resub' in extra: result['resub'] = (["model"], extra.resub[ibest])
+
    return rp.Result(**result)
 
 class AsymFramesEvaluator:
@@ -141,6 +144,7 @@ class AsymFramesEvaluator:
    def __call__(self, xforms, iresl=-1, wts={}, **kw):
       kw = self.kw.sub(wts=wts)
       xforms = xforms.reshape(-1, 4, 4)
+      kw.mindis = [5, 3, 2, 1.5, 1.5, 1.5, 1.5][iresl]
 
       ok = np.ones(len(xforms), dtype=np.bool)
       if self.limit_rotation > 0:
@@ -155,7 +159,6 @@ class AsymFramesEvaluator:
 
       xasym = wu.hinv(self.x2asymcen) @ xforms @ self.x2asymcen
 
-      clashdist = [5, 3, 2, 1.5, 1.5, 1.5, 1.5][iresl]
       # clashdist = [5, 3, 2, 2, 2, 2, 2][iresl]
       # clashdist = [1, 1, 1, 1, 1, 1, 1][iresl]
       # clashdist = [4, 1, 1, 1, 1, 1, 1][iresl]
@@ -164,7 +167,6 @@ class AsymFramesEvaluator:
             self.bodies0[0],
             self.frames[0] @ xasym[ok],
             xframe @ xasym[ok],
-            mindis=clashdist,
             **kw,
          )
          if np.sum(ok) == 0:
@@ -222,6 +224,7 @@ class AsymEvaluator:
       xeye = np.eye(4, dtype="f4")
       body1, body2 = self.bodies
       xforms = xforms.reshape(-1, 4, 4)
+      kw.mindis = [5, 3, 2, 1.5, 1.5, 1.5, 1.5][iresl]
 
       # check clash, or get non-clash range
       if kw.max_trim > 0:

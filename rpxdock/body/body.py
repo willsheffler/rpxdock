@@ -57,7 +57,6 @@ class Body:
    @wu.timed
    def set_pose_info(self, source, sym, extract_chain=None, userosetta=True, **kw):
       # pose stuff
-      assert not userosetta
       if userosetta:
          try:
             import rpxdock.rosetta.triggers_init as ros
@@ -152,7 +151,6 @@ class Body:
       # ic('rosetta', self.coord.shape)
       # else:
       # self.coord = pose.bb()
-      assert not userosetta
       self.set_asym_body(pose, sym, userosetta=userosetta, **kw)
       return pose
 
@@ -216,7 +214,6 @@ class Body:
       if ignored_aas is None:
          # ic(self.ignored_aas)
          ignored_aas = self.ignored_aas if hasattr(self, 'ignored_aas') else 'CGP'
-      assert ignored_aas == 'CP'
 
       if isinstance(sym, np.ndarray):
          assert len(sym) == 1
@@ -325,8 +322,6 @@ class Body:
 
    def set_asym_body(self, pose, sym, **kw):
       kw = wu.Bunch(kw)
-      assert not kw.userosetta
-      assert kw.dont_use_rosetta
       if isinstance(sym, int): sym = "C%i" % sym
       self.asym_body = self
       if sym != "C1":

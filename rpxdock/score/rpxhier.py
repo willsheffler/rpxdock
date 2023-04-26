@@ -112,7 +112,9 @@ class RpxHier:
 
       kw = wu.Bunch(kw, _strict=False)
       origshape = pos1.shape[:-2]
-      assert pos1.shape[:-2] == pos2.shape[:-2]
+      # ic(pos1.shape)
+      # ic(pos2.shape)
+      # assert pos1.shape[:-2] == pos2.shape[:-2]
       pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
 
       # docks we don't need to score because we already know they are bad

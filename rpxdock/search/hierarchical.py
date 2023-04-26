@@ -26,8 +26,7 @@ def hier_search(sampler, evaluator, **kw):
       indices, xforms = expand_samples(iresl, sampler, indices, scores, **kw)
       scores, extra, t = rp.search.evaluate_positions(**kw.sub(vars()))
       neval.append((t, len(scores)))
-      log.info(f"{kw.output_prefix} iresl {iresl} ntot {len(scores):11,} " +
-               f"nonzero {np.sum(scores > 0):5,}")
+      log.info(f"{kw.output_prefix} iresl {iresl} ntot {len(scores):11,} " + f"nonzero {np.sum(scores > 0):5,}")
    #Uncomment to dump docking metrics at each resolution level of the search.
    """
       iresl_list.append(iresl)
@@ -141,8 +140,8 @@ def tccage_slide_hier_depricated(spec, body1, body2, base_resl=16, nstep=5, base
    samples, newresl = tccage_slide_hier_samples_depricated(spec, resl=base_resl, **kw)
    nsamp = [np.prod([len(s) for s in samples])]
    for i in range(nstep):
-      npair[i], pos[i] = rp.search.gridslide.find_connected_2xCyclic_slide(
-         spec, body1, body2, samples, min_contacts=mct[-1], **kw)
+      npair[i], pos[i] = rp.search.gridslide.find_connected_2xCyclic_slide(spec, body1, body2, samples,
+                                                                           min_contacts=mct[-1], **kw)
       if len(npair[i]) == 0:
          return npair[i - 1], pos[i - 1]
       if i + 1 < nstep:

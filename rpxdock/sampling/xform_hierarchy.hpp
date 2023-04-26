@@ -572,13 +572,17 @@ struct RotCart1Hier : public RotHier<F, I>, public CartHier<1, F, I> {
   using X = X3<F>;
 
   I ncell_;
+  V3<F> cartaxis_;
 
   RotCart1Hier(F cartlb, F cartub, I cartnc, F rotlb, F rotub, I rotnc,
-               V3<F> axis = V3<F>(0, 0, 1))
+               V3<F> axis = V3<F>(0, 0, 1), V3<F> cartaxis = V3<F>(0, 0, 0))
       : RotHier<F, I>(rotlb, rotub, rotnc, axis), CartHier<CART_DIM, F, I>(
                                                       F1(cartlb), F1(cartub),
                                                       I1(cartnc)) {
     ncell_ = this->cart_ncell_ * this->rot_ncell_;
+    if (cartaxis[0] == 0 && cartaxis[1] == 0 && cartaxis[2] == 0)
+      cartaxis = axis;
+    cartaxis_ = cartaxis;
   }
   bool sanity_check() const {
     bool pass = true;
@@ -620,7 +624,79 @@ struct RotCart1Hier : public RotHier<F, I>, public CartHier<1, F, I> {
       return false;
     value = X(m);
     for (int i = 0; i < 3; ++i)
-      value.translation()[i] = v[0] * this->axis_[i];
+      value.translation()[i] = v[0] * this->cartaxis_[i];
+    return true;
+  }
+};
+
+template <typename F = double, typename I = uint64_t>
+struct RotCart3Hier : public RotHier<F, I>, public CartHier<3, F, I> {
+  static I const FULL_DIM = 4;
+  int dim() const { return FULL_DIM; }
+  static I const ORI_DIM = 1;
+  static I const CART_DIM = 3;
+  static I const MAX_RESL_ONE_CELL = sizeof(I) * 8 / FULL_DIM;
+  static I const ONE = 1;
+  static I const NEXPAND = (ONE << FULL_DIM);
+
+  using F2 = V2<F>;
+  using F3 = V3<F>;
+  using I3 = V3<I>;
+  using X = X3<F>;
+
+  I ncell_;
+
+  RotCart3Hier(F3 cartlb, F3 cartub, I3 cartnc, F rotlb, F rotub, I rotnc,
+               V3<F> axis = V3<F>(0, 0, 1))
+      : RotHier<F, I>(rotlb, rotub, rotnc, axis), CartHier<CART_DIM, F, I>(
+                                                      cartlb, cartub, cartnc) {
+    ncell_ = this->cart_ncell_ * this->rot_ncell_;
+  }
+  bool sanity_check() const {
+    bool pass = true;
+    pass &= CartHier<CART_DIM, F, I>::sanity_check();
+    return pass;
+  }
+
+  I size(I resl) const { return ncell_ * ONE << (FULL_DIM * resl); }
+  I cell_index_of(I resl, I index) const { return index >> (FULL_DIM * resl); }
+  I hier_index_of(I resl, I index) const {
+    return index & ((ONE << (FULL_DIM * resl)) - 1);
+  }
+  I parent_of(I index) const { return index >> FULL_DIM; }
+  I child_of_begin(I index) const { return index << FULL_DIM; }
+  I child_of_end(I index) const { return (index + 1) << FULL_DIM; }
+
+  bool get_value(I resl, I index, X &xform) const {
+    assert(resl <= MAX_RESL_ONE_CELL); // not rigerous check if Ncells > 1
+    if (index >= size(resl))
+      return false;
+    I cell_index = cell_index_of(resl, index);
+    I hier_index = hier_index_of(resl, index);
+    F scale = 1.0 / F(ONE << resl);
+    F2 params;
+    for (size_t i = 0; i < FULL_DIM; ++i) {
+      I undilated = util::undilate<FULL_DIM>(hier_index >> i);
+      params[i] = (static_cast<F>(undilated) + 0.5) * scale;
+    }
+    return this->params_to_value(params, cell_index, resl, xform);
+  }
+  bool params_to_value(F2 params, I cell_index, I resl, X &value) const {
+    I cori = cell_index % this->rot_ncell_;
+    I ctrans = cell_index / this->rot_ncell_;
+    F3 ptrans;
+    ptrans[0] = params[1];
+    ptrans[1] = params[2];
+    ptrans[2] = params[3];
+    M3<F> m;
+    F3 v;
+    bool valid = this->ori_params_to_value(params[0], cori, resl, m);
+    valid &= this->trans_params_to_value(F3(ptrans), ctrans, resl, v);
+    if (!valid)
+      return false;
+    value = X(m);
+    for (int i = 0; i < 3; ++i)
+      value.translation()[i] = v[i];
     return true;
   }
 };

@@ -14,8 +14,16 @@
 				"shell_cmd" : "cd $folder; CC='ccache gcc' PYTHONPATH=. python rpxdock/app/genrate_motif_scores.py TEST &> sublime_build.log"
 			},
 			{
+				"name": "test_asym",
+				"shell_cmd" : "cd /home/sheffler/project/rpxcycasym/test2; rm -f *.pdb; CC='ccache gcc' PYTHONPATH=$folder python $folder/rpxdock/app/dock.py --architecture asym --recenter_input --dont_use_rosetta --inputs1 /home/sheffler/src/rpxdock_master/rpxdock/data/pdb/C3_1na0-1_1.pdb.gz  --inputs2 /home/sheffler/src/rpxdock_master/rpxdock/data/pdb/dhr64.pdb.gz  --hscore_files ilv_h --nout_top 100 --cart_bounts -200 200 --quiet --overwrite_existing_results --disable_rotation --dump_pdbs &> $folder/sublime_build.log"
+			},
+			{
+				"name": "test_cyclic",
+				"shell_cmd" : "cd /home/sheffler/project/rpxcycasym/test1; rm -f *.pdb; CC='ccache gcc' PYTHONPATH=$folder python $folder/rpxdock/app/dock.py --architecture c3 --recenter_input --dont_use_rosetta --inputs1 $folder/rpxdock/data/pdb/C3_1na0-1_1.pdb.gz --hscore_files ilv_h --nout_top 50 --quiet --overwrite_existing_results --limit_rotation_to_z --max_bb_redundancy 1.0 --dump_pdbs &> $folder/sublime_build.log"
+			},
+			{
 				"name": "test_1comp_xtal",
-				"shell_cmd" : "cd /home/sheffler/project/rpxtal; CC='ccache gcc' PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --inputs1 inputs/C3_i213_diffusion_nres100_0055_0141_model_4_ptm_seed_0_unrelaxed.pdb --hscore_files ilv_h &> $folder/sublime_build.log"
+				"shell_cmd" : "cd /home/sheffler/project/rpxtal; CC='ccache gcc' PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --inputs1 inputs/C3_i213_diffusion_nres100_0055_0141_model_4_ptm_seed_0_unrelaxed.pdb --hscore_files ilv_h/1000 &> $folder/sublime_build.log"
 			},
 		   	{ 
 				"name": "test_cage",
@@ -39,10 +47,6 @@
 		   	{
 				"name": "test_homog",
 				"shell_cmd" : "cd $folder; python rpxdock/tests/test_homog.py &> sublime_build.log"
-			},
-		   	{
-				"name": "test_asym",
-				"shell_cmd" : "cd $folder; rm -f *.pdb; PYTHONPATH=. python rpxdock/tests/search/test_asym.py &> sublime_build.log"
 			},
 		   	{
 				"name": "test_asudock", 

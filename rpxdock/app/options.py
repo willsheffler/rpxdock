@@ -141,6 +141,8 @@ def default_cli_parser(parent=None, **kw):
           help='reduce runtime by using minimal samples, smaller score files, etc.')
    addarg("--verbose", action="store_true", default=False,
           help='extra debugging output, use/respect of this is sporadic in the code')
+   addarg("--quiet", action="store_true", default=False,
+          help='less output, use/respect of this is sporadic in the code')
    addarg(
       "--hscore_files", nargs="+", default=['ilv_h'],
       help='rpx score files using in scoring for most protocols. defaults to pairs involving only ILV and only in helices. Can be only a path-suffix, which will be appended to --hscore_data_dir. Can be a list of files. Score files with various parameters can be generated with rpxdock/app/genrate_motif_scores.py.'
@@ -372,6 +374,14 @@ def default_cli_parser(parent=None, **kw):
 
    addarg("--limit_rotation", type=float, default=9e9, help='limit sampling to rotations less than X radians')
    addarg("--dont_use_rosetta", action='store_true', help='don\'t use pyrosetta')
+
+   addarg("--mc_dump_initial_samples", action='store_true', help='have mcdock dump initial sample positions and stop')
+   addarg('--mc_ntrials', default=1000, type=int, help='number of monte-carlo iterations')
+   addarg('--mc_nruns', default=13, type=int, help='number of monte-carlo runs')
+
+   addarg('--limit_rotation_to_z', action='store_true',
+          help='for cyclic and asym, limit orientation sampling to rotations around z')
+   addarg('--disable_rotation', action='store_true', help='for cyclic and asym, disable all rotation')
 
    parser.has_rpxdock_args = True
    return parser
