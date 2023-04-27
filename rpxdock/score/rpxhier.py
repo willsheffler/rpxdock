@@ -111,14 +111,14 @@ class RpxHier:
    ):
 
       kw = wu.Bunch(kw, _strict=False)
-      origshape = pos1.shape[:-2]
+      origshape = pos1.shape[:-2] if pos1.ndim > pos2.ndim else pos2.shape[:-2]
       # ic(pos1.shape)
       # ic(pos2.shape)
       # assert pos1.shape[:-2] == pos2.shape[:-2]
       pos1, pos2 = pos1.reshape(-1, 4, 4), pos2.reshape(-1, 4, 4)
 
       # docks we don't need to score because we already know they are bad
-      excluded = np.zeros(len(pos1), dtype='?')
+      excluded = np.zeros(max(len(pos1), len(pos2)), dtype='?')
       if termini_max_dist < 9e8 and not bounds:
          tmindis = np.ones(len(pos1)) * 9e9
          for term1, term2 in it.chain(it.product(body1.nterms, body2.cterms), it.product(body1.cterms, body2.nterms)):

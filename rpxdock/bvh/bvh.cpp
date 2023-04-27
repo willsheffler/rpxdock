@@ -37,27 +37,21 @@ namespace py = pybind11;
 
 namespace Eigen {
 
-template <class F>
-struct PtIdx {
+template <class F> struct PtIdx {
   PtIdx() : pos(0), idx(0) {}
   PtIdx(V3<F> v, int i = 0) : pos(v), idx(i) {}
   V3<F> pos;
   int idx;
 };
-template <typename F>
-auto bounding_vol(V3<F> v) {
-  return Sphere<F>(v);
-}
-template <typename F>
-auto bounding_vol(PtIdx<F> v) {
+template <typename F> auto bounding_vol(V3<F> v) { return Sphere<F>(v); }
+template <typename F> auto bounding_vol(PtIdx<F> v) {
   auto s = Sphere<F>(v.pos);
   s.lb = s.ub = v.idx;
   return s;
 }
-}  // namespace Eigen
+} // namespace Eigen
 
-template <typename F>
-using BVH = rpxdock::bvh::SphereBVH<F, PtIdx<F>>;
+template <typename F> using BVH = rpxdock::bvh::SphereBVH<F, PtIdx<F>>;
 using BVHf = BVH<float>;
 using BVHd = BVH<double>;
 
@@ -66,41 +60,41 @@ namespace bvh {
 
 using namespace rpxdock::util;
 
-template <typename F>
-int bvh_max_id(BVH<F> const &bvh) {
+template <typename F> int bvh_max_id(BVH<F> const &bvh) {
   int x = 0;
-  for (auto o : bvh.objs) x = std::max(x, o.idx);
+  for (auto o : bvh.objs)
+    x = std::max(x, o.idx);
   return x;
 }
 
-template <typename F>
-int bvh_min_lb(BVH<F> const &bvh) {
+template <typename F> int bvh_min_lb(BVH<F> const &bvh) {
   int x = 0;
-  for (auto v : bvh.vols) x = std::min(x, v.lb);
+  for (auto v : bvh.vols)
+    x = std::min(x, v.lb);
   return x;
 }
-template <typename F>
-int bvh_max_ub(BVH<F> const &bvh) {
+template <typename F> int bvh_max_ub(BVH<F> const &bvh) {
   int x = 0;
-  for (auto v : bvh.vols) x = std::max(x, v.ub);
+  for (auto v : bvh.vols)
+    x = std::max(x, v.ub);
   return x;
 }
-template <typename F>
-Vx<int> bvh_obj_ids(BVH<F> const &bvh) {
+template <typename F> Vx<int> bvh_obj_ids(BVH<F> const &bvh) {
   Vx<int> x(bvh.objs.size());
-  for (int i = 0; i < x.size(); ++i) x[i] = bvh.objs[i].idx;
+  for (int i = 0; i < x.size(); ++i)
+    x[i] = bvh.objs[i].idx;
   return x;
 }
-template <typename F>
-Vx<int> bvh_vol_lbs(BVH<F> const &bvh) {
+template <typename F> Vx<int> bvh_vol_lbs(BVH<F> const &bvh) {
   Vx<int> x(bvh.vols.size());
-  for (int i = 0; i < x.size(); ++i) x[i] = bvh.vols[i].lb;
+  for (int i = 0; i < x.size(); ++i)
+    x[i] = bvh.vols[i].lb;
   return x;
 }
-template <typename F>
-Vx<int> bvh_vol_ubs(BVH<F> const &bvh) {
+template <typename F> Vx<int> bvh_vol_ubs(BVH<F> const &bvh) {
   Vx<int> x(bvh.vols.size());
-  for (int i = 0; i < x.size(); ++i) x[i] = bvh.vols[i].ub;
+  for (int i = 0; i < x.size(); ++i)
+    x[i] = bvh.vols[i].ub;
   return x;
 }
 
@@ -122,7 +116,8 @@ std::unique_ptr<BVH<F>> bvh_create(Mx<F> coords, Vx<bool> which, Vx<int> ids) {
 
   for (int i = 0; i < coords.rows(); ++i) {
     // std::cout << "mask " << i << " " << ptrw[i] << std::endl;
-    if (which.size() > 0 && !which[i]) continue;
+    if (which.size() > 0 && !which[i])
+      continue;
     int id = ids.size() == 0 ? i : ids[i];
     holder.push_back(PtIdx<F>(coords.row(i), id));
   }
@@ -135,8 +130,7 @@ std::unique_ptr<BVH<F>> bvh_create(Mx<F> coords, Vx<bool> which, Vx<int> ids) {
   return bvh;
 }
 
-template <typename F>
-struct BVHMinDistOne {
+template <typename F> struct BVHMinDistOne {
   using Scalar = F;
   int idx = -1;
   F minval = 9e9;
@@ -152,8 +146,7 @@ struct BVHMinDistOne {
     return v;
   }
 };
-template <typename F>
-py::tuple bvh_min_dist_one(BVH<F> &bvh, V3<F> pt) {
+template <typename F> py::tuple bvh_min_dist_one(BVH<F> &bvh, V3<F> pt) {
   int idx;
   F result;
   {
@@ -165,8 +158,7 @@ py::tuple bvh_min_dist_one(BVH<F> &bvh, V3<F> pt) {
   return py::make_tuple(result, idx);
 }
 
-template <typename F>
-struct BVHMinDistQuery {
+template <typename F> struct BVHMinDistQuery {
   using Scalar = F;
   using Xform = X3<F>;
   int idx1 = -1, idx2 = -1;
@@ -195,8 +187,7 @@ struct BVHMinDistQuery {
   }
 };
 
-template <typename F>
-py::tuple bvh_min_dist_fixed(BVH<F> &bvh1, BVH<F> &bvh2) {
+template <typename F> py::tuple bvh_min_dist_fixed(BVH<F> &bvh1, BVH<F> &bvh2) {
   BVHMinDistQuery<F> minimizer;
   auto result = rpxdock::bvh::BVMinimize(bvh1, bvh2, minimizer);
   return py::make_tuple(result, minimizer.idx1, minimizer.idx2);
@@ -239,8 +230,7 @@ py::tuple bvh_min_dist_vec(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
   }
   return py::make_tuple(*mindis, *idx1, *idx2);
 }
-template <typename F>
-F naive_min_dist_fixed(BVH<F> &bvh1, BVH<F> &bvh2) {
+template <typename F> F naive_min_dist_fixed(BVH<F> &bvh1, BVH<F> &bvh2) {
   F mind2 = 9e9;
   for (auto o1 : bvh1.objs) {
     for (auto o2 : bvh2.objs) {
@@ -262,8 +252,7 @@ F naive_min_dist(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2) {
   return std::sqrt(mind2);
 }
 
-template <typename F>
-struct BVHIsectQuery {
+template <typename F> struct BVHIsectQuery {
   using Scalar = F;
   using Xform = X3<F>;
   BVHIsectQuery(F r, Xform x = Xform::Identity())
@@ -299,7 +288,8 @@ bool naive_isect_fixed(BVH<F> &bvh1, BVH<F> &bvh2, F thresh) {
   for (auto o1 : bvh1.objs) {
     for (auto o2 : bvh2.objs) {
       auto d2 = (o1.pos - o2.pos).squaredNorm();
-      if (d2 < dist2) return true;
+      if (d2 < dist2)
+        return true;
     }
   }
   return false;
@@ -345,13 +335,15 @@ bool naive_isect(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
   auto vol2 = bvh2.getVolume(bvh2.getRootIndex());
   vol1.cen = x1 * vol1.cen;
   vol2.cen = x2 * vol2.cen;
-  if (!vol1.contact(vol2, mindist)) return false;
+  if (!vol1.contact(vol2, mindist))
+    return false;
 
   // all pairs
   for (auto o1 : bvh1.objs) {
     for (auto o2 : bvh2.objs) {
       auto d2 = (o1.pos - pos * o2.pos).squaredNorm();
-      if (d2 < dist2) return true;
+      if (d2 < dist2)
+        return true;
     }
   }
   return false;
@@ -359,17 +351,11 @@ bool naive_isect(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
 
 /////////////////////////////////////////////////////////
 
-template <typename F>
-struct BVHIsectFixedRangeQuery {
+template <typename F> struct BVHIsectFixedRangeQuery {
   using Scalar = F;
   using Xform = X3<F>;
   BVHIsectFixedRangeQuery(F r, Xform x, int _lb1, int _ub1, int _lb2, int _ub2)
-      : rad(r),
-        rad2(r * r),
-        bXa(x),
-        lb1(_lb1),
-        ub1(_ub1),
-        lb2(_lb2),
+      : rad(r), rad2(r * r), bXa(x), lb1(_lb1), ub1(_ub1), lb2(_lb2),
         ub2(_ub2) {}
   bool intersectVolumeVolume(Sphere<F> vol1, Sphere<F> vol2) {
     // if (vol1.ub < lb1 || vol1.lb > ub1 || vol2.ub < lb2 || vol2.lb > ub2)
@@ -459,8 +445,7 @@ At the highest level of bounding volume, at the lowest resolution
 Next, check children, which checks for "touching points" at higher resolution
 
 */
-template <typename F>
-struct BVHIsectRange {
+template <typename F> struct BVHIsectRange {
   using Scalar = F;
   using Xform = X3<F>;
   F rad = 0, rad2 = 0;
@@ -470,10 +455,12 @@ struct BVHIsectRange {
   BVHIsectRange(F r, Xform x, int _ub, int _mid = -1, int maxtrim = -1,
                 int maxtrim_lb = -1, int maxtrim_ub = -1, int _nasym1 = -1)
       : rad(r), rad2(r * r), bXa(x), mid(_mid), ub(_ub), nasym1(_nasym1) {
-    if (nasym1 < 0) nasym1 = ub + 1;
+    if (nasym1 < 0)
+      nasym1 = ub + 1;
     ub = nasym1 - 1;
     max_lb = ub;
-    if (mid < 0) mid = ub / 2;
+    if (mid < 0)
+      mid = ub / 2;
 
     if (maxtrim_lb >= 0 && maxtrim_ub >= 0) {
       maxtrim = maxtrim == -1 ? maxtrim_lb + maxtrim_ub : maxtrim;
@@ -524,13 +511,15 @@ struct BVHIsectRange {
     // B is side getting trimmed
     // if lowest res# in BV > current ub or ub res# in BV < current lb; BV is
     // done; don't do anything. basically out of range
-    if (vol1.lb % nasym1 > ub || vol1.ub % nasym1 < lb) return false;
+    if (vol1.lb % nasym1 > ub || vol1.ub % nasym1 < lb)
+      return false;
     return vol1.signdis(bXa * obj2.pos) < rad;
   }
   bool intersectObjectVolume(PtIdx<F> obj1, Sphere<F> vol2) {
     // atom and BV; trim obj is obj1 (A side)
     // return False / keep going if already trimmed
-    if (obj1.idx % nasym1 > ub || obj1.idx % nasym1 < lb) return false;
+    if (obj1.idx % nasym1 > ub || obj1.idx % nasym1 < lb)
+      return false;
     return (bXa * vol2).signdis(obj1.pos) < rad;
   }
   bool intersectObjectObject(PtIdx<F> obj1, PtIdx<F> obj2) {
@@ -579,7 +568,8 @@ py::tuple isect_range(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
   auto ub = std::make_unique<Vx<int>>();
   {
     py::gil_scoped_release release;
-    if (nasym1 < 0) nasym1 = bvh_max_id(bvh1) + 1;
+    if (nasym1 < 0)
+      nasym1 = bvh_max_id(bvh1) + 1;
     size_t n = std::max(x1.size(), x2.size());
     lb->resize(n);
     ub->resize(n);
@@ -606,7 +596,8 @@ py::tuple isect_range_single(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
   int lb, ub;
   {
     py::gil_scoped_release release;
-    if (nasym1 < 0) nasym1 = bvh_max_id(bvh1) + 1;
+    if (nasym1 < 0)
+      nasym1 = bvh_max_id(bvh1) + 1;
     X3<F> x1(pos1), x2(pos2);
     BVHIsectRange<F> query(mindist, x1.inverse() * x2, bvh_max_id(bvh1), -1,
                            maxtrim, maxtrim_lb, maxtrim_ub, nasym1);
@@ -642,8 +633,7 @@ py::tuple naive_isect_range(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
   return py::make_tuple(lb, ub);
 }
 
-template <typename F>
-struct BVMinAxis {
+template <typename F> struct BVMinAxis {
   using Scalar = F;
   using Xform = X3<F>;
   Xform bXa = Xform::Identity();
@@ -674,7 +664,8 @@ struct BVMinAxis {
     F d_parallel_start = hypot_start.dot(dirn);
     F d_perpendicular_sq = hypot_start.squaredNorm() - square(d_parallel_start);
     F d_hypot_stop_sq = square(rad1 + rad2);
-    if (d_hypot_stop_sq < d_perpendicular_sq) return 9e9;  // miss
+    if (d_hypot_stop_sq < d_perpendicular_sq)
+      return 9e9; // miss
     F d_parallel_stop = std::sqrt(d_hypot_stop_sq - d_perpendicular_sq);
     F moveby = d_parallel_start - d_parallel_stop;
     // V3<F> cnew = cen1 + moveby * dirn;
@@ -714,8 +705,7 @@ Vx<F> bvh_slide_vec(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
   return slides;
 }
 
-template <typename F>
-struct BVHCountPairs {
+template <typename F> struct BVHCountPairs {
   using Scalar = F;
   using Xform = X3<F>;
   F mindis = 0.0, mindis2 = 0.0;
@@ -733,7 +723,8 @@ struct BVHCountPairs {
   }
   bool intersectObjectObject(PtIdx<F> obj1, PtIdx<F> obj2) {
     bool isect = (obj1.pos - bXa * obj2.pos).squaredNorm() < mindis2;
-    if (isect) nout++;
+    if (isect)
+      nout++;
     return false;
   }
 };
@@ -758,7 +749,8 @@ Vx<int> bvh_count_pairs_vec(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
   py::gil_scoped_release release;
   size_t n = std::max(x1.size(), x2.size());
   Vx<int> npair(n);
-  for (size_t i = 0; i < x1.size(); ++i) {
+  npair.fill(-123456789);
+  for (size_t i = 0; i < n; ++i) {
     size_t i1 = x1.size() == 1 ? 0 : i;
     size_t i2 = x2.size() == 1 ? 0 : i;
     X3<F> pos = x1[i1].inverse() * x2[i2];
@@ -768,8 +760,7 @@ Vx<int> bvh_count_pairs_vec(BVH<F> &bvh1, BVH<F> &bvh2, py::array_t<F> pos1,
   }
   return npair;
 }
-template <typename F>
-struct BVHCollectPairs {
+template <typename F> struct BVHCollectPairs {
   using Scalar = F;
   using Xform = X3<F>;
   F mindis = 0.0, mindis2 = 0.0;
@@ -855,7 +846,8 @@ int naive_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
     auto vol2 = bvh1.getVolume(ridx2);
     vol1.cen = x1 * vol1.cen;
     vol2.cen = x2 * vol2.cen;
-    if (!vol1.contact(vol2, maxdist)) return 0;
+    if (!vol1.contact(vol2, maxdist))
+      return 0;
   }
 
   for (auto o1 : bvh1.objs) {
@@ -876,8 +868,7 @@ int naive_collect_pairs(BVH<F> &bvh1, BVH<F> &bvh2, M4<F> pos1, M4<F> pos2,
   return nout;
 }
 
-template <typename F>
-struct BVHCollectPairsVec {
+template <typename F> struct BVHCollectPairsVec {
   using Scalar = F;
   using Xform = X3<F>;
   F maxdis = 0.0, maxdis2 = 0.0;
@@ -939,8 +930,7 @@ py::tuple bvh_collect_pairs_vec(BVH<F> &bvh1, BVH<F> &bvh2,
   return py::make_tuple(*out, *lbub);
 }
 
-template <typename F>
-struct BVHCollectPairsRangeVec {
+template <typename F> struct BVHCollectPairsRangeVec {
   using Scalar = F;
   using Xform = X3<F>;
   F d = 0.0, d2 = 0.0;
@@ -949,16 +939,8 @@ struct BVHCollectPairsRangeVec {
   std::vector<int32_t> &out;
   BVHCollectPairsRangeVec(F r, Xform x, int l1, int u1, int l2, int u2,
                           int _nasym1, int _nasym2, std::vector<int32_t> &o)
-      : d(r),
-        bXa(x),
-        lb1(l1),
-        ub1(u1),
-        lb2(l2),
-        ub2(u2),
-        out(o),
-        d2(r * r),
-        nasym1(_nasym1),
-        nasym2(_nasym2) {}
+      : d(r), bXa(x), lb1(l1), ub1(u1), lb2(l2), ub2(u2), out(o), d2(r * r),
+        nasym1(_nasym1), nasym2(_nasym2) {}
   bool intersectVolumeVolume(Sphere<F> vol1, Sphere<F> vol2) {
     // if (vol1.ub % nasym1 < lb1 || vol1.lb % nasym1 > ub1 || vol2.ub % nasym2
     // < lb2
@@ -1022,8 +1004,10 @@ py::tuple bvh_collect_pairs_range_vec(BVH<F> &bvh1, BVH<F> &bvh2,
     size_t n0 = std::min(std::min(std::min(x1.size(), x2.size()),
                                   std::min(lb1.size(), ub1.size())),
                          std::min(lb2.size(), ub2.size()));
-    if (nasym1 < 0) nasym1 = bvh_max_id(bvh1) + 1;
-    if (nasym2 < 0) nasym2 = bvh_max_id(bvh2) + 1;
+    if (nasym1 < 0)
+      nasym1 = bvh_max_id(bvh1) + 1;
+    if (nasym2 < 0)
+      nasym2 = bvh_max_id(bvh2) + 1;
     // std::cout << bvh1.size() << " " << nasym1 << " "
     // << (float)bvh1.size() / nasym1 << std::endl;
     // std::cout << bvh2.size() << " " << nasym2 << " "
@@ -1060,15 +1044,13 @@ py::tuple bvh_collect_pairs_range_vec(BVH<F> &bvh1, BVH<F> &bvh2,
   return py::make_tuple(*out, *lbub);
 }
 
-template <typename F>
-int bvh_print(BVH<F> &bvh) {
+template <typename F> int bvh_print(BVH<F> &bvh) {
   for (auto o : bvh.objs) {
     py::print("BVH PT ", o.idx, o.pos.transpose());
   }
 }
 
-template <typename F>
-py::array_t<F> bvh_obj_centers(BVH<F> &b) {
+template <typename F> py::array_t<F> bvh_obj_centers(BVH<F> &b) {
   int n = b.objs.size();
   auto shape = std::vector<int>{n, 4};
   py::array_t<F> out(shape);
@@ -1082,8 +1064,7 @@ py::array_t<F> bvh_obj_centers(BVH<F> &b) {
   }
   return out;
 }
-template <typename F>
-V4<F> bvh_obj_com(BVH<F> &b) {
+template <typename F> V4<F> bvh_obj_com(BVH<F> &b) {
   py::gil_scoped_release release;
   int n = b.objs.size();
   V4<F> com(0, 0, 0, 0);
@@ -1097,13 +1078,14 @@ V4<F> bvh_obj_com(BVH<F> &b) {
   return com;
 }
 
-template <typename F>
-py::tuple BVH_get_state(BVH<F> const &bvh) {
+template <typename F> py::tuple BVH_get_state(BVH<F> const &bvh) {
   Vx<int> child(bvh.child.size());
-  for (int i = 0; i < bvh.child.size(); ++i) child[i] = bvh.child[i];
+  for (int i = 0; i < bvh.child.size(); ++i)
+    child[i] = bvh.child[i];
   Mx<F> sph(bvh.vols.size(), 4);
   for (int i = 0; i < bvh.vols.size(); ++i) {
-    for (int j = 0; j < 3; ++j) sph(i, j) = bvh.vols[i].cen[j];
+    for (int j = 0; j < 3; ++j)
+      sph(i, j) = bvh.vols[i].cen[j];
     sph(i, 3) = bvh.vols[i].rad;
   }
   Mx<int> lbub(bvh.vols.size(), 2);
@@ -1113,14 +1095,15 @@ py::tuple BVH_get_state(BVH<F> const &bvh) {
   }
   Mx<F> pos(bvh.objs.size(), 3);
   for (int i = 0; i < bvh.objs.size(); ++i) {
-    for (int j = 0; j < 3; ++j) pos(i, j) = bvh.objs[i].pos[j];
+    for (int j = 0; j < 3; ++j)
+      pos(i, j) = bvh.objs[i].pos[j];
   }
   Vx<int> idx(bvh.objs.size());
-  for (int i = 0; i < bvh.objs.size(); ++i) idx[i] = bvh.objs[i].idx;
+  for (int i = 0; i < bvh.objs.size(); ++i)
+    idx[i] = bvh.objs[i].idx;
   return py::make_tuple(child, sph, lbub, pos, idx);
 }
-template <typename F>
-std::unique_ptr<BVH<F>> bvh_set_state(py::tuple state) {
+template <typename F> std::unique_ptr<BVH<F>> bvh_set_state(py::tuple state) {
   auto bvh = std::make_unique<BVH<F>>();
   auto child = state[0].cast<Vx<int>>();
   auto sph = state[1].cast<Mx<F>>();
@@ -1133,7 +1116,8 @@ std::unique_ptr<BVH<F>> bvh_set_state(py::tuple state) {
   }
   for (int i = 0; i < sph.rows(); ++i) {
     Sphere<F> sphere;
-    for (int j = 0; j < 3; ++j) sphere.cen[j] = sph(i, j);
+    for (int j = 0; j < 3; ++j)
+      sphere.cen[j] = sph(i, j);
     sphere.rad = sph(i, 3);
     sphere.lb = lbub(i, 0);
     sphere.ub = lbub(i, 1);
@@ -1141,15 +1125,15 @@ std::unique_ptr<BVH<F>> bvh_set_state(py::tuple state) {
   }
   for (int i = 0; i < idx.size(); ++i) {
     PtIdx<F> pt;
-    for (int j = 0; j < 3; ++j) pt.pos[j] = pos(i, j);
+    for (int j = 0; j < 3; ++j)
+      pt.pos[j] = pos(i, j);
     pt.idx = idx[i];
     bvh->objs.push_back(pt);
   }
   return bvh;
 }
 
-template <typename F>
-void bind_bvh(auto m, std::string name) {
+template <typename F> void bind_bvh(auto m, std::string name) {
   py::class_<BVH<F>>(m, name.c_str())
       .def(py::init(&bvh_create<F>), "coords"_a, "which"_a = Vx<bool>(),
            "ids"_a = Vx<int>())
@@ -1243,5 +1227,5 @@ PYBIND11_MODULE(bvh, m) {
         "nasym1"_a = -1, "lb2"_a = lb0, "ub2"_a = ub0, "nasym2"_a = -1);
 }
 
-}  // namespace bvh
-}  // namespace rpxdock
+} // namespace bvh
+} // namespace rpxdock

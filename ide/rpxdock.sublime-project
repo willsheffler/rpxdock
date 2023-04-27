@@ -23,7 +23,7 @@
 			},
 			{
 				"name": "test_1comp_xtal",
-				"shell_cmd" : "cd /home/sheffler/project/rpxtal; CC='ccache gcc' PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --inputs1 inputs/C3_i213_diffusion_nres100_0055_0141_model_4_ptm_seed_0_unrelaxed.pdb --hscore_files ilv_h/1000 &> $folder/sublime_build.log"
+				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --inputs1 inputs/C3_i213_diffusion_nres100_0055_0141_model_4_ptm_seed_0_unrelaxed.pdb --hscore_files ilv_h/1000 &> $folder/sublime_build.log"
 			},
 		   	{ 
 				"name": "test_cage",
