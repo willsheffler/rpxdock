@@ -382,6 +382,8 @@ def default_cli_parser(parent=None, **kw):
    addarg('--limit_rotation_to_z', action='store_true',
           help='for cyclic and asym, limit orientation sampling to rotations around z')
    addarg('--disable_rotation', action='store_true', help='for cyclic and asym, disable all rotation')
+   addarg('--exclude_residue_neighbors', default=1, type=int,
+          help='disallow residue if within x positions of initially excluded residue')
 
    parser.has_rpxdock_args = True
    return parser

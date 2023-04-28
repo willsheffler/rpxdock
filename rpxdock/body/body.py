@@ -214,7 +214,28 @@ class Body:
       if ignored_aas is None:
          # ic(self.ignored_aas)
          ignored_aas = self.ignored_aas if hasattr(self, 'ignored_aas') else 'CGP'
+      self.nterms = [self.coord[0, 0]]
+      self.cterms = [self.coord[-1, 2]]
+      self._pos = np.eye(4)
+      self._symmetrize_coords(sym, xform, symaxis, **kw)
+      assert len(self.seq) == len(self.coord)
+      assert len(self.ss) == len(self.coord)
+      assert len(self.chain) == len(self.coord)
+      self.nres = len(self.coord)
+      self.stub = rp.motif.bb_stubs(self.coord)
+      ids = np.repeat(np.arange(self.nres, dtype=np.int32), self.coord.shape[1])
+      self.bvh_bb = rp.BVH(self.coord[:, :, :3].reshape(-1, 3), [], ids)
+      self.bvh_ca = rp.BVH(self.coord[:, 1, :3].reshape(-1, 3), [], np.arange(self.nres))
+      self.bvh_bb_atomno = rp.BVH(self.coord[..., :3].reshape(-1, 3), [])
+      self._symcom = wu.homog.hxform(self.symframes, wu.homog.htrans(self.asym_body.bvh_bb.com()))
+      self.allcen = self.stub[:, :, 3]
+      self.which_cen = self._select_positions(ignored_aas, **kw)
+      self.bvh_cen = rp.BVH(self.allcen[:, :3], self.which_cen)
+      self.cen = self.allcen[self.which_cen]
+      self.pos = np.eye(4, dtype="f4")
+      self.pcavals, self.pcavecs = rp.util.numeric.pca_eig(self.cen)
 
+   def _symmetrize_coords(self, sym, xform, symaxis, **kw):
       if isinstance(sym, np.ndarray):
          assert len(sym) == 1
          sym = sym[0]
@@ -223,11 +244,9 @@ class Body:
       sym = sym.upper()
       self.sym = sym
       self.symaxis = symaxis
+      self.initialxform = xform
       self.nfold = int(sym[1:])
       self.symframes = np.eye(4).reshape(1, 4, 4)
-      self.nterms = [self.coord[0, 0]]
-      self.cterms = [self.coord[-1, 2]]
-      self._pos = np.eye(4)
       if sym and sym[0] == "C" and int(sym[1:]) > 0:
          n = self.coord.shape[0]
          nfold = int(sym[1:])
@@ -249,21 +268,18 @@ class Body:
             self.nterms.append(symframes[-1] @ self.nterms[0])
             self.cterms.append(symframes[-1] @ self.cterms[0])
          self.symframes = np.stack(symframes)
-         self.coord = (xform @ newcoord[:, :, :, None]).reshape(-1, 5, 4)
+         self.coord = (self.initialxform @ newcoord[:, :, :, None]).reshape(-1, 5, 4)
          self.coord = np.ascontiguousarray(self.coord)
-         self.orig_coords = [(xform @ oc[:, :, None]).reshape(-1, 4) for oc in new_orig_coords]
+         self.orig_coords = [(self.initialxform @ oc[:, :, None]).reshape(-1, 4) for oc in new_orig_coords]
       else:
          raise ValueError("unknown symmetry: " + sym)
-      assert len(self.seq) == len(self.coord)
-      assert len(self.ss) == len(self.coord)
-      assert len(self.chain) == len(self.coord)
-      self.nres = len(self.coord)
-      self.stub = rp.motif.bb_stubs(self.coord)
-      ids = np.repeat(np.arange(self.nres, dtype=np.int32), self.coord.shape[1])
-      self.bvh_bb = rp.BVH(self.coord[..., :3].reshape(-1, 3), [], ids)
-      self.bvh_bb_atomno = rp.BVH(self.coord[..., :3].reshape(-1, 3), [])
-      self._symcom = wu.homog.hxform(self.symframes, wu.homog.htrans(self.asym_body.bvh_bb.com()))
-      self.allcen = self.stub[:, :, 3]
+
+   def _select_positions(
+      self,
+      ignored_aas,
+      exclude_residue_neighbors=4,
+      **kw,
+   ):
       which_cen = np.repeat(False, len(self))
       for ss in "EHL":
          if ss in self.score_only_ss:
@@ -277,13 +293,15 @@ class Body:
          allowed_res = self.allowed_residues[:len(self)]
       elif nallow < len(self):
          allowed_res = np.tile(self.allowed_residues, len(self) // nallow)
-      self.which_cen = which_cen & allowed_res
-      assert np.any(self.which_cen)
-      self.bvh_cen = rp.BVH(self.allcen[:, :3], self.which_cen)
-      # ic(len(self.bvh_cen))
-      self.cen = self.allcen[self.which_cen]
-      self.pos = np.eye(4, dtype="f4")
-      self.pcavals, self.pcavecs = rp.util.numeric.pca_eig(self.cen)
+      which_cen = which_cen & allowed_res
+
+      for i in range(exclude_residue_neighbors):
+         which_cen[0] = False
+         which_cen[-1] = False
+         which_cen[1:-1] &= np.logical_and(which_cen[:-2], which_cen[2:])
+
+      assert np.any(which_cen)
+      return which_cen
 
    def sanity_check(self):
       c = self.coord[:, 1]
@@ -540,6 +558,11 @@ class Body:
       if pos1 is None: pos1 = self.pos
       if pos2 is None: pos2 = other.pos
       return rp.bvh.bvh_count_pairs_vec(self.bvh_bb, other.bvh_bb, pos1, pos2, maxdis)
+
+   def contact_count_ca(self, other, pos1=None, pos2=None, maxdis=10):
+      if pos1 is None: pos1 = self.pos
+      if pos2 is None: pos2 = other.pos
+      return rp.bvh.bvh_count_pairs_vec(self.bvh_ca, other.bvh_ca, pos1, pos2, maxdis)
 
    def dump_pdb(self, fname, **kw):
       # import needs to be here to avoid cyclic import
