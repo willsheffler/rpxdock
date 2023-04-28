@@ -15,7 +15,7 @@ def main():
    kw.exclude_residue_neighbors = 3
    kw.caclashdis = 5
    kw.framedistcut = 50
-   kw.mc_nruns = 1
+   # kw.mc_nruns = 1
    # kw.mc_dump_initial_samples = True
 
    sym, *psyms = kw.architecture.upper().split('_')
