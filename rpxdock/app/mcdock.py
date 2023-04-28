@@ -20,9 +20,9 @@ def main():
 
    sym, *psyms = kw.architecture.upper().split('_')
    symelems = [wu.sym.symelems(sym, psym)[0] for psym in psyms]
+   ic(sym)
+   ic(psyms)
    ic(symelems)
-
-   # symelems = [wu.sym.SymElem(2, [1, 0, 0], [0, 0.25, 0])]
 
    mcsym = McSymmetry(sym, symelems)
    for fnames in zip(*kw.inputs):

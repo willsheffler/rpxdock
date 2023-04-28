@@ -22,6 +22,10 @@
 				"shell_cmd" : "cd /home/sheffler/project/rpxcycasym/test1; rm -f *.pdb; CC='ccache gcc' PYTHONPATH=$folder python $folder/rpxdock/app/dock.py --architecture c3 --recenter_input --dont_use_rosetta --inputs1 $folder/rpxdock/data/pdb/C3_1na0-1_1.pdb.gz --hscore_files ilv_h --nout_top 50 --quiet --overwrite_existing_results --limit_rotation_to_z --max_bb_redundancy 1.0 --dump_pdbs &> $folder/sublime_build.log"
 			},
 			{
+				"name": "test_1comp_xtal MISC c3",
+				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --architecture I4132_c3 --inputs1 /home/sheffler/project/diffusion/pointsym/test1/c3_diffusion_test_1.pdb --hscore_files ilv_h/1000 &> $folder/sublime_build.log && pymol *.pdb"
+			},	
+			{
 				"name": "test_1comp_xtal c3",
 				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --architecture I213_c3 --inputs1 /home/sheffler/project/diffusion/pointsym/test1/c3_diffusion_test_1.pdb --hscore_files ilv_h/1000 &> $folder/sublime_build.log && pymol *.pdb"
 			},	
