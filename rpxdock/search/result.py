@@ -1,5 +1,5 @@
 import copy, logging, os, tempfile, tarfile, io, json, itertools
-from collections import OrderedDict, abc, defaultdict, Sequence
+from collections import OrderedDict, abc, defaultdict
 import numpy as np, rpxdock as rp
 from rpxdock.util import sanitize_for_storage, num_digits
 import rpxdock as rp
