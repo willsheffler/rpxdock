@@ -1,4 +1,4 @@
-import random, os, sys
+import random, os, sys, itertools as it, sys
 from opt_einsum import contract as einsum
 from typing import List
 import numpy as np
@@ -6,20 +6,51 @@ import willutil as wu
 import rpxdock as rp
 
 def main():
-   # np.random.seed(1)
+   seed = np.random.randint(2**32 - 1)
+   ic(seed)
+   np.random.seed(seed)
+
+   # np.random.seed(1234789725)
+
    kw = rp.options.get_cli_args()
    kw.dont_use_rosetta = True
    kw.ignored_aas = 'CP'
-   kw.wts.ncontact = 0.01
+   kw.wts.ncontact = 0.001
    kw.score_only_ss = 'H'
    kw.exclude_residue_neighbors = 3
    kw.caclashdis = 5
-   kw.framedistcut = 50
-   # kw.mc_nruns = 1
+   kw.framedistcut = 70
+   # kw.mc_intercomp_only = True
+   ic(kw.mc_cell_bounds)
+   # kw.hscore_files = 'ilv_h'
+
+   # assert 0
+   # kw.mc_nruns = 10
    # kw.mc_dump_initial_samples = True
 
    sym, *psyms = kw.architecture.upper().split('_')
-   symelems = [wu.sym.symelems(sym, psym)[0] for psym in psyms]
+   symelems = list()
+   for i, psym in enumerate(psyms):
+      psymelems = wu.sym.symelems(sym, psym)
+      if kw.mc_which_symelems[i] >= len(psymelems):
+         raise ValueError(f'You requested element {kw.mc_which_symelems[i]}, but there are only '
+                          f'{len(psymelems)} symelems for point sym {psym} in spacegroup {sym}\n'
+                          f'All available symmetry elements for {sym}:\n'
+                          f'{repr(wu.sym.symelems(sym))}')
+      symelems.append(psymelems[kw.mc_which_symelems[i]])
+
+   if sym == 'P3':
+      assert 0
+      print('!' * 80)
+      print('hardcoded P3')
+      print('!' * 80, flush=True)
+      symelems = [wu.sym.SymElem(3, [0, 0, 1])]
+   if sym == 'P6':
+      assert 0
+      print('!' * 80)
+      print('hardcoded P6')
+      print('!' * 80, flush=True)
+      symelems = [wu.sym.SymElem(6, [0, 0, 1])]
    ic(sym)
    ic(psyms)
    ic(symelems)
@@ -43,11 +74,26 @@ class RpxMonteCarlo:
       self.components = components
       self.ncomp = len(components)
       self.compcoms = np.stack([c.com for c in self.components])
+      self.compvols = [c.guess_volume() for c in self.components]
       self.mcsym = mcsym
       self.hscore = rp.RpxHier(self.kw.hscore_files, **kw)
       self.caclashdis = caclashdis
       self.results = list()
       self.reset()
+      self.kw.mc_cell_bounds = np.array(list(zip(*self.kw.mc_cell_bounds)))
+      self.sanity_check()
+
+   def sanity_check(self):
+      kw = self.kw
+      lownfold = [e.nfold for e in self.mcsym.allsymelems if e.screw == 0]
+      if lownfold and min(lownfold) > self.kw.mc_max_contacts + 1:
+         print('WARNING! you have set mc_max_contacts to {self.kw.mc_max_contacts} but the lowest order'
+               f'sym operator is {lownfold}. setting mc_max_contacts to {lownfold-1} unless magic flag'
+               ' --I_KNOW_WHAT_I_AM_DOING is used')
+         if not kw.I_KNOW_WHAT_I_AM_DOING:
+            self.kw.mc_max_contacts = lownfold - 1
+      assert kw.mc_max_contacts >= kw.mc_min_contacts
+      assert kw.mc_max_solvfrac > kw.mc_min_solvfrac
 
    def reset(self):
       self.mcsym.reset()
@@ -103,8 +149,8 @@ class RpxMonteCarlo:
          # if itrial % 100 == 0:
          # ic(itrial, spread)
          self.adjust_spread(spread, itrial)
-      ic(isamp, mc.best)
-      newsc = self.objectivefunc(mc.beststate)
+      ic(isamp, mc.best, self.guess_solvfrac(mc.beststate))
+      newsc = self.objectivefunc(mc.beststate, output=True)
       if not np.allclose(newsc, mc.best):
          print('rescore mismatch', isamp, newsc, mc.best)
       return mc.best, mc.beststate.copy()
@@ -117,9 +163,7 @@ class RpxMonteCarlo:
    def startsample(self, **kw):
       kw = self.kw.sub(kw)
       position = np.stack([c.random_unitcell_position()[0] for c in self.components])
-      lattice = np.eye(3)
-      lattice *= 70 + np.random.rand() * 70
-      lattice *= np.sqrt(len(self.components))
+      lattice = self.mcsym.random_lattice(component_volume=sum(self.compvols), **kw)
       position = wu.sym.applylattice(lattice, position)
       sample = wu.Bunch(position=position, lattice=lattice)
       sample = self.mcsym.to_canonical_asu_position(sample, self.compcoms, forceupdate=True, **kw)
@@ -147,33 +191,126 @@ class RpxMonteCarlo:
       newsample = self.mcsym.to_canonical_asu_position(newsample, self.compcoms, **kw)
       return newsample
 
-   def objectivefunc(self, sample, **kw):
+   def objectivefunc(self, sample, output=False, **kw):
+      kw = self.kw.sub(kw)
       position, lattice = sample.values()
       assert position.shape == (self.ncomp, 4, 4)
-      allscores = self.score(sample, **kw)
-      totcompscore = allscores.sum(axis=0)
-      # totcompscore[1, 0] *= 2
-      return np.sum(totcompscore)
-      # fill lower tri
-      # for i in range(len(totcompscore)):
-      # for j in range(i):
-      # totcompscore[j, i] = totcompscore[i, j]
-      # return np.sort(totcompscore.flat)[1]
+      metainfo = self.metainfo(sample, **kw)
+      # ic(metainfo)
+      metascore = 0
 
-   def dumppdbs(self, fname, samples, dumpasym=True, dumpsym=True, **kw):
+      framescores, comdist = self.score(sample, **kw)
+
+      compscores = self.mcsym.component_score_summary(framescores)
+      sc = np.array(list(compscores.values()))
+      scinter = np.array(list([v for (i, j), v in compscores.items() if i[0] != j[0]]))
+      scintra = np.array(list([v for (i, j), v in compscores.items() if i[0] == j[0]]))
+      sc = np.sort(sc)
+
+      if len(sc) < kw.mc_min_contacts:
+         # ic(comdist.shape)
+         comdistsort = np.sort(comdist.reshape(-1))
+         # ic(comdistsort.shape)
+         # ic(comdistsort[:10])
+         # ic(comdistsort[kw.mc_max_contacts - 1])
+         # assert 0
+         return 1_000_000 + comdistsort[kw.mc_min_contacts - 1]
+
+      if output:
+         ic(compscores)
+
+      score = np.sum(sc)
+      return score
+
+      if len(self.components) > 1 and not kw.mc_disconnected_ok:
+         # ninter = len([0 for i1, i2 in compscores if i1[0] != i2[0]])
+         # if ninter == 0 and not kw.mc_disconnected_ok:
+         # return 1000000
+         if len(scinter) == 0: return score
+         score = np.min(scinter) - 1 * (-np.sum(np.abs(sc) - np.min(scinter)))
+         if score > 0: return score
+         # nintra = len(compscores) - ninter
+      return score
+      # ic(kw.mc_min_contacts, len(compscores), kw.mc_max_contacts)
+      good = sc[:kw.mc_max_contacts]
+      bad = sc[kw.mc_max_contacts:]
+      score = score + np.sum(good[kw.mc_min_contacts - 1:]) + 10 * np.sum(np.abs(bad))
+      # ic(good, bad, score)
+
+      # if not kw.mc_min_contacts <= len(compscores) <= kw.mc_max_contacts:
+      # return 1000000
+
+      # for i, ((c1, c2), v) in enumerate(compscores.items()):
+      # print(i, c1, c2, v, flush=True)
+      # print(flush=True)
+      # self.dumppdbs('test.pdb', sample)
+      score += metascore
+      # ic(score)
+
+      # for isc, ((compid1, compid2), sc) in enumerate(compscores.items()):
+      # # self.dumppdbs(f'{isc}_{compid1[0]}_{compid1[1]}_{sc}.pdb', sample, dumpasym=False, components=[compid1], **kw)
+      # self.dumppdbs(f'{isc}_{compid2[0]}_{compid2[1]}_{sc}.pdb', sample, dumpasym=False, components=[compid2], **kw)
+
+      # sys.exit()
+      # ic(score, flush=True)
+      return score
+
+   def closest_to_origin(self, position, lattice, output_above_0=False, **kw):
+      frames = self.mcsym.frames(lattice, cells=4)
+      sympos = einsum('fij,cjk,ck->fci', frames, position, self.compcoms)
+      if output_above_0:
+         above0 = np.all(sympos[:, 0, :3] > 0, axis=1)
+         frames, sympos = frames[above0], sympos[above0]
+      imin0 = np.argmin(wu.hnorm(sympos[:, 0]))
+      position[0] = frames[imin0] @ position[0]
+      for i in range(1, len(position)):
+         position[i] = frames[np.argmin(wu.hnorm(sympos[:, i] - sympos[imin0, 0]))] @ position[i]
+      return position
+
+   def contacting_frames(self, position, lattice, ca_contact_dist=10, **kw):
+      allframes = self.mcsym.frames(lattice, cells='all')
+      close = np.zeros(len(allframes), dtype=bool)
+      for icomp1, (pos1, comp1) in enumerate(zip(position, self.components)):
+         for icomp2, (pos2, comp2) in enumerate(zip(position, self.components)):
+            sympos2 = allframes @ pos2
+            # ic(pos1.shape, sympos2.shape)
+            contact = comp1.body.intersect(comp2.body, pos1, sympos2, ca_contact_dist)
+            close |= contact
+      return allframes[close]
+
+   def dumppdbs(self, fname, samples, dumpasym=True, dumpsym=True, components=None, rawposition=False, **kw):
       positions, lattices = samples.values()
       positions = positions.reshape(-1, self.ncomp, 4, 4)
       lattices = lattices.reshape(-1, 3, 3)
+      symtag = self.mcsym.sym.lower().replace(' ', '')
       for ipos, (position, lattice) in enumerate(zip(positions, lattices)):
-         frames = wu.sym.applylattice(lattice, self.mcsym.closeframes)
+         cryst1 = wu.sym.cryst1_line(self.mcsym.sym, lattice)
+         if not rawposition:
+            position = self.closest_to_origin(position, lattice)
+            # frames = self.mcsym.frames(lattice, cells=(-1, 0))
+            frames = self.contacting_frames(position, lattice)
+         else:
+            frames = wu.sym.applylattice(lattice, self.mcsym.closeframes)
+
+         if dumpasym:
+            jointcoords = list()
+            for icomp, (pos, comp) in enumerate(zip(position, self.components)):
+               jointcoords.append(wu.hxformpts(pos, comp.body.coord))
+            wu.dumppdb(f'{fname}_{symtag}_{self.kw.architecture}_pos{ipos:04}_asym.pdb', jointcoords, header=cryst1)
+
+         if not dumpsym: continue
+
          for icomp, (pos, comp) in enumerate(zip(position, self.components)):
-            cryst1 = wu.sym.cryst1_line(self.mcsym.sym, lattice)
             coords = wu.hxformpts(pos, comp.body.coord)
-            if dumpasym:
-               wu.dumppdb(f'{fname}_pos{ipos:04}_comp{icomp}_asym.pdb', coords, header=cryst1)
-            if dumpsym:
-               coords = wu.hxformpts(frames, coords)
-               wu.dumppdb(f'{fname}_pos{ipos:04}_comp{icomp}_sym.pdb', coords)
+            if components is not None:
+               matchcomponents = [c for c in components if c[0] == icomp]
+               frames = self.mcsym.frames(lattice, components=matchcomponents)
+               if frames is None: continue
+               ic(matchcomponents)
+               ic(frames.round(2))
+            coords = wu.hxformpts(frames, coords)
+            wu.dumppdb(f'{fname}_{symtag}_{self.kw.architecture}_pos{ipos:04}_comp{icomp}_sym.pdb', coords,
+                       header=cryst1)
             # wu.showme(coords[:100, :3], is_points=True)
 
    def sympositions(self, position, lattice, icomp1, icomp2):
@@ -185,42 +322,50 @@ class RpxMonteCarlo:
       # pos1 = np.repeat(positions[:, icomp1], nframes, axis=0).reshape(npos, nframes, 4, 4)
       # pos2 = np.repeat(positions[:, icomp2], nframes, axis=0).reshape(npos, nframes, 4, 4)
       # pos2 = wu.hxformx(frames, pos2)
+      assert len(pos2)
       return frames, fmask, pos1, pos2
 
-   def score(self, samples, **kw):
+   def metainfo(self, sample, **kw):
+      metainfo = wu.Bunch()
+      metainfo.solvfrac = self.guess_solvfrac(sample)
+
+      return metainfo
+
+   def score(self, samples, mc_intercomp_only=False, **kw):
       kw = self.kw.sub(kw)
       samples = self._check_samples(samples)
       positions, lattices = samples.values()
+      if len(self.components) == 1: mc_intercomp_only = False
 
       component_combos = list()
       for icomp1, comp1 in enumerate(self.components):
          for icomp2, comp2 in enumerate(self.components):
-            if icomp2 > icomp1: continue  # upper triangle
+            if icomp2 < icomp1: continue  # upper triangle
             component_combos.append(
                (icomp1, comp1, icomp2, comp2, *self.sympositions(positions, lattices, icomp1, icomp2)))
 
+      comdist = 9e6 * np.ones((self.mcsym.nframes, self.ncomp, self.ncomp))
+      for icomp1, comp1, icomp2, comp2, frames, fmask, pos1, pos2 in component_combos:
+         # don't pull intra contacts together if multicomp
+         com = wu.hxform(pos1, comp1.body.com())
+         symcom = wu.hxformpts(pos2, comp2.com)
+         comdist[fmask, icomp1, icomp2] = wu.hnorm(com - symcom)
+
+      # clash
       scores = np.zeros((self.mcsym.nframes, self.ncomp, self.ncomp))
       for icomp1, comp1, icomp2, comp2, frames, fmask, pos1, pos2 in component_combos:
          compclash = comp1.body.contact_count_ca(comp2.body, pos1, pos2, self.caclashdis)
          scores[fmask, icomp1, icomp2] += 100.0 * compclash
-      if scores.sum() > 0: return scores  # have clashes
+      if scores.sum() > 0: return scores, comdist  # have clashes
 
+      # rpx score
       for icomp1, comp1, icomp2, comp2, frames, fmask, pos1, pos2 in component_combos:
+         if icomp1 == icomp2 and mc_intercomp_only: continue
          compscore = self.hscore.scorepos(comp1.body, comp2.body, pos1, pos2, iresl=0, **kw)
          scores[fmask, icomp1, icomp2] -= compscore
-      if np.any(scores < 0): return scores
+      if np.any(scores < 0): return scores, comdist
 
-      comdist = 9e9 * np.ones((self.ncomp, self.ncomp))
-      for icomp1, comp1, icomp2, comp2, frames, fmask, pos1, pos2 in component_combos:
-         # don't pull intra contacts together if multicomp
-         if len(self.components) > 1 and icomp1 == icomp2:
-            continue
-         com = wu.hxform(pos1, comp1.body.com())
-         # ic(pos2.shape, comp2.com)
-         symcom = wu.hxformpts(pos2, comp2.com)
-         comdist[icomp1, icomp2] = np.min(wu.hnorm(com - symcom))
-         scores[0, 0, 0] = 100_000 + np.min(wu.hnorm(com - symcom))
-      return scores
+      return scores, comdist
 
    def _check_samples(self, sample):
       position, lattice = sample.values()
@@ -232,6 +377,12 @@ class RpxMonteCarlo:
       # lattice = lattice.reshape(-1, 3, 3)
       # assert len(position) == len(lattice)
       # return wu.Bunch(position=position, lattice=lattice)
+
+   def guess_solvfrac(self, sample):
+      cellvol = wu.sym.cell_volume(self.mcsym.sym, sample.lattice)
+      vol = sum(self.compvols) * wu.sym.copies_per_cell(self.mcsym.sym)
+      # ic(sample.lattice.diagonal(), cellvol, self.compvols, vol)
+      return 1 - vol / cellvol
 
 class McComponent:
    """Body coupled to sym element"""
@@ -257,7 +408,9 @@ class McComponent:
       '''random rotation and placement in unit cell'''
       se = self.symelem
       if se.iscyclic:
-         cen = np.random.rand(size) * 2000 - 1000  # way big to avoid boundary effects
+         cen = np.random.rand(size) * 2000 - 1000
+         # way big to avoid boundary effects
+         # cell is -0.5 to 0.5
          cen = (se.axis[None] * cen[:, None] + se.cen) % 1.0
          offset = wu.htrans(cen)
 
@@ -273,6 +426,7 @@ class McComponent:
          alignangle = np.where(np.random.rand(size) < 0.5, 0, np.pi / se.nfold)
          return wu.hrot(se.axis, alignangle, cen)
       elif se.isdihedral and se.nfold == 2:
+         assert 0
          a1, a2, a3 = se.axis, se.axis2, wu.hcross(se.axis, se.axis2)
          oris = np.stack([
             wu.halign2(a1, a2, a1, a2),
@@ -297,6 +451,9 @@ class McComponent:
       x[..., 3] += cart * self.symelem.axis
       return x[0]
 
+   def guess_volume(self):
+      return 100 * len(self.body.coord)
+
 class McSymmetry:
    """manage symmetry and component neighbor relationships"""
    def __init__(
@@ -307,39 +464,82 @@ class McSymmetry:
    ):
       self.kw = wu.Bunch(kw)
       self.sym = sym
+      self.latticetype = wu.sym.latticetype(sym)
       self.symelems = symelems
+      self.allsymelems = wu.sym.symelems(sym)
       # self.unitasucen = wu.hpoint(asucen)
-      self.allframes = wu.sym.frames(self.sym, sgonly=True, cells=5)
-      # self.setup_component_frames()
+      self.allframes = wu.sym.frames(self.sym, sgonly=True, cells=4)  # must be 4 cells to match elemids
+      self.allelemids = np.empty((len(self.allframes), len(symelems), len(symelems)), dtype=np.int32)
+      for i, ei in enumerate(symelems):
+         for j, ej in enumerate(symelems):
+            self.allelemids[:, i, j] = wu.sym.sg_symelem_frame444_opcompids_dict[self.sym][:, ei.id, ej.id]
       self.reset()
 
    def reset(self):
       self.celloffset = np.array([0.0, 0.0, 0.0, 0.0])
       self.last_closeframes_cen = np.array([9e9, 9e9, 9e9, 1])
 
+   def random_lattice(self, component_volume, mc_cell_bounds, mc_min_solvfrac, mc_max_solvfrac, **kw):
+      assert self.latticetype not in 'MONOCLINIC TRICLINIC'.split()
+      assert self.latticetype == 'CUBIC'
+      minsf, maxsf = 9e9, 0
+      component_volume *= wu.sym.copies_per_cell(self.sym)
+      lb0, ub0 = mc_cell_bounds[0], mc_cell_bounds[1]
+      # 1 - sf = (compv / cellv)
+      # cellv = compv / (1 - sf)
+      mincellside = (component_volume / (1 - mc_min_solvfrac))**0.33333
+      maxcellside = (component_volume / (1 - mc_max_solvfrac))**0.33333
+      lb0, ub0 = max(lb0, mincellside), min(ub0, maxcellside)
+      # ic(mincellside, maxcellside)
+      for i in range(100):  # try many times to meet requirements
+         lb, ub = lb0, ub0
+         cellgeom = np.random.rand(3) * (ub - lb) + lb
+         cellgeom = wu.sym.full_cellgeom(self.latticetype, cellgeom, strict=False)
+
+         cellvol = wu.sym.cell_volume(self.sym, cellgeom)
+         solvfrac = 1 - component_volume / cellvol
+         minsf, maxsf = min(minsf, solvfrac), max(maxsf, solvfrac)
+         if mc_min_solvfrac <= solvfrac <= mc_max_solvfrac: break
+      else:
+         raise ValueError(f'Cant make lattice with {mc_min_solvfrac} <= solvfrac <= {mc_max_solvfrac},'
+                          f'lowest/highest tries were {minsf}, {maxsf}')
+      lattice = wu.sym.lattice_vectors(self.latticetype, cellgeom)
+
+      # print(f'start lattice {solvfrac}', flush=True)
+
+      return lattice
+
    def perturb_lattice(self, position, lattice, spread, **kw):
       assert position.ndim == 3
       assert lattice.shape == (3, 3)
-      ltype = wu.sym.latticetype(self.sym)
-      if ltype == 'CUBIC':
-         unitpos = wu.sym.tounitframes(position, lattice)
+      unitpos = wu.sym.tounitframes(position, lattice)
+      if self.latticetype == 'CUBIC':
          newlattice = lattice + np.eye(3) * np.random.normal(0, spread.latticesd, 1)
          newpos = wu.sym.applylattice(newlattice, unitpos)
-         return newpos, newlattice
+      elif self.latticetype == 'TETRAGONAL':
+         a, b = np.random.normal(0, spread.latticesd, 2)
+         newlattice = lattice + np.diag([a, a, b])
+         newpos = wu.sym.applylattice(newlattice, unitpos)
+         newpos[:, 2, 3] = position[:, 2, 3]  # don't move z
       else:
-         raise NotImplementedError(f'cant do lattice type {ltype}')
+         raise NotImplementedError(f'cant do lattice type {self.latticetype}')
+
+      return newpos, newlattice
 
    def setup_component_frames(self, **kw):
       kw = self.kw.sub(kw)
       # self.closeframes = wu.sym.frames(self.sym, sgonly=True, cells=3, asucen=asucen, **kw)
       self.nframes = len(self.closeframes)
       ncomp = len(self.symelems)
+
       self.scoreframes = np.ones((ncomp, ncomp, self.nframes), dtype=bool)
       self.frames_by_component = list()
       testframes = self.closeframes
       for icomp, symelem in enumerate(self.symelems):
          self.frames_by_component.append(list())
-         ops = wu.htrans(-self.celloffset) @ symelem.operators @ wu.htrans(self.celloffset)
+         assert np.allclose(self.celloffset, 0)
+         # ops = wu.htrans(-self.celloffset) @ symelem.operators @ wu.htrans(self.celloffset)
+         ops = symelem.operators
          # debug2 = debug - self.celloffset
          # wu.dumppdb(f'/home/sheffler/project/rpxtal/canon.pdb', debug, frames=np.eye(4))
          # wu.dumppdb(f'/home/sheffler/project/rpxtal/canonoffset.pdb', debug2, frames=np.eye(4))
@@ -359,6 +559,7 @@ class McSymmetry:
             self.frames_by_component[icomp].append(frames_c1c2)
 
          # ic(icomp, symelem)
+         # ic()
          # ic(np.sum(~self.scoreframes[icomp, icomp]))
          assert np.sum(~self.scoreframes[icomp, icomp]) == symelem.numops
 
@@ -371,16 +572,28 @@ class McSymmetry:
          self.scoreframes[icomp1, icomp2],
       )
 
-   def frames(self, lattice, unitframes=None):
-      if unitframes is None: unitframes = self.closeframes
-      nframes = len(unitframes)
+   def frames(self, lattice, unitframes=None, components=None, cells=None):
+      if components is not None:
+         assert unitframes is None
+         unitframes = list()
+         for icomp, elemid in components:
+            unitframes.append(self.allframes[self.allelemids[:, icomp] == elemid])
+         if not unitframes: return None
+         unitframes = np.concatenate(unitframes)
+      if unitframes is None:
+         unitframes = self.closeframes
+         if cells == 'all': unitframes = self.allframes
+         elif cells is not None: unitframes = wu.sym.sgframes(self.sym, cells=cells)
+      else:
+         assert cells is None
+      # nframes = len(unitframes)
       # frames = np.tile(unitframes, (npos, 1, 1)).reshape(npos, nframes, 4, 4)
       frames = wu.sym.applylattice(lattice, unitframes)
       return frames
 
    def update_closeframes(self, position, lattice, com, framedistcut, forceupdate=False, **kw):
       poscom = einsum('cij,cj->ci', position, com)
-      # ic(poscom)
+      # ic(poscom, com)
       paddingfrac = 3
       dist = [wu.hnorm(poscom[i] - self.last_closeframes_cen[i]) for i in range(len(poscom))]
       close = [d < framedistcut / paddingfrac for d in dist]
@@ -392,11 +605,16 @@ class McSymmetry:
       # self.last_closeframes_lattice = np.sum(lattice.diagonal(), axis=0)
       frames = self.frames(lattice, self.allframes)
       close = np.zeros(len(frames), dtype=bool)
-      for i, cen in enumerate(poscom):
-         symcom = einsum('fij,j->fi', frames, cen)
-         dist = wu.hnorm(symcom - cen)
-         close |= dist < framedistcut * (1 + 1 / paddingfrac)
+      for icomp1, cen in enumerate(poscom):
+         for icomp2, cen2 in enumerate(poscom):
+            if icomp2 < icomp1: continue
+            symcom = einsum('fij,j->fi', frames, cen2)
+            dist = wu.hnorm(symcom - cen)
+            close |= dist < framedistcut * (1 + 1 / paddingfrac)
+      assert np.any(close)
       self.closeframes = self.allframes[close]
+      self.closeframes_elemids = self.allelemids[close]
+      # assert 0
       # self.closeframes = self.allframes[np.argsort(dist2)[:nclose]]
 
       # compcom = einsum('cij,cj->ci', position, com)
@@ -452,6 +670,14 @@ class McSymmetry:
       # ic(asucen.shape, asucen)
       # self.setup_component_frames(asucen=asucen)
       # return wu.Bunch(position=newpos, lattice=lattice)
+
+   def component_score_summary(self, framescores):
+      compscores = defaultdict(lambda: 0)
+      for (iframe, icomp1, icomp2), score in np.ndenumerate(framescores):
+         if score == 0.0: continue
+         compid1, compid2 = (icomp1, 0), (icomp2, self.closeframes_elemids[iframe, icomp1, icomp2])
+         compscores[compid1, compid2] += score
+      return compscores
 
 def component_from_pdb(fname, symelem, **kw):
    if isinstance(fname, str):

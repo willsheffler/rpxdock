@@ -378,12 +378,23 @@ def default_cli_parser(parent=None, **kw):
    addarg("--mc_dump_initial_samples", action='store_true', help='have mcdock dump initial sample positions and stop')
    addarg('--mc_ntrials', default=1000, type=int, help='number of monte-carlo iterations')
    addarg('--mc_nruns', default=13, type=int, help='number of monte-carlo runs')
+   addarg('--mc_min_contacts', default=-999, type=int, help='minimum number of interfaces')
+   addarg('--mc_max_contacts', default=999, type=int, help='maximum number of interfaces')
+   addarg('--mc_min_solvfrac', default=0.1, type=float,
+          help='minimum solvent fraction (negative means protein volume higher than unit cell due to clashes')
+   addarg('--mc_max_solvfrac', default=0.9, type=float, help='maximum solvent fraction')
+   addarg('--mc_disconnected_ok', action='store_true', help='components arent required to have inter-contacts')
+   addarg('--mc_intercomp_only', action='store_true', help='clash check but dont score intra-component contacts')
+   addarg('--mc_cell_bounds', default=[], type=float, nargs='+', help='cell dimension range')
+   addarg('--mc_which_symelems', default=[0] * 10, type=int, nargs='+', help='which symelems to be used')
 
    addarg('--limit_rotation_to_z', action='store_true',
           help='for cyclic and asym, limit orientation sampling to rotations around z')
    addarg('--disable_rotation', action='store_true', help='for cyclic and asym, disable all rotation')
    addarg('--exclude_residue_neighbors', default=1, type=int,
           help='disallow residue if within x positions of initially excluded residue')
+
+   addarg('--I_KNOW_WHAT_I_AM_DOING', action='store_true', help='follow options exactly even when stupid')
 
    parser.has_rpxdock_args = True
    return parser
@@ -437,7 +448,8 @@ def process_cli_args(options, **kw):
       options.architecture = options.architecture.upper()
 
    if not kw.get('dont_set_default_cart_bounds'):
-      options.cart_bounds = _process_cart_bounds(options.cart_bounds)
+      options.cart_bounds = _process_cart_bounds(options.cart_bounds, [0, 500])
+   options.mc_cell_bounds = _process_cart_bounds(options.mc_cell_bounds, [0, 1000])
 
    options.trimmable_components = options.trimmable_components.upper()
 
@@ -672,8 +684,8 @@ def _read_allowed_res_file(fname):
    with open(fname) as inp:
       return DefaultResidueSelector(inp.read())
 
-def _process_cart_bounds(cart_bounds):
-   if not cart_bounds: cart_bounds = 0, 500
+def _process_cart_bounds(cart_bounds, default):
+   if not cart_bounds: cart_bounds = default
    elif len(cart_bounds) == 1: cart_bounds = [0, cart_bounds[0]]
    tmp = list()
    for i in range(0, len(cart_bounds), 2):
