@@ -1,10 +1,10 @@
 {
 		"build_systems":
 		[
-	
+
 			{
 				"name": "test_1comp_xtal 1comp",
-				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --architecture I213_c3 --mc_nruns 1 --mc_ntrials 100 --mc_min_solvfrac 0.1 --mc_max_solvfrac 0.5  --mc_cell_bounds 50 300 --inputs1 /home/sheffler/project/diffusion/pointsym/test1/c3_diffusion_test_1.pdb --hscore_files ilv_h/1000 --mc_min_contacts 1 --mc_max_contacts 1   &> $folder/sublime_build.log && pymol *.pdb"
+				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --architecture I213_c3 --mc_nruns 10 --mc_ntrials 1000 --mc_min_solvfrac 0.1 --mc_temperature 4 --mc_max_solvfrac 0.5  --mc_cell_bounds 50 300 --inputs1 /home/sheffler/project/diffusion/pointsym/test1/c3_diffusion_test_1.pdb --hscore_files ilv_h --mc_wt_solvfrac 100 --mc_min_contacts 1 --mc_max_contacts 1   &> $folder/sublime_build.log"
 			},	
 			{
 				"name": "test_1comp_xtal 2comp",

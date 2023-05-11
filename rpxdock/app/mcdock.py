@@ -1,4 +1,4 @@
-import random, os, sys, itertools as it, sys
+import random, os, sys, itertools as it, sys, concurrent.futures as cf
 from opt_einsum import contract as einsum
 from typing import List
 import numpy as np
@@ -21,12 +21,13 @@ def main():
    kw.caclashdis = 5
    kw.framedistcut = 70
    # kw.mc_intercomp_only = True
+   ic(kw.hscore_files)
    ic(kw.mc_cell_bounds)
+   ic(kw.mc_min_solvfrac, kw.mc_max_solvfrac)
+   ic(kw.mc_min_contacts, kw.mc_max_contacts)
    # kw.hscore_files = 'ilv_h'
 
-   # assert 0
-   # kw.mc_nruns = 10
-   # kw.mc_dump_initial_samples = True
+   kw.hscore = rp.RpxHier(kw.hscore_files, **kw)
 
    sym, *psyms = kw.architecture.upper().split('_')
    symelems = list()
@@ -55,7 +56,7 @@ def main():
    ic(psyms)
    ic(symelems)
 
-   mcsym = McSymmetry(sym, symelems)
+   mcsym = McSymmetry(sym, symelems, **kw)
    for fnames in zip(*kw.inputs):
       components = component_from_pdb(fnames, symelems, **kw)
       search = RpxMonteCarlo(components, mcsym, **kw)
@@ -68,6 +69,7 @@ class RpxMonteCarlo:
       components: 'List[McComponent]',
       mcsym: 'McSymmetry',
       caclashdis=4,
+      hscore: 'RphHier' = None,
       **kw,
    ):
       self.kw = wu.Bunch(kw)
@@ -76,7 +78,7 @@ class RpxMonteCarlo:
       self.compcoms = np.stack([c.com for c in self.components])
       self.compvols = [c.guess_volume() for c in self.components]
       self.mcsym = mcsym
-      self.hscore = rp.RpxHier(self.kw.hscore_files, **kw)
+      self.hscore = hscore or rp.RpxHier(self.kw.hscore_files, **kw)
       self.caclashdis = caclashdis
       self.results = list()
       self.reset()
@@ -101,30 +103,25 @@ class RpxMonteCarlo:
    def run(
       self,
       mc_nruns,
+      nprocess=1,
       **kw,
    ):
       kw = self.kw.sub(kw)
-      results = list()
       for isamp in range(mc_nruns):
-         self.reset()
          try:
-            score, samp = self.runone(isamp, **kw)
-            if score >= 0: continue
-            results.append((score, samp))
-            self.mcsym.to_canonical_asu_position(samp, self.compcoms, forceupdate=True, **kw)
-            self.dumppdbs(f'mc__{self.label()}__samp{isamp:04}', samp)
-
+            self.runone(isamp, **kw)
          except Exception as e:
             print('error on', isamp, flush=True)
             print(e, flush=True)
-            # if isinstance(e, AssertionError):
             raise e
+      self.dump_results(kw.output_prefix + 'scores.txt', **kw)
 
    def runone(
          self,
          isamp,
          mc_ntrials=1000,
          startspread=wu.Bunch(cartsd=4.0, rotsd=0.15, latticesd=8.0),
+         mc_temperature=3,
          **kw,
    ):
       kw = self.kw.sub(kw)
@@ -133,32 +130,43 @@ class RpxMonteCarlo:
       sample = self.startsample()
 
       if kw.mc_dump_initial_samples:
-         self.dumppdbs(f'start_{isamp}.pdb', sample)
-         return 9e9, None
+         self.dumppdbs(f'start_{isamp}', sample)
+         # return 9e9, None
 
-      mc = wu.MonteCarlo(self.objectivefunc, temperature=2, **kw)
+      mc = wu.MonteCarlo(self.objectivefunc, temperature=mc_temperature, **kw)
       for itrial in range(mc_ntrials):
          assert sample
          newsample = self.new_sample(sample, spread)
-
          accept = mc.try_this(newsample)
          if accept:
             sample = newsample
-            if mc.new_best_last:
-               self.results.append((mc.best, mc.beststate))
-         # if itrial % 100 == 0:
-         # ic(itrial, spread)
          self.adjust_spread(spread, itrial)
-      ic(isamp, mc.best, self.guess_solvfrac(mc.beststate))
-      newsc = self.objectivefunc(mc.beststate, output=True)
-      if not np.allclose(newsc, mc.best):
-         print('rescore mismatch', isamp, newsc, mc.best)
-      return mc.best, mc.beststate.copy()
+      self.record_result(isamp, mc.beststate)
 
-   # reset to closest frame to ref hpoint
+   def record_result(self, isamp, sample, **kw):
+      kw = self.kw.sub(kw)
+      sample = self.mcsym.to_canonical_asu_position(sample, self.compcoms, forceupdate=True, **kw)
+      framescores, comdist = self.score(sample, **kw)
+      score = self.objectivefunc(sample, **kw)
+      compscores = self.mcsym.component_score_summary(framescores)
+      prefix = f'{kw.output_prefix}{self.label()}_{isamp:04}'
+      pdbfiles = self.dumppdbs(prefix, sample)
+      r = wu.Bunch(
+         score=score,
+         compscores=compscores,
+         solvfrac=self.guess_solvfrac(sample),
+         pdbfiles=pdbfiles,
+      )
+      print(f'sample {isamp:4}', _output_line(r), flush=True)
+      self.results.append(r)
 
-   # scale with lattice change
-   # replace position/lattice w/ samp
+   def dump_results(self, fname, **kw):
+      kw = self.kw.sub(kw)
+      with open(fname, 'w') as out:
+         for r in self.results:
+            line = _output_line(r)
+            line += ' ' + os.path.abspath(r.pdbfiles[0])
+            out.write(line + '\n')
 
    def startsample(self, **kw):
       kw = self.kw.sub(kw)
@@ -177,7 +185,7 @@ class RpxMonteCarlo:
       # spread.latticesd = 2.0
 
    def label(self):
-      return str.join('__', [c.label for c in self.components])
+      return self.kw.architecture + '_' + str.join('_', [c.label.replace('_', '') for c in self.components])
 
    def new_sample(self, sample, spread, **kw):
       kw = self.kw.sub(kw)
@@ -191,36 +199,26 @@ class RpxMonteCarlo:
       newsample = self.mcsym.to_canonical_asu_position(newsample, self.compcoms, **kw)
       return newsample
 
-   def objectivefunc(self, sample, output=False, **kw):
+   def objectivefunc(self, sample, mc_wt_solvfrac=0, **kw):
       kw = self.kw.sub(kw)
       position, lattice = sample.values()
       assert position.shape == (self.ncomp, 4, 4)
       metainfo = self.metainfo(sample, **kw)
-      # ic(metainfo)
-      metascore = 0
+      score = 0
+      score += mc_wt_solvfrac * max(0, metainfo.solvfrac - kw.mc_max_solvfrac)
 
       framescores, comdist = self.score(sample, **kw)
-
       compscores = self.mcsym.component_score_summary(framescores)
+
       sc = np.array(list(compscores.values()))
       scinter = np.array(list([v for (i, j), v in compscores.items() if i[0] != j[0]]))
       scintra = np.array(list([v for (i, j), v in compscores.items() if i[0] == j[0]]))
       sc = np.sort(sc)
 
+      # not enough contact
       if len(sc) < kw.mc_min_contacts:
-         # ic(comdist.shape)
          comdistsort = np.sort(comdist.reshape(-1))
-         # ic(comdistsort.shape)
-         # ic(comdistsort[:10])
-         # ic(comdistsort[kw.mc_max_contacts - 1])
-         # assert 0
          return 1_000_000 + comdistsort[kw.mc_min_contacts - 1]
-
-      if output:
-         ic(compscores)
-
-      score = np.sum(sc)
-      return score
 
       if len(self.components) > 1 and not kw.mc_disconnected_ok:
          # ninter = len([0 for i1, i2 in compscores if i1[0] != i2[0]])
@@ -230,38 +228,24 @@ class RpxMonteCarlo:
          score = np.min(scinter) - 1 * (-np.sum(np.abs(sc) - np.min(scinter)))
          if score > 0: return score
          # nintra = len(compscores) - ninter
-      return score
+
       # ic(kw.mc_min_contacts, len(compscores), kw.mc_max_contacts)
       good = sc[:kw.mc_max_contacts]
       bad = sc[kw.mc_max_contacts:]
-      score = score + np.sum(good[kw.mc_min_contacts - 1:]) + 10 * np.sum(np.abs(bad))
+      score = score + np.sum(good) + 10 * np.sum(np.abs(bad))
       # ic(good, bad, score)
 
-      # if not kw.mc_min_contacts <= len(compscores) <= kw.mc_max_contacts:
-      # return 1000000
-
-      # for i, ((c1, c2), v) in enumerate(compscores.items()):
-      # print(i, c1, c2, v, flush=True)
-      # print(flush=True)
-      # self.dumppdbs('test.pdb', sample)
-      score += metascore
-      # ic(score)
-
-      # for isc, ((compid1, compid2), sc) in enumerate(compscores.items()):
-      # # self.dumppdbs(f'{isc}_{compid1[0]}_{compid1[1]}_{sc}.pdb', sample, dumpasym=False, components=[compid1], **kw)
-      # self.dumppdbs(f'{isc}_{compid2[0]}_{compid2[1]}_{sc}.pdb', sample, dumpasym=False, components=[compid2], **kw)
-
-      # sys.exit()
-      # ic(score, flush=True)
       return score
 
    def closest_to_origin(self, position, lattice, output_above_0=False, **kw):
       frames = self.mcsym.frames(lattice, cells=4)
+      position = position.copy()
       sympos = einsum('fij,cjk,ck->fci', frames, position, self.compcoms)
       if output_above_0:
          above0 = np.all(sympos[:, 0, :3] > 0, axis=1)
          frames, sympos = frames[above0], sympos[above0]
-      imin0 = np.argmin(wu.hnorm(sympos[:, 0]))
+      center = np.array([3, 2, 1, 0])
+      imin0 = np.argmin(wu.hnorm(sympos[:, 0] - center))
       position[0] = frames[imin0] @ position[0]
       for i in range(1, len(position)):
          position[i] = frames[np.argmin(wu.hnorm(sympos[:, i] - sympos[imin0, 0]))] @ position[i]
@@ -278,40 +262,41 @@ class RpxMonteCarlo:
             close |= contact
       return allframes[close]
 
-   def dumppdbs(self, fname, samples, dumpasym=True, dumpsym=True, components=None, rawposition=False, **kw):
-      positions, lattices = samples.values()
-      positions = positions.reshape(-1, self.ncomp, 4, 4)
-      lattices = lattices.reshape(-1, 3, 3)
+   def dumppdbs(self, prefix, samples, dumpasym=True, dumpsym=True, components=None, rawposition=False, **kw):
+      position, lattice = samples.values()
       symtag = self.mcsym.sym.lower().replace(' ', '')
-      for ipos, (position, lattice) in enumerate(zip(positions, lattices)):
-         cryst1 = wu.sym.cryst1_line(self.mcsym.sym, lattice)
-         if not rawposition:
-            position = self.closest_to_origin(position, lattice)
-            # frames = self.mcsym.frames(lattice, cells=(-1, 0))
-            frames = self.contacting_frames(position, lattice)
-         else:
-            frames = wu.sym.applylattice(lattice, self.mcsym.closeframes)
+      output_files = list()
+      cryst1 = wu.sym.cryst1_line(self.mcsym.sym, lattice)
+      if not rawposition:
+         position = self.closest_to_origin(position, lattice)
+         # frames = self.mcsym.frames(lattice, cells=(-1, 0))
+         frames = self.contacting_frames(position, lattice)
+      else:
+         frames = wu.sym.applylattice(lattice, self.mcsym.closeframes)
 
-         if dumpasym:
-            jointcoords = list()
-            for icomp, (pos, comp) in enumerate(zip(position, self.components)):
-               jointcoords.append(wu.hxformpts(pos, comp.body.coord))
-            wu.dumppdb(f'{fname}_{symtag}_{self.kw.architecture}_pos{ipos:04}_asym.pdb', jointcoords, header=cryst1)
-
-         if not dumpsym: continue
-
+      if dumpasym:
+         jointcoords = list()
          for icomp, (pos, comp) in enumerate(zip(position, self.components)):
-            coords = wu.hxformpts(pos, comp.body.coord)
-            if components is not None:
-               matchcomponents = [c for c in components if c[0] == icomp]
-               frames = self.mcsym.frames(lattice, components=matchcomponents)
-               if frames is None: continue
-               ic(matchcomponents)
-               ic(frames.round(2))
-            coords = wu.hxformpts(frames, coords)
-            wu.dumppdb(f'{fname}_{symtag}_{self.kw.architecture}_pos{ipos:04}_comp{icomp}_sym.pdb', coords,
-                       header=cryst1)
-            # wu.showme(coords[:100, :3], is_points=True)
+            jointcoords.append(wu.hxformpts(pos, comp.body.coord))
+         fname = f'{prefix}_asym.pdb'
+         wu.dumppdb(fname, jointcoords, header=cryst1)
+         output_files.append(fname)
+
+      if not dumpsym: return
+      for icomp, (pos, comp) in enumerate(zip(position, self.components)):
+         coords = wu.hxformpts(pos, comp.body.coord)
+         if components is not None:
+            matchcomponents = [c for c in components if c[0] == icomp]
+            frames = self.mcsym.frames(lattice, components=matchcomponents)
+            if frames is None: continue
+            ic(matchcomponents)
+            ic(frames.round(2))
+         coords = wu.hxformpts(frames, coords)
+         fname = f'{prefix}_comp{icomp}_sym.pdb'
+         wu.dumppdb(fname, coords, header=cryst1)
+         output_files.append(fname)
+         # wu.showme(coords[:100, :3], is_points=True)
+      return output_files
 
    def sympositions(self, position, lattice, icomp1, icomp2):
       frames0, fmask = self.mcsym.scoreframes_for_component(icomp1, icomp2)
@@ -452,7 +437,7 @@ class McComponent:
       return x[0]
 
    def guess_volume(self):
-      return 100 * len(self.body.coord)
+      return 120 * len(self.body.coord)
 
 class McSymmetry:
    """manage symmetry and component neighbor relationships"""
@@ -690,6 +675,14 @@ def component_from_pdb(fname, symelem, **kw):
    return [component_from_pdb(f, s, **kw) for (f, s) in zip(fname, symelem)]
 
    # sample positions
+
+def _output_line(result):
+   compsc = list(sorted((x[1], x[0]) for x in result.compscores.items()))
+   compsc += [(0, ((0, 0), (0, 0)))] * 10  # padding
+   line = f'{result.score:9.3f} {result.solvfrac:5.3f}'
+   for s in compsc[:4]:
+      line += f' {s[1][0][0]} {s[1][1][0]} {s[0]:9.3f}'
+   return line
 
 #
 # score positions

@@ -387,6 +387,8 @@ def default_cli_parser(parent=None, **kw):
    addarg('--mc_intercomp_only', action='store_true', help='clash check but dont score intra-component contacts')
    addarg('--mc_cell_bounds', default=[], type=float, nargs='+', help='cell dimension range')
    addarg('--mc_which_symelems', default=[0] * 10, type=int, nargs='+', help='which symelems to be used')
+   addarg('--mc_temperature', default=3, type=float, help='starting temperature for mc simulation')
+   addarg('--mc_wt_solvfrac', default=0, type=float, help='weight on xtal solvent frac match')
 
    addarg('--limit_rotation_to_z', action='store_true',
           help='for cyclic and asym, limit orientation sampling to rotations around z')
@@ -399,12 +401,15 @@ def default_cli_parser(parent=None, **kw):
    parser.has_rpxdock_args = True
    return parser
 
-def get_cli_args(argv=None, parent=None, process_args=True, **kw):
+def get_cli_args(argv=None, parent=None, process_args=True, strict=True, **kw):
    parser = default_cli_parser(parent, **kw)
    argv = sys.argv[1:] if argv is None else argv
    argv = make_argv_with_atfiles(argv, **kw)
-   arg, unk = parser.parse_known_args(argv)
-   options = Bunch(arg, unknown_arguments=unk)
+   if strict: arg, unk = parser.parse_args(argv), None
+   else: arg, unk = parser.parse_known_args(argv)
+   ic(type(arg))
+   options = Bunch(arg)
+   options.unknown_arguments = unk
    if process_args: options = process_cli_args(options, **kw)
    return options
 
