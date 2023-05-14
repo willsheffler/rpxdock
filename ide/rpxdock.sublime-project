@@ -7,6 +7,18 @@
 				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --architecture I213_c3 --mc_nruns 10 --mc_ntrials 1000 --mc_min_solvfrac 0.1 --mc_temperature 4 --mc_max_solvfrac 0.5  --mc_cell_bounds 50 300 --inputs1 /home/sheffler/project/diffusion/pointsym/test1/c3_diffusion_test_1.pdb --hscore_files ilv_h --mc_wt_solvfrac 100 --mc_min_contacts 1 --mc_max_contacts 1   &> $folder/sublime_build.log"
 			},	
 			{
+				"name": "test_1comp_xtal 1comp dihedral",
+				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --architecture I4132_d3 --mc_nruns 1 --mc_ntrials 1000 --mc_min_solvfrac 0.1 --mc_temperature 4 --mc_max_solvfrac 1  --mc_cell_bounds 200 300 --inputs1 /home/sheffler/project/rpxtal/inputs/acourbet_d3.pdb --hscore_files ilv_h --mc_wt_solvfrac 10 --mc_min_contacts 1 --mc_max_contacts 1   &> $folder/sublime_build.log && pymol *.pdb"
+			},				
+			{
+				"name": "test_1comp_xtal 2comp dihedral",
+				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --architecture I4132_d3_d2 --mc_nruns 1 --mc_ntrials 1000 --mc_min_solvfrac 0.1 --mc_temperature 4 --mc_max_solvfrac 1  --mc_cell_bounds 200 300 --inputs /home/sheffler/project/rpxtal/inputs/acourbet_d3.pdb /home/sheffler/project/rpxtal/inputs/d2_diffusion_test_2.pdb --hscore_files ilv_h/1000 --mc_wt_solvfrac 0 --mc_min_contacts 1 --mc_max_contacts 1   &> $folder/sublime_build.log && pymol *.pdb"
+			},
+			{
+				"name": "test_1comp_xtal 4comp dihedral",
+				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --architecture I4132_d3_d3_d2_d2  --mc_which_symelems 0 1 0 1 --mc_nruns 1 --mc_ntrials 1000 --mc_min_solvfrac 0.1 --mc_temperature 4 --mc_max_solvfrac 1  --mc_cell_bounds 200 300 --inputs /home/sheffler/project/rpxtal/inputs/acourbet_d3.pdb /home/sheffler/project/rpxtal/inputs/acourbet_d3.pdb /home/sheffler/project/rpxtal/inputs/d2_diffusion_test_2.pdb /home/sheffler/project/rpxtal/inputs/d2_diffusion_test_0.pdb --hscore_files ilv_h/1000 --mc_wt_solvfrac 0 --mc_min_contacts 1 --mc_max_contacts 1   &> $folder/sublime_build.log && pymol *.pdb"
+			},	
+			{
 				"name": "test_1comp_xtal 2comp",
 				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --mc_nruns 1 --architecture P213_c3_c3  --inputs1 /home/sheffler/project/diffusion/pointsym/test1/c3_diffusion_test_1.pdb  --inputs2 /home/sheffler/project/diffusion/pointsym/test1/c3_diffusion_test_1.pdb  --mc_min_contacts 2 --mc_max_contacts 2 --mc_intercomp_only --hscore_files ilv_h/1000 &> $folder/sublime_build.log && pymol *.pdb"
 			},

@@ -10,16 +10,16 @@ def main():
    ic(seed)
    np.random.seed(seed)
 
-   # np.random.seed(1234789725)
+   np.random.seed(3861647224)
 
    kw = rp.options.get_cli_args()
    kw.dont_use_rosetta = True
    kw.ignored_aas = 'CP'
    kw.wts.ncontact = 0.001
-   kw.score_only_ss = 'H'
+   kw.score_only_ss = 'HE'
    kw.exclude_residue_neighbors = 3
    kw.caclashdis = 5
-   kw.framedistcut = 70
+   kw.framedistcut = 120
    # kw.mc_intercomp_only = True
    ic(kw.hscore_files)
    ic(kw.mc_cell_bounds)
@@ -57,7 +57,11 @@ def main():
    ic(symelems)
 
    mcsym = McSymmetry(sym, symelems, **kw)
-   for fnames in zip(*kw.inputs):
+   if isinstance(kw.inputs[0], str):
+      ncomp = len(psyms)
+      kw.inputs = [kw.inputs[i::ncomp] for i in range(ncomp)]
+   for iinput, fnames in enumerate(zip(*kw.inputs)):
+      print('input', iinput, fnames, flush=True)
       components = component_from_pdb(fnames, symelems, **kw)
       search = RpxMonteCarlo(components, mcsym, **kw)
       result = search.run(**kw)
@@ -129,9 +133,9 @@ class RpxMonteCarlo:
       spread = startspread.copy()
       sample = self.startsample()
 
-      if kw.mc_dump_initial_samples:
-         self.dumppdbs(f'start_{isamp}', sample)
-         # return 9e9, None
+      # if kw.mc_dump_initial_samples:
+      # self.dumppdbs(f'start_{isamp}', sample, dumpasym=False, rawposition=True)
+      # return 9e9, None
 
       mc = wu.MonteCarlo(self.objectivefunc, temperature=mc_temperature, **kw)
       for itrial in range(mc_ntrials):
@@ -139,8 +143,10 @@ class RpxMonteCarlo:
          newsample = self.new_sample(sample, spread)
          accept = mc.try_this(newsample)
          if accept:
+            ic(itrial, mc.last)
             sample = newsample
          self.adjust_spread(spread, itrial)
+
       self.record_result(isamp, mc.beststate)
 
    def record_result(self, isamp, sample, **kw):
@@ -209,11 +215,13 @@ class RpxMonteCarlo:
 
       framescores, comdist = self.score(sample, **kw)
       compscores = self.mcsym.component_score_summary(framescores)
+      # ic(compscores)
 
-      sc = np.array(list(compscores.values()))
-      scinter = np.array(list([v for (i, j), v in compscores.items() if i[0] != j[0]]))
-      scintra = np.array(list([v for (i, j), v in compscores.items() if i[0] == j[0]]))
-      sc = np.sort(sc)
+      sc = list(sorted(compscores.values()))
+      scinter = list(sorted([v for (i, j), v in compscores.items() if i[0] != j[0]]))
+      scintra = list(sorted([v for (i, j), v in compscores.items() if i[0] == j[0]]))
+      # ic(sc, scinter, scintra)
+      # score = np.sum(sc)
 
       # not enough contact
       if len(sc) < kw.mc_min_contacts:
@@ -221,23 +229,26 @@ class RpxMonteCarlo:
          return 1_000_000 + comdistsort[kw.mc_min_contacts - 1]
 
       if len(self.components) > 1 and not kw.mc_disconnected_ok:
-         # ninter = len([0 for i1, i2 in compscores if i1[0] != i2[0]])
-         # if ninter == 0 and not kw.mc_disconnected_ok:
-         # return 1000000
-         if len(scinter) == 0: return score
-         score = np.min(scinter) - 1 * (-np.sum(np.abs(sc) - np.min(scinter)))
-         if score > 0: return score
-         # nintra = len(compscores) - ninter
+         if len(scinter) == 0:
+            good = []
+            bad = sc
+         else:
+            rest = list(sorted(scinter[1:] + scintra))
+            good = scinter[:1] + rest[:kw.mc_max_contacts - 1]
+            bad = rest[kw.mc_max_contacts:]
+            # ic(good, bad)
+            # assert 0
+      else:
+         good = sc[:kw.mc_max_contacts]
+         bad = sc[kw.mc_max_contacts:]
 
-      # ic(kw.mc_min_contacts, len(compscores), kw.mc_max_contacts)
-      good = sc[:kw.mc_max_contacts]
-      bad = sc[kw.mc_max_contacts:]
+      # ic(good, bad)
       score = score + np.sum(good) + 10 * np.sum(np.abs(bad))
       # ic(good, bad, score)
 
       return score
 
-   def closest_to_origin(self, position, lattice, output_above_0=False, **kw):
+   def closest_to_origin(self, position, lattice, output_above_0=False, ca_contact_dist=10, **kw):
       frames = self.mcsym.frames(lattice, cells=4)
       position = position.copy()
       sympos = einsum('fij,cjk,ck->fci', frames, position, self.compcoms)
@@ -248,7 +259,13 @@ class RpxMonteCarlo:
       imin0 = np.argmin(wu.hnorm(sympos[:, 0] - center))
       position[0] = frames[imin0] @ position[0]
       for i in range(1, len(position)):
-         position[i] = frames[np.argmin(wu.hnorm(sympos[:, i] - sympos[imin0, 0]))] @ position[i]
+         body, body2 = self.components[0].body, self.components[i].body
+         sympos2 = frames @ position[i]
+         ncontact = body.contact_count_ca(body2, position[0], sympos2, ca_contact_dist)
+         if np.max(ncontact) > 0:
+            position[i] = sympos2[np.argmax(ncontact)]
+         else:
+            position[i] = frames[np.argmin(wu.hnorm(sympos[:, i] - sympos[imin0, 0]))] @ position[i]
       return position
 
    def contacting_frames(self, position, lattice, ca_contact_dist=10, **kw):
@@ -262,7 +279,8 @@ class RpxMonteCarlo:
             close |= contact
       return allframes[close]
 
-   def dumppdbs(self, prefix, samples, dumpasym=True, dumpsym=True, components=None, rawposition=False, **kw):
+   def dumppdbs(self, prefix, samples, dumpasym=True, dumpsym=True, components=None, rawposition=False, cells=None,
+                **kw):
       position, lattice = samples.values()
       symtag = self.mcsym.sym.lower().replace(' ', '')
       output_files = list()
@@ -272,7 +290,10 @@ class RpxMonteCarlo:
          # frames = self.mcsym.frames(lattice, cells=(-1, 0))
          frames = self.contacting_frames(position, lattice)
       else:
-         frames = wu.sym.applylattice(lattice, self.mcsym.closeframes)
+         if cells is not None:
+            frames = self.mcsym.frames(lattice, cells=cells)
+         else:
+            frames = wu.sym.applylattice(lattice, self.mcsym.closeframes)
 
       if dumpasym:
          jointcoords = list()
@@ -407,11 +428,11 @@ class McComponent:
          pos = wu.hxformx(wu.hxformx(randrot, fliprot), offset)
          return pos
       elif se.isdihedral and se.nfold > 2:
-         assert 0
          alignangle = np.where(np.random.rand(size) < 0.5, 0, np.pi / se.nfold)
-         return wu.hrot(se.axis, alignangle, cen)
+         mayberot = wu.hrot(se.axis, alignangle, se.cen)
+         pos = mayberot @ se.origin
+         return pos
       elif se.isdihedral and se.nfold == 2:
-         assert 0
          a1, a2, a3 = se.axis, se.axis2, wu.hcross(se.axis, se.axis2)
          oris = np.stack([
             wu.halign2(a1, a2, a1, a2),
@@ -421,7 +442,10 @@ class McComponent:
             wu.halign2(a1, a2, a3, a1),
             wu.halign2(a1, a2, a3, a2),
          ])
-         return oris[np.randint(0, 6, size)]
+         pos = wu.htrans(se.cen) @ oris[np.random.randint(0, 6, size)] @ wu.htrans(-se.cen) @ se.origin
+         # pos = wu.htrans(se.cen) @ oris[None, 5] @ wu.htrans(-se.cen) @ se.origin
+         # pos = se.origin[None]
+         return pos
       else:
          assert 0
 
@@ -429,7 +453,7 @@ class McComponent:
       '''rotation around origin, should be applied first'''
       assert size == 1
       if self.symelem.isdihedral:
-         return np.tile(np.eye(4), (size, 1, 1))
+         return np.eye(4)
       rot = np.random.normal(0, spread.rotsd, size)
       x = wu.hrot(self.symelem.axis, rot)
       cart = np.random.normal(0, spread.cartsd, size)
@@ -457,7 +481,7 @@ class McSymmetry:
       self.allelemids = np.empty((len(self.allframes), len(symelems), len(symelems)), dtype=np.int32)
       for i, ei in enumerate(symelems):
          for j, ej in enumerate(symelems):
-            self.allelemids[:, i, j] = wu.sym.sg_symelem_frame444_opcompids_dict[self.sym][:, ei.id, ej.id]
+            self.allelemids[:, i, j] = wu.sym.sg_symelem_frame444_opcompids_dict[self.sym][:, ei.index, ej.index]
       self.reset()
 
    def reset(self):
@@ -472,8 +496,8 @@ class McSymmetry:
       lb0, ub0 = mc_cell_bounds[0], mc_cell_bounds[1]
       # 1 - sf = (compv / cellv)
       # cellv = compv / (1 - sf)
-      mincellside = (component_volume / (1 - mc_min_solvfrac))**0.33333
-      maxcellside = (component_volume / (1 - mc_max_solvfrac))**0.33333
+      mincellside = (component_volume / max(0.0001, (1 - mc_min_solvfrac)))**0.33333
+      maxcellside = (component_volume / max(0.0001, (1 - mc_max_solvfrac)))**0.33333
       lb0, ub0 = max(lb0, mincellside), min(ub0, maxcellside)
       # ic(mincellside, maxcellside)
       for i in range(100):  # try many times to meet requirements
