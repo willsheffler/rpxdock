@@ -19,7 +19,7 @@ def main():
    kw.score_only_ss = 'HE'
    kw.exclude_residue_neighbors = 3
    kw.caclashdis = 5
-   kw.framedistcut = 120
+   kw.framedistcut = 70
    # kw.mc_intercomp_only = True
    ic(kw.hscore_files)
    ic(kw.mc_cell_bounds)
@@ -143,7 +143,6 @@ class RpxMonteCarlo:
          newsample = self.new_sample(sample, spread)
          accept = mc.try_this(newsample)
          if accept:
-            ic(itrial, mc.last)
             sample = newsample
          self.adjust_spread(spread, itrial)
 
