@@ -373,4 +373,6 @@ def read_hscore_files(
       raise ValueError('RpxHier expects filenames or ResPairScore+[Xmap*]')
    # append extra copies of highest resl score to use for higher res search steps
 
+   print('using hscore', files[0])
+
    return toreturn

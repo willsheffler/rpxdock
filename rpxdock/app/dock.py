@@ -130,6 +130,7 @@ def dock_asym(hscore, **kw):
 
       logging.debug(f"futures {futures}")
       logging.debug(f"len(futures) {len(futures)}")
+      tqdm = sys.modules['tqdm'].tqdm
       if kw.quiet: tqdm = lambda x, *a, **k: x
       for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          results[f.ijob] = f.result()

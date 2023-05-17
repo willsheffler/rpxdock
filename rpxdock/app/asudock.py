@@ -12,12 +12,12 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 _hscore = dict()
 
 @wu.timed()
-def asudock(sym, coords, scalings=[1.0], ignored_aas='CP', dont_use_rosetta=True, **kw):
+def asudock(sym, coords, scalings=[1.0], ignored_aas='CP', use_rosetta=False, **kw):
 
    kw = wu.Bunch(kw)
    assert not np.any(np.isnan(coords))
    assert not np.any(coords == 9e9)
-   origbody = rp.Body(coords, extract_chain=0, ignored_aas=ignored_aas, dont_use_rosetta=dont_use_rosetta, **kw)
+   origbody = rp.Body(coords, extract_chain=0, ignored_aas=ignored_aas, use_rosetta=use_rosetta, **kw)
    wu.checkpoint(kw, 'bodies')
    cellsize = get_cellsize(sym, origbody)
    wu.checkpoint(kw, 'read cellsize')

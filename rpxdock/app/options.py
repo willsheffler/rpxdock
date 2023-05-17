@@ -147,8 +147,7 @@ def default_cli_parser(parent=None, **kw):
       "--hscore_files", nargs="+", default=['ilv_h'],
       help='rpx score files using in scoring for most protocols. defaults to pairs involving only ILV and only in helices. Can be only a path-suffix, which will be appended to --hscore_data_dir. Can be a list of files. Score files with various parameters can be generated with rpxdock/app/genrate_motif_scores.py.'
    )
-   addarg("--hscore_data_dir", default='/home/sheffler/data/rpx/hscore/willsheffler',
-          help='default path to search for hcores_files. defaults to /home/sheffler/data/rpx/hscore')
+   addarg("--hscore_data_dir", default='/rpxdock_files', help='default path to search for hcores_files.')
 
    addarg("--generate_hscore_pickle_files", default=False, action='store_true',
           help='use to generate faster but non-portable .pickle hscore files')
@@ -373,7 +372,7 @@ def default_cli_parser(parent=None, **kw):
           help='dump result filenames in a Summary.txt file')
 
    addarg("--limit_rotation", type=float, default=9e9, help='limit sampling to rotations less than X radians')
-   addarg("--dont_use_rosetta", action='store_true', help='don\'t use pyrosetta')
+   addarg("--use_rosetta", action='store_true', help='allow use of pyrosetta')
 
    addarg("--mc_dump_initial_samples", action='store_true', help='have mcdock dump initial sample positions and stop')
    addarg('--mc_ntrials', default=1000, type=int, help='number of monte-carlo iterations')
@@ -389,6 +388,8 @@ def default_cli_parser(parent=None, **kw):
    addarg('--mc_which_symelems', default=[0] * 10, type=int, nargs='+', help='which symelems to be used')
    addarg('--mc_temperature', default=3, type=float, help='starting temperature for mc simulation')
    addarg('--mc_wt_solvfrac', default=0, type=float, help='weight on xtal solvent frac match')
+   addarg('--mc_component_bounds', default=[], type=float, nargs='+', help='constrains placement of symelems')
+   addarg('--mc_tether_components', default=9e9, type=float, help='keep symelems close to start position')
 
    addarg('--limit_rotation_to_z', action='store_true',
           help='for cyclic and asym, limit orientation sampling to rotations around z')
@@ -405,9 +406,10 @@ def get_cli_args(argv=None, parent=None, process_args=True, strict=True, **kw):
    parser = default_cli_parser(parent, **kw)
    argv = sys.argv[1:] if argv is None else argv
    argv = make_argv_with_atfiles(argv, **kw)
-   if strict: arg, unk = parser.parse_args(argv), None
-   else: arg, unk = parser.parse_known_args(argv)
-   ic(type(arg))
+   if strict:
+      arg, unk = parser.parse_args(argv), None
+   else:
+      arg, unk = parser.parse_known_args(argv)
    options = Bunch(arg)
    options.unknown_arguments = unk
    if process_args: options = process_cli_args(options, **kw)

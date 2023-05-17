@@ -23,7 +23,7 @@ class Body:
       is_subbody=False,
       modified_term=[False, False],
       og_seqlen=None,
-      dont_use_rosetta=False,
+      use_rosetta=True,
       ignored_aas='CPG',
       **kw,
    ):
@@ -32,8 +32,7 @@ class Body:
       self.is_subbody = is_subbody
       self.ignored_aas = ignored_aas
 
-      kw.userosetta = not dont_use_rosetta
-      kw.dont_use_rosetta = dont_use_rosetta
+      kw.use_rosetta = use_rosetta
 
       pose = self.set_pose_info(source, sym=sym, **kw)
       self.modified_term = modified_term
@@ -49,19 +48,19 @@ class Body:
       self.trim_direction = kw.get('trim_direction', 'NC')
       self.set_allowed_residues(**kw)
       self.init_coords(sym, symaxis, **kw)
-      if not is_subbody and not dont_use_rosetta:
+      if not is_subbody and use_rosetta:
          self.trimN_subbodies, self.trimC_subbodies = get_trimming_subbodies(self, pose, **kw)
 
       self.sanity_check()
 
    @wu.timed
-   def set_pose_info(self, source, sym, extract_chain=None, userosetta=True, **kw):
+   def set_pose_info(self, source, sym, extract_chain=None, use_rosetta=True, **kw):
       # pose stuff
-      if userosetta:
+      if use_rosetta:
          try:
             import rpxdock.rosetta.triggers_init as ros
          except ImportError:
-            userosetta = False
+            use_rosetta = False
       kw = Bunch(kw)
       pose = source
       self.rawpdb = None
@@ -69,7 +68,7 @@ class Body:
       if isinstance(source, str):
          # import rpxdock.rosetta.triggers_init as ros
          self.pdbfile = source
-         if userosetta:
+         if use_rosetta:
             if kw.get('posecache'):
                pose = ros.get_pose_cached(source)
             assert os.path.exists(source)
@@ -93,7 +92,7 @@ class Body:
       elif isinstance(source, wu.pdb.pdbfile.PDBFile):
          pose = wu.NotPose(pdb=source, **kw)
          self.rawpdb = source
-      elif userosetta:
+      elif use_rosetta:
          import pyrosetta
          if not isinstance(source, pyrosetta.rosetta.core.pose.Pose):
             raise ValueError(f'Body cant understand source {type(source)}')
@@ -123,14 +122,14 @@ class Body:
          for nres in range(pose.size()):
             if pose.chain(nres + 1) != 1 + extract_chain: break
 
-         if userosetta:
+         if use_rosetta:
             p = ros.core.pose.Pose()
             ros.core.pose.append_subpose_to_pose(p, pose, 1, nres)
             # ic(p.size(), pose.size())
             # assert p.size() in (pose.size(), pose.size() / 4)
             pose = p
             ros.assign_secstruct(pose)
-         if not userosetta:
+         if not use_rosetta:
             pose = pose.extract(chain=extract_chain, **kw)
 
       # timer.checkpoint('body load file')
@@ -145,13 +144,13 @@ class Body:
       self.ssid = rp.motif.ss_to_ssid(self.ss)
       self.chain = np.repeat(0, self.seq.shape[0])
       self.resno = np.arange(len(self.seq))
-      # if userosetta:
+      # if use_rosetta:
       self.coord = rp.rosetta.get_bb_coords(pose, **kw)
       self.coord = np.ascontiguousarray(self.coord)
       # ic('rosetta', self.coord.shape)
       # else:
       # self.coord = pose.bb()
-      self.set_asym_body(pose, sym, userosetta=userosetta, **kw)
+      self.set_asym_body(pose, sym, use_rosetta=use_rosetta, **kw)
       return pose
 
    @wu.timed
