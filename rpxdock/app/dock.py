@@ -51,52 +51,48 @@ def dock_asym(hscore, **kw):
    kw = Bunch(kw, _strict=False)
 
    #these are kind of arbitrary numbers, but they seem to work well/better
-   kw.cart_resl = 20
-   kw.ori_resl = 40
+   # kw.cart_resl = 20
+   # kw.ori_resl = 40
 
-   if kw.cart_bounds[0]:
-      lb, ub = kw.cart_bounds[0]
-      if lb == 0: lb = -ub
-      lb = max(lb, -200)
-      ub = min(ub, 200)
-      # extent = bound[1]
-      cartlb = np.array([lb, lb, lb])
-      cartub = np.array([ub, ub, ub])
-   else:
-      extent = 100
-      cartlb = np.array([-extent] * 3)
-      cartub = np.array([extent] * 3)
-
-   #sets number of cells (blocksize)
-   cartbs = np.ceil((cartub - cartlb) / kw.cart_resl)
+   cartlb = [_[0] for _ in kw.cart_bounds]
+   cartub = [_[1] for _ in kw.cart_bounds]
+   cartnc = [int((u - l) / kw.cart_resl) for l, u in zip(cartlb, cartub)]
 
    logging.debug('dock_asym bounds')
    logging.debug(f"  cartlb {cartlb}")
    logging.debug(f"  cartub {cartub}")
-   logging.debug(f"  cartbs {cartbs}")
+   logging.debug(f"  cartnc {cartnc}")
    logging.debug(f"  ori_resl {kw.ori_resl}")
 
    if kw.disable_rotation:
       # use hardcoded large bounds with fine spacing
       print('dock_asym disabling rotations')
       sampler = rp.sampling.CartHier3D_f4([-200, -200, -200], [200, 200, 200], [40, 40, 40])
+
    elif kw.limit_rotation_to_z:
-      assert 0, 'this doesnt work right'
+      # assert 0, 'this doesnt work right'
       # sampler = rp.sampling.RotCart3Hier_f4([-20, -30, -40], [20, 30, 40], [4, 6, 8], 0.0, 360.0, 8)
       # m, x = sampler.get_xforms(0, np.arange(sampler.size(0)))
       # import willutil as wu
       # ic(x[:, :3, 3])
       # wu.showme(x)
       # assert 0
-      print('dock_asym limiting rotations to Z')
-      ic(cartlb, cartub, cartbs * 2)
-      # sampler = rp.sampling.RotCart3Hier_f4(cartlb, cartub, cartbs * 2, -10, 10.0, 1)
 
-      sampler = rp.sampling.RotCart3Hier_f4([-200, -200, -200], [200, 200, 200], [40, 40, 40], 0, 0, 1)
+      print('dock_asym limiting rotations to Z')
+      ic(cartlb, cartub, cartnc, kw.rot_bounds, kw.ori_resl)
+      rotnc = int((kw.rot_bounds[1] - kw.rot_bounds[0]) / kw.ori_resl)
+      sampler = rp.sampling.RotCart3Hier_f4(cartlb, cartub, cartnc, kw.rot_bounds[0], kw.rot_bounds[1], 10)
 
    else:
-      ic(cartlb, cartub, cartbs)
-      sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartbs, kw.ori_resl)
+      ic(cartlb, cartub, cartnc)
+      sampler = rp.sampling.XformHier_f4(cartlb, cartub, cartnc, kw.ori_resl)
+
+   # ok, x = sampler.get_xforms(0, np.arange(sampler.size(0)))
+   # ic(x.shape)
+   # import willutil as wu
+   # d = wu.hdiff(x[None], x[:, None])
+   # ic(d.shape)
+   # assert 0
 
    logging.info(f'num base samples {sampler.size(0):,}')
    if sampler.size(0) >= 10_000_000:
@@ -561,6 +557,20 @@ def check_result_files_exist(kw):
             sys.exit()
 
 def main():
+
+   # import willutil as wu
+   # sampler = rp.sampling.RotCart3Hier_f4([0, 0, 0], [80, 80, 200], [2, 2, 5], 0, 60, 3)
+   # for i in range(3):
+   # ok, x = sampler.get_xforms(i, np.arange(sampler.size(i)))
+   # ic(len(set(x[:, 0, 3].astype('i'))))
+   # ic(len(set(x[:, 1, 3].astype('i'))))
+   # ic(len(set(x[:, 2, 3].astype('i'))))
+   # ic(len(set(wu.hangle_of_degrees(x).astype('i'))))
+
+   # d = wu.hdiff(x[None], x[:, None]).squeeze()
+   # np.fill_diagonal(d, 9e9)
+   # ic(np.sum(d == 0, axis=0))
+   # assert 0
 
    kw = get_rpxdock_args()
    logging.info(f'{" RUNNING dock.py:main ":=^80}')

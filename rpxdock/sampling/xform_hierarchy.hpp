@@ -639,7 +639,7 @@ struct RotCart3Hier : public RotHier<F, I>, public CartHier<3, F, I> {
   static I const ONE = 1;
   static I const NEXPAND = (ONE << FULL_DIM);
 
-  using F2 = V2<F>;
+  using F4 = V4<F>;
   using F3 = V3<F>;
   using I3 = V3<I>;
   using X = X3<F>;
@@ -674,14 +674,14 @@ struct RotCart3Hier : public RotHier<F, I>, public CartHier<3, F, I> {
     I cell_index = cell_index_of(resl, index);
     I hier_index = hier_index_of(resl, index);
     F scale = 1.0 / F(ONE << resl);
-    F2 params;
+    F4 params;
     for (size_t i = 0; i < FULL_DIM; ++i) {
       I undilated = util::undilate<FULL_DIM>(hier_index >> i);
       params[i] = (static_cast<F>(undilated) + 0.5) * scale;
     }
     return this->params_to_value(params, cell_index, resl, xform);
   }
-  bool params_to_value(F2 params, I cell_index, I resl, X &value) const {
+  bool params_to_value(F4 params, I cell_index, I resl, X &value) const {
     I cori = cell_index % this->rot_ncell_;
     I ctrans = cell_index / this->rot_ncell_;
     F3 ptrans;

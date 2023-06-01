@@ -26,7 +26,16 @@ def isnt_used_huh_asym_get_sample_hierarchy(body, hscore, extent=100, frames=Non
    return xh
 
 @wu.timed
-def make_asym(bodies, hscore, sampler, search=hier_search, frames=None, x2asymcen=None, sym='C1', **kw):
+def make_asym(
+   bodies,
+   hscore,
+   sampler,
+   search=hier_search,
+   frames=None,
+   x2asymcen=None,
+   sym='C1',
+   **kw,
+):
    logging.debug("entering make_asym()")
    if isinstance(bodies, rp.body.Body): bodies = [bodies]
 
@@ -43,11 +52,12 @@ def make_asym(bodies, hscore, sampler, search=hier_search, frames=None, x2asymce
    wu.checkpoint(kw, 'make_asym')
    xforms, scores, extra, stats = search(sampler, evaluator, **kw)
    wu.checkpoint(kw, 'search')
+
    xforms = evaluator.modify_xforms(xforms)
    if frames is not None:
       xforms = wu.hxform(wu.hinv(x2asymcen), wu.hxform(xforms, x2asymcen))
 
-   ibest = np.argsort(scores)
+   ibest = np.argsort(-scores)
    if kw.max_bb_redundancy > 0:
       if frames is None:
          ibest = rp.filter_redundancy(xforms, bodies[1], scores, **kw)

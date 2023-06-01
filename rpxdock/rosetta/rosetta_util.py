@@ -77,6 +77,7 @@ def get_sc_coords(pose, which_resi=None, recenter_input=False, **kw):
       resaname.append(anames)
       hcrd = np.ones((len(anames), 4), dtype='f4')
       hcrd[:, :3] = np.array(crd)
+      # if ir == 30: assert 0
       resacrd.append(hcrd)
    if recenter_input:
       bb = get_bb_coords(pose, which_resi, **kw.sub(recenter_input=False))

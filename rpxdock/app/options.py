@@ -256,6 +256,8 @@ def default_cli_parser(parent=None, **kw):
       "--cart_bounds", default=[], type=float, nargs='+',
       help='cartesian bounds for various protocols. should probably be replaced with some more general mechanism. no default as protocols specific'
    )
+   addarg("--rot_bounds", default=[0, 360], type=float, nargs='+',
+          help='angle bounds for various protocols, for 1d rotation only')
    addarg(
       "--cart_resl", default=10.0, type=float,
       help='resolution of top level cartesian, sometimes ignored, and resl is taken from hscore data instead. default 10'
@@ -390,10 +392,13 @@ def default_cli_parser(parent=None, **kw):
    addarg('--mc_wt_solvfrac', default=0, type=float, help='weight on xtal solvent frac match')
    addarg('--mc_component_bounds', default=[], type=float, nargs='+', help='constrains placement of symelems')
    addarg('--mc_tether_components', default=9e9, type=float, help='keep symelems close to start position')
+   addarg('--mc_framedistcut', default=100, type=float, help='explicitly model frames within this distance')
+   addarg('--mc_random_seed', default=None, type=int, help='random seed for repeatability')
+   addarg('--mc_profile', action='store_true', help='run cProfile')
 
    addarg('--limit_rotation_to_z', action='store_true',
           help='for cyclic and asym, limit orientation sampling to rotations around z')
-   addarg('--disable_rotation', action='store_true', help='for cyclic and asym, disable all rotation')
+   addarg('--disable_nonz_rotation', action='store_true', help='for asym, disable rotation except around z')
    addarg('--exclude_residue_neighbors', default=1, type=int,
           help='disallow residue if within x positions of initially excluded residue')
 

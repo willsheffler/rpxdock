@@ -3,8 +3,16 @@
 		[
 
 			{
+				"name": "test_yang_asym_trimer small",
+				"shell_cmd" : "cd /home/sheffler/project/yang_asym_trimer; rm -f *.pdb; CC='ccache gcc' MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=$folder python -m rpxdock.app.dock --architecture asym     --inputs1  /home/sheffler/project/yang_asym_trimer/input/2h.pdb     --inputs2 /home/sheffler/project/yang_asym_trimer/input/1coi.pdb   --hscore_files ilv_h/1000 --quiet   --limit_rotation_to_z --overwrite_existing_results --dump_pdbs --cart_bounds 0 200 -200 200 -50 50 --cart_resl 10 --rot_bounds -180 180 --ori_resl 10 --max_bb_redundancy 3.0 --beam_size 5000 &> $folder/sublime_build.log"
+			},				
+			{
+				"name": "test_yang_asym_trimer full",
+				"shell_cmd" : "cd /home/sheffler/project/yang_asym_trimer; rm -f *.pdb; CC='ccache gcc' MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=$folder python $folder/rpxdock/app/dock.py --architecture asym     --inputs1  /home/sheffler/project/yang_asym_trimer/input/2H_72_ideal_mpnn_alignXZ.pdb --allowed_residues1 input/allowed_res_2H_72_ideal_mpnn_alignXZ.txt    --inputs2 /home/sheffler/project/yang_asym_trimer/input/RK718_sym_trimmed.pdb   --hscore_files ilv_h --quiet  --limit_rotation_to_z --overwrite_existing_results --dump_pdbs --cart_bounds 0 200 -200 200 -50 50 --cart_resl 10 --rot_bounds -180 180 --ori_resl 10 --max_bb_redundancy 3.0 --beam_size 5000 &> $folder/sublime_build.log"
+			},				
+			{
 				"name": "test_1comp_xtal 1comp",
-				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --architecture I213_c3 --mc_nruns 10 --mc_ntrials 1000 --mc_min_solvfrac 0.1 --mc_temperature 4 --mc_max_solvfrac 0.5  --mc_cell_bounds 50 300 --inputs1 /home/sheffler/project/diffusion/pointsym/test1/c3_diffusion_test_1.pdb --hscore_files ilv_h --mc_wt_solvfrac 100 --mc_min_contacts 1 --mc_max_contacts 1   &> $folder/sublime_build.log"
+				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py --architecture I213_c3 --mc_nruns 10 --mc_ntrials 1000 --mc_min_solvfrac 0.1 --mc_temperature 4 --mc_max_solvfrac 0.5  --mc_cell_bounds 50 300 --inputs1 /home/sheffler/project/diffusion/pointsym/test1/c3_diffusion_test_1.pdb --hscore_files ilv_h --mc_wt_solvfrac 100 --mc_min_contacts 1 --mc_max_contacts 1 --mc_framedistcut 50  &> $folder/sublime_build.log"
 			},	
 			{
 				"name": "test_1comp_xtal 1comp dihedral",

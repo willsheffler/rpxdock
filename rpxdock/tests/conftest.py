@@ -2,7 +2,11 @@ import pytest, os, sys, _pickle
 from os.path import join, dirname, abspath, exists
 
 from rpxdock import data
-from rpxdock.rosetta.triggers_init import get_pose_cached
+try:
+   from rpxdock.rosetta.triggers_init import get_pose_cached
+except ImportError:
+   get_pose_cached = lambda *a, **kw: None
+
 from rpxdock import ResPairData, RpxHier
 from rpxdock.search.result import dummy_result
 

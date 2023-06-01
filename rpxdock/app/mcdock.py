@@ -7,23 +7,26 @@ import willutil as wu
 import rpxdock as rp
 
 def main():
-   seed = np.random.randint(2**32 - 1)
-   print(seed)
-   np.random.seed(seed)
-   # np.random.seed(3861647224)
    kw = rp.options.get_cli_args()
+   if kw.mc_random_seed is None:
+      kw.mc_random_seed = np.random.randint(2**32 - 1)
+   print(f'random seed: {kw.mc_random_seed}')
+   np.random.seed(kw.mc_random_seed)
+
    # kw.use_rosetta = False
    kw.ignored_aas = 'CP'
    kw.wts.ncontact = 0.001
    kw.score_only_ss = 'HE'
    kw.exclude_residue_neighbors = 3
    kw.caclashdis = 5
-   kw.framedistcut = 120
+
+   # kw.mc_framedistcut = 60
    # kw.mc_intercomp_only = True
    pprint(kw.hscore_files)
-   print(kw.mc_cell_bounds)
-   print(kw.mc_min_solvfrac, kw.mc_max_solvfrac)
-   print(kw.mc_min_contacts, kw.mc_max_contacts)
+   ic(kw.mc_framedistcut)
+   ic(kw.mc_cell_bounds)
+   ic(kw.mc_min_solvfrac, kw.mc_max_solvfrac)
+   ic(kw.mc_min_contacts, kw.mc_max_contacts)
    # kw.hscore_files = 'ilv_h'
 
    kw.hscore = rp.RpxHier(kw.hscore_files, **kw)
@@ -162,7 +165,7 @@ class RpxMonteCarlo:
       compscores = self.mcsym.component_score_summary(framescores)
       prefix = f'{kw.output_prefix}{self.label()}_{isamp:04}'
       # pdbfiles = self.dumppdbs(prefix, sample, rawposition=True, whichcomp=[(1, 1, 109)])
-      pdbfiles = self.dumppdbs(prefix, sample, rawposition=True)
+      pdbfiles = self.dumppdbs(prefix, sample, rawposition=False)
       r = wu.Bunch(
          score=score,
          compscores=compscores,
@@ -569,7 +572,8 @@ class McSymmetry:
       self.symelems = symelems
       self.allsymelems = wu.sym.symelems(sym)
       # self.unitasucen = wu.hpoint(asucen)
-      self.allframes = wu.sym.frames(self.sym, sgonly=True, cells=4)  # must be 4 cells to match elemids
+      self.allframes = wu.sym.frames(self.sym, sgonly=True, cells=4,
+                                     cellgeom='unit')  # must be 4 cells to match elemids
       self.allopids = np.empty((len(self.allframes), len(symelems)), dtype=np.int32)
       self.allcompids = np.empty((len(self.allframes), len(symelems)), dtype=np.int32)
       self.allopcompids = np.empty((len(self.allframes), len(symelems), len(symelems)), dtype=np.int32)
@@ -617,7 +621,7 @@ class McSymmetry:
    def perturb_lattice(self, position, lattice, spread, **kw):
       assert position.ndim == 3
       assert lattice.shape == (3, 3)
-      unitpos = wu.sym.tounitframes(position, lattice)
+      unitpos = wu.sym.tounitcell(lattice, position)
       if self.latticetype == 'CUBIC':
          newlattice = lattice + np.eye(3) * np.random.normal(0, spread.latticesd, 1)
          newpos = wu.sym.applylattice(newlattice, unitpos)
@@ -691,7 +695,7 @@ class McSymmetry:
       if unitframes is None:
          unitframes = self.closeframes
          if cells == 'all': unitframes = self.allframes
-         elif cells is not None: unitframes = wu.sym.sgframes(self.sym, cells=cells)
+         elif cells is not None: unitframes = wu.sym.sgframes(self.sym, cells=cells, cellgeom='unit')
       else:
          assert cells is None
       # nframes = len(unitframes)
@@ -699,12 +703,12 @@ class McSymmetry:
       frames = wu.sym.applylattice(lattice, unitframes)
       return frames
 
-   def update_closeframes(self, position, lattice, com, framedistcut, forceupdate=False, **kw):
+   def update_closeframes(self, position, lattice, com, mc_framedistcut, forceupdate=False, **kw):
       poscom = einsum('cij,cj->ci', position, com)
       # ic(poscom, com)
       paddingfrac = 3
       dist = [wu.hnorm(poscom[i] - self.last_closeframes_cen[i]) for i in range(len(poscom))]
-      close = [d < framedistcut / paddingfrac for d in dist]
+      close = [d < mc_framedistcut / paddingfrac for d in dist]
       # ic(close)
       if all(close) and not forceupdate:
          return
@@ -719,7 +723,7 @@ class McSymmetry:
             if icomp2 < icomp1: continue
             symcom = einsum('fij,j->fi', frames, cen2)
             dist = wu.hnorm(symcom - cen)
-            close |= dist < framedistcut * (1 + 1 / paddingfrac)
+            close |= dist < mc_framedistcut * (1 + 1 / paddingfrac)
       assert np.any(close)
       self.closeframes = self.allframes[close]
       self.closeframes_elemids = self.allopcompids[close]
@@ -825,4 +829,17 @@ def _output_line(result):
 # xform, cell
 
 if __name__ == '__main__':
-   main()
+   kw = rp.options.get_cli_args()
+   if kw.mc_profile:
+      import cProfile, pstats
+      cProfile.run('main()', filename='/tmp/mcdock_profile')
+      p = pstats.Stats('/tmp/mcdock_profile')
+      p.sort_stats('tottime')
+      p.print_stats(100)
+      p.sort_stats('cumtime')
+      p.print_stats(100)
+      # p.sort_stats('ncalls')
+      # p.print_stats(100)
+
+   else:
+      main()
