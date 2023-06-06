@@ -129,7 +129,7 @@ class MultiCompEvaluator(MultiCompEvaluatorBase):
       kw = self.kw.sub(wts=wts)
       xeye = np.eye(4, dtype="f4")
       B = self.bodies
-      kw.mindis = [5, 3, 2, 1.5, 1.5, 1.5, 1.5][iresl]
+      kw.mindis = kw.clash_distances[iresl]
       # print(f"docking {len(B)} bodies")
       X = xforms.reshape(-1, xforms.shape[-3], 4, 4)
       xnbr = self.spec.to_neighbor_olig

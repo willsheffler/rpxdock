@@ -154,7 +154,7 @@ class AsymFramesEvaluator:
    def __call__(self, xforms, iresl=-1, wts={}, **kw):
       kw = self.kw.sub(wts=wts)
       xforms = xforms.reshape(-1, 4, 4)
-      kw.mindis = [5, 3, 2, 1.5, 1.5, 1.5, 1.5][iresl]
+      kw.mindis = kw.clash_distances[iresl]
 
       ok = np.ones(len(xforms), dtype=np.bool)
       if self.limit_rotation > 0:
@@ -234,7 +234,7 @@ class AsymEvaluator:
       xeye = np.eye(4, dtype="f4")
       body1, body2 = self.bodies
       xforms = xforms.reshape(-1, 4, 4)
-      kw.mindis = [5, 3, 2, 1.5, 1.5, 1.5, 1.5][iresl]
+      kw.mindis = kw.clash_distances[iresl]
 
       # check clash, or get non-clash range
       if kw.max_trim > 0:

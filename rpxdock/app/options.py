@@ -186,7 +186,8 @@ def default_cli_parser(parent=None, **kw):
       "--nresl", type=int, default=None,
       help="number of hierarchical stages to do for hierarchical searches. probably use only for debugging, default is to do all stages"
    )
-   addarg("--clashdis", type=float, default=3.5, help='minimum distance allowed between heavy atoms. default 3.5')
+   addarg("--clash_distances", type=float, default=[5.0, 3.0, 2, 1.5, 1.5, 1.5, 1.5], nargs='+',
+          help='clash distance for hierarchical protocols, in order of decreasing resolution')
    addarg(
       "--beam_size", type=int, default=100000,
       help='Maximum number of samples for each stage of a hierarchical search protocol (except the first, coarsest stage, which must sample all available positions. This is the most important parameter for determining rumtime (aside from number of allowed residues list). defaults to 100,000'
@@ -393,6 +394,8 @@ def default_cli_parser(parent=None, **kw):
    addarg('--mc_component_bounds', default=[], type=float, nargs='+', help='constrains placement of symelems')
    addarg('--mc_tether_components', default=9e9, type=float, help='keep symelems close to start position')
    addarg('--mc_framedistcut', default=100, type=float, help='explicitly model frames within this distance')
+   addarg('--mc_output_contact_dist', default=10, type=float,
+          help='only output subunits at least this close to primary')
    addarg('--mc_random_seed', default=None, type=int, help='random seed for repeatability')
    addarg('--mc_profile', action='store_true', help='run cProfile')
 
