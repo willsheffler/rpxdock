@@ -6,50 +6,6 @@ import numpy as np
 import willutil as wu
 import rpxdock as rp
 
-# P312 missing C2 elem
-# P321
-# R32 2fold comp broken
-# P6 bad component frames
-# P63
-# P6322
-
-# P121  ok
-# C121
-# P222
-# P2221
-# P21212
-# C2221
-# C222
-# F222
-# I222
-# I212121
-# P4
-# P42
-# I4
-# I41
-# P422
-# P4212
-# P4122
-# P41212
-# P4222
-# P42212
-# P4322
-# P43212
-# I422
-# I4122
-# P321
-# P3121
-# P3221
-# R32
-# P6
-# P62
-# P64
-# P6122
-# P6522
-# P6222
-# P6422
-# P6322
-
 def main():
 
    # for k, v in wu.sym.sg_symelem_dict.items():
@@ -85,18 +41,7 @@ def main():
 
    kw.hscore = rp.RpxHier(kw.hscore_files, **kw)
 
-   sym, *psyms = kw.architecture.upper().split('_')
-   symelems = list()
-   for i, psym in enumerate(psyms):
-      psymelems = wu.sym.symelems(sym, psym)
-      ic(kw.mc_which_symelems)
-      if kw.mc_which_symelems[i] >= len(psymelems):
-         raise ValueError(f'You requested element {kw.mc_which_symelems[i]}, but there are only '
-                          f'{len(psymelems)} symelems for point sym {psym} in spacegroup {sym}\n'
-                          f'All available symmetry elements for {sym}:\n'
-                          f'{repr(wu.sym.symelems(sym))}')
-      symelems.append(psymelems[kw.mc_which_symelems[i]])
-
+   sym, psyms, symelems = _get_arch_symelems(**kw)
    pprint(sym)
    pprint(psyms)
    pprint(wu.sym.symelems(sym))
@@ -113,6 +58,19 @@ def main():
       result = search.run(**kw)
 
    timer.report()
+
+def _get_arch_symelems(architecture, mc_which_symelems, **kw):
+   sym, *psyms = architecture.upper().split('_')
+   symelems = list()
+   for i, psym in enumerate(psyms):
+      psymelems = wu.sym.symelems(sym, psym)
+      if mc_which_symelems[i] >= len(psymelems):
+         raise ValueError(f'You requested element {mc_which_symelems[i]}, but there are only '
+                          f'{len(psymelems)} symelems for point sym {psym} in spacegroup {sym}\n'
+                          f'All available symmetry elements for {sym}:\n'
+                          f'{repr(wu.sym.symelems(sym))}')
+      symelems.append(psymelems[mc_which_symelems[i]])
+   return sym, psyms, symelems
 
 class RpxMonteCarlo:
    """manages rpx based monte-carlo protocol"""
@@ -172,6 +130,7 @@ class RpxMonteCarlo:
          # print(e, flush=True)
          # raise e
       self.dump_results(kw.output_prefix + 'scores.txt', **kw)
+      return self.results
 
    def runone(
          self,
@@ -229,7 +188,7 @@ class RpxMonteCarlo:
             solvfrac=self.guess_solvfrac(sample),
             pdbfiles=pdbfiles,
          )
-         print(f'sample {isamp:4}', _output_line(r), flush=True)
+         print(f'  mcsample {isamp:4}', _output_line(r), flush=True)
          self.results.append(r)
 
    def dump_results(self, fname, **kw):
@@ -302,8 +261,8 @@ class RpxMonteCarlo:
       if not debug: return
       positions, lat = sample.values()
       for icomp, (pos, se) in enumerate(zip(positions, self.mcsym.symelems)):
-         secen = wu.hscaled(lat[0, 0], se.cen)
-         # ic(icomp, pos[:3, 3], se)
+         secen = wu.sym.applylatticepts(lat, se.cen)
+         # ic(icomp, pos[:3, 3], secen, se.axis)
          # axis, ang, cen, hel = wu.haxis_angle_cen_hel_of(pos)
          assert np.allclose(0, wu.hpointlinedis(pos[:, 3], secen, se.axis))
       # assert 0
@@ -567,12 +526,13 @@ class McComponent:
       if coords.ndim == 3: coords = coords[None, :, :, :]
       self._init_coords = coords.copy()
       if len(coords) > 1:
-         assert coords.shape[0] == self.symelem.numops
-         ic(self.symelem)
+         if coords.shape[0] != self.symelem.numops:
+            ic(self.symelem, coords.shape)
+            assert coords.shape[0] == self.symelem.numops
+
          self._aligned_coords = wu.sym.align(coords, self.symelem)
       else:
          self._aligned_coords = self._init_coords.copy()
-      ic(self._aligned_coords.shape)
       self.body = rp.Body(self._aligned_coords[0], **kw)
       # self.body.dump_pdb(f'testbody{index}.pdb')
       self.com = self.body.com()
@@ -586,7 +546,7 @@ class McComponent:
    def random_unitcell_position(self, size=1):
       '''random rotation and placement in unit cell'''
       se = self.symelem
-      if se.iscyclic:
+      if se.iscyclic or se.isscrew:
          lb, ub = self.bounds
          assert lb <= ub
          # ic(self.index, lb, ub)
@@ -607,12 +567,11 @@ class McComponent:
          offset = wu.htrans(cen)
          flipangle = np.where(np.random.rand(size) < 0.5, 0, np.pi)
 
-         print('fix flips etc !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', flush=True)
-
-         # perp = wu.hnormalized(wu.hcross(se.axis, [1, 2, 3]))
-         # randrot = wu.hrot(se.axis, np.random.rand(size) * 2 * np.pi, cen)
-         # fliprot = wu.hrot(perp, flipangle, cen)
-         # pos = wu.hxformx(wu.hxformx(randrot, fliprot), offset)
+         # print('fix flips etc !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', flush=True)
+         perp = wu.hnormalized(wu.hcross(se.axis, [1, 2, 3]))
+         randrot = wu.hrot(se.axis, np.random.rand(size) * 2 * np.pi, cen)
+         fliprot = wu.hrot(perp, flipangle, cen)
+         pos = wu.hxformx(wu.hxformx(randrot, fliprot), offset)
 
          pos = offset
 
@@ -795,45 +754,27 @@ class McSymmetry:
 
    def setup_component_frames(self, **kw):
       kw = self.kw.sub(kw)
-      # self.closeframes = wu.sym.frames(self.sym, sgonly=True, cells=3, asucen=asucen, **kw)
-      self.nframes = len(self.closeframes)
+
       ncomp = len(self.symelems)
 
       self.scoreframes = np.ones((ncomp, ncomp, self.nframes), dtype=bool)
       self.frames_by_component = list()
 
       testframes = wu.sym.applylattice(self.lattice_1_1_1_90_90_90, self.closeframes)
-      # ic(testframes[:, :3, 3])
-      # wu.showme(testframes)
       for icomp, symelem in enumerate(self.symelems):
          self.frames_by_component.append(list())
          assert np.allclose(self.celloffset, 0)
-         # ops = wu.htrans(-self.celloffset) @ symelem.operators @ wu.htrans(self.celloffset)
-         ops = symelem.operators
-         # wu.showme(ops)
-
-         # debug2 = debug - self.celloffset
-         # wu.dumppdb(f'/home/sheffler/project/rpxtal/canon.pdb', debug, frames=np.eye(4))
-         # wu.dumppdb(f'/home/sheffler/project/rpxtal/canonoffset.pdb', debug2, frames=np.eye(4))
-         # wu.dumppdb(f'/home/sheffler/project/rpxtal/ref.pdb', debug2, frames=ops)
-         # wu.dumppdb(f'/home/sheffler/project/rpxtal/all.pdb', debug2, frames=self.closeframes)
-         # ic(self.celloffset)
-         # # ic(wu.haxis_ang_cen_of(ops))
-         # ic(wu.haxis_ang_cen_of(ops)[2][1:, :3])
-         for iframe, frame in enumerate(testframes):
-            # if np.allclose(frame[:3, :3], ops[1, :3, :3]):
-            # ic(frame)
-            # wu.dumppdb(f'/home/sheffler/project/rpxtal/test_{iframe}.pdb', debug2, frames=frame)
-            if np.any(np.all(np.isclose(frame, ops, atol=1e-6), axis=(1, 2))):
-               self.scoreframes[icomp, icomp, iframe] = False
+         # ops = symelem.operators
+         # for iframe, frame in enumerate(testframes):
+         # if np.any(np.all(np.isclose(frame, ops, atol=1e-6), axis=(1, 2))):
+         # self.scoreframes[icomp, icomp, iframe] = False
+         # ic(self.closeframes_elemids.shape)
+         # ic(self.scoreframes.shape)
+         self.scoreframes[icomp, icomp, self.closeframes_elemids[:, icomp, icomp] == 0] = False
          for icomp2, symelem2 in enumerate(self.symelems):
             frames_c1c2 = self.closeframes[self.scoreframes[icomp, icomp2]]
             self.frames_by_component[icomp].append(frames_c1c2)
 
-         # ic(icomp, symelem)
-         # ic()
-         # ic(np.sum(~self.scoreframes[icomp, icomp]))
-         # ic(icomp, np.sum(~self.scoreframes[icomp, icomp]))
          assert np.sum(~self.scoreframes[icomp, icomp]) == symelem.numops
 
       norot = np.all(np.isclose(self.closeframes[:, :3, :3], np.eye(3)), axis=(1, 2))
@@ -889,7 +830,9 @@ class McSymmetry:
             dist = wu.hnorm(symcom - cen)
             close |= dist < mc_framedistcut * (1 + 1 / paddingfrac)
       assert np.any(close)
+      whereclose = np.where(close)[0]
       self.closeframes = self.allframes[close]
+      self.nframes = len(self.closeframes)
       self.closeframes_elemids = self.allopcompids[close]
       # assert 0
       # self.closeframes = self.allframes[np.argsort(dist2)[:nclose]]
@@ -992,6 +935,111 @@ def _output_line(result):
 
 # xform, cell
 
+def main_test():
+
+   testfiles = dict(
+      C2='inputs/c2_100__46579998_19_pmsave.pdb',
+      C3='inputs/c3_diffusion_test_1.pdb',
+      C4='inputs/c4_diffusion_test_0.pdb',
+      # C6='',
+      D2='inputs/d2_100__46573551_6.pdb',
+      D3='inputs/d3_100__46580133_64.pdb',
+      # D4='',
+      # D6='',
+      # T='',
+      # O='',
+   )
+
+   kw = rp.options.get_cli_args()
+   if kw.mc_random_seed is None:
+      kw.mc_random_seed = np.random.randint(2**32 - 1)
+   print(f'random seed: {kw.mc_random_seed}')
+   np.random.seed(kw.mc_random_seed)
+   kw.ignored_aas = 'CP'
+   kw.wts.ncontact = 0.000
+   kw.score_only_ss = 'HE'
+   kw.exclude_residue_neighbors = 3
+   kw.caclashdis = 5
+   kw.debug = False
+   kw.mc_nruns = 1
+   kw.hscore = rp.RpxHier(kw.hscore_files, **kw)
+
+   failing_arch = {
+      'F222_d2_0', 'F222_d2_1', 'F222_d2_2', 'F222_d2_3', 'F4132_d3_0', 'F4132_d3_1', 'F432_d2_0', 'I4122_d2_0',
+      'I4122_d2_1', 'I4132_d2_1', 'I422_d2_0', 'I432_d2_0', 'I432_d3_0', 'I4_c4_0', 'P222_d2_0', 'P222_d2_1',
+      'P222_d2_2', 'P222_d2_3', 'P222_d2_4', 'P222_d2_7', 'P312_c3_1', 'P312_c3_2', 'P321_c3_1', 'P321_d3_0',
+      'P321_d3_1', 'P3_c3_1', 'P3_c3_2', 'P4212_c4_0', 'P422_c4_0', 'P4232_d2_0', 'P4232_d2_1', 'P4232_d2_2',
+      'P4232_d3_0', 'P4232_d3_1', 'P432_c4_1', 'P4_c4_1', 'P6222_c2_3', 'P6222_d2_0', 'P6222_d2_1', 'P6222_d2_2',
+      'P6222_d2_3', 'P622_c2_4', 'P622_c3_0', 'P622_d2_0', 'P622_d2_1', 'P622_d3_0', 'P622_d3_1', 'P62_c2_1',
+      'P6322_c3_1', 'P6322_d3_0', 'P63_c3_1', 'P6422_c2_3', 'P6422_d2_0', 'P6422_d2_1', 'P6422_d2_2', 'P6422_d2_3',
+      'P64_c2_1', 'P6_c2_0', 'P6_c3_0', 'R32_c2_0', 'R32_c2_1', 'R32_d3_0', 'R32_d3_1'
+   }
+   working_arch = {
+      'C121_c2_0', 'C121_c2_1', 'C2221_c2_0', 'C222_c2_0', 'F222_c2_0', 'F222_c2_1', 'F222_c2_2', 'F222_c2_3',
+      'F222_c2_4', 'F222_c2_5', 'F23_c2_0', 'F23_c2_1', 'F23_c3_0', 'F4132_c2_0', 'F4132_c2_1', 'F4132_c3_0',
+      'F432_c2_0', 'F432_c2_1', 'F432_c2_2', 'F432_c3_0', 'F432_c4_0', 'I212121_c2_0', 'I213_c2_0', 'I213_c3_0',
+      'I222_c2_0', 'I23_c2_0', 'I23_c2_1', 'I23_c3_0', 'I23_d2_0', 'I4122_c2_0', 'I4122_c2_1', 'I4122_c2_2',
+      'I4122_c2_3', 'I4122_c2_4', 'I4132_c2_0', 'I4132_c2_1', 'I4132_c2_2', 'I4132_c3_0', 'I4132_d2_0', 'I4132_d3_0',
+      'I4132_d3_1', 'I41_c2_0', 'I422_c2_0', 'I422_c2_1', 'I422_c2_2', 'I422_c2_3', 'I422_c2_4', 'I422_c4_0',
+      'I422_d2_1', 'I432_c2_0', 'I432_c2_1', 'I432_c2_2', 'I432_c3_0', 'I432_c4_0', 'I4_c2_0', 'P121_c2_0', 'P121_c2_1',
+      'P121_c2_2', 'P121_c2_3', 'P21212_c2_0', 'P21212_c2_1', 'P213_c3_0', 'P2221_c2_0', 'P2221_c2_1', 'P2221_c2_2',
+      'P2221_c2_3', 'P222_c2_0', 'P222_c2_1', 'P222_c2_10', 'P222_c2_11', 'P222_c2_2', 'P222_c2_3', 'P222_c2_4',
+      'P222_c2_5', 'P222_c2_6', 'P222_c2_7', 'P222_c2_8', 'P222_c2_9', 'P222_d2_5', 'P222_d2_6', 'P23_c2_0', 'P23_c2_1',
+      'P23_c2_2', 'P23_c2_3', 'P23_c3_0', 'P23_d2_0', 'P23_d2_1', 'P3121_c2_0', 'P3121_c2_1', 'P312_c3_0', 'P321_c2_0',
+      'P321_c2_1', 'P321_c3_0', 'P3221_c2_0', 'P3221_c2_1', 'P3_c3_0', 'P41212_c2_0', 'P4122_c2_0', 'P4132_c2_0',
+      'P4132_c3_0', 'P4132_d3_0', 'P4132_d3_1', 'P4212_c2_0', 'P42212_c2_0', 'P42212_c2_1', 'P4222_c2_0', 'P4222_c2_1',
+      'P422_c2_0', 'P422_c2_1', 'P4232_c2_0', 'P4232_c2_1', 'P4232_c2_2', 'P4232_c2_3', 'P4232_c2_4', 'P4232_c3_0',
+      'P42_c2_0', 'P42_c2_1', 'P42_c2_2', 'P43212_c2_0', 'P4322_c2_0', 'P432_c2_0', 'P432_c2_1', 'P432_c2_2',
+      'P432_c3_0', 'P432_c4_0', 'P4332_c2_0', 'P4332_c3_0', 'P4332_d3_0', 'P4332_d3_1', 'P4_c2_0', 'P4_c4_0',
+      'P6122_c2_0', 'P6222_c2_0', 'P6222_c2_1', 'P6222_c2_2', 'P622_c2_0', 'P622_c2_1', 'P622_c2_2', 'P622_c2_3',
+      'P62_c2_0', 'P6322_c2_0', 'P6322_c3_0', 'P63_c3_0', 'P6422_c2_0', 'P6422_c2_1', 'P6422_c2_2', 'P64_c2_0',
+      'P6522_c2_0', 'R32_c3_0', 'R3_c3_0'
+   }
+   skip_arch = failing_arch.union(working_arch)
+   failed, succeeded = set(), set()
+
+   test_spacegroups = wu.sym.sg_all_chiral
+   for sg in test_spacegroups:
+      for psym, symelems in wu.sym.symelems(sg, asdict=True).items():
+         for isymelem, symelem in enumerate(symelems):
+            kw.mc_which_symelems = [isymelem]
+            psyms, symelems = [symelem.label], [symelem]
+            kw.architecture = sg + '_' + psyms[0].lower()
+            testtag = kw.architecture + '_' + str(isymelem)
+            kw.output_prefix = testtag + '_'
+            if testtag in skip_arch: continue
+            try:
+               inputs = [testfiles[p] for p in psyms]
+            except (KeyError, AssertionError):
+               failed.add(str(psyms))
+               continue
+            print(testtag, sg, psyms, inputs, flush=True)
+            mcsym = McSymmetry(sg, symelems, **kw)
+            components = component_from_pdb(inputs, symelems, mcsym=mcsym, **kw)
+            search = RpxMonteCarlo(components, mcsym, **kw)
+
+            try:
+               for i in range(4):
+                  result = search.run(**kw)
+                  if len(result) > 0: break
+               else:
+                  assert False, 'no good docks'
+               succeeded.add(testtag)
+               print('SUCCESS', testtag)
+               # print(result, flush=True)
+            except AssertionError as e:
+               # import traceback
+               # traceback.print_exception(e)
+               print('FAIL', testtag, e)
+               failed.add(testtag)
+               continue
+
+   ic(succeeded)
+   ic(failed)
+
+   print('working', len(working_arch))
+   print('failing', len(failing_arch))
+
 if __name__ == '__main__':
    kw = rp.options.get_cli_args()
    if kw.mc_profile:
@@ -1005,5 +1053,171 @@ if __name__ == '__main__':
       # p.sort_stats('ncalls')
       # p.print_stats(100)
 
+   elif kw.architecture is None:
+
+      main_test()
+
    else:
+
       main()
+'''
+--architecture C121_c2 --mc_which_symelems 0
+--architecture C121_c2 --mc_which_symelems 1
+--architecture C2221_c2 --mc_which_symelems 0
+--architecture C222_c2 --mc_which_symelems 0
+--architecture F222_c2 --mc_which_symelems 0
+--architecture F222_c2 --mc_which_symelems 1
+--architecture F222_c2 --mc_which_symelems 2
+--architecture F222_c2 --mc_which_symelems 3
+--architecture F222_c2 --mc_which_symelems 4
+--architecture F222_c2 --mc_which_symelems 5
+--architecture F23_c2 --mc_which_symelems 0
+--architecture F23_c2 --mc_which_symelems 1
+--architecture F4132_c2 --mc_which_symelems 0
+--architecture F4132_c2 --mc_which_symelems 1
+--architecture F432_c2 --mc_which_symelems 0
+--architecture F432_c2 --mc_which_symelems 1
+--architecture F432_c2 --mc_which_symelems 2
+--architecture I212121_c2 --mc_which_symelems 0
+--architecture I213_c2 --mc_which_symelems 0
+--architecture I222_c2 --mc_which_symelems 0
+--architecture I23_c2 --mc_which_symelems 0
+--architecture I23_c2 --mc_which_symelems 1
+--architecture I4122_c2 --mc_which_symelems 0
+--architecture I4122_c2 --mc_which_symelems 1
+--architecture I4122_c2 --mc_which_symelems 2
+--architecture I4122_c2 --mc_which_symelems 3
+--architecture I4122_c2 --mc_which_symelems 4
+--architecture I4132_c2 --mc_which_symelems 0
+--architecture I4132_c2 --mc_which_symelems 1
+--architecture I4132_c2 --mc_which_symelems 2
+--architecture I41_c2 --mc_which_symelems 0
+--architecture I422_c2 --mc_which_symelems 0
+--architecture I422_c2 --mc_which_symelems 1
+--architecture I422_c2 --mc_which_symelems 2
+--architecture I422_c2 --mc_which_symelems 3
+--architecture I422_c2 --mc_which_symelems 4
+--architecture I432_c2 --mc_which_symelems 0
+--architecture I432_c2 --mc_which_symelems 1
+--architecture I432_c2 --mc_which_symelems 2
+--architecture I4_c2 --mc_which_symelems 0
+--architecture P121_c2 --mc_which_symelems 0
+--architecture P121_c2 --mc_which_symelems 1
+--architecture P121_c2 --mc_which_symelems 2
+--architecture P121_c2 --mc_which_symelems 3
+--architecture P21212_c2 --mc_which_symelems 0
+--architecture P21212_c2 --mc_which_symelems 1
+--architecture P2221_c2 --mc_which_symelems 0
+--architecture P2221_c2 --mc_which_symelems 1
+--architecture P2221_c2 --mc_which_symelems 2
+--architecture P2221_c2 --mc_which_symelems 3
+--architecture P222_c2 --mc_which_symelems 0
+--architecture P222_c2 --mc_which_symelems 1
+--architecture P222_c2 --mc_which_symelems 2
+--architecture P222_c2 --mc_which_symelems 3
+--architecture P222_c2 --mc_which_symelems 4
+--architecture P222_c2 --mc_which_symelems 5
+--architecture P222_c2 --mc_which_symelems 6
+--architecture P222_c2 --mc_which_symelems 7
+--architecture P222_c2 --mc_which_symelems 8
+--architecture P222_c2 --mc_which_symelems 9
+--architecture P222_c2 --mc_which_symelems 10
+--architecture P222_c2 --mc_which_symelems 11
+
+--architecture P23_c2 --mc_which_symelems 0
+--architecture P23_c2 --mc_which_symelems 1
+--architecture P23_c2 --mc_which_symelems 2
+--architecture P23_c2 --mc_which_symelems 3
+--architecture P3121_c2 --mc_which_symelems 0
+--architecture P3121_c2 --mc_which_symelems 1
+--architecture P321_c2 --mc_which_symelems 0
+--architecture P321_c2 --mc_which_symelems 1
+--architecture P3221_c2 --mc_which_symelems 0
+--architecture P3221_c2 --mc_which_symelems 1
+--architecture P41212_c2 --mc_which_symelems 0
+--architecture P4122_c2 --mc_which_symelems 0
+--architecture P4132_c2 --mc_which_symelems 0
+--architecture P4212_c2 --mc_which_symelems 0
+--architecture P42212_c2 --mc_which_symelems 0
+--architecture P42212_c2 --mc_which_symelems 1
+--architecture P4222_c2 --mc_which_symelems 0
+--architecture P4222_c2 --mc_which_symelems 1
+--architecture P422_c2 --mc_which_symelems 0
+--architecture P422_c2 --mc_which_symelems 1
+--architecture P4232_c2 --mc_which_symelems 0
+--architecture P4232_c2 --mc_which_symelems 1
+--architecture P4232_c2 --mc_which_symelems 2
+--architecture P4232_c2 --mc_which_symelems 3
+--architecture P4232_c2 --mc_which_symelems 4
+--architecture P42_c2 --mc_which_symelems 0
+--architecture P42_c2 --mc_which_symelems 1
+--architecture P42_c2 --mc_which_symelems 2
+--architecture P43212_c2 --mc_which_symelems 0
+--architecture P4322_c2 --mc_which_symelems 0
+--architecture P432_c2 --mc_which_symelems 0
+--architecture P432_c2 --mc_which_symelems 1
+--architecture P432_c2 --mc_which_symelems 2
+--architecture P4332_c2 --mc_which_symelems 0
+--architecture P4_c2 --mc_which_symelems 0
+--architecture P6122_c2 --mc_which_symelems 0
+--architecture P6222_c2 --mc_which_symelems 0
+--architecture P6222_c2 --mc_which_symelems 1
+--architecture P6222_c2 --mc_which_symelems 2
+--architecture P622_c2 --mc_which_symelems 0
+--architecture P622_c2 --mc_which_symelems 1
+--architecture P622_c2 --mc_which_symelems 2
+--architecture P622_c2 --mc_which_symelems 3
+--architecture P62_c2 --mc_which_symelems 0
+--architecture P6322_c2 --mc_which_symelems 0
+--architecture P6422_c2 --mc_which_symelems 0
+--architecture P6422_c2 --mc_which_symelems 1
+--architecture P6422_c2 --mc_which_symelems 2
+--architecture P64_c2 --mc_which_symelems 0
+--architecture P6522_c2 --mc_which_symelems 0
+
+
+--architecture F23_c3 --mc_which_symelems 0
+--architecture F4132_c3 --mc_which_symelems 0
+--architecture F432_c3 --mc_which_symelems 0
+--architecture I213_c3 --mc_which_symelems 0
+--architecture I23_c3 --mc_which_symelems 0
+--architecture I4132_c3 --mc_which_symelems 0
+--architecture I432_c3 --mc_which_symelems 0
+--architecture P213_c3 --mc_which_symelems 0
+--architecture P23_c3 --mc_which_symelems 0
+--architecture P312_c3 --mc_which_symelems 0
+--architecture P321_c3 --mc_which_symelems 0
+--architecture P3_c3 --mc_which_symelems 0
+--architecture P4132_c3 --mc_which_symelems 0
+--architecture P4232_c3 --mc_which_symelems 0
+--architecture P432_c3 --mc_which_symelems 0
+--architecture P4332_c3 --mc_which_symelems 0
+--architecture P6322_c3 --mc_which_symelems 0
+--architecture P63_c3 --mc_which_symelems 0
+--architecture R32_c3 --mc_which_symelems 0
+--architecture R3_c3 --mc_which_symelems 0
+
+
+
+--architecture F432_c4 --mc_which_symelems 0
+--architecture I422_c4 --mc_which_symelems 0
+--architecture I432_c4 --mc_which_symelems 0
+--architecture P432_c4 --mc_which_symelems 0
+--architecture P4_c4 --mc_which_symelems 0
+
+--architecture I23_d2 --mc_which_symelems 0
+--architecture I4132_d2 --mc_which_symelems 0
+--architecture I422_d2 --mc_which_symelems 1
+--architecture P222_d2 --mc_which_symelems 5
+--architecture P222_d2 --mc_which_symelems 6
+--architecture P23_d2 --mc_which_symelems 0
+--architecture P23_d2 --mc_which_symelems 1
+
+--architecture I4132_d3 --mc_which_symelems 0
+--architecture I4132_d3 --mc_which_symelems 1
+--architecture P4132_d3 --mc_which_symelems 0
+--architecture P4132_d3 --mc_which_symelems 1
+--architecture P4332_d3 --mc_which_symelems 0
+--architecture P4332_d3 --mc_which_symelems 1
+
+'''
