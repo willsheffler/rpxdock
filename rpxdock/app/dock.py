@@ -165,6 +165,7 @@ def dock_cyclic(hscore, **kw):
          ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
+      tqdm = sys.modules['tqdm'].tqdm
       if kw.quiet: tqdm = lambda x, *a, **k: x
       for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
@@ -244,6 +245,7 @@ def dock_onecomp(hscore, **kw):
          ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
+      tqdm = sys.modules['tqdm'].tqdm
       if kw.quiet: tqdm = lambda x, *a, **k: x
       for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
@@ -312,6 +314,7 @@ def dock_multicomp(hscore, **kw):
          ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
+      tqdm = sys.modules['tqdm'].tqdm
       if kw.quiet: tqdm = lambda x, *a, **k: x
       for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
@@ -368,6 +371,7 @@ def dock_plug(hscore, **kw):
          ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
+      tqdm = sys.modules['tqdm'].tqdm
       if kw.quiet: tqdm = lambda x, *a, **k: x
       for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
@@ -471,6 +475,7 @@ def dock_axle(hscore, **kw):
          ))
          futures[-1].ijob = ijob
       result = [None] * len(futures)
+      tqdm = sys.modules['tqdm'].tqdm
       if kw.quiet: tqdm = lambda x, *a, **k: x
       for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()
@@ -485,11 +490,11 @@ def dock_layer(hscore, **kw):
               for fn, ar2 in zip(inp, ar)]
              for inp, ar in zip(kw.inputs, kw.allowed_residues)]
    assert len(bodies) == spec.num_components
-
+   assert 0
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
 
-   exe = concurrent.futures.ProcessPoolExecutor
-   # exe = rp.util.InProcessExecutor
+   # exe = concurrent.futures.ProcessPoolExecutor
+   exe = rp.util.InProcessExecutor
    with exe(kw.ncpu) as pool:
       futures = list()
       for ijob, bod in enumerate(itertools.product(*bodies)):
@@ -505,6 +510,7 @@ def dock_layer(hscore, **kw):
          futures[-1].ijob = ijob
 
       result = [None] * len(futures)
+      tqdm = sys.modules['tqdm'].tqdm
       if kw.quiet: tqdm = lambda x, *a, **k: x
       for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
          result[f.ijob] = f.result()

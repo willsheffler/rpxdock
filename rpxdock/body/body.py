@@ -27,6 +27,7 @@ class Body:
       ignored_aas='CPG',
       **kw,
    ):
+
       kw = wu.Bunch(kw)
       self.pos = np.eye(4)
       self.is_subbody = is_subbody

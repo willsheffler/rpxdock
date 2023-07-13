@@ -1,12 +1,22 @@
 {
 		"build_systems":
 		[
+
+
+			{
+				"name": "yangbug",
+				"shell_cmd" : "cd /home/sheffler/project/yangbug; PYTHONPATH=/home/sheffler/src/rpxdock_master python $folder/rpxdock/app/dock.py     --architecture P4_44    --inputs1 inputs/RK1121-ABCD_4_asu.pdb    --allowed_residues1 inputs/RK1121-ABCD_4_asu.txt    --inputs2 inputs/oabz1_4_asu.pdb  --quiet   --allowed_residues2    --cart_bounds -1000 1000    --beam_size 1_000_000    --hscore_files ilv_h    --loglevel DEBUG    --max_delta_h 99999    --use_orig_coords    --score_only_ss H    --output_prefix output/P4_44/RK1121-ABCD_4_asu/oabz1_4_asu/P4_44    --function stnd    --flip_components 0 1    --fixed_rot 9    --save_results_as_tarball false    --save_results_as_pickle true    --overwrite_existing_results    --dump_pdbs    --dump_result_summary  &> $folder/sublime_build.log"
+			},	
 			{
 				"name": "mcdock test",
 				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py  --hscore_files ilv_h/1000     --mc_random_seed 0  &> $folder/sublime_build.log"
+			},	
+			{
+				"name": "mcdock local sample",
+				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py  --hscore_files ilv_h  --inputs1 inputs/rpxdock_I213_C3_c3diffusiontest1_0000_asym_TRP.pdb   --architecture I213_c3  --mc_local_grid_samples 1  --mc_local_grid_resolution 0.75 --mc_keep_input_position  --mc_ntrials 1000  &> $folder/sublime_build.log"
 			},				{
-				"name": "mcdock 1comp C2",
-				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py  --hscore_files ilv_h  --mc_min_contacts 1 --mc_max_contacts 999  --mc_nruns 1 --inputs1 inputs/c2_100__46579998_19_pmsave.pdb  inputs/c2_100__46579998_41_pmsave.pdb  inputs/c2_100__46579998_6_pmsave.pdb  inputs/c2_100__46579998_84_pmsave.pdb  inputs/c2_100__46579998_92_pmsave.pdb  --architecture P121_c2     &> $folder/sublime_build.log"
+				"name": "mcdock 1comp C3",
+				"shell_cmd" : "cd /home/sheffler/project/rpxtal; rm -f *.pdb; CC='ccache gcc' MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=$folder python $folder/rpxdock/app/mcdock.py  --hscore_files ilv_h  --mc_min_contacts 1 --mc_max_contacts 1  --mc_nruns 10    --inputs1 /home/sheffler/project/diffusion/pointsym/test1/c3_diffusion_test_1.pdb  --architecture I213_c3     &> $folder/sublime_build.log"
 			},	
 			{
 				"name": "test_yang_asym_trimer small",

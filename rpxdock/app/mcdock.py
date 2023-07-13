@@ -1,4 +1,4 @@
-import random, os, sys, itertools as it, sys, concurrent.futures as cf
+import random, os, sys, itertools, sys, concurrent.futures as cf
 from pprint import pprint
 from opt_einsum import contract as einsum
 from typing import List
@@ -55,7 +55,15 @@ def main():
       print('input', iinput, fnames, flush=True)
       components = component_from_pdb(fnames, symelems, mcsym=mcsym, **kw)
       search = RpxMonteCarlo(components, mcsym, **kw)
-      result = search.run(**kw)
+      if kw.mc_local_grid_samples:
+         assert kw.mc_keep_input_position
+         fname_prefix = '_'.join(os.path.basename(f).replace('.pdb', '').replace('.gz', '') for f in fnames)
+         search.dump_grid_samples(fname_prefix, **kw)
+      else:
+         # local sampling
+         if kw.mc_keep_input_position:
+            kw = kw.sub(mc_temperature=10, startspread=wu.Bunch(cartsd=0.7, rotsd=0.03, latticesd=1.0, mc_ntrials=100))
+         result = search.run(**kw)
 
    timer.report()
 
@@ -95,6 +103,11 @@ class RpxMonteCarlo:
       self.kw.mc_cell_bounds = np.array(list(zip(*self.kw.mc_cell_bounds)))
       self.component_sample_counter = 0
       self.sanity_check()
+      self.original_lattice = None
+      if self.kw.mc_keep_input_position:
+         orig_cryst1 = self.components[0].origpdb.cryst1.split()
+         cellgeom = [float(x) for x in orig_cryst1[1:7]]
+         self.original_lattice = wu.sym.lattice_vectors(self.mcsym.sym, cellgeom)
 
    def sanity_check(self):
       kw = self.kw
@@ -110,6 +123,25 @@ class RpxMonteCarlo:
 
    def reset(self):
       self.mcsym.reset()
+
+   def dump_grid_samples(self, fname_prefix, **kw):
+      kw = self.kw.sub(kw)
+      print(fname_prefix)
+
+      sample = wu.Bunch(position=np.eye(4).reshape(1, 4, 4), lattice=self.original_lattice)
+      ic(sample.position.shape)
+
+      self.new_sample(sample, wu.Bunch(cartsd=0, rotsd=0, latticesd=0))  # needed for some init stuff
+      self.objectivefunc(sample)
+
+      # lattice_grid = [self.original_lattice]
+      lattice_grid = self.mcsym.sample_lattice_grid(self.original_lattice, **kw)
+      for ilat, lattice in enumerate(lattice_grid):
+         sample.lattice = lattice
+         samp_grids = [comp.sample_grid(lattice, **kw) for comp in self.components]
+         for ipos, position in enumerate(itertools.product(*samp_grids)):
+            sample.position = np.stack(position)
+            self.dumppdbs(f'{fname_prefix}_{ilat}_{ipos}.pdb', sample)
 
    def run(
       self,
@@ -201,6 +233,10 @@ class RpxMonteCarlo:
 
    def startsample(self, **kw):
       kw = self.kw.sub(kw)
+
+      if kw.mc_keep_input_position:
+         return wu.Bunch(position=np.eye(4).reshape(1, 4, 4), lattice=self.original_lattice)
+
       position = np.stack([c.random_unitcell_position()[0] for c in self.components])
       lattice = self.mcsym.random_lattice(component_volume=sum(self.compvols), **kw)
       # ic(lattice)
@@ -379,7 +415,10 @@ class RpxMonteCarlo:
          for icomp, (pos, comp) in enumerate(zip(position, self.components)):
             jointcoords.append(wu.hxformpts(pos, comp.body.coord))
          fname = f'{prefix}_asym.pdb'
-         wu.dumppdb(fname, jointcoords, header=cryst1)
+         # wu.dumppdb(fname, jointcoords, header=cryst1)
+         p = comp.origpdb.xformed(pos)
+         p.cryst1 = cryst1
+         p.dump_pdb(fname)
          output_files.append(fname)
 
       if not dumpsym: return
@@ -420,12 +459,16 @@ class RpxMonteCarlo:
          # ic(coords[:, :3])
          assert wu.hvalid(frames)
          # ic(frames[0])
-         coords = wu.hxformpts(frames, coords)
-         # wu.showme(coords, kind='point')
+         # coords = wu.hxformpts(frames, coords)
+         # wu.dumppdb(fname, coords, header=cryst1)
+         # fname = fname + '_TEST.pdb'
+         with open(fname, 'a') as out:
+            out.write(cryst1)
+         for ichain, f in enumerate(frames):
+            p = comp.origpdb.xformed(f @ pos)
+            p.df.ch = wu.pdb.all_pymol_chains[ichain].encode()
+            p.dump_pdb(fname, filemode='a')
 
-         # assert 0
-
-         wu.dumppdb(fname, coords, header=cryst1)
          output_files.append(fname)
          # wu.showme(coords[:100, :3], is_points=True)
       return output_files
@@ -519,21 +562,29 @@ class McComponent:
          index=None,
          bounds=(-1000, 1000),
          mcsym=None,
+         origpdb=None,
          **kw,
    ):
       self.kw = wu.Bunch(kw)
       self.symelem = symelem
       if coords.ndim == 3: coords = coords[None, :, :, :]
       self._init_coords = coords.copy()
-      if len(coords) > 1:
+      self.origpdb = origpdb.subset(chain=origpdb.df.ch[0])
+      if self.kw.mc_keep_input_position:
+         ic(self._init_coords.shape)
+         self.body = rp.Body(self._init_coords, **kw)
+         ic('MC_KEEP_INPUT_POSITION')
+      elif len(coords) > 1:
          if coords.shape[0] != self.symelem.numops:
             ic(self.symelem, coords.shape)
             assert coords.shape[0] == self.symelem.numops
-
-         self._aligned_coords = wu.sym.align(coords, self.symelem)
+         self._aligned_coords, xfit = wu.sym.align(coords, self.symelem)
+         self.origpdb = self.origpdb.xformed(xfit)
+         self.body = rp.Body(self._aligned_coords[0], **kw)
       else:
          self._aligned_coords = self._init_coords.copy()
-      self.body = rp.Body(self._aligned_coords[0], **kw)
+         self.body = rp.Body(self._aligned_coords[0], **kw)
+
       # self.body.dump_pdb(f'testbody{index}.pdb')
       self.com = self.body.com()
       self.pdbname = pdbname
@@ -541,7 +592,22 @@ class McComponent:
       self.index = index
       self.bounds = bounds
       self.mcsym = mcsym
+
       assert self.mcsym
+
+   def sample_grid(self, lattice, mc_local_grid_samples, mc_local_grid_resolution, **kw):
+      if not self.symelem.iscyclic:
+         return [np.eye(4)]
+      cen = wu.sym.applylatticepts(lattice, self.symelem.cen)
+      samples = list()
+      for i in range(-mc_local_grid_samples, mc_local_grid_samples + 1):
+         for j in range(-mc_local_grid_samples, mc_local_grid_samples + 1):
+            trans = mc_local_grid_resolution * i
+            ang = mc_local_grid_resolution * j / self.body.radius_max()
+            rot = wu.hrot(self.symelem.axis, ang, cen)
+            sample = wu.htrans(self.symelem.axis * trans) @ rot
+            samples.append(sample)
+      return samples
 
    def random_unitcell_position(self, size=1):
       '''random rotation and placement in unit cell'''
@@ -678,6 +744,7 @@ class McSymmetry:
          self.allcompids[:, i] = wu.sym.sg_symelem_frame444_compids_dict[self.sym][:, ei.index]
          for j, ej in enumerate(symelems):
             self.allopcompids[:, i, j] = wu.sym.sg_symelem_frame444_opcompids_dict[self.sym][:, ei.index, ej.index]
+
       self.reset()
 
    def reset(self):
@@ -712,6 +779,19 @@ class McSymmetry:
       lattice = wu.sym.lattice_vectors(self.latticetype, cellgeom)
 
       return lattice
+
+   def sample_lattice_grid(self, lattice, mc_local_grid_samples, mc_local_grid_resolution, **kw):
+      samples = list()
+      cellgeom_start = np.array(wu.sym.cellgeom_from_lattice(lattice))
+      if self.latticetype == 'CUBIC':
+         for i in range(-mc_local_grid_samples, mc_local_grid_samples + 1):
+            cellgeom = cellgeom_start.copy()
+            cellgeom[:3] += mc_local_grid_resolution * i * 2.0
+            newlattice = wu.sym.lattice_vectors(self.sym, cellgeom)
+            samples.append(newlattice)
+      else:
+         raise NotImplementedError(f'cant do lattice type {self.latticetype}')
+      return samples
 
    def perturb_lattice(self, position, lattice, spread, **kw):
       assert position.ndim == 3
@@ -911,7 +991,7 @@ def component_from_pdb(fname, symelem, index=None, **kw):
          bounds = kw.mc_component_bounds
       else:
          bounds = kw.mc_component_bounds[2 * index:2 * index + 2]
-      return McComponent(coords, symelem, pdbname=fname, index=index, bounds=bounds, **kw)
+      return McComponent(coords, symelem, pdbname=fname, index=index, bounds=bounds, origpdb=pdb, **kw)
       # coords = wu.sym.align(coords, sym='Cx', symelem=symelem)
       # b = rp.Body(coords[0], **kw)
       # return McComponent(b, symelem)
@@ -1061,6 +1141,7 @@ if __name__ == '__main__':
 
       main()
 '''
+C2:
 --architecture C121_c2 --mc_which_symelems 0
 --architecture C121_c2 --mc_which_symelems 1
 --architecture C2221_c2 --mc_which_symelems 0
@@ -1123,7 +1204,6 @@ if __name__ == '__main__':
 --architecture P222_c2 --mc_which_symelems 9
 --architecture P222_c2 --mc_which_symelems 10
 --architecture P222_c2 --mc_which_symelems 11
-
 --architecture P23_c2 --mc_which_symelems 0
 --architecture P23_c2 --mc_which_symelems 1
 --architecture P23_c2 --mc_which_symelems 2
@@ -1175,7 +1255,7 @@ if __name__ == '__main__':
 --architecture P64_c2 --mc_which_symelems 0
 --architecture P6522_c2 --mc_which_symelems 0
 
-
+C3:
 --architecture F23_c3 --mc_which_symelems 0
 --architecture F4132_c3 --mc_which_symelems 0
 --architecture F432_c3 --mc_which_symelems 0
@@ -1197,14 +1277,14 @@ if __name__ == '__main__':
 --architecture R32_c3 --mc_which_symelems 0
 --architecture R3_c3 --mc_which_symelems 0
 
-
-
+C4:
 --architecture F432_c4 --mc_which_symelems 0
 --architecture I422_c4 --mc_which_symelems 0
 --architecture I432_c4 --mc_which_symelems 0
 --architecture P432_c4 --mc_which_symelems 0
 --architecture P4_c4 --mc_which_symelems 0
 
+D2:
 --architecture I23_d2 --mc_which_symelems 0
 --architecture I4132_d2 --mc_which_symelems 0
 --architecture I422_d2 --mc_which_symelems 1
@@ -1213,6 +1293,7 @@ if __name__ == '__main__':
 --architecture P23_d2 --mc_which_symelems 0
 --architecture P23_d2 --mc_which_symelems 1
 
+D3
 --architecture I4132_d3 --mc_which_symelems 0
 --architecture I4132_d3 --mc_which_symelems 1
 --architecture P4132_d3 --mc_which_symelems 0

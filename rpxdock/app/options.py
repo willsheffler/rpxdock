@@ -399,9 +399,13 @@ def default_cli_parser(parent=None, **kw):
    addarg('--mc_random_seed', default=None, type=int, help='random seed for repeatability')
    addarg('--mc_profile', action='store_true', help='run cProfile')
 
+   addarg('--mc_keep_input_position', action='store_true', help='dont reposition inputs')
+   addarg('--mc_local_grid_samples', default=0, type=int, help='output grid samples around input in N steps')
+   addarg('--mc_local_grid_resolution', default=0.75, type=float, help='resolution of local grid samples')
+
    addarg('--limit_rotation_to_z', action='store_true',
           help='for cyclic and asym, limit orientation sampling to rotations around z')
-   addarg('--disable_nonz_rotation', action='store_true', help='for asym, disable rotation except around z')
+   addarg('--disable_rotation', action='store_true', help='for asym, disable rotation except around z')
    addarg('--exclude_residue_neighbors', default=1, type=int,
           help='disallow residue if within x positions of initially excluded residue')
 

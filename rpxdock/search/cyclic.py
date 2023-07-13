@@ -18,7 +18,7 @@ def make_cyclic_hier_sampler(monomer, hscore, **kw):
    '''
    kw = wu.Bunch(kw)
    # cart_resl, ori_resl = hscore.base.attr.xhresl
-   if kw.limit_rotation_to_z or kw.disable_rotation:
+   if kw.limit_rotation_to_z:
       maxcart = monomer.radius_max() * 3
       sampler = rp.sampling.RotCart1Hier_f4(0.0, maxcart, int(maxcart), 0.0, 360.0, 360, axis=[0, 0, 1],
                                             cartaxis=[1, 0, 0])
