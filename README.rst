@@ -11,7 +11,7 @@ Version 2 of the venerable tcdock and rpxdock programs in rosetta. This version 
     :alt: alternate text
     :figclass: align-center
     
-Read `RPXDock preprint <https://www.biorxiv.org/content/10.1101/2022.10.25.513641v1>`_.
+Read the `RPXDock manuscript <https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1010680>`_.
 
 To run RPXDock, clone this github repo and set up a proper conda environment using the `environment.yml` file. Note that a user must obtain a pyrosetta license (free for non-profit users) and update the username and password fields for their pyrosetta license in the environment.yml file before creating the environment. Users may need to also install additional packages in their conda environment such as pyyaml and `willutil <https://github.com/willsheffler/willutil>`_ to properly build the application. To build and compile the codebase with the newly created conda environment, a user may simply run the pytest command using a gcc>9-compatible compiler. To verify that the code compiled properly, execute rpxdock/app/dock.py –-help in the new conda environment. The output should provide a list of options that are relevant for docking. 
 
