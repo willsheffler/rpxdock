@@ -1,0 +1,13 @@
+/home/sheffler/src/rpxdock_master/rpxdock/app/asudock.py --architecture icos --nout_top 1 --inputs1 ~/project/diffusion/runs/I32_400_20_221212_digs/*_id21589511_*_asym.pdb --max_pair_dist 6 --trim_ss_H 4 --skip_errors &> rp1.log
+/home/sheffler/src/rpxdock_master/rpxdock/app/asudock.py --architecture icos --nout_top 1 --inputs1 ~/project/diffusion/runs/I32_400_20_221212_digs/*_id21589063_*_asym.pdb --max_pair_dist 6 --trim_ss_H 4 --skip_errors &> rp1.log
+/home/sheffler/src/rpxdock_master/rpxdock/app/asudock.py --architecture icos --nout_top 1 --inputs1 ~/project/diffusion/runs/I32_400_20_221212_digs/*_id21589490_*_asym.pdb --max_pair_dist 6 --trim_ss_H 4 --skip_errors &> rp2.log
+/home/sheffler/src/rpxdock_master/rpxdock/app/asudock.py --architecture icos --nout_top 1 --inputs1 ~/project/diffusion/runs/I32_400_20_221212_digs/*_id21589502_*_asym.pdb --max_pair_dist 6 --trim_ss_H 4 --skip_errors &> rp3.log
+/home/sheffler/src/rpxdock_master/rpxdock/app/asudock.py --architecture icos --nout_top 1 --inputs1 ~/project/diffusion/runs/I32_400_20_221212_digs/*_id21589504_*_asym.pdb --max_pair_dist 6 --trim_ss_H 4 --skip_errors &> rp4.log
+/home/sheffler/src/rpxdock_master/rpxdock/app/asudock.py --architecture icos --nout_top 1 --inputs1 ~/project/diffusion/runs/I32_400_20_221212_digs/*_id21589505_*_asym.pdb --max_pair_dist 6 --trim_ss_H 4 --skip_errors &> rp5.log
+/home/sheffler/src/rpxdock_master/rpxdock/app/asudock.py --architecture icos --nout_top 1 --inputs1 ~/project/diffusion/runs/I32_400_20_221212_digs/*_id21589506_*_asym.pdb --max_pair_dist 6 --trim_ss_H 4 --skip_errors &> rp6.log
+/home/sheffler/src/rpxdock_master/rpxdock/app/asudock.py --architecture icos --nout_top 1 --inputs1 ~/project/diffusion/runs/I32_400_20_221212_digs/*_id21589507_*_asym.pdb --max_pair_dist 6 --trim_ss_H 4 --skip_errors &> rp7.log
+/home/sheffler/src/rpxdock_master/rpxdock/app/asudock.py --architecture icos --nout_top 1 --inputs1 ~/project/diffusion/runs/I32_400_20_221212_digs/*_id21589508_*_asym.pdb --max_pair_dist 6 --trim_ss_H 4 --skip_errors &> rp8.log
+/home/sheffler/src/rpxdock_master/rpxdock/app/asudock.py --architecture icos --nout_top 1 --inputs1 ~/project/diffusion/runs/I32_400_20_221212_digs/*_id21589509_*_asym.pdb --max_pair_dist 6 --trim_ss_H 4 --skip_errors &> rp9.log
+/home/sheffler/src/rpxdock_master/rpxdock/app/asudock.py --architecture icos --nout_top 1 --inputs1 ~/project/diffusion/runs/I32_400_20_221212_digs/*_id21589510_*_asym.pdb --max_pair_dist 6 --trim_ss_H 4 --skip_errors &> rp0.log
+
+  

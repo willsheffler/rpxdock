@@ -1,5 +1,6 @@
 import numpy as np, rpxdock as rp
-from rpxdock import homog as hm
+# from rpxdock import homog as hm
+from willutil import homog as hm
 from willutil import Bunch
 
 tetrahedral_frames = np.load(rp.data.datadir + "/tetrahedral_frames.pickle", allow_pickle=True)
@@ -8,6 +9,10 @@ icosahedral_frames = np.load(rp.data.datadir + "/icosahedral_frames.pickle", all
 
 def symframes(sym, pos=None, axis=[0, 0, 1], **kw):
    kw = Bunch(kw, _strict=False)
+   if pos is not None:
+      assert pos.ndim in (2, 3, 4)
+      if pos.ndim == 2: pos = None
+      elif pos.ndim == 3: pos = pos.reshape(-1, *pos.shape)
    if isinstance(sym, np.ndarray):
       assert len(sym) == 1
       sym = sym[0]
@@ -39,52 +44,45 @@ def symframes(sym, pos=None, axis=[0, 0, 1], **kw):
          frames.append(pos @ frames[-1])
       frames += [np.linalg.inv(x) for x in frames[1:]]
       return np.array(frames)
-   elif sym == 'P6_632':
-      c6 = hm.hrot(axis, np.arange(6) / 6 * 360)
-      c3 = hm.hrot(axis, np.arange(3) / 3 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
-      c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[pos[2, 0, 3], pos[2, 1, 3], 0])
-      frames = c6[None, None, :] @ c3[None, :, None] @ c2[:, None, None]
-      return frames.reshape(-1, 4, 4)
+   elif sym.startswith('P'):
+      if sym == 'P6_632':
+         c6 = hm.hrot(axis, np.arange(6) / 6 * 360)
+         c3 = hm.hrot(axis, np.arange(3) / 3 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
+         c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[pos[2, 0, 3], pos[2, 1, 3], 0])
+         frames = c6[None, None, :] @ c3[None, :, None] @ c2[:, None, None]
+         return frames.reshape(-1, 4, 4)
 
-   elif sym == 'P6_32':
-      c3 = hm.hrot(axis, np.arange(3) / 3 * 360)
-      c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
-      #center inputs are 3 x,y,z, each list should be something like position, spin, offset (idk for sure)
-      #if you change the center of c2, c3 spins to compensate for change
+      comp2cen = np.stack([pos[..., 1, 0, 3], pos[..., 1, 1, 3], np.zeros(len(pos))], axis=-1)
 
-      frames = c3[:, None] @ c2[None, :]
-      #doesnt know what nfold is yet
-      return frames.reshape(-1, 4, 4)
+      if sym == 'P6_32':
+         op1 = hm.hrot(axis, np.arange(3) / 3 * 360)
+         op2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=comp2cen)
+      elif sym == 'P6_33':
+         op1 = hm.hrot(axis, np.arange(3) / 3 * 360)
+         op2 = hm.hrot(axis, np.arange(3) / 3 * 360, center=comp2cen)
+      elif sym == 'P6_63':
+         op1 = hm.hrot(axis, np.arange(6) / 6 * 360)
+         op2 = hm.hrot(axis, np.arange(3) / 3 * 360, center=comp2cen)
+      elif sym == 'P6_62':
+         op1 = hm.hrot(axis, np.arange(6) / 6 * 360)
+         op2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=comp2cen)
+      elif sym == 'P4_42':
+         op1 = hm.hrot(axis, np.arange(4) / 4 * 360)
+         op2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=comp2cen)
+      elif sym == 'P4_44':
+         op1 = hm.hrot(axis, np.arange(4) / 4 * 360)
+         op2 = hm.hrot(axis, np.arange(4) / 4 * 360, center=comp2cen)
+      elif sym == 'P3_33':
+         op1 = hm.hrot(axis, np.arange(3) / 3 * 360)
+         op2 = hm.hrot(axis, np.arange(3) / 3 * 360, center=comp2cen)
+      else:
+         assert 0, f'unknown P symmetry {sym}'
 
-   elif sym == 'P6_33':
-      c3 = hm.hrot(axis, np.arange(3) / 3 * 360)
-      c3b = hm.hrot(axis, np.arange(3) / 3 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
-      frames = c3[:, None] @ c3b[None, :]
-      return frames.reshape(-1, 4, 4)
-
-   elif sym == 'P6_63':
-      c6 = hm.hrot(axis, np.arange(6) / 6 * 360)
-      c3 = hm.hrot(axis, np.arange(3) / 3 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
-      frames = c6[:, None] @ c3[None, :]
-      return frames.reshape(-1, 4, 4)
-
-   elif sym == 'P6_62':
-      c6 = hm.hrot(axis, np.arange(6) / 6 * 360)
-      c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
-      frames = c6[:, None] @ c2[None, :]
-      return frames.reshape(-1, 4, 4)
-
-   elif sym == 'P4_42':
-      c4 = hm.hrot(axis, np.arange(4) / 4 * 360)
-      c2 = hm.hrot(axis, np.arange(2) / 2 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
-      frames = c4[:, None] @ c2[None, :]
-      return frames.reshape(-1, 4, 4)
-
-   elif sym == 'P4_44':
-      c4 = hm.hrot(axis, np.arange(4) / 4 * 360)
-      c4b = hm.hrot(axis, np.arange(4) / 4 * 360, center=[pos[1, 0, 3], pos[1, 1, 3], 0])
-      frames = c4[:, None] @ c4b[None, :]
-      return frames.reshape(-1, 4, 4)
+      frames = op1[None, :, None] @ op2[:, None, :]
+      frames = frames.reshape(len(pos), -1, 4, 4).squeeze()
+      # ic(frames.shape)
+      # assert 0
+      return frames
 
    elif sym.startswith('F_32'):
       c3 = hm.hrot(axis, np.arange(3) / 3 * 360)

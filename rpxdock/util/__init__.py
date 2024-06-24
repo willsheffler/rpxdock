@@ -1,4 +1,4 @@
-from rpxdock.util import plot, numeric
+from rpxdock.util import plot, numeric, bunch
 from rpxdock.util.plot import *
 from rpxdock.util.util import *
 from rpxdock.util.numeric import *

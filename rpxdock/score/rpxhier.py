@@ -337,7 +337,10 @@ def read_hscore_files(
       else:
          assert all("_SSdep_" in f for f in files)
          toreturn.use_ss = True
+
+      # data = rp.util.load(files, len(files))
       data = rp.util.load_threads(files, len(files))
+
       if "base" in files[0]:
          toreturn.base = data[0]
          toreturn.hier = data[1:]

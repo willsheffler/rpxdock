@@ -6,7 +6,7 @@ log = logging.getLogger(__name__)
 
 _iface_summary_methods = dict(min=np.min, sum=np.sum, median=np.median, mean=np.mean, max=np.max)
 
-def print_options(kw):
+def print_options(kw, extra_info=False):
 
    ll = logging.getLogger().level
 
@@ -20,7 +20,7 @@ def print_options(kw):
    print(f'{" VERSION ":=^80}')
    print('    Date of commit:', rp.util.gitcommit.date)
    print('    Branch:', rp.util.gitcommit.branch)
-   print('    Pevious Commit:', rp.util.gitcommit.prev_commit)
+   print('    Previous Commit:', rp.util.gitcommit.prev_commit)
    print('    NOTE: Current commit isn\'t possible to record in the code... kinda a')
    print('          chicken/egg problem. You must find it based on the previous commit!')
 
@@ -29,20 +29,21 @@ def print_options(kw):
    for k in sorted(kw):
       print('   ', k, '.' * (maxlen - len(k)), kw[k])
 
-   print(f'{" SETTINGS EXTRA INFO ":=^80}')
-   for k, v in kw.items():
-      vstr = str(v)
-      if (vstr.startswith('<') and vstr.count(' at 0x') and vstr.endswith('>') and hasattr(v, '__doc__')):
-         print(f'    {f" EXTRA INFO ABOUT: {k} ":=^76s}')
-         print('   ', k, '.' * (maxlen - len(k)), v)
-         doc = v.__doc__
+   if extra_info:
+      print(f'{" SETTINGS EXTRA INFO ":=^80}')
+      for k, v in kw.items():
+         vstr = str(v)
+         if (vstr.startswith('<') and vstr.count(' at 0x') and vstr.endswith('>') and hasattr(v, '__doc__')):
+            print(f'    {f" EXTRA INFO ABOUT: {k} ":=^76s}')
+            print('   ', k, '.' * (maxlen - len(k)), v)
+            doc = v.__doc__
 
-         trunc = [
-            _re_find_position('\n.*Parameters', doc) if 25 <= ll else 99999,
-            _re_find_position('\n.*See Also', doc) if 15 < ll < 25 else 99999,
-         ]
-         print(doc[:min(trunc)])
-   print(f'{" END SETTINGS EXTRA INFO ":=^80}')
+            trunc = [
+               _re_find_position('\n.*Parameters', doc) if 25 <= ll else 99999,
+               _re_find_position('\n.*See Also', doc) if 15 < ll < 25 else 99999,
+            ]
+            print(doc[:min(trunc)])
+      print(f'{" END SETTINGS EXTRA INFO ":=^80}')
 
 def _re_find_position(pattern, string):
    match = re.search(pattern, string)
@@ -189,7 +190,7 @@ def default_cli_parser(parent=None, **kw):
    addarg("--clash_distances", type=float, default=[5.0, 3.0, 2, 1.5, 1.5, 1.5, 1.5], nargs='+',
           help='clash distance for hierarchical protocols, in order of decreasing resolution')
    addarg(
-      "--beam_size", type=int, default=100000,
+      "--beam_size", type=int, default=100_000,
       help='Maximum number of samples for each stage of a hierarchical search protocol (except the first, coarsest stage, which must sample all available positions. This is the most important parameter for determining rumtime (aside from number of allowed residues list). defaults to 100,000'
    )
    addarg(
@@ -391,6 +392,7 @@ def default_cli_parser(parent=None, **kw):
    addarg('--mc_which_symelems', default=[0] * 10, type=int, nargs='+', help='which symelems to be used')
    addarg('--mc_temperature', default=3, type=float, help='starting temperature for mc simulation')
    addarg('--mc_wt_solvfrac', default=0, type=float, help='weight on xtal solvent frac match')
+   addarg('--mc_wt_cellvol', default=0, type=float, help='weight on total xtal cell volume')
    addarg('--mc_component_bounds', default=[], type=float, nargs='+', help='constrains placement of symelems')
    addarg('--mc_tether_components', default=9e9, type=float, help='keep symelems close to start position')
    addarg('--mc_framedistcut', default=100, type=float, help='explicitly model frames within this distance')
@@ -398,6 +400,7 @@ def default_cli_parser(parent=None, **kw):
           help='only output subunits at least this close to primary')
    addarg('--mc_random_seed', default=None, type=int, help='random seed for repeatability')
    addarg('--mc_profile', action='store_true', help='run cProfile')
+   addarg('--mc_output_score_cut', default=100, type=float, help='max score to output a pdb')
 
    addarg('--mc_keep_input_position', action='store_true', help='dont reposition inputs')
    addarg('--mc_local_grid_samples', default=0, type=int, help='output grid samples around input in N steps')

@@ -56,6 +56,7 @@ class Body:
 
    @wu.timed
    def set_pose_info(self, source, sym, extract_chain=None, use_rosetta=True, **kw):
+
       # pose stuff
       if use_rosetta:
          try:
@@ -161,7 +162,8 @@ class Body:
       required_res_sets=None,
       **kw,
    ):
-      # ic(required_res_sets)
+      if required_res_sets is not None and any([x is None for x in required_res_sets]):
+         required_res_sets = None
 
       self.allowed_residues = np.zeros(len(self), dtype='?')
       if allowed_res is None:
@@ -208,6 +210,7 @@ class Body:
          symaxis=np.array([0, 0, 1, 0]),
          xform=np.eye(4),
          ignored_aas=None,
+         force_which_cen=None,
          **kw,
    ):
       kw = wu.Bunch(kw)
@@ -229,7 +232,10 @@ class Body:
       self.bvh_bb_atomno = rp.BVH(self.coord[..., :3].reshape(-1, 3), [])
       self._symcom = wu.homog.hxform(self.symframes, wu.homog.htrans(self.asym_body.bvh_bb.com()))
       self.allcen = self.stub[:, :, 3]
-      self.which_cen = self._select_positions(ignored_aas, **kw)
+      if force_which_cen is not None:
+         self.which_cen = force_which_cen
+      else:
+         self.which_cen = self._select_positions(ignored_aas, **kw)
       self.bvh_cen = rp.BVH(self.allcen[:, :3], self.which_cen)
       self.cen = self.allcen[self.which_cen]
       self.pos = np.eye(4, dtype="f4")
@@ -334,7 +340,7 @@ class Body:
       b = copy.deepcopy(self.asym_body)
       b.pos = np.eye(4, dtype='f4')
       b.asym_body = b
-      b.init_coords('C1', [0, 0, 1], xform, **kw)
+      b.init_coords('C1', [0, 0, 1], xform, force_which_cen=b.which_cen, **kw)
       assert len(self.bvh_cen) == len(b.bvh_cen)
       return b
 

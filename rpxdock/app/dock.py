@@ -149,7 +149,11 @@ def dock_asym(hscore, **kw):
 
 def dock_cyclic(hscore, **kw):
    kw = Bunch(kw, _strict=False)
-   bodies = [rp.Body(inp, allowed_res=allowedres, **kw) for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)]
+
+   bodies = [
+      rp.Body(inp, allowed_res=ar, required_res_sets=[ar, ara], **kw)
+      for inp, ar, ara in zip(kw.inputs1, kw.allowed_residues1, kw.allowed_residues_also1)
+   ]
    # exe = concurrent.futures.ProcessPoolExecutor
    exe = rp.util.InProcessExecutor
    with exe(kw.ncpu) as pool:
@@ -223,11 +227,15 @@ def dock_onecomp(hscore, **kw):
    if make_poselist:
       assert len(poses) == len(og_lens)
       bodies = [
-         rp.Body(pose1, allowed_res=allowedres, modified_term=modterm, og_seqlen=og_seqlen, **kw)
-         for pose1, allowedres, modterm, og_seqlen in zip(poses[0], kw.allowed_residues1, kw.term_access1, og_lens[0])
+         rp.Body(pose1, allowed_res=ar, required_res_sets=[ar, ara], modified_term=modterm,
+                 og_seqlen=og_seqlen, **kw) for pose1, ar, ara, modterm, og_seqlen in zip(
+                    poses[0], kw.allowed_residues1, kw.allowed_residues_also1, kw.term_access1, og_lens[0])
       ]
    else:
-      bodies = [rp.Body(inp, allowed_res=allowedres, **kw) for inp, allowedres in zip(kw.inputs1, kw.allowed_residues1)]
+      bodies = [
+         rp.Body(inp, allowed_res=ar, required_res_sets=[ar, ara], **kw)
+         for inp, ar, ara in zip(kw.inputs1, kw.allowed_residues1, kw.allowed_residues_also1)
+      ]
 
    exe = concurrent.futures.ProcessPoolExecutor
    # exe = rp.util.InProcessExecutor
@@ -293,9 +301,9 @@ def dock_multicomp(hscore, **kw):
                 for pose1, og1, modterm1 in zip(poses, og_lens, kw.term_access)]
 
    else:
-      bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
-                 for fn, ar2 in zip(inp, ar)]
-                for inp, ar in zip(kw.inputs, kw.allowed_residues)]
+      bodies = [[
+         rp.Body(fn, allowed_res=ar2, required_res_sets=[ar2, ara2], **kw) for fn, ar2, ara2 in zip(inp, ar, ara)
+      ] for inp, ar, ara in zip(kw.inputs, kw.allowed_residues, kw.allowed_residues_also)]
    assert len(bodies) == spec.num_components
 
    exe = concurrent.futures.ProcessPoolExecutor
@@ -483,37 +491,42 @@ def dock_axle(hscore, **kw):
    return result
 
 def dock_layer(hscore, **kw):
+   print('dock_layer')
    kw = Bunch(kw, _strict=False)
    spec = get_spec(kw.architecture)
-
-   bodies = [[rp.Body(fn, allowed_res=ar2, **kw)
-              for fn, ar2 in zip(inp, ar)]
-             for inp, ar in zip(kw.inputs, kw.allowed_residues)]
+   bodies = [[rp.Body(fn, allowed_res=ar2, required_res_sets=[ar2, ara2], **kw)
+              for fn, ar2, ara2 in zip(inp, ar, ara)]
+             for inp, ar, ara in zip(kw.inputs, kw.allowed_residues, kw.allowed_residues_also)]
    assert len(bodies) == spec.num_components
-   assert 0
    sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
 
-   # exe = concurrent.futures.ProcessPoolExecutor
-   exe = rp.util.InProcessExecutor
-   with exe(kw.ncpu) as pool:
-      futures = list()
-      for ijob, bod in enumerate(itertools.product(*bodies)):
-         futures.append(pool.submit(
-            rp.search.make_multicomp,
-            bod,
-            spec,
-            hscore,
-            rp.hier_search,
-            sampler,
-            **kw,
-         ))
-         futures[-1].ijob = ijob
+   result = list()
+   for ijob, bod in enumerate(itertools.product(*bodies)):
+      print('dock_layer', bod, flush=True)
+      result.append(rp.search.make_multicomp(bod, spec, hscore, rp.hier_search, sampler, **kw))
 
-      result = [None] * len(futures)
-      tqdm = sys.modules['tqdm'].tqdm
-      if kw.quiet: tqdm = lambda x, *a, **k: x
-      for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
-         result[f.ijob] = f.result()
+   #   # exe = concurrent.futures.ProcessPoolExecutor
+   #   exe = rp.util.InProcessExecutor
+   #   with exe(kw.ncpu) as pool:
+   #      futures = list()
+   #      for ijob, bod in enumerate(itertools.product(*bodies)):
+   #         futures.append(pool.submit(
+   #            rp.search.make_multicomp,
+   #            bod,
+   #            spec,
+   #            hscore,
+   #            rp.hier_search,
+   #            sampler,
+   #            **kw,
+   #         ))
+   #         futures[-1].ijob = ijob
+   #
+   #      result = [None] * len(futures)
+   #      tqdm = sys.modules['tqdm'].tqdm
+   #      if kw.quiet: tqdm = lambda x, *a, **k: x
+   #      for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
+   #         result[f.ijob] = f.result()
+
    result = rp.concat_results(result)
    return result
 
@@ -563,7 +576,6 @@ def check_result_files_exist(kw):
             sys.exit()
 
 def main():
-
    # import willutil as wu
    # sampler = rp.sampling.RotCart3Hier_f4([0, 0, 0], [80, 80, 200], [2, 2, 5], 0, 60, 3)
    # for i in range(3):

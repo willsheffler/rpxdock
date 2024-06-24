@@ -1,0 +1,22 @@
+PYTHONPATH=. python ./rpxdock/app/dock.py \
+    --architecture P4_42 \
+    --inputs1 /home/yhsia/cage_design_2/2022-09-22_layer/dock_4/input/scaffolds/other/RK1121-t2_4_asu.pdb \
+    --inputs2 /home/yhsia/cage_design_2/2022-09-22_layer/dock_4/input/scaffolds/4HR-3-TEST_2_asu/4HR-3-TEST_2_asu_+0_F.pdb /home/yhsia/cage_design_2/2022-09-22_layer/dock_4/input/scaffolds/4HR-3-TEST_2_asu/4HR-3-TEST_2_asu_+0_R.pdb \
+    --cart_bounds -1000 1000 \
+    --beam_size 1_000_000 \
+    --hscore_files ailv_h \
+    --hscore_data_dir /net/software/rpxdock/hscore/ \
+    --loglevel DEBUG \
+    --max_delta_h 99999 \
+    --use_orig_coords \
+    --score_only_ss H \
+    --output_prefix output/P4_42/RK1121-t2_4_asu/4HR-3-TEST_2_asu/P4_42 \
+    --function stnd \
+    --flip_components 1 0 \
+    --fixed_rot 1 \
+    --save_results_as_tarball false \
+    --save_results_as_pickle true \
+    --overwrite_existing_results \
+    --termini_max_dist 999999999 \
+    --dump_pdbs \
+    --dump_result_summary 

@@ -185,7 +185,7 @@ class Result:
       if not sym and 'sym' in self.data: sym = self.data.sym.data[imodel]
       sym = sym if sym else "C1"
       if not output_prefix and 'output_prefix' in self.attrs:
-         output_prefix = self.output_prefixsymframes
+         output_prefix = self.output_prefix
 
       ijob = 0
       if 'ijob' in self.data:
@@ -251,6 +251,7 @@ class Result:
       if 'reslb' in self.data and 'resub' in self.data:
          bounds = np.stack([self.reslb[imodel], self.resub[imodel]], axis=-1)
 
+      ic(symframes.shape)
       if output_asym_only and output_closest_subunits:
          if len(bod) == 2:
             best = 0, None, None

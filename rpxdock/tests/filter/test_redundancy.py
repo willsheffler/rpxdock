@@ -1,7 +1,25 @@
+import os
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 import rpxdock as rp
 import willutil as wu
+
+def main():
+   debug_redundancy_layer()
+   assert 0, 'DONE debug_redundancy_layer'
+
+   hscore = rp.data.small_hscore()
+   body1 = rp.data.get_body('T33_dn2_asymA')
+   body2 = rp.data.get_body('T33_dn2_asymB')
+   test_redundancy(hscore, body1, body2)
+
+def debug_redundancy_layer():
+   os.chdir('/home/sheffler/project/yangbug')
+   os.system('rm -f /home/sheffler/project/yangbug/*.pdb')
+
+   xforms, body, scores, categories, every_nth, symframes, kw = wu.load('testdat_C2.pickle')
+   ic(symframes)
+   rp.filter_redundancy(xforms, body, scores, categories, every_nth=1, symframes=symframes, debugaggro=True, **kw)
 
 def test_redundancy(hscore, body_cageA, body_cageB):
    kw = rp.app.defaults()
@@ -48,12 +66,6 @@ def test_redundancy(hscore, body_cageA, body_cageB):
    assert not np.allclose(xforms2randsym, xforms2)
    iuniq = rp.filter_redundancy(xforms2randsym, result.bodies[0], scores2, symframes=spec.sym, **kw)
    assert len(iuniq) == len(result)
-
-def main():
-   hscore = rp.data.small_hscore()
-   body1 = rp.data.get_body('T33_dn2_asymA')
-   body2 = rp.data.get_body('T33_dn2_asymB')
-   test_redundancy(hscore, body1, body2)
 
 if __name__ == '__main__':
    main()

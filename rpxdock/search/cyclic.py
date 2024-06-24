@@ -22,6 +22,9 @@ def make_cyclic_hier_sampler(monomer, hscore, **kw):
       maxcart = monomer.radius_max() * 3
       sampler = rp.sampling.RotCart1Hier_f4(0.0, maxcart, int(maxcart), 0.0, 360.0, 360, axis=[0, 0, 1],
                                             cartaxis=[1, 0, 0])
+   elif kw.disable_rotation:
+      maxcart = monomer.radius_max() * 3
+      sampler = rp.sampling.CartHier2D_f4([-maxcart, maxcart], [-maxcart, maxcart], int(maxcart/4))
    else:
       cart_resl, ori_resl = 8.0, 25.0
       ncart = int(np.ceil(3 * monomer.radius_max() / cart_resl))
@@ -64,7 +67,7 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
    if sampler is None: sampler = _default_samplers[search](monomer, hscore=hscore, **kw)
    evaluator = CyclicEvaluator(monomer, sym, hscore, **kw)
    xforms, scores, extra, stats = search(sampler, evaluator, **kw)
-   ibest = rp.filter_redundancy(xforms, monomer, scores, **kw)
+   ibest = rp.filter_redundancy(xforms, monomer, scores, symframes=sym, **kw)
    tdump = _debug_dump_cyclic(xforms, monomer, sym, scores, ibest, evaluator, **kw)
 
    if kw.verbose:

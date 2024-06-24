@@ -1,3 +1,4 @@
+from collections import defaultdict
 import random, os, sys, itertools, sys, concurrent.futures as cf
 from pprint import pprint
 from opt_einsum import contract as einsum
@@ -5,6 +6,9 @@ from typing import List
 import numpy as np
 import willutil as wu
 import rpxdock as rp
+
+class SymFramesError(Exception):
+   pass
 
 def main():
 
@@ -63,7 +67,7 @@ def main():
          # local sampling
          if kw.mc_keep_input_position:
             kw = kw.sub(mc_temperature=10, startspread=wu.Bunch(cartsd=0.7, rotsd=0.03, latticesd=1.0, mc_ntrials=100))
-         result = search.run(**kw)
+         result = search.runsearch(**kw)
 
    timer.report()
 
@@ -143,7 +147,7 @@ class RpxMonteCarlo:
             sample.position = np.stack(position)
             self.dumppdbs(f'{fname_prefix}_{ilat}_{ipos}.pdb', sample)
 
-   def run(
+   def runsearch(
       self,
       mc_nruns,
       nprocess=1,
@@ -154,13 +158,13 @@ class RpxMonteCarlo:
          global _STUPID
          _STUPID = isamp
          for ierr in range(100):
-            # try:
-            self.runone(isamp, **kw)
-            break
-         # except Exception as e:
-         # print('error on', isamp, flush=True)
-         # print(e, flush=True)
-         # raise e
+            try:
+               self.runone(isamp, **kw)
+               break
+            except SymFramesError as e:
+               print('error on', isamp, flush=True)
+               print(e, flush=True)
+               # raise e
       self.dump_results(kw.output_prefix + 'scores.txt', **kw)
       return self.results
 
@@ -168,7 +172,7 @@ class RpxMonteCarlo:
          self,
          isamp,
          mc_ntrials=1000,
-         startspread=wu.Bunch(cartsd=4.0, rotsd=0.15, latticesd=8.0),
+         startspread=wu.Bunch(cartsd=2.0, rotsd=0.1, latticesd=2.0),
          mc_temperature=3,
          **kw,
    ):
@@ -193,16 +197,16 @@ class RpxMonteCarlo:
       for itrial in range(mc_ntrials):
          assert sample
          newsample = self.new_sample(sample, spread)
-         accept = mc.try_this(newsample)
+         accept = mc.try_this(newsample, **kw)
          if accept:
             sample = newsample
-            # ic(itrial)
+            # print('accept', itrial, mc.last)
             # self.dumppdbs(f'{itrial}', sample, dumpsym=False)
-         self.adjust_spread(spread, itrial)
+         self.adjust_spread(spread, startspread, itrial, mc_ntrials)
 
-      self.record_result(isamp, mc.beststate)
+      self.record_result(isamp, mc.beststate, **kw)
 
-   def record_result(self, isamp, sample, **kw):
+   def record_result(self, isamp, sample, mc_output_score_cut, **kw):
       kw = self.kw.sub(kw)
       # assert wu.hvalid_norm(sample.position)
       sample = self.mcsym.to_canonical_asu_position(sample, self.compcoms, forceupdate=True, **kw)
@@ -212,7 +216,7 @@ class RpxMonteCarlo:
       compscores = self.mcsym.component_score_summary(framescores)
       prefix = f'{kw.output_prefix}{self.label()}_{isamp:04}'
       # pdbfiles = self.dumppdbs(prefix, sample, rawposition=True, whichcomp=[(1, 1, 109)])
-      if score < 100:
+      if score < mc_output_score_cut:
          pdbfiles = self.dumppdbs(prefix, sample, rawposition=False)
          r = wu.Bunch(
             score=score,
@@ -255,9 +259,13 @@ class RpxMonteCarlo:
       self._startsample = sample
       return sample
 
-   def adjust_spread(self, spread, itrial):
+   def adjust_spread(self, spread, startspread, itrial, mc_ntrials):
       for k in spread:
          spread[k] *= 0.998
+      # progress = itrial / (mc_ntrials - 1)
+      # ic(progress)
+      # ic(startspread)
+      # ic(spread)
       # spread.cartsd = 1.0
       # spread.rotsd = 0.03
       # spread.latticesd = 2.0
@@ -303,14 +311,22 @@ class RpxMonteCarlo:
          assert np.allclose(0, wu.hpointlinedis(pos[:, 3], secen, se.axis))
       # assert 0
 
-   def objectivefunc(self, sample, mc_wt_solvfrac=0, **kw):
+   def objectivefunc(self, sample, mc_wt_cellvol, **kw):
       kw = self.kw.sub(kw)
       position, lattice = sample.values()
       assert position.shape == (self.ncomp, 4, 4)
       # metainfo = self.metainfo(sample, **kw)
       score = 0
-      score += lattice.diagonal().sum() * 0.3
+      cellvol = wu.sym.cell_volume(self.mcsym.sym, sample.lattice)
+      score += cellvol * mc_wt_cellvol
+      # print('cellvol', cellvol / 1000)
+      # assert 0
+
+      # ic(mc_wt_solvfrac, metainfo.solvfrac, kw.mc_max_solvfrac)
+      # score += mc_wt_solvfrac * metainfo.solvfrac
       # score += mc_wt_solvfrac * max(0, metainfo.solvfrac - kw.mc_max_solvfrac)
+      # ic(score)
+      # assert 0
       # maxdelta = np.max(wu.hnorm(metainfo.deltapos))
       # score += 100 * max(0, maxdelta - kw.mc_tether_components)
       # ic(maxdelta, score)
@@ -411,15 +427,18 @@ class RpxMonteCarlo:
             frames = wu.sym.applylattice(lattice, self.mcsym.closeframes)
 
       if dumpasym:
-         jointcoords = list()
-         for icomp, (pos, comp) in enumerate(zip(position, self.components)):
-            jointcoords.append(wu.hxformpts(pos, comp.body.coord))
          fname = f'{prefix}_asym.pdb'
-         # wu.dumppdb(fname, jointcoords, header=cryst1)
-         p = comp.origpdb.xformed(pos)
-         p.cryst1 = cryst1
-         p.dump_pdb(fname)
-         output_files.append(fname)
+         with open(fname, 'a') as out:
+            out.write(cryst1)
+         for icomp, (pos, comp) in enumerate(zip(position, self.components)):
+            # jointcoords = list()
+            # for icomp, (pos, comp) in enumerate(zip(position, self.components)):
+            # jointcoords.append(wu.hxformpts(pos, comp.body.coord))
+            # wu.dumppdb(fname, jointcoords, header=cryst1)
+            p = comp.origpdb.xformed(pos)
+            p.df.ch = wu.pdb.all_pymol_chains[icomp].encode()
+            p.dump_pdb(fname, filemode='a')
+            output_files.append(fname)
 
       if not dumpsym: return
       for icomp, (pos, comp) in enumerate(zip(position, self.components)):
@@ -477,6 +496,9 @@ class RpxMonteCarlo:
       frames0, fmask = self.mcsym.scoreframes_for_component(icomp1, icomp2)
       nframes = len(frames0)
       frames = wu.sym.applylattice(lattice, frames0)
+      if not len(frames):
+         raise SymFramesError()
+      # ic(frames.shape)
       pos1 = position[icomp1]
       pos2 = wu.hxformx(frames, position[icomp2])
       # pos1 = np.repeat(positions[:, icomp1], nframes, axis=0).reshape(npos, nframes, 4, 4)
@@ -489,11 +511,11 @@ class RpxMonteCarlo:
       metainfo = wu.Bunch()
       metainfo.solvfrac = self.guess_solvfrac(sample)
 
-      assert self.mcsym.latticetype == 'CUBIC'
-      assert 0
-      startpos = self._startsample.position[:, :, 3] / self._startsample.lattice[0, 0]
-      curpos = sample.position[:, :, 3] / sample.lattice[0, 0]
-      metainfo.deltapos = curpos - startpos
+      # assert self.mcsym.latticetype == 'CUBIC'
+      # assert 0
+      # startpos = self._startsample.position[:, :, 3] / self._startsample.lattice[0, 0]
+      # curpos = sample.position[:, :, 3] / sample.lattice[0, 0]
+      # metainfo.deltapos = curpos - startpos
 
       return metainfo
 
@@ -793,32 +815,33 @@ class McSymmetry:
          raise NotImplementedError(f'cant do lattice type {self.latticetype}')
       return samples
 
-   def perturb_lattice(self, position, lattice, spread, **kw):
+   def perturb_lattice(self, position, lattice, spread, shrinkbias=-0.0, **kw):
       assert position.ndim == 3
       assert lattice.shape == (3, 3)
       cellgeom = np.array(wu.sym.cellgeom_from_lattice(lattice))
+      shrinkbias = shrinkbias * spread.latticesd
       if self.latticetype == 'CUBIC':
-         cellgeom[:3] += np.random.normal(0, spread.latticesd)
+         cellgeom[:3] += shrinkbias + np.random.normal(0, spread.latticesd)
       elif self.latticetype in ['HEXAGONAL', 'TETRAGONAL']:
          r = np.random.rand()
-         if r > 0.3333: cellgeom[:2] += np.random.normal(0, spread.latticesd)
-         if r < 0.6666: cellgeom[2] += np.random.normal(0, spread.latticesd)
+         if r < 0.3333: cellgeom[:2] += shrinkbias + np.random.normal(0, spread.latticesd)
+         if r > 0.6666: cellgeom[2] += shrinkbias + np.random.normal(0, spread.latticesd)
       elif self.latticetype == 'ORTHORHOMBIC':
          r = np.random.rand()
-         if r < 0.25: cellgeom[:3] += np.random.normal(3, spread.latticesd)
-         elif r < 0.5: cellgeom[0] += np.random.normal(0, spread.latticesd)
-         elif r < 0.75: cellgeom[1] += np.random.normal(0, spread.latticesd)
+         if r < 0.25: cellgeom[:3] += shrinkbias + np.random.normal(3, spread.latticesd)
+         elif r < 0.5: cellgeom[0] += shrinkbias + np.random.normal(0, spread.latticesd)
+         elif r < 0.75: cellgeom[1] += shrinkbias + np.random.normal(0, spread.latticesd)
          else: cellgeom[2] += np.random.normal(0, spread.latticesd)
       elif self.latticetype == 'MONOCLINIC':
          r = np.random.rand()
-         if r < 0.2: cellgeom[:3] += np.random.normal(3, spread.latticesd)
-         elif r < 0.4: cellgeom[0] += np.random.normal(0, spread.latticesd)
-         elif r < 0.6: cellgeom[1] += np.random.normal(0, spread.latticesd)
-         elif r < 0.8: cellgeom[2] += np.random.normal(0, spread.latticesd)
+         if r < 0.2: cellgeom[:3] += shrinkbias + np.random.normal(3, spread.latticesd)
+         elif r < 0.4: cellgeom[0] += shrinkbias + np.random.normal(0, spread.latticesd)
+         elif r < 0.6: cellgeom[1] += shrinkbias + np.random.normal(0, spread.latticesd)
+         elif r < 0.8: cellgeom[2] += shrinkbias + np.random.normal(0, spread.latticesd)
          else: cellgeom[4] += np.random.normal(0, spread.latticesd)
       else:
          raise NotImplementedError(f'cant do lattice type {self.latticetype}')
-
+      # print('cellgeom', cellgeom[:3])
       # ic(lattice)
       # ic(position[:, :3, :3])
       assert wu.hvalid_norm(position)
@@ -1100,7 +1123,7 @@ def main_test():
 
             try:
                for i in range(4):
-                  result = search.run(**kw)
+                  result = search.runsearch(**kw)
                   if len(result) > 0: break
                else:
                   assert False, 'no good docks'
@@ -1124,7 +1147,7 @@ if __name__ == '__main__':
    kw = rp.options.get_cli_args()
    if kw.mc_profile:
       import cProfile, pstats
-      cProfile.run('main()', filename='/tmp/mcdock_profile')
+      cProfile.runsearch('main()', filename='/tmp/mcdock_profile')
       p = pstats.Stats('/tmp/mcdock_profile')
       p.sort_stats('tottime')
       p.print_stats(100)
