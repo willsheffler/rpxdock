@@ -3,7 +3,6 @@ from time import perf_counter
 import numpy as np
 from rpxdock.xbin import xbin_test, Xbin_double, Xbin_float, create_Xbin_nside_double
 from rpxdock.homog import angle_of_3x3
-from rpxdock.geom import bcc
 
 import rpxdock.homog as hm
 """
@@ -125,7 +124,6 @@ def test_pickle(tmpdir):
    assert np.all(xb[x] == xb2[x])
 
 if __name__ == "__main__":
-   import tempfile
 
    # test_xbin_cpp()
    # test_key_of()

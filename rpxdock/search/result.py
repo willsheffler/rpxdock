@@ -1,8 +1,15 @@
-import copy, logging, os, tempfile, tarfile, io, json, itertools
+import copy
+import logging
+import os
+import tempfile
+import tarfile
+import io
+import json
+import itertools
 from collections import OrderedDict, abc, defaultdict
-import numpy as np, rpxdock as rp
-from rpxdock.util import sanitize_for_storage, num_digits
+import numpy as np
 import rpxdock as rp
+from rpxdock.util import sanitize_for_storage, num_digits
 import willutil as wu
 #from icecream import ic
 #ic.configureOutput(includeContext=True)
@@ -156,7 +163,7 @@ class Result:
       dumped = set()
       for i, imodel in enumerate(which):
          assert not isinstance(imodel, np.ndarray) or len(imodel) == 1
-         if not imodel in skip:
+         if imodel not in skip:
             dumped.add(int(imodel))
             # prefix_tmp = f'{output_prefix}'
             suffix = f'{output_suffix}_{lbl}{i:0{ndigwhich}}_{int(imodel):0{ndigmdl}}'
@@ -311,7 +318,7 @@ def dict_coherent_entries(alldicts):
             sets[k].add(v)
          except:
             badkeys.add(k)
-   return {k: v.pop() for k, v in sets.items() if len(v) == 1 and not k in badkeys}
+   return {k: v.pop() for k, v in sets.items() if len(v) == 1 and k not in badkeys}
 
 def concat_results(results, **kw):
    import xarray as xr

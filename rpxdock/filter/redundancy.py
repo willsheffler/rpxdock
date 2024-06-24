@@ -1,4 +1,6 @@
-import logging, numpy as np, rpxdock as rp
+import logging
+import numpy as np
+import rpxdock as rp
 import willutil as wu
 
 log = logging.getLogger(__name__)

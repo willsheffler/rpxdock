@@ -1,5 +1,6 @@
 from collections import defaultdict
-import random, os, sys, itertools, sys, concurrent.futures as cf
+import os
+import itertools
 from pprint import pprint
 from opt_einsum import contract as einsum
 from typing import List
@@ -1146,7 +1147,8 @@ def main_test():
 if __name__ == '__main__':
    kw = rp.options.get_cli_args()
    if kw.mc_profile:
-      import cProfile, pstats
+      import cProfile
+      import pstats
       cProfile.runsearch('main()', filename='/tmp/mcdock_profile')
       p = pstats.Stats('/tmp/mcdock_profile')
       p.sort_stats('tottime')

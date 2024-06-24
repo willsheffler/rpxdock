@@ -1,6 +1,6 @@
-import threading, numpy as np
+import threading
+import numpy as np
 from os.path import join
-from cppimport import import_hook
 # from cppimport.config import turn_off_strict_prototypes
 # turn_off_strict_prototypes()
 from rpxdock.util.dilated_int_test import *
@@ -64,7 +64,6 @@ def test_num_digits():
       assert d == len(str(r))
 
 if __name__ == '__main__':
-   import tempfile
    # test_load_threads(tempfile.mkdtemp())
    test_sanitize_for_storage()
    # test_can_pickle()

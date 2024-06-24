@@ -1,4 +1,6 @@
-import os, glob, rpxdock as rp
+import os
+import glob
+import rpxdock as rp
 
 def main():
 

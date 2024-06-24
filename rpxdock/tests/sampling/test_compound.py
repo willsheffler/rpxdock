@@ -1,4 +1,6 @@
-import numpy as np, pytest, rpxdock as rp
+import numpy as np
+import pytest
+import rpxdock as rp
 from rpxdock.sampling import *
 
 ch2 = CartHier1D_f8([0], [2], [2])
@@ -145,7 +147,7 @@ def test_compound_product_hier():
    ok, x2 = p2.get_xforms()
    ok, x = h.get_xforms()
    assert np.all(ok)
-   assert len(x) is 4
+   assert len(x) == 4
    assert np.allclose(x[0, 0], x1[0])
    assert np.allclose(x[0, 1], x2[0])
    assert np.allclose(x[1, 0], x1[1])

@@ -1,4 +1,7 @@
-import numpy as np, rpxdock as rp, rpxdock.homog as hm, pytest
+import numpy as np
+import rpxdock as rp
+import rpxdock.homog as hm
+import pytest
 
 def _ex_process_generators(generators):
    generators = np.asarray(generators)
@@ -28,7 +31,7 @@ def expand_xforms_rand(
 
    radius0, cen0 = _ex_get_cen_radius(generators)
    if radius is None: radius = radius0 * radius_mult + 1.0
-   if cen is 'auto': cen = cen0
+   if cen == 'auto': cen = cen0
 
    # multiply out xforms and bin
    binner = rp.xbin.Xbin(0.1654234, 1.74597824, 107)
@@ -105,7 +108,7 @@ def _test_expand_xforms_various_count(expand_xforms_func, trials=3):
          hm.hrot([0, 1, 0], 180.0, [0, 0, 0]),
       ]
       ex, *_ = expand_xforms_func(generators, depth=50, trials=50, radius=9e9)
-      assert len(ex) is 4
+      assert len(ex) == 4
 
       generators = [
          hm.hrot([+0, -1, +1], 180.0, [-1, -1, -1]),

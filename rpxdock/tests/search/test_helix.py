@@ -1,6 +1,7 @@
 import rpxdock as rp
 from willutil import Bunch
-import numpy as np, pytest
+import numpy as np
+import pytest
 
 def _test_args():
    kw = rp.app.defaults()
@@ -66,7 +67,6 @@ def test_helix(hscore, body_tiny):
    rp.search.assert_results_close(result, ref)
 
 def main():
-   import logging
    from logging import getLogger, getLevelName, Formatter, StreamHandler
 
    log = getLogger()

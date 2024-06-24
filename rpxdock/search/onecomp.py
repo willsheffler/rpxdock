@@ -1,5 +1,6 @@
-import itertools, functools, numpy as np, rpxdock as rp, rpxdock.homog as hm
-from rpxdock.search import hier_search, trim_ok
+import numpy as np
+import rpxdock as rp
+from rpxdock.search import hier_search
 import logging
 from rpxdock.filter import filters
 from willutil import Bunch, Timer
@@ -35,7 +36,7 @@ def make_onecomp(
 
    dotrim = kw.max_trim and kw.trimmable_components
    if dotrim:
-      raise NotImplemented('cant yet trim one component stuff')
+      raise NotImplementedError('cant yet trim one component stuff')
    evaluator = OneCompEvaluator(body, spec, hscore, **kw)
    xforms, scores, extra, stats = search(sampler, evaluator, **kw)
    ibest = rp.filter_redundancy(xforms, body, scores, **kw)

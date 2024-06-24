@@ -1,5 +1,4 @@
 import numpy as np
-import rpxdock as rp
 from willutil import Bunch
 
 def score_fun2(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):

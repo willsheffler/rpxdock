@@ -1,4 +1,7 @@
-import _pickle, numpy as np, itertools as it, sys
+import _pickle
+import numpy as np
+import itertools as it
+import sys
 from time import perf_counter
 from willutil import Timer
 
@@ -10,7 +13,6 @@ from willutil import Timer
 #
 # # cppimport.set_quiet(False)
 #
-import rpxdock as rp
 from willutil import Bunch
 from rpxdock.bvh import bvh_test
 from rpxdock.bvh import BVH, bvh

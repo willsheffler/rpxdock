@@ -1,7 +1,8 @@
-import numpy as np, rpxdock as rp, xarray as xr
+import numpy as np
+import rpxdock as rp
 import rpxdock.rosetta.triggers_init
-from pyrosetta import Pose, get_score_function
-from pyrosetta.rosetta import core, numeric, utility, ObjexxFCL
+from pyrosetta import Pose
+from pyrosetta.rosetta import core, utility
 from pyrosetta.rosetta.core.pack.task import TaskFactory
 from rpxdock.rosetta.triggers_init import rts_fastd
 from willutil import Bunch

@@ -1,5 +1,4 @@
 from rpxdock.homog import *
-import pytest
 
 def test_rand_quat():
    rq = rand_quat((1, 2, 3, 5))

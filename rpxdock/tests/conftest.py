@@ -1,5 +1,5 @@
-import pytest, os, sys, _pickle
-from os.path import join, dirname, abspath, exists
+import pytest
+from os.path import join, exists
 
 from rpxdock import data
 try:
@@ -7,7 +7,6 @@ try:
 except ImportError:
    get_pose_cached = lambda *a, **kw: None
 
-from rpxdock import ResPairData, RpxHier
 from rpxdock.search.result import dummy_result
 
 # addoption doesn't work for me

@@ -1,7 +1,8 @@
-import itertools, functools, numpy as np, rpxdock as rp, rpxdock.homog as hm
+import numpy as np
+import rpxdock as rp
+import rpxdock.homog as hm
 from rpxdock.search import hier_search, trim_ok
 from rpxdock.filter import filters
-from numpy.linalg import inv
 import logging
 from willutil import Timer, Bunch
 

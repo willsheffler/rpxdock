@@ -1,5 +1,6 @@
-import os, pytest
-import rpxdock as rp, willutil as wu, numpy as np
+import rpxdock as rp
+import willutil as wu
+import numpy as np
 
 def main():
    # test_deathstar_onecomp()

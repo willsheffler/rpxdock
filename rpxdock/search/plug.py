@@ -1,7 +1,7 @@
 import logging
-import itertools, functools, numpy as np, rpxdock as rp, rpxdock.homog as hm
-from rpxdock.search import hier_search, trim_ok
-from rpxdock.filter import filters
+import numpy as np
+import rpxdock as rp
+from rpxdock.search import hier_search
 from willutil import Timer, Bunch
 
 log = logging.getLogger(__name__)

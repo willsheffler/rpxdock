@@ -1,14 +1,15 @@
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
-import _pickle, threading, os, sys
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+import _pickle
+import os
+import sys
 from time import perf_counter
 import numpy as np
-import xarray as xr
 import rpxdock
 from willutil import Bunch
 from rpxdock.motif import RpxHier
 from rpxdock.util import GLOBALCACHE as HC
 from rpxdock.data import datadir
-from rpxdock.util import load, Bunch, load_threads
+from rpxdock.util import Bunch, load_threads
 from rpxdock.body import Body
 from rpxdock.io.io_body import dump_pdb_from_bodies
 from rpxdock.geom import symframes
@@ -240,7 +241,7 @@ def hier_sample_test(cli_args):
    # args.wts = Bunch(plug=1.0, hole=1.0, ncontact=1.0, rpx=0)  # ncontact only
    # args.output_prefix = "rpx"
 
-   raise NotImplemented
+   raise NotImplementedError
    hscore = RpxHier(load_big_hscore())
    args.wts.ncontact = 1.0
    args.wts.rpx = 1.0

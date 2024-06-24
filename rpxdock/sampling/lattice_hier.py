@@ -1,5 +1,4 @@
 from rpxdock.sampling import CompoundHier
-import numpy as np
 
 class LatticeHier(CompoundHier):
    def __init__(self, parts, directions):

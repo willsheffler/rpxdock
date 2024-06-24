@@ -1,6 +1,9 @@
 #! /home/sheffler/.conda/envs/rpxdock/bin/python
 
-import logging, os, rpxdock as rp, numpy as np
+import logging
+import os
+import rpxdock as rp
+import numpy as np
 from willutil import Bunch
 
 def get_opts():

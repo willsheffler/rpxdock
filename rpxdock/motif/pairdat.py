@@ -1,4 +1,5 @@
-import os, time, logging
+import os
+import logging
 import numpy as np
 
 log = logging.getLogger(__name__)
@@ -244,7 +245,7 @@ class ResPairData:
       )
       assert task in not_needed
       for v in not_needed[task]:
-         if not v in self.data:
+         if v not in self.data:
             print("ResPairData.only_whats_needed: missing:", v)
       return ResPairData(self.data.drop(not_needed[task]))
 

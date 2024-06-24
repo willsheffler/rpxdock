@@ -1,4 +1,9 @@
-import os, copy, logging, io, tempfile, sys
+import os
+import copy
+import logging
+import io
+import tempfile
+import sys
 import numpy as np
 import rpxdock as rp
 # from pandas.core.internals.concat import trim_join_unit
@@ -350,7 +355,7 @@ class Body:
       self.asym_body = self
       if sym != "C1":
          if pose is None:
-            log.warning(f'asym_body not built, no pose available')
+            log.warning('asym_body not built, no pose available')
             self.asym_body = None
          else:
             self.asym_body = Body(pose, "C1", ignored_aas=self.ignored_aas, **kw)
@@ -577,7 +582,6 @@ class Body:
 
    def str_pdb(self, **kw):
       # import needs to be here to avoid cyclic import
-      from rpxdock.io.io_body import dump_pdb_from_bodies
       self.pos = np.eye(4)
       return rp.io.make_pdb_from_bodies([self], **kw)
 

@@ -1,8 +1,14 @@
-import os, tempfile, json, tarfile, io, collections, pickle
+import os
+import tempfile
+import json
+import tarfile
+import io
+import collections
+import pickle
 import numpy as np
 
 import rpxdock as rp
-from willutil import Bunch, bunchify, unbunchify, Timer
+from willutil import bunchify, unbunchify, Timer
 
 def save_bunch(bunch, path):
    nobunches = unbunchify(bunch)
@@ -19,7 +25,7 @@ def save_phmap(phmap, path):
    #    np.save(out, k)
    # with open(path + f'.PHMap_u8{vtype}8_vals.npy', 'wb') as out:
    #    np.save(out, v)
-   rp.dump(phmap, path + f'.phmap.pickle')
+   rp.dump(phmap, path + '.phmap.pickle')
 
 def save_xbin(xbin, path, lbl='xbin'):
    state = {

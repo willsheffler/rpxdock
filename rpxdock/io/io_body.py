@@ -1,6 +1,5 @@
 import numpy as np
 
-import rpxdock
 from rpxdock.body import Body
 from rpxdock.io.io import *
 import willutil as wu

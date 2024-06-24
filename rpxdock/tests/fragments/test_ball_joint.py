@@ -1,5 +1,4 @@
 import rpxdock as rp
-from willutil import Bunch
 import pytest
 import rpxdock.fragments.ball_joint_build_db
 

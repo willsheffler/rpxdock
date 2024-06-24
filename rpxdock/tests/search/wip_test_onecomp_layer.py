@@ -1,4 +1,6 @@
-import rpxdock as rp, concurrent, pytest, numpy as np
+import rpxdock as rp
+import concurrent
+import numpy as np
 from willutil import Bunch
 
 def test_P6_grid_onecomp_notrim(hscore, bodyC3):

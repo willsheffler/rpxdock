@@ -1,4 +1,6 @@
-import numpy as np, rpxdock as rp, pytest
+import numpy as np
+import rpxdock as rp
+import pytest
 from rpxdock.rotamer.etable import (_get_etable, get_etables, make_2res_gly_poses,
                                     earray_rosetta_sfxn, earray_score_2res_pose)
 from pyrosetta import pose_from_file
@@ -13,7 +15,6 @@ def test_get_etables():
    c_and_h_hat = ch3ch3 + 2 * ch3hapo + hapohapo
    assert np.allclose(c_and_h, c_and_h_hat)
 
-   import matplotlib
 
 def scale_raw_score(e):
    s = np.zeros(e.shape)

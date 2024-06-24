@@ -1,4 +1,5 @@
-import os, _pickle
+import os
+import _pickle
 import numpy as np
 from rpxdock import phmap
 
@@ -42,9 +43,9 @@ def test_phmap_contains():
 
    assert len(phm.has(k)) == len(k)
    assert k in phm
-   assert not [np.min(k) - 1, np.max(k) + 1] in phm
-   assert not int(np.min(k) - 1) in phm
-   assert not int(np.max(k) + 1) in phm
+   assert [np.min(k) - 1, np.max(k) + 1] not in phm
+   assert int(np.min(k) - 1) not in phm
+   assert int(np.max(k) + 1) not in phm
 
 def test_phmap_items():
    N = 1000

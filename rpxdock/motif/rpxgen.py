@@ -1,6 +1,7 @@
-import logging, numpy as np, rpxdock as rp
+import logging
+import numpy as np
+import rpxdock as rp
 from concurrent.futures import ThreadPoolExecutor
-from rpxdock.bvh import bvh_collect_pairs_range_vec, bvh_collect_pairs_vec
 from willutil import Bunch
 
 log = logging.getLogger(__name__)

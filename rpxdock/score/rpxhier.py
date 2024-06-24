@@ -1,4 +1,7 @@
-import os, logging, glob, itertools as it
+import os
+import logging
+import glob
+import itertools as it
 import numpy as np
 import rpxdock as rp
 from rpxdock.xbin import xbin_util as xu

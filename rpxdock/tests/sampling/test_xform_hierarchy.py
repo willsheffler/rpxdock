@@ -1,14 +1,11 @@
 from time import perf_counter
-import pytest
 import itertools as it
 import numpy as np
-from cppimport import import_hook
 # from cppimport.config import turn_off_strict_prototypes
 # turn_off_strict_prototypes()
 from rpxdock.sampling import *
 from rpxdock.bvh.bvh_nd import *
 import rpxdock.homog as hm
-from scipy.spatial.distance import cdist
 from rpxdock.geom import xform_dist2_split
 from rpxdock.geom.xform_dist import *
 

@@ -1,6 +1,6 @@
-import time, tempfile
+import time
+import tempfile
 import rpxdock as rp
-from willutil import Bunch
 from rpxdock.motif.pairdat import *
 from rpxdock.motif.pairscore import *
 from rpxdock.xbin import Xbin
@@ -98,7 +98,7 @@ def test_bin_score(respairscore):
 def test_bin_get_all_data(respairscore):
    # on real system: perf perrot: 434,667 perkey: 141,453
 
-   assert not 0 in respairscore.range_map
+   assert 0 not in respairscore.range_map
    keys = np.zeros(len(respairscore.keys) * 2, dtype="u8")
    keys[:len(respairscore.keys)] = respairscore.keys
    np.random.shuffle(keys)

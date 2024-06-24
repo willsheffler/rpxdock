@@ -1,4 +1,5 @@
-import numpy as np, rpxdock as rp
+import numpy as np
+import rpxdock as rp
 # from rpxdock import homog as hm
 from willutil import homog as hm
 from willutil import Bunch

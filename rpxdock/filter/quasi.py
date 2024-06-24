@@ -1,4 +1,6 @@
-import logging, numpy as np, rpxdock as rp
+import logging
+import numpy as np
+import rpxdock as rp
 from rpxdock.app import dock
 from willutil import Bunch
 
@@ -320,11 +322,11 @@ def filter_quasi(xforms, body, **kw):
 
          temp.intersect()  #calculate the overlap between interfaces
          if detailed:
-            log.debug(f"Adding detailed information to extra")
+            log.debug("Adding detailed information to extra")
             temp.quasi_overlap()
             qdata.append(temp.to_dict())
          else:
-            log.debug(f"Standard quasi_filter output")
+            log.debug("Standard quasi_filter output")
             qdata(temp.quasi_overlap())
 
          if (temp.int1_sasa > min_sasa_int1) & (temp.int1_sasa < max_sasa_int1) & (

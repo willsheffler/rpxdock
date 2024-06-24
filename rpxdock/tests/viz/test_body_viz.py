@@ -1,4 +1,5 @@
-import copy, functools, pytest
+import functools
+import pytest
 import numpy as np
 import rpxdock as rp
 import willutil as wu

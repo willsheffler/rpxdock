@@ -105,7 +105,7 @@ def test_score_function():
    t2 = TrimComp(data_labels=['lb2', 'ub2'])
    s = ScoreComp()  # already knows it's data labels
    func = BodyPairEvaluator([f1, f2, f3, f4, t2, t1, s])
-   assert len(func.filters) is 4
+   assert len(func.filters) == 4
    assert len(func.trimmers) == 2
    assert len(func.scorers) == 1
    assert func.filters == [f4, f2, f3, f1]

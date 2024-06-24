@@ -1,4 +1,8 @@
-import sys, os, argparse, _pickle, logging, functools, numpy as np, rpxdock
+import os
+import _pickle
+import logging
+import numpy as np
+import rpxdock
 from rpxdock.motif import ResPairData, make_and_dump_hier_score_tables
 
 def get_opts():

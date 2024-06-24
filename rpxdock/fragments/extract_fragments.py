@@ -1,4 +1,7 @@
-import os, numpy as np, rpxdock as rp, rmsd
+import os
+import numpy as np
+import rpxdock as rp
+import rmsd
 from willutil import Bunch
 
 def _reduce_dataset(dat):

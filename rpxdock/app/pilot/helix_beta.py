@@ -1,4 +1,7 @@
-import sys, rpxdock as rp, numpy as np, argparse
+import sys
+import rpxdock as rp
+import numpy as np
+import argparse
 from willutil import Bunch
 
 def dock_helix(hscore, body, **kw):

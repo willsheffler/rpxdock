@@ -1,5 +1,11 @@
-import sys, os, argparse, re, functools, logging, glob
-import numpy as np, rpxdock as rp, functools as ft
+import sys
+import os
+import argparse
+import re
+import functools
+import logging
+import numpy as np
+import rpxdock as rp
 from willutil import Bunch
 
 log = logging.getLogger(__name__)

@@ -1,6 +1,4 @@
-import time
-from rpxdock.util import Cache, GLOBALCACHE
-from willutil import Timer
+from rpxdock.util import Cache
 
 _ncalc = 0
 

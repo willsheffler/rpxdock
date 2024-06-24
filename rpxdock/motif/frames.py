@@ -1,13 +1,11 @@
-import os, sys, time, _pickle
-from cppimport import import_hook
+import os
+import _pickle
 # from cppimport.config import turn_off_strict_prototypes
 # turn_off_strict_prototypes()
 import numpy as np
 
 from rpxdock.xbin import xbin_util as xu
-from rpxdock.rotamer import get_rotamer_space, assign_rotamers, check_rotamer_deviation
-from rpxdock.motif import _motif as cpp
-from rpxdock.motif.pairdat import ResPairData
+from rpxdock.rotamer import assign_rotamers
 from rpxdock.data import pdbdir
 
 # [ 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19]

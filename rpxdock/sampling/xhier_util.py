@@ -1,4 +1,5 @@
-import numpy as np, logging
+import numpy as np
+import logging
 from rpxdock.sampling.xform_hierarchy import XformHier_f4
 
 log = logging.getLogger(__name__)

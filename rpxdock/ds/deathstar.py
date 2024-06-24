@@ -1,8 +1,6 @@
-import rmsd
 import numpy as np
 import rpxdock as rp
 import willutil as wu
-from willutil import htrans, hrot, hxform
 
 try:
    import sys
@@ -391,7 +389,7 @@ class DeathStar(object):
          score = self.iface_score(tether)
          self.set_dofs(old)
          return score
-      except DSError as e:
+      except DSError:
          # raise e
          return 9e9
 

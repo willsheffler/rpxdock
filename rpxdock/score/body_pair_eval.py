@@ -1,4 +1,5 @@
-import abc, itertools as it
+import abc
+import itertools as it
 
 class BodyPairEvaluator:
    def __init__(self, components):
@@ -57,7 +58,7 @@ class BodyPairEvalComponent(abc.ABC):
    def __init__(self, data_labels, name=None, priority: float = 0):
       super().__init__()
       if not data_labels:
-         raise ValueError(f'BodyPairEvalComponent must specify data_labels')
+         raise ValueError('BodyPairEvalComponent must specify data_labels')
       self.data_labels = data_labels
       self.priority = priority
       self.is_filter = hasattr(self, 'filter')

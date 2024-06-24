@@ -1,4 +1,4 @@
-import numpy as np, rpxdock as rp
+import numpy as np
 from willutil import Bunch
 
 def rosetta_init(opts="-beta -mute all"):

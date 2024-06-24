@@ -1,4 +1,5 @@
-import numpy as np, rpxdock as sd
+import numpy as np
+import rpxdock as sd
 
 class ZeroDHier:
    def __init__(self, samples):

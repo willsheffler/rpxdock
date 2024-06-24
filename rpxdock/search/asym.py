@@ -1,6 +1,7 @@
-import logging, numpy as np, rpxdock as rp, rpxdock.homog as hm
+import logging
+import numpy as np
+import rpxdock as rp
 from rpxdock.search import hier_search
-from rpxdock.filter import filters
 import willutil as wu
 #from icecream import ic
 #ic.configureOutput(includeContext=True)

@@ -1,4 +1,3 @@
-import numpy as np
 
 all_pymol_chains = ("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz")
 

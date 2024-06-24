@@ -1,4 +1,4 @@
-import numpy as np, rpxdock as rp
+import rpxdock as rp
 from rpxdock.rotamer.rosetta_rots import (get_rosetta_rots, core, Pose, ala_to_virtCB)
 from willutil import Timer
 

@@ -1,4 +1,7 @@
-import logging, itertools, numpy as np, rpxdock as rp
+import logging
+import itertools
+import numpy as np
+import rpxdock as rp
 from willutil import Bunch
 #from icecream import ic
 #ic.configureOutput(includeContext=True)

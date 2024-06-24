@@ -1,4 +1,7 @@
-import logging, numpy as np, rpxdock as rp, rpxdock.homog as hm
+import logging
+import numpy as np
+import rpxdock as rp
+import rpxdock.homog as hm
 from rpxdock.search import hier_search
 from willutil import Timer, Bunch
 

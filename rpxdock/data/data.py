@@ -1,4 +1,5 @@
-import os, _pickle
+import os
+import _pickle
 from functools import lru_cache
 
 datadir = os.path.dirname(__file__)
@@ -42,7 +43,8 @@ def get_body_copy(name):
 
 @lru_cache()
 def small_respairdat():
-   import xarray as xr, rpxdock as rp
+   import xarray as xr
+   import rpxdock as rp
    fn = os.path.join(datadir, "respairdat10_plus_xmap_rots.nc")
    # with open(fn, "rb") as inp:
    #   return ResPairData(_pickle.load(inp))

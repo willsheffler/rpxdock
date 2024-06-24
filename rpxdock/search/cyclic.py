@@ -1,4 +1,6 @@
-import numpy as np, rpxdock as rp, rpxdock.homog as hm
+import numpy as np
+import rpxdock as rp
+import rpxdock.homog as hm
 from rpxdock.search import hier_search, grid_search
 from rpxdock.filter import filters
 import willutil as wu
@@ -59,7 +61,7 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
    kw.output_prefix = kw.output_prefix if kw.output_prefix else sym
    if search is None:
       if kw.docking_method not in 'hier grid'.split():
-         raise ValueError(f'--docking_method must be either "hier" or "grid"')
+         raise ValueError('--docking_method must be either "hier" or "grid"')
       if kw.docking_method == 'hier':
          search = hier_search
       elif kw.docking_method == 'grid':

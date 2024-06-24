@@ -1,4 +1,3 @@
-from rpxdock.io import aname_to_elem
 
 def test_aname_to_elem():
    anames = [

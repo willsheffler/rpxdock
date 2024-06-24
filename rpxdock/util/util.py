@@ -1,8 +1,19 @@
-import _pickle, os, multiprocessing, threading, copy
-import hashlib, logging, concurrent, time, gzip, bz2, lzma, zipfile, json
+import _pickle
+import os
+import multiprocessing
+import threading
+import copy
+import hashlib
+import logging
+import concurrent
+import time
+import gzip
+import bz2
+import lzma
+import zipfile
+import json
 from collections import abc
 import numpy as np
-from willutil import Bunch
 # from xarray.backends import netCDF4_
 
 log = logging.getLogger(__name__)

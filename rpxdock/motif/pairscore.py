@@ -1,13 +1,11 @@
-import os, _pickle
 import numpy as np
 import rpxdock as rp
 from willutil import Bunch
 from rpxdock.phmap import PHMap_u8u8, PHMap_u8f8
-from rpxdock.motif import bb_stubs, add_xbin_to_respairdat
+from rpxdock.motif import bb_stubs
 from rpxdock.motif import add_rots_to_respairdat, get_pair_keys
 from rpxdock.motif import jagged_bin, logsum_bins
-from rpxdock.xbin import Xbin
-from rpxdock.rotamer import get_rotamer_space, assign_rotamers
+from rpxdock.rotamer import get_rotamer_space
 
 # def load_respairscore(path):
 #     assert os.path.isdir(path)

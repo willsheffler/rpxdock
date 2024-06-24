@@ -1,10 +1,7 @@
-import rpxdock as rp
-from willutil import Bunch
 import numpy as np
 from rpxdock.rosetta.triggers_init import create_residue, Pose, AtomID
 from pyrosetta.rosetta.numeric import xyzVector_double_t as xyzVec
-from pyrosetta.rosetta.core.scoring import ScoreFunction, ScoreType, get_score_function
-from rpxdock.rosetta.triggers_init import create_residue
+from pyrosetta.rosetta.core.scoring import get_score_function
 
 earray_rosetta_sfxn = get_score_function()
 # earray_rosetta_sfxn = ScoreFunction()

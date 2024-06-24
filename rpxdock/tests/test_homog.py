@@ -1,6 +1,6 @@
 import rpxdock as rp
-from willutil import Bunch
-import pytest, numpy as np, itertools as it, functools as ft
+import pytest
+import numpy as np
 from rpxdock.homog import *
 import rpxdock.homog as hm
 from willutil import Timer

@@ -1,5 +1,6 @@
-import logging, numpy as np, rpxdock as rp
-from rpxdock.app import dock
+import logging
+import numpy as np
+import rpxdock as rp
 from rpxdock.filter import filter_body as fb
 from willutil import Bunch
 

@@ -1,13 +1,12 @@
 #!/home/sheffler/bin/python_rpxdock
 
-import sys, pytest, os
+import sys
 
 sys.path.append('/home/sheffler/src/rpxdock_master')
 import numpy as np
 import rpxdock as rp
 
 import willutil as wu
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 _hscore = dict()
 

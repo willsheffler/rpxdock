@@ -1,4 +1,5 @@
-import sys, rpxdock as rp
+import sys
+import rpxdock as rp
 
 def alias_module(frm, to):
    for k, v in list(sys.modules.items()):

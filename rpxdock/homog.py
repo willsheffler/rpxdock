@@ -1,4 +1,6 @@
-import numpy as np, itertools as it, functools as ft
+import numpy as np
+import itertools as it
+import functools as ft
 
 def is_valid_quat_rot(quat):
    assert quat.shape[-1] == 4
@@ -468,7 +470,7 @@ def intersect_planes(plane1, plane2):
    return isect, status
 
 def axis_ang_cen_of_eig(xforms, debug=False):
-   raise NotImplemented('this is a bad way to get rotation axis')
+   raise NotImplementedError('this is a bad way to get rotation axis')
    axis, angle = axis_angle_of(xforms)
    # # seems to numerically unstable
    ev, cen = np.linalg.eig(xforms)

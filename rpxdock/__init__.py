@@ -15,7 +15,8 @@ import icecream
 icecream.install()
 
 # set MKL threads to 1
-import numpy, ctypes
+import numpy
+import ctypes
 if hasattr(numpy.__config__, 'mkl_info'):
    mkl_rt = ctypes.CDLL('libmkl_rt.so')
    mkl_rt.mkl_set_num_threads(ctypes.byref(ctypes.c_int(1)))

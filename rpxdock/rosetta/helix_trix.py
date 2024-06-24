@@ -30,7 +30,7 @@ def append_Chelix(userpose, alignto=7):
    return True
 
 def point_in(pose, term, helixch=False):
-   from rpxdock.rosetta.triggers_init import get_pose_cached, rosetta, protocols, core
+   from rpxdock.rosetta.triggers_init import rosetta
    # Can pass in which chain is attached to the relevant term (integer)
    # If no helix chain given, assumes last chain in pose is helix chain
    if not helixch: helixch = pose.chain(pose.size())
@@ -51,7 +51,6 @@ def point_in(pose, term, helixch=False):
 # Removes one chain from the pose. If not specified, this is the last
 # chain of the pose. Otherwise, can specify which chain number to remove
 def remove_helix_chain(pose, chain=None):
-   from rpxdock.rosetta.triggers_init import get_pose_cached, rosetta, protocols, core
    # Get length of chain 1
    # Get start and end residues of chains to be removed
    if chain != None and pose.num_chains() <= chain:
@@ -68,7 +67,6 @@ def remove_helix_chain(pose, chain=None):
 # Checks actual (N and C actual) and desired (N and C spec) direction of termini
 # relative to the origin to determine if desired orientation is possible.
 def limit_flip_update_pose(N_actual, C_actual, input_num=1, j=0, **kw):
-   from rpxdock.rosetta.triggers_init import get_pose_cached, rosetta, protocols, core
    kw = Bunch(kw)
    N_spec = kw.termini_dir[input_num - 1][j][0]
    C_spec = kw.termini_dir[input_num - 1][j][1]
@@ -123,7 +121,6 @@ def limit_flip_update_pose(N_actual, C_actual, input_num=1, j=0, **kw):
 
 # Wrapper-ish function to get z-direction of C terminus of pose relative to origin
 def C_term_in(pose, keep_helix=False):
-   from rpxdock.rosetta.triggers_init import get_pose_cached, rosetta, protocols, core
    append_Chelix(pose)
    C_point_in = point_in(pose, "C")
    if not keep_helix: remove_helix_chain(pose)
@@ -131,7 +128,6 @@ def C_term_in(pose, keep_helix=False):
 
 # Wrapper-ish function to get z-direction of N terminus of pose relative to origin
 def N_term_in(pose, keep_helix=False):
-   from rpxdock.rosetta.triggers_init import get_pose_cached, rosetta, protocols, core
    append_Nhelix(pose)
    N_point_in = point_in(pose, "N")
    if not keep_helix: remove_helix_chain(pose)
@@ -139,7 +135,7 @@ def N_term_in(pose, keep_helix=False):
 
 # Wrapper for helices + termini stuff
 def init_termini(make_poselist=True, **kw):
-   from rpxdock.rosetta.triggers_init import get_pose_cached, rosetta, protocols, core
+   from rpxdock.rosetta.triggers_init import rosetta
    kw = Bunch(kw)
    poses, og_lens = [[]], [[]]
    for i in range(len(kw.inputs)):

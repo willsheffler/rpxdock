@@ -1,4 +1,6 @@
-import sys, pytest, rpxdock as rp
+import sys
+import pytest
+import rpxdock as rp
 from rpxdock.app.options import *
 
 def test_defaults():

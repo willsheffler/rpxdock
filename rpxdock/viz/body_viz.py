@@ -1,4 +1,5 @@
-import tempfile, sys
+import tempfile
+import sys
 import numpy as np
 import rpxdock as rp
 import willutil as wu
@@ -91,7 +92,7 @@ def _try_to_use_pymol_objs(
    pymol_objs = cmd.get_object_list()
    name0 = name + '_0'
    # create all objs if necessary
-   if not name0 in pymol_objs:
+   if name0 not in pymol_objs:
       print('CREATING NEW OBJECTS', flush=True)
       cmd.delete('all')
       with tempfile.TemporaryDirectory() as tmpdir:

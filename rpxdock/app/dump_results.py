@@ -1,4 +1,6 @@
-import _pickle, rpxdock as rp, numpy as np
+import _pickle
+import rpxdock as rp
+import numpy as np
 from tabulate import tabulate
 
 def main():
