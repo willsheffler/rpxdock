@@ -22,9 +22,10 @@ VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    'numpy<2',  #==1.22.0',
+    'willutil @ git+https://github.com/willsheffler/willutil.git',
+    # 'numpy<2',  #==1.22.0',
     'xarray',  #==0.11.3',
-    'pandas<2',  #==0.24.2',
+    # 'pandas<2',  #==0.24.2',
     'seaborn',
     'cppimport',
     'cffi',
@@ -36,7 +37,6 @@ REQUIRED = [
     'breathe',
     'exhale',
     'sphinx_rtd_theme>=0.3.1',
-    'willutil @ git+https://github.com/willsheffler/willutil.git',
 ]
 
 # What packages are optional?

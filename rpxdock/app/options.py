@@ -902,11 +902,28 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
                     opt.term_access.append(opt.term_access3)
                     opt.termini_dir.append(opt.termini_dir3)
 
+    resolve_input_paths(opt.inputs)
+    resolve_input_paths(opt.inputs1)
+    resolve_input_paths(opt.inputs2)
+    resolve_input_paths(opt.inputs3)
+
     opt.force_flip = [False] * len(opt.inputs)
     if len(opt.flip_components) != len(opt.inputs):
         opt.flip_components = opt.flip_components * len(opt.inputs)
 
     return opt
+
+def resolve_input_paths(inputs):
+    if not len(inputs): return
+    if isinstance(inputs[0], str):
+        for i in range(len(inputs)):
+            if not os.path.exists(inputs[i]) and os.path.exists(rp.rootdir + '/' + inputs[i]):
+                inputs[i] = rp.rootdir + '/' + inputs[i]
+            if not os.path.exists(inputs[i]) and os.path.exists(rp.rootdir + '/../' + inputs[i]):
+                inputs[i] = rp.rootdir + '/../' + inputs[i]
+    else:
+        for i in range(len(inputs)):
+            inputs[i] = resolve_input_paths(inputs[i])
 
 class DefaultResidueSelector:
     def __init__(self, spec):
