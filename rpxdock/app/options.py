@@ -917,8 +917,6 @@ def resolve_input_paths(inputs):
     if not len(inputs): return
     if isinstance(inputs[0], str):
         for i in range(len(inputs)):
-            ic(rp.rootdir, inputs[i])
-            assert 0
             if inputs[i].startswith('rpxdock') and not os.path.exists(
                     inputs[i]) and os.path.exists(rp.rootdir + '/../' + inputs[i]):
                 inputs[i] = rp.rootdir + '/../' + inputs[i]
