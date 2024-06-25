@@ -1,0 +1,47 @@
+lint.ignore = [
+   'E701', #  [ ] Multiple statements on one line (colon)
+]
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?)|ic)$"
+line-length = 111
+target-version = "py39"
+format.quote-style = "single"
+format.indent-style = "space"
+format.docstring-code-format = true
+
+
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+   "images",
+   "lib",
+   "openfold",
+   "pymol_config",
+   "README.md",
+   "rf2aa",
+   "fused_mpnn",
+   "se3_flow_matching",
+]

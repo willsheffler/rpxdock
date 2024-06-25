@@ -5,7 +5,7 @@ from rpxdock.search import hier_search, grid_search
 from rpxdock.filter import filters
 import willutil as wu
 
-def make_cyclic_hier_sampler(sym, monomer, hscore, **kw):
+def make_cyclic_stack_hier_sampler(sym, monomer, hscore, **kw):
     '''
    :param monomer:
    :param hscore:
@@ -18,12 +18,13 @@ def make_cyclic_hier_sampler(sym, monomer, hscore, **kw):
    ori_resl: orientation resolution for sampling
    returns "arrays of pos" to check for a given search resolution where pos are represented by matrices
    '''
-    nfold = float(sym[1:])
     kw = wu.Bunch(kw)
+    nfold = float(sym[1:])
     # cart_resl, ori_resl = hscore.base.attr.xhresl
     if kw.limit_rotation_to_z:
+        raise NotImplementedError
         maxcart = monomer.radius_max() * nfold / 3
-        sampler = rp.sampling.RotCart1Hier_f4(0.0,
+        cycsamp = rp.sampling.RotCart1Hier_f4(0.0,
                                               maxcart,
                                               int(maxcart),
                                               0.0,
@@ -32,53 +33,48 @@ def make_cyclic_hier_sampler(sym, monomer, hscore, **kw):
                                               axis=[0, 0, 1],
                                               cartaxis=[1, 0, 0])
     elif kw.disable_rotation:
+        raise NotImplementedError
         maxcart = monomer.radius_max() * nfold / 3
-        sampler = rp.sampling.CartHier2D_f4([-maxcart, maxcart], [-maxcart, maxcart], int(maxcart / 4))
+        cycsamp = rp.sampling.CartHier2D_f4([-maxcart, maxcart], [-maxcart, maxcart], int(maxcart / 4))
     else:
-        cart_resl, ori_resl = 8.0, 25.0
-        ncart = int(np.ceil(nfold / 3 * monomer.radius_max() / cart_resl))
-        sampler = rp.sampling.OriCart1Hier_f4([0.0], [ncart * cart_resl], [ncart], ori_resl)
+        lb, ub = 0, nfold / 3 * monomer.radius_max()
+        if len(kw.cart_bounds) == 3: lb, ub = kw.cart_bounds[0]
+        ncart = max(1, int(np.ceil((ub - lb) / kw.cart_resl)))
+        cycsamp = rp.sampling.OriCart1Hier_f4([lb], [ub], [ncart], kw.ori_resl)
 
-    # indices = np.arange(sampler.size(0), dtype='u8')
-    # mask, xforms = sampler.get_xforms(0, indices)
+    # indices = np.arange(cycsamp.size(0), dtype='u8')
+    # mask, xforms = cycsamp.get_xforms(0, indices)
     # wu.showme(xforms)
 
-    return sampler
+    ang_range = 360 / nfold
+    lb, ub = 0, 3 * monomer.radius_max()
+    if len(kw.cart_bounds) == 3: lb, ub = kw.cart_bounds[2]
+    stacksamp = rp.sampling.RotCart1Hier_f4(lb, ub, max(1, int((ub - lb) / kw.cart_resl)), 0.0, ang_range,
+                                            int(ang_range / kw.ori_resl))
+    # stacksamp = rp.sampling.ZeroDHier(wu.htrans([0, 0, 1]))
 
-def make_cyclic_grid_sampler(sym, monomer, cart_resl, ori_resl, **kw):
-    ncart = int(np.ceil(2 * monomer.radius_max() / cart_resl))
-    hiersampler = rp.sampling.OriCart1Hier_f4([0.0], [ncart * cart_resl], [ncart], ori_resl)
-    isvalid, xforms = hiersampler.get_xforms(0, np.arange(hiersampler.size(0)))
-    return xforms[isvalid]
+    return rp.sampling.CompoundHier(cycsamp, stacksamp)
 
-_default_samplers = {hier_search: make_cyclic_hier_sampler, grid_search: make_cyclic_grid_sampler}
-
-def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
-    '''
-   monomer and sym are the input single unit and symmetry
-   hscore (hierarchical score) defines the score functions
-   Contains scores for motifs at coarse --> fine levels of search resolution
-   sampler enumerates positions
-   search is usually hier_search but grid_search is also available
-   '''
+def make_cyclic_stack(monomer, sym, hscore, **kw):
     kw = wu.Bunch(kw, _strict=False)
     t = wu.Timer().start()
     sym = "C%i" % sym if isinstance(sym, int) else sym
     kw.nresl = hscore.actual_nresl if kw.nresl is None else kw.nresl
     kw.output_prefix = kw.output_prefix if kw.output_prefix else sym
-    if search is None:
-        if kw.docking_method not in 'hier grid'.split():
-            raise ValueError('--docking_method must be either "hier" or "grid"')
-        if kw.docking_method == 'hier':
-            search = hier_search
-        elif kw.docking_method == 'grid':
-            search = grid_search
-    if sampler is None:
-        sampler = _default_samplers[search](sym, monomer, hscore=hscore, **kw)
-    evaluator = CyclicEvaluator(monomer, sym, hscore, **kw)
-    xforms, scores, extra, stats = search(sampler, evaluator, **kw)
-    ibest = rp.filter_redundancy(xforms, monomer, scores, symframes=sym, **kw)
-    tdump = _debug_dump_cyclic(xforms, monomer, sym, scores, ibest, evaluator, **kw)
+    sampler = make_cyclic_stack_hier_sampler(sym, monomer, hscore, **kw)
+    evaluator = CyclicStackEvaluator(monomer, sym, hscore, **kw)
+
+    if 0:
+        x = sampler.get_xforms(0, np.arange(sampler.size(0)))[1]
+        ic(x.shape)
+        wu.showme(x[:, 0] @ wu.htrans([1, 2, 3]))
+        wu.showme(evaluator.symrot @ x[:, 0] @ wu.htrans([1, 2, 3]))
+        # wu.showme(x[:, 1] @ x[:, 0] @ wu.htrans([1, 2, 3]))
+        assert 0
+
+    xforms, scores, extra, stats = hier_search(sampler, evaluator, **kw)
+    ibest = rp.filter_redundancy(xforms, [monomer] * 2, scores, symframes=sym, **kw)
+    tdump = _debug_dump_cyclic_stack(xforms, [monomer] * 2, sym, scores, ibest, evaluator, **kw)
 
     if kw.verbose:
         print(f"rate: {int(stats.ntot / t.total):,}/s ttot {t.total:7.3f} tdump {tdump:7.3f}")
@@ -91,16 +87,7 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
         ibest = ibest[sbest]
 
     xforms = xforms[ibest]
-    '''
-   dump pickle: (multidimensional pandas df) 
-   bodies: list of bodies/pos used in docking  
-   attrs: xarray of all global config args, timing stats, total time, time to dump, and sym
-   scores: weighted combined score by modelid
-   xforms: xforms pos by modelid 
-   rpx: rpxscore
-   ncontact: ncontact score
-   reslb/ub: lowerbound/upperbound of trimming
-   '''
+    xforms[:, 1] = xforms[:, 1] @ xforms[:, 0]
     wrpx = kw.wts.sub(rpx=1, ncontact=0)
     wnct = kw.wts.sub(rpx=0, ncontact=1)
     rpx, extra = evaluator(xforms, kw.nresl - 1, wrpx)
@@ -109,7 +96,7 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
     data = dict(
         attrs=dict(arg=kw, stats=stats, ttotal=t.total, tdump=tdump, sym=sym),
         scores=(["model"], scores[ibest].astype("f4")),
-        xforms=(["model", "hrow", "hcol"], xforms),
+        xforms=(["model", "oristack", "hrow", "hcol"], xforms),
         rpx=(["model"], rpx.astype("f4")),
         ncontact=(["model"], ncontact.astype("f4")),
     )
@@ -127,11 +114,11 @@ def make_cyclic(monomer, sym, hscore, search=None, sampler=None, **kw):
             data[k] = v
 
     return rp.Result(
-        bodies=None if kw.dont_store_body_in_results else [[monomer]],
+        bodies=None if kw.dont_store_body_in_results else [[monomer, monomer.copy()]],
         **data,
     )
 
-class CyclicEvaluator:
+class CyclicStackEvaluator:
     '''
    Takes a monomer position, generates a sym neighbor, and checks for "flat"-ish surface between the sym neighbors
    For trimming: does trimming thing and finds intersection until overlap isn't too overlappy/clashy anymore
@@ -150,51 +137,26 @@ class CyclicEvaluator:
         kw = self.kw.sub(wts=wts)
         # xeye = np.eye(4, dtype="f4")
         body, sfxn = self.body, self.hscore.scorepos
-        xforms = xforms.reshape(-1, 4, 4)  # body.pos
-        xsym = self.symrot @ xforms  # symmetrized version of xforms
+        xori = xforms[:, 0]
+        xsym = self.symrot @ xori  # symmetrized version of xforms
+        xstack = xforms[:, 1] @ xori
         kw.mindis = kw.clash_distances[iresl]
 
         # check for "flatness"
-        ok = np.abs((xforms @ body.pcavecs[0])[:, 2]) <= self.kw.max_longaxis_dot_z
-
-        # check clash, or get non-clash range
-        if kw.max_trim > 0:
-            trim = body.intersect_range(body, xforms[ok], xsym[ok],
-                                        **kw)  # what residues can you have without clashing
-            trim, trimok = rp.search.trim_ok(trim, body.nres, **kw)
-            ok[ok] &= trimok  # given an array of pos/xforms, filter out pos/xforms that clash
-        else:
-            # if no trim, just checks for clashes (intersecting)
-            ok[ok] &= body.clash_ok(body, xforms[ok], xsym[ok], **kw)
-            trim = [0], [body.nres - 1]  # no trimming
+        ok = np.abs((xori @ body.pcavecs[0])[:, 2]) <= self.kw.max_longaxis_dot_z
+        ok[ok] &= body.clash_ok(body, xori[ok], xsym[ok], **kw)
+        ok[ok] &= body.clash_ok(body, xori[ok], xstack[ok], **kw)
+        ok[ok] &= body.clash_ok(body, xsym[ok], xstack[ok], **kw)
 
         # score everything that didn't clash
-        scores = np.zeros(len(xforms))
-        bounds = (*trim, -1, *trim, -1)
-        '''
-      bounds: valid residue ranges to score after trimming i.e. don't score resi that were trimmed 
-      sfxn: hscore.scorepos scores stuff from the hscore that got passed 
-         takes two pos of bodies (the same monomer in this case)
-         xforms: not clashing xforms 
-         iresl: stage of hierarchical search (grid spacing: 4A --> 2A --> 1A --> 0.5A --> 0.25A)
-         sampling at highest resl probably 0.6A due to ori + cart
-         returns score # for each "dock"
-      '''
-        scores[ok] = sfxn(body, body, xforms[ok], xsym[ok], iresl, bounds, **kw)
+        scores = np.zeros(len(xori))
+        scores[ok] += sfxn(body, body, xori[ok], xsym[ok], iresl, **kw)
+        scores[ok] += sfxn(body, body, xori[ok], xstack[ok], iresl, **kw)
+        scores[ok] += sfxn(body, body, xsym[ok], xstack[ok], iresl, **kw)
 
-        # record ranges used (trim data to return)
-        lb = np.zeros(len(scores), dtype="i4")
-        ub = np.ones(len(scores), dtype="i4") * (body.nres - 1)
-        if trim: lb[ok], ub[ok] = trim[0], trim[1]
+        return scores, wu.Bunch()
 
-        # if iresl is 4:
-        # sel = (scores > 136.3) * (scores < 136.306)
-        # if np.any(sel): print(xforms[sel])
-        # assert 0
-
-        return scores, wu.Bunch(reslb=lb, resub=ub)
-
-def _debug_dump_cyclic(xforms, body, sym, scores, ibest, evaluator, **kw):
+def _debug_dump_cyclic_stack(xforms, body, sym, scores, ibest, evaluator, **kw):
     kw = wu.Bunch(kw, _strict=False)
     t = wu.Timer().start()
     nout_debug = min(10 if kw.nout_debug is None else kw.nout_debug, len(ibest))

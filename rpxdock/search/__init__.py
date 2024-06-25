@@ -4,6 +4,7 @@ from rpxdock.search.hierarchical import *
 from rpxdock.search.result import *
 from rpxdock.search.dockspec import *
 from rpxdock.search.cyclic import *
+from rpxdock.search.cyclic_stack import *
 # from rpxdock.search.gridslide import *
 from rpxdock.search.multicomp import *
 from rpxdock.search.onecomp import *

@@ -151,26 +151,28 @@ def dock_asym(hscore, **kw):
 
     return result
 
-def dock_cyclic(hscore, **kw):
+def dock_cyclic(hscore, stack=False, **kw):
     kw = Bunch(kw, _strict=False)
 
     bodies = [
         rp.Body(inp, allowed_res=ar, required_res_sets=[ar, ara], **kw)
         for inp, ar, ara in zip(kw.inputs1, kw.allowed_residues1, kw.allowed_residues_also1)
     ]
+
     # exe = concurrent.futures.ProcessPoolExecutor
     exe = rp.util.InProcessExecutor
     with exe(kw.ncpu) as pool:
         futures = list()
         # where the magic happens
         for ijob, bod in enumerate(bodies):
-            futures.append(pool.submit(
-                rp.search.make_cyclic,
-                bod,
-                kw.architecture.upper(),
-                hscore,
-                **kw,
-            ))
+            futures.append(
+                pool.submit(
+                    rp.search.make_cyclic_stack if stack else rp.search.make_cyclic,
+                    bod,
+                    kw.architecture.upper().rstrip('STACK'),
+                    hscore,
+                    **kw,
+                ))
             futures[-1].ijob = ijob
         result = [None] * len(futures)
         tqdm = sys.modules['tqdm'].tqdm
@@ -615,15 +617,17 @@ def main():
         rp.options.print_options(kw)
 
     hscore = rp.RpxHier(kw.hscore_files, **kw)
-    arch = kw.architecture
+    arch = kw.architecture.upper()
 
     check_result_files_exist(kw)
 
     # TODO commit to master AK
     # sym, comp = arch.split('_')
     # TODO: redefine archs WHS or others with a monster list of if statements
-    if arch.startswith('C'):
-        result = dock_cyclic(hscore, **kw)
+    if arch.startswith('C') and arch.endswith('STACK'):
+        result = dock_cyclic(hscore, stack=True, **kw)
+    elif arch.startswith('C'):
+        result = dock_cyclic(hscore, stack=False, **kw)
     elif arch == 'ASYM':
         result = dock_asym(hscore, **kw)
     elif len(arch) == 2 or (arch[0] == 'D' and arch[2] == '_'):

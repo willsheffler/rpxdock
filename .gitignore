@@ -98,3 +98,6 @@ doc/cppapi
 rpxdock_Result.pickle
 
 .rpxcache
+
+/tmp
+
