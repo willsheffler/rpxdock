@@ -1,109 +1,117 @@
+import numpy as np
 import rpxdock as rp
 from rpxdock.rotamer.rosetta_rots import (get_rosetta_rots, core, Pose, ala_to_virtCB)
-from willutil import Timer
+import willutil as wu
+
+def main():
+    # test_rosetta_rots_1res(dump_rotamers=True)
+    test_rosetta_rots_1res()
+    # test_rosetta_rots()
+    print('test_rosetta_rots.py DONE')
 
 def test_rosetta_rots_1res(**kw):
 
-   pose = Pose()
-   core.pose.make_pose_from_sequence(pose, 'AAAAAAAAAAAAAAA', 'fa_standard', auto_termini=False)
-   ala_to_virtCB(pose)
+    pose = Pose()
+    core.pose.make_pose_from_sequence(pose, 'AAAAAAAAAAAAAAA', 'fa_standard', auto_termini=False)
+    # ala_to_virtCB(pose)
 
-   for i in range(1, pose.size() + 1):
-      pose.set_phi(i, -47)
-      pose.set_psi(i, -57)
-      pose.set_omega(i, 180)
-   sfxn = rp.rosetta.get_score_function()
-   sfxn.score(pose)
-   # pose.dump_pdb("refhelix.pdb").
+    for i in range(1, pose.size() + 1):
+        pose.set_phi(i, -47)
+        pose.set_psi(i, -57)
+        pose.set_omega(i, 180)
+    sfxn = core.scoring.get_score_function()
+    sfxn.score(pose)
+    # pose.dump_pdb("refhelix.pdb").
 
-   fields = [
-      'coords', 'rotnum', 'atomnum', 'resname', 'atomname', 'atomtype', 'rosetta_atom_type_index'
-   ]
+    fields = ['coords', 'rotnum', 'atomnum', 'resname', 'atomname', 'atomtype', 'rosetta_atom_type_index']
 
-   t = Timer().start()
+    t = wu.Timer().start()
 
-   rotdata = get_rosetta_rots(pose, [8], sfxn, **kw)
-   for f in fields:
-      assert len(rotdata[f]) == 105
-   assert 9 == len(rotdata.onebody)
-   t.checkpoint('no ex')
+    rotdata = get_rosetta_rots(pose, [8], sfxn, **kw)
 
-   rotdata = get_rosetta_rots(pose, [8], sfxn, extra_rots=[1, 0, 0, 0], **kw)
-   for f in fields:
-      assert len(rotdata[f]) == 294
-   assert 24 == len(rotdata.onebody)
-   t.checkpoint('ex1')
+    ic('rosetta_rots_1res.pickle')
+    wu.save(rotdata.asdict(), 'rosetta_rots_1res.pickle')
 
-   rotdata = get_rosetta_rots(pose, [8], sfxn, extra_rots=[0, 1, 0, 0], **kw)
-   for f in fields:
-      assert len(rotdata[f]) == 287
-   assert 23 == len(rotdata.onebody)
-   t.checkpoint('ex2')
+    return
 
-   rotdata = get_rosetta_rots(pose, [8], sfxn, extra_rots=[1, 1, 0, 0], **kw)
-   for f in fields:
-      assert len(rotdata[f]) == 814
-   assert 64 == len(rotdata.onebody)
-   t.checkpoint('ex1 ex2')
+    for f in fields:
+        assert len(rotdata[f]) == 105
+    assert 9 == len(rotdata.onebody)
+    t.checkpoint('no ex')
 
-   print(t)
+    rotdata = get_rosetta_rots(pose, [8], sfxn, extra_rots=[1, 0, 0, 0], **kw)
+    for f in fields:
+        assert len(rotdata[f]) == 294
+    assert 24 == len(rotdata.onebody)
+    t.checkpoint('ex1')
+
+    rotdata = get_rosetta_rots(pose, [8], sfxn, extra_rots=[0, 1, 0, 0], **kw)
+    for f in fields:
+        assert len(rotdata[f]) == 287
+    assert 23 == len(rotdata.onebody)
+    t.checkpoint('ex2')
+
+    rotdata = get_rosetta_rots(pose, [8], sfxn, extra_rots=[1, 1, 0, 0], **kw)
+    for f in fields:
+        assert len(rotdata[f]) == 814
+    assert 64 == len(rotdata.onebody)
+    t.checkpoint('ex1 ex2')
+
+    print(t)
 
 def test_rosetta_rots(**kw):
-   print('test_rosetta_rots begin')
+    print('test_rosetta_rots begin')
 
-   pose = Pose()
-   core.pose.make_pose_from_sequence(pose, 'AAAAAAAAAAAAAAA', 'fa_standard', auto_termini=False)
-   ala_to_virtCB(pose)
+    pose = Pose()
+    core.pose.make_pose_from_sequence(pose, 'AAAAAAAAAAAAAAA', 'fa_standard', auto_termini=False)
+    ala_to_virtCB(pose)
 
-   for i in range(1, pose.size() + 1):
-      pose.set_phi(i, -47)
-      pose.set_psi(i, -57)
-      pose.set_omega(i, 180)
-   sfxn = rp.rosetta.get_score_function()
-   sfxn.score(pose)
-   # pose.dump_pdb("refhelix.pdb").
+    for i in range(1, pose.size() + 1):
+        pose.set_phi(i, -47)
+        pose.set_psi(i, -57)
+        pose.set_omega(i, 180)
+    sfxn = rp.rosetta.get_score_function()
+    sfxn.score(pose)
+    # pose.dump_pdb("refhelix.pdb").
 
-   fields = [
-      'coords',
-      'rotnum',
-      'atomnum',
-      'resname',
-      'atomname',
-      'atomtype',
-      'rosetta_atom_type_index',
-   ]
+    fields = [
+        'coords',
+        'rotnum',
+        'atomnum',
+        'resname',
+        'atomname',
+        'atomtype',
+        'rosetta_atom_type_index',
+    ]
 
-   t = Timer().start()
+    t = wu.Timer().start()
 
-   rotdata = get_rosetta_rots(pose, [8], sfxn, **kw)
-   for f in fields:
-      assert len(rotdata[f]) == 105
-   assert 9 == len(rotdata.onebody)
-   t.checkpoint('no ex')
+    rotdata = get_rosetta_rots(pose, [8], sfxn, **kw)
+    for f in fields:
+        assert len(rotdata[f]) == 105
+    assert 9 == len(rotdata.onebody)
+    t.checkpoint('no ex')
 
-   rotdata = get_rosetta_rots(pose, [8], sfxn, extra_rots=[1, 0, 0, 0], **kw)
-   for f in fields:
-      assert len(rotdata[f]) == 294
-   assert 24 == len(rotdata.onebody)
-   t.checkpoint('ex1')
+    rotdata = get_rosetta_rots(pose, [8], sfxn, extra_rots=[1, 0, 0, 0], **kw)
+    for f in fields:
+        assert len(rotdata[f]) == 294
+    assert 24 == len(rotdata.onebody)
+    t.checkpoint('ex1')
 
-   rotdata = get_rosetta_rots(pose, [8], sfxn, extra_rots=[0, 1, 0, 0], **kw)
-   for f in fields:
-      assert len(rotdata[f]) == 287
-   assert 23 == len(rotdata.onebody)
-   t.checkpoint('ex2')
+    rotdata = get_rosetta_rots(pose, [8], sfxn, extra_rots=[0, 1, 0, 0], **kw)
+    for f in fields:
+        assert len(rotdata[f]) == 287
+    assert 23 == len(rotdata.onebody)
+    t.checkpoint('ex2')
 
-   rotdata = get_rosetta_rots(pose, [8], sfxn, extra_rots=[1, 1, 0, 0], **kw)
-   for f in fields:
-      assert len(rotdata[f]) == 814
-   assert 64 == len(rotdata.onebody)
-   t.checkpoint('ex1 ex2')
+    rotdata = get_rosetta_rots(pose, [8], sfxn, extra_rots=[1, 1, 0, 0], **kw)
+    for f in fields:
+        assert len(rotdata[f]) == 814
+    assert 64 == len(rotdata.onebody)
+    t.checkpoint('ex1 ex2')
 
-   print(t)
-   print('test_rosetta_rots begin')
+    print(t)
+    print('test_rosetta_rots begin')
 
 if __name__ == '__main__':
-   # test_rosetta_rots_1res(dump_rotamers=True)
-   # test_rosetta_rots  _1res()
-   test_rosetta_rots()
-   print('test_rosetta_rots.py DONE')
+    main()

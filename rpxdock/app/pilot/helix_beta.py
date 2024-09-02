@@ -1,4 +1,5 @@
-import sys
+
+gimport sys
 import rpxdock as rp
 import numpy as np
 import argparse

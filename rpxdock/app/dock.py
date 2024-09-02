@@ -192,11 +192,14 @@ def dock_onecomp(hscore, **kw):
     crtbnd = kw.cart_bounds[0]
 
     # If necessary determine accessibility and flip restriction first
-    make_poselist = False
-    for inp_pair in kw.term_access:
-        if not make_poselist: make_poselist = any(True in pair for pair in inp_pair)
-    if make_poselist or not all(None in pair for pair in kw.termini_dir):
-        poses, og_lens = rp.rosetta.helix_trix.init_termini(make_poselist, **kw)
+    try:
+        make_poselist = False
+        for inp_pair in kw.term_access:
+            if not make_poselist: make_poselist = any(True in pair for pair in inp_pair)
+        if make_poselist or not all(None in pair for pair in kw.termini_dir):
+            poses, og_lens = rp.rosetta.helix_trix.init_termini(make_poselist, **kw)
+    except ImportError:
+        print('no pyrosetta, helix termini stuff diabled')
 
     # double normal resolution, cuz why not?
     if kw.docking_method == 'grid':
@@ -250,26 +253,10 @@ def dock_onecomp(hscore, **kw):
             for inp, ar, ara in zip(kw.inputs1, kw.allowed_residues1, kw.allowed_residues_also1)
         ]
 
-    exe = concurrent.futures.ProcessPoolExecutor
-    # exe = rp.util.InProcessExecutor
-    with exe(kw.ncpu) as pool:
-        futures = list()
-        for ijob, bod in enumerate(bodies):
-            futures.append(pool.submit(
-                rp.search.make_onecomp,
-                bod,
-                spec,
-                hscore,
-                search,
-                sampler,
-                **kw,
-            ))
-            futures[-1].ijob = ijob
-        result = [None] * len(futures)
-        tqdm = sys.modules['tqdm'].tqdm
-        if kw.quiet: tqdm = lambda x, *a, **k: x
-        for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
-            result[f.ijob] = f.result()
+    result = []
+    for ijob, bod in enumerate(bodies):
+        r = rp.search.make_onecomp(bod, spec, hscore, search, sampler, **kw)
+        result.append(r)
 
     result = rp.concat_results(result)
     return result
@@ -295,11 +282,14 @@ def dock_multicomp(hscore, **kw):
     # =======
 
     # Determine accessibility and flip restriction before we make sampler
-    make_poselist = False
-    for inp_pair in kw.term_access:
-        if not make_poselist: make_poselist = any(True in pair for pair in inp_pair)
-    if make_poselist or not all(None in pair for pair in kw.termini_dir):
-        poses, og_lens = rp.rosetta.helix_trix.init_termini(make_poselist, **kw)
+    try:
+        make_poselist = False
+        for inp_pair in kw.term_access:
+            make_poselist |= any(True in pair for pair in inp_pair)
+        if make_poselist or any(None not in pair for pair in kw.termini_dir):
+            poses, og_lens = rp.rosetta.helix_trix.init_termini(make_poselist, **kw)
+    except ImportError:
+        print('no pyrosetta, helix termini stuff diabled')
 
     sampler = rp.sampling.hier_multi_axis_sampler(spec, **kw)
     logging.info(f'num base samples {sampler.size(0):,}')
@@ -319,27 +309,9 @@ def dock_multicomp(hscore, **kw):
         ] for inp, ar, ara in zip(kw.inputs, kw.allowed_residues, kw.allowed_residues_also)]
     assert len(bodies) == spec.num_components
 
-    exe = concurrent.futures.ProcessPoolExecutor
-    # exe = rp.util.InProcessExecutor
-    with exe(kw.ncpu) as pool:
-        futures = list()
-        for ijob, bod in enumerate(itertools.product(*bodies)):
-            futures.append(
-                pool.submit(
-                    rp.search.make_multicomp,
-                    bod,
-                    spec,
-                    hscore,
-                    rp.hier_search,
-                    sampler,
-                    **kw,
-                ))
-            futures[-1].ijob = ijob
-        result = [None] * len(futures)
-        tqdm = sys.modules['tqdm'].tqdm
-        if kw.quiet: tqdm = lambda x, *a, **k: x
-        for f in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
-            result[f.ijob] = f.result()
+    result = list()
+    for ijob, bod in enumerate(itertools.product(*bodies)):
+        result.append(rp.search.make_multicomp(bod, spec, hscore, rp.hier_search, sampler, **kw))
     result = rp.concat_results(result)
     return result
 

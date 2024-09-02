@@ -718,8 +718,10 @@ def process_cli_args(options, **kw):
     options.score_only_aa = options.score_only_aa.upper()
     options.score_only_ss = options.score_only_ss.upper()
 
-    d = os.path.dirname(options.output_prefix)
-    if d: os.makedirs(d, exist_ok=True)
+    if d := os.path.dirname(options.output_prefix):
+        os.makedirs(d, exist_ok=True)
+    if options.architecture not in options.output_prefix:
+        options.output_prefix += f'{options.architecture}_'
 
     _process_arg_sspair(options)
     options.trim_direction = options.trim_direction.upper()
@@ -728,7 +730,7 @@ def process_cli_args(options, **kw):
         options.architecture = options.architecture.upper()
 
     if not kw.get('dont_set_default_cart_bounds'):
-        options.cart_bounds = _process_cart_bounds(options.cart_bounds, [0, 500])
+        options.cart_bounds = _process_cart_bounds(options.cart_bounds, [0, 200])
     options.mc_cell_bounds = _process_cart_bounds(options.mc_cell_bounds, [0, 1000])
 
     options.trimmable_components = options.trimmable_components.upper()
@@ -911,18 +913,19 @@ def _process_inputs(opt, read_allowed_res_files=True, **kw):
     if len(opt.flip_components) != len(opt.inputs):
         opt.flip_components = opt.flip_components * len(opt.inputs)
 
+    # ic(opt.inputs, opt.inputs1, opt.inputs2, opt.inputs3)
     return opt
 
 def resolve_input_paths(inputs):
     if not len(inputs): return
     if isinstance(inputs[0], str):
         for i in range(len(inputs)):
-            if inputs[i].startswith('rpxdock') and not os.path.exists(
-                    inputs[i]) and os.path.exists(rp.rootdir + '/../' + inputs[i]):
-                inputs[i] = rp.rootdir + '/../' + inputs[i]
+            if (inputs[i].startswith('rpxdock') and not os.path.exists(inputs[i])
+                    and os.path.exists(f'{rp.rootdir}/../{inputs[i]}')):
+                inputs[i] = f'{rp.rootdir}/../{inputs[i]}'
     else:
         for i in range(len(inputs)):
-            inputs[i] = resolve_input_paths(inputs[i])
+            resolve_input_paths(inputs[i])
 
 class DefaultResidueSelector:
     def __init__(self, spec):
@@ -1053,7 +1056,7 @@ def _process_arg_sspair(kw):
 def process_term_options(option, inputs):
     tmp = []
     if len(option) == 1: tmp = [[elem, elem] for elem in option for inp in range(len(inputs))]
-    elif len(option) is len(inputs): tmp = [[option[j], option[j]] for j in range(0, len(inputs))]
+    elif len(option) == len(inputs): tmp = [[option[j], option[j]] for j in range(len(inputs))]
     elif len(option) is len(inputs) * 2:
         tmp = [[option[j], option[j + 1]] for j in range(0, len(inputs) * 2, 2)]
     return tmp

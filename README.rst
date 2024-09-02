@@ -15,14 +15,26 @@ Read the `RPXDock manuscript <https://journals.plos.org/ploscompbiol/article?id=
 
 Running Rpxdock
 ###############
-The first time you run rpxdock, it will build some C++ files, this takes a few minutes. ::
+Here is a simple example, tested with python 3.12. The first time you run rpxdock, it will build some C++ files, this takes a few minutes. ::
 
    virtualenv rpxdock_venv
-   source ./rpxdock_test/bin/activate # if not bash, use appropriate script in this dir
+   source ./rpxdock_venv/bin/activate # if not bash, use appropriate script in this dir
+
    pip install git+https://github.com/willsheffler/rpxdock
+
    python -m pytest --pyargs rpxdock # optional
-   python -m rpxdock --architecture c6stack --inputs1 rpxdock/data/pdb/top7.pdb.gz --hscore_data_dir /home/sheffler/data/rpx/hscore/willsheffler --dump_pdbs --output_prefix c6stack
-   rm -rf rpxdock_venv
+
+   # dock monomers into cyclic oligomers:
+   python -mrpxdock --architecture C3 --inputs1 rpxdock/data/pdb/C3_1na0-1_1.pdb.gz --dump_pdbs --hscore_data_dir /data/sheffler/data/rpx/hscore/willsheffler/
+   python -mrpxdock --architecture C17 --inputs1 rpxdock/data/pdb/C3_1na0-1_1.pdb.gz --dump_pdbs --hscore_data_dir /data/sheffler/data/rpx/hscore/willsheffler/
+
+   # dock cages from cyclic oligomers:
+   python -mrpxdock --architecture T32 --inputs1 rpxdock/data/pdb/C3_1na0-1_1.pdb.gz --inputs2 rpxdock/data/pdb/C2_REFS10_1.pdb.gz --dump_pdbs --hscore_data_dir /data/sheffler/data/rpx/hscore/willsheffler/
+   python -mrpxdock --architecture O32 --inputs1 rpxdock/data/pdb/C3_1na0-1_1.pdb.gz --inputs2 rpxdock/data/pdb/C2_REFS10_1.pdb.gz --dump_pdbs --hscore_data_dir /data/sheffler/data/rpx/hscore/willsheffler/
+   python -mrpxdock --architecture I32 --inputs1 rpxdock/data/pdb/C3_1na0-1_1.pdb.gz --inputs2 rpxdock/data/pdb/C2_REFS10_1.pdb.gz --dump_pdbs --hscore_data_dir /data/sheffler/data/rpx/hscore/willsheffler/
+
+   deactivate # leave rpxdock_venv
+   rm -rf rpxdock_venv # delete rpxdock_venv
 
 
 Useful scripts:
