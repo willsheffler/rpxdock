@@ -20,7 +20,7 @@ def score_fun2(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, **kw):
       mu = 75
       sigma = 50
       b = np.log(mu**2 / np.sqrt(mu**2 + sigma**2))
-      c = np.log(1 + (sigma**2 / mu**2))
+      c = np.sqrt(np.log(1 + (sigma**2 / mu**2)))
       #ncont_score = a * np.exp( -((ncont) - mu)**2 / (2*sigma**2) )
       if (ub - lb) > 0:
          ncont_score = (a / (c * np.sqrt(2 * np.pi) *
@@ -69,7 +69,8 @@ def sasa_priority(pos1, pos2, lbub, lbub1, lbub2, ressc1, ressc2, pairs, **kw):
 
    #calculate parameterization factors
    b = np.log(mu**2 / np.sqrt(mu**2 + sigma**2))
-   c = np.log(1 + (sigma**2 / mu**2))
+   # c is the log-space standard deviation (not variance) used in the log-normal pdf
+   c = np.sqrt(np.log(1 + (sigma**2 / mu**2)))
 
    #normalization of the lognormal distribution to the maximum score so that all possible sasa/sigma combinations
    #result in the same maximum possible score
